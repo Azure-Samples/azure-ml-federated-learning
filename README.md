@@ -1,57 +1,11 @@
-# Project Name
+# Federated Learning in Azure ML
 
-(short, 1-3 sentenced, description of the project)
+Although there is no specific commitment to a timeline yet, Azure ML is working on first-class support for cross-silo federated learning.
+Internal link: [aka.ms/aims/fl](https://aka.ms/aims/fl/).
 
-## Features
+Current contents:
+- `automated_provisioning`: a collection of resources to automatically provision the orchestrator and silos resources.
+- `fl_arc_k8s`: simple example of using shrike Federated Learning API + Arc + Kubernetes + Azure ML to submit a Federated Learning experiment.
+- `plan`: generic plan for a company to onboard to Federated Learning through Azure ML.
 
-This project framework provides the following features:
-
-* Feature 1
-* Feature 2
-* ...
-
-## Getting Started
-
-### Prerequisites
-
-(ideally very short, if any)
-
-- OS
-- Library version
-- ...
-
-### Installation
-
-(ideally very short)
-
-- npm install [package name]
-- mvn install
-- ...
-
-### Quickstart
-(Add steps to get up and running quickly)
-
-1. git clone [repository clone url]
-2. cd [respository name]
-3. ...
-
-
-## Demo
-
-A demo app is included to show how to use the project.
-
-To run the demo, follow these steps:
-
-(Add steps to start up the demo)
-
-1.
-2.
-3.
-
-## Resources
-
-(Any additional resources or related projects)
-
-- Link to supporting information
-- Link to similar sample
-- ...
+More details, recipes, and examples coming soon!
