@@ -1,7 +1,6 @@
 # Federated Learning in Azure ML
 
 Although there is no specific commitment to a timeline yet, Azure ML is working on first-class support for cross-silo federated learning.
-Internal link: [aka.ms/aims/fl](https://aka.ms/aims/fl/).
 
 Current contents:
 - `automated_provisioning`: a collection of resources to automatically provision the orchestrator and silos resources.

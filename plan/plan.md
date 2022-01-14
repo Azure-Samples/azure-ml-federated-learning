@@ -28,7 +28,7 @@ AIMS & MSR teams onboard to Contoso's data and codebase.
 Bring AIMS & MSR folks into relevant security groups on the Contoso side, and likewise add Contoso to AIMS' contributors security group.
 - **Milestone:** Contoso folks can see current synthetic federated pipelines, add everyone to "Federated Learning" Teams channel. 
 
-AIMS & Contoso onboard to [FLUTE](https://github.com/microsoft/msrflute) for running their first simulations of federated jobs. Contoso can find more context at this page: aka.ms/aims/fl (internal only). 
+AIMS & Contoso onboard to [FLUTE](https://github.com/microsoft/msrflute) for running their first simulations of federated jobs. 
 - **Milestone:** Conduct ad-hoc eyes-on (public data) synthetic federated experiments & profiling, SKU profiling. These may leverage FLUTE. 
 
 Decide on and write up detailed technical architecture document.

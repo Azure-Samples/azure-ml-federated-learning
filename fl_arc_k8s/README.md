@@ -2,14 +2,14 @@
 
 ## Setup
 
-- Clone the current repository and set `accelerators\federated-learning\fl_arc_k8s` as your working directory.
+- Clone the current repository and set `fl_arc_k8s` as your working directory.
 - Set up and activate a new Conda environment with python version 3.8 and shrike dependencies (environment is defined in `environment.yml` and `requirements.txt`):
 
   `conda env create --file environment.yml`
 
 ## How to run the example
 
-Assume you're already in the directory `accelerators\federated-learning\fl_arc_k8s` and the conda environment 'fl-shrike-examples-env-py38' in the Setup step above is activated, you could simply run below command within the Anaconda Powershell prompt window to submit the experiment:
+Assume you're already in the directory `fl_arc_k8s` and the conda environment 'fl-shrike-examples-env-py38' in the Setup step above is activated, you could simply run below command within the Anaconda Powershell prompt window to submit the experiment:
 
 ```
 python pipelines/experiments/demo_federated_learning_k8s.py --config-dir pipelines/config --config-name experiments/demo_federated_learning_k8s +run.submit=True
