@@ -26,7 +26,7 @@ Param(
 )
 
 # load useful functions
-. "$PSScriptRoot\AzureUtilities.ps1"
+. "$PSScriptRoot/AzureUtilities.ps1"
 
 # Validating the required name of the Azure ML compute
 Confirm-ComputeName $AMLComputeName
@@ -43,7 +43,7 @@ if ($Workspaces.Length -eq 0){
     Write-Output "Name of the AML workspace's resource group to create: $AMLWorkspaceRGName, in $AMLWorkspaceLocation location."
     Deploy-RGIfInexistent $AMLWorkspaceRGName, $AMLWorkspaceLocation, "AML workspace"
     Write-Output "Creating the workspace '$AMLWorkspaceName'..."
-    az deployment group create --resource-group $AMLWorkspaceRGName --template-file .\bicep\AMLWorkspace.bicep --parameters workspacename=$AMLWorkspaceName  location=$AMLWorkspaceLocation
+    az deployment group create --resource-group $AMLWorkspaceRGName --template-file ./bicep/AMLWorkspace.bicep --parameters workspacename=$AMLWorkspaceName  location=$AMLWorkspaceLocation
 } else {
     Write-Output "The AML workspace $AMLWorkspaceName already exists."
 }

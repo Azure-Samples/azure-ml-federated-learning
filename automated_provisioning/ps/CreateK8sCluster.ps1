@@ -22,7 +22,7 @@ Param(
 )
 
 # load useful functions
-. "$PSScriptRoot\AzureUtilities.ps1"
+. "$PSScriptRoot/AzureUtilities.ps1"
 
 # making sure we're in the right subscription
 Write-Output "We'll be setting up a silo in this subscription: $SubscriptionId."
@@ -40,7 +40,7 @@ $ManagedClusters =  az aks list --resource-group $RGName --query "[?name=='$K8sC
 if ($ManagedClusters.Length -eq 0){
     Write-Output "Creating the K8s cluster..."
     $DeploymentName = $K8sClusterName + "-deployment"
-    az deployment group create --resource-group $RGName --name $DeploymentName --template-file ".\arm\managed_k8s.json" --parameters aksClusterName=$K8sClusterName dnsPrefix=$K8sClusterName agentCount=$AgentCount agentVMSize=$AgentVMSize
+    az deployment group create --resource-group $RGName --name $DeploymentName --template-file "./arm/managed_k8s.json" --parameters aksClusterName=$K8sClusterName dnsPrefix=$K8sClusterName agentCount=$AgentCount agentVMSize=$AgentVMSize
 } else {
     Write-Output "The K8s cluster $K8sClusterName already exists."
 }
