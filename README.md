@@ -7,6 +7,8 @@ Although there is no specific commitment to a timeline yet, Azure ML is working 
 - only data of public or system metadata classification can be moved outside the silo;
 - only "approved" jobs can change the classification of data or move it outside the silo.
 
+Silos are expected to be reliable (i.e., no concerns around network connectivity or uptime). We also assume a hard cap of **≤ 100 silos**.
+
 Current contents:
 - `automated_provisioning`: a collection of resources to automatically provision the orchestrator and silos resources.
 - `fl_arc_k8s`: simple example of using shrike Federated Learning API + Arc + Kubernetes + Azure ML to submit a Federated Learning experiment.

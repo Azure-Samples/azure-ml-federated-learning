@@ -1,1 +1,1 @@
-shrike[pipeline]>=1.14.0
+shrike[pipeline]>=1.15.0

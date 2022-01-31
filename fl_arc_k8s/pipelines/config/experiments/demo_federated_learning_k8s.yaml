@@ -8,7 +8,7 @@ run:
   experiment_description: Demo of federated learning APIs.
 
 module_loader: 
-  use_local: "!office.smart_reply.fl.data_transfer"
+  use_local: "*"
   local_steps_folder: ../../../components
 
 democomponent:
@@ -18,14 +18,15 @@ democomponent:
 federated_config:
   max_iterations: 3
   data_transfer_component: datatransfer
+  deactivate_data_transfer: False
   silos:
     westus:
-      compute: shizs-k8s-arc2 
+      compute: jialei-k8s-t0
       inherit: [foo_config]
       params:
         dataset: test_uploaded_from_local
     eastus:
-      compute: thopo-k8s-arc
+      compute: shizs-k8s-arc2 
       datastore: fl_eus
     canada:
       compute: thopo-k8s-arc2
