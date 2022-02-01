@@ -1,0 +1,46 @@
+defaults:
+- aml: public_workspace
+- compute: public_workspace
+- modules: module_defaults
+
+run:
+  experiment_name: demo_federated_learning_k8s
+  experiment_description: Demo of federated learning APIs.
+
+module_loader: 
+  use_local: "*"
+  local_steps_folder: ../../../components
+
+democomponent:
+  input_data: irisdata
+  input_data_version: latest
+
+federated_config:
+  max_iterations: 3
+  data_transfer_component: datatransfer
+  deactivate_data_transfer: False
+  silos:
+    westus:
+      compute: shizs-cont1-comp
+      inherit: [foo_config]
+      params:
+        dataset: test_uploaded_from_local
+    eastus:
+      compute: shizs-k8s-arc2 
+      datastore: fl_eus
+    canada:
+      compute: thopo-k8s-arc2
+      datastore: fl_canada
+      inherit: [foo_config, bar_config]
+  params:
+    msg: random msg
+  config_group:
+    default_config:
+      params:
+        msg: shared msg
+        dataset: test_csv_new
+    foo_config:
+      datastore: fl_wus
+    bar_config:
+      params:
+        msg: per-silo msg
