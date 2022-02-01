@@ -21,7 +21,7 @@ federated_config:
   deactivate_data_transfer: False
   silos:
     westus:
-      compute: jialei-k8s-t0
+      compute: shizs-cont1-comp
       inherit: [foo_config]
       params:
         dataset: test_uploaded_from_local
