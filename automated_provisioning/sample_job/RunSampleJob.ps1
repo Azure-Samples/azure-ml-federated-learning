@@ -32,4 +32,4 @@ if ($ExistingMNISTDataset.Length -eq 0){
 
 # run the job
 Write-Output "Submitting the job..."
-az ml job create -f ./sample_job/job.yml --web
+az ml job create -f ./sample_job/job.yml --web -g $ResourceGroup -w $WorkspaceName
