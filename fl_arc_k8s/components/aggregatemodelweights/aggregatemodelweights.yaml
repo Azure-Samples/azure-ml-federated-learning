@@ -30,7 +30,8 @@ outputs:
 command: >-
   python run.py --results {outputs.results} [--input_data_01 {inputs.input_data_01}] [--input_data_02 {inputs.input_data_02}] [--input_data_03 {inputs.input_data_03}]
 environment:
+  conda:
+    conda_dependencies_file: component_env.yaml
   docker:
-    enabled: true
-    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu18.04 # for eyes-on experiments
+    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu18.04
   os: Linux

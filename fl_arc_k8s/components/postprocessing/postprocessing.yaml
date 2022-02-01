@@ -22,7 +22,8 @@ outputs:
 command: >-
   python run.py --results {outputs.results} [--input_data {inputs.input_data}]
 environment:
+  conda:
+    conda_dependencies_file: component_env.yaml
   docker:
-    enabled: true
-    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu18.04 # for eyes-on experiments
+    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu18.04
   os: Linux

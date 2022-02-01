@@ -1,0 +1,7 @@
+name: fl_demo
+dependencies:
+  - python=3.7
+  - pip:
+    - azureml-core==1.20.0
+    - transformers==4.12.5
+    - torch==1.10.1
