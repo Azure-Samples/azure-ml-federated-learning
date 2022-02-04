@@ -72,7 +72,7 @@ If __multiple__ AAD tenants are involved, we provide the following resource prov
 
 ## Test FL job 
 
-:exclamation: Note that this part is currently _ongoing_. Thr goal is to provide the same job with our resources as a reference for the customers.  
+:exclamation: Note that this part is currently _ongoing_. The goal is to provide the same job with our resources as a reference for the customers.  
 
 4. Upload the provided data to each silo’s storage. 
 5. Download the provided FL script and model to the machine that can connect to the orchestrator workspace. 
@@ -85,4 +85,4 @@ If __multiple__ AAD tenants are involved, we provide the following resource prov
 
 10. Ready the baseline model (or base query in the case of Federated _Analysis_) and the resources that can be used to train the model. 
 11. Confirm there are data in various silos. Access to these data should be restricted. 
-12. Submit your actual FL job using the FL pipeline with proper hyperparameters
+12. Submit your actual FL job using the FL pipeline with proper hyperparameters.
