@@ -57,7 +57,7 @@ The prerequisite of a _federated_ learning job is a _machine_ learning model, wh
 - a working model trained with some real yet small data, or  
 - a model architecture that is proven effective via synthetic training data. 
 
-One example of a hospital (i.e., the customer) is described below. The hospital’s task is to classify a medical image into positive or negative of a specific disease. The data scientists at the hospital already have a neural network model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance as more hospitals would like to participate in a federated learning way without their data leaving their cluster. 
+One example of a hospital (i.e., the customer) is described below. The hospital’s task is to classify a medical image into positive or negative of a specific disease. The data scientists at the hospital _already_ have a neural network model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance as more hospitals would like to participate in a federated learning way without their data leaving their cluster. 
 
 ## Resource provision 
 
@@ -67,7 +67,7 @@ If __multiple__ AAD tenants are involved, we provide the following resource prov
 
 1. There should be computes in each of the silos. These computes should all be in their own K8s cluster. If not, we provide [this script](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/automated_provisioning/ps/CreateK8sCluster.ps1) to create a K8s cluster. 
 2. Provision an orchestrator workspace, and attach all the silo computes/k8s clusters via Azure Arc. We provide [this script](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/automated_provisioning/ps/ConnectSiloToOrchestrator.ps1) to connect the silos to the orchestrator here.  
-3. We also provide a mock [script](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/automated_provisioning/sample_job/RunSampleJob.ps1) here that does the fan-out/fan-in and uses the silos to ensure the orchestrator can access the k8s in each silo. 
+3. We also provide a mock [script](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/automated_provisioning/sample_job/RunSampleJob.ps1) that helps validate the connection between the orchestrator and the arc-enabled k8s compute cluster in each silo. Note that the script contains only a ML job (i.e., _not_ FL, see the following section for a FL job) initialized in the orchestrator and trained in the silo. 
 
 
 ## Test FL job 
@@ -79,7 +79,7 @@ If __multiple__ AAD tenants are involved, we provide the following resource prov
 6. Define one or several metric(s) of interest (they should be consistent with your actual FL job). 
 7. Select the setting according to the scenario of your actual FL job. For example, differentiable privacy may be added to improve privacy preservation. 
 8. Submit the test job to AML and compare the results to our results. 
-9. Play around the FL hyperparameters (e.g., the parameters in differentiable privacy, the weights for aggregation) to see their impact on the metrics of interest.  
+9. Play around the FL hyperparameters (e.g., parameters in differentiable privacy, weights for aggregation) to see their impact on the metrics of interest.  
 
 ## Actual FL job 
 
