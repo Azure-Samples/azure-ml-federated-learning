@@ -81,8 +81,17 @@ If __multiple__ AAD tenants are involved, we provide the following resource prov
 8. Submit the test job to AML and compare the results to our results. 
 9. Play around the FL hyperparameters (e.g., parameters in differentiable privacy, weights for aggregation) to see their impact on the metrics of interest.  
 
+
 ## Actual FL job 
 
 10. Ready the baseline model (or base query in the case of Federated _Analysis_) and the resources that can be used to train the model. 
 11. Confirm there are data in various silos. Access to these data should be restricted. 
 12. Submit your actual FL job using the FL pipeline with proper hyperparameters.
+
+
+## Deploy the federated model
+
+After training and evaluating your federated model, the last step is to deploy it! That means using the
+model in your product, whether that involves batch (offline) inference or hosting it at a production
+endpoint. Since the federated model is a single model, deployment can happen just like with your
+non-federated models.
