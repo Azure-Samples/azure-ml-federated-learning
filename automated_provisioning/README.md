@@ -78,7 +78,7 @@ The command should look something like the below (with the parameters replaced b
 ### Change compute intense size
 The default compute instance only provision a small portion of your k8s cluster (specifically, 1.5G memory and 0.6 cpu). You may need to override this by the following steps.
 
-Setup your local kubectl environment and connect to the aks.
+Setup your local kubectl environment and connect to the aks. In the PowerShell, run the following
 ```
 az login
 az account set --subscription "subscription-of-Cluster"
