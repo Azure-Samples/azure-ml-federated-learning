@@ -75,6 +75,29 @@ The command should look something like the below (with the parameters replaced b
 ./ps/ConnectSiloToOrchestrator.ps1 -SubscriptionId_Orchestrator "Your-Orchestrator-SubscriptionId" -AMLWorkspaceName "Your-Orchestrator-Workspace-Name" -AMLWorkspaceRGName "Your-Orchestrator-Resource-Group-Name" -AMLWorkspaceLocation "Your-Orchestrator-Location" -K8sClusterName "Name-of-K8s-Cluster-to-Connect" -AMLComputeName "AML-Compute-Name-to-Create"
 ```
 
+### Change compute intense size
+The default compute instance only provision a small portion of your k8s cluster (specifically, 1.5G memory and 0.6 cpu). You may need to override this by the following steps.
+
+Setup your local kubectl environment and connect to the aks.
+```
+az login
+az account set --subscription "subscription-of-Cluster"
+az aks get-credentials --resource-group "Name-of-Cluster-Created"-rg --name "Name-of-Cluster-Created"
+```
+
+Get nodes, and copy the node name. It should be something like `aks-agentpool-xxxxxxx-xxxxxxxxxxx`
+```
+kubectl get nodes 
+```
+
+Label the node and deploy a new instance with the same label:
+```
+kubectl label nodes aks-agentpool-xxxxxxx-xxxxxxxxxxx training_node: my_beefy_node
+kubectl apply -f kube_instance/my_instance_type.yaml
+``` 
+
+Just to verify, go to the orchestrator AML workspace, and find the attached cluster by click "Compute" -> "Attached computers" and search your cluster "AML-Compute-Name-Created".
+
 ### Add more silos
 Just repeat the 2 steps above for every silo you want to create.
 
