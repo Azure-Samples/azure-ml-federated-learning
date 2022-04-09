@@ -96,7 +96,7 @@ kubectl label nodes aks-agentpool-xxxxxxx-xxxxxxxxxxx training_node: my_beefy_no
 kubectl apply -f kube_instance/my_instance_type.yaml
 ``` 
 
-Just to verify, go to the orchestrator AML workspace, and find the attached cluster by click "Compute" -> "Attached computers" and search your cluster "AML-Compute-Name-Created".
+To verify, go to the orchestrator AML workspace, and find the attached cluster by click "Compute" -> "Attached computers" and search your cluster with "AML-Compute-Name".
 
 ### Add more silos
 Just repeat the 2 steps above for every silo you want to create.
