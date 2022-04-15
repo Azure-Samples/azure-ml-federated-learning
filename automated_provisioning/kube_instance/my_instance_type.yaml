@@ -6,10 +6,11 @@ spec:
   nodeSelector:
     training_node: my_beefy_node
   resources:
+#   https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
     limits:
-      cpu: "16"
+      cpu: 16
       nvidia.com/gpu: 8
-      memory: "128Gi"
+      memory: 128Gi
     requests:
-      cpu: "8000m"
-      memory: "8000Mi"
+      cpu: 8000m
+      memory: 8000Mi
