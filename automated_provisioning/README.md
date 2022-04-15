@@ -75,6 +75,28 @@ The command should look something like the below (with the parameters replaced b
 ./ps/ConnectSiloToOrchestrator.ps1 -SubscriptionId_Orchestrator "Your-Orchestrator-SubscriptionId" -AMLWorkspaceName "Your-Orchestrator-Workspace-Name" -AMLWorkspaceRGName "Your-Orchestrator-Resource-Group-Name" -AMLWorkspaceLocation "Your-Orchestrator-Location" -K8sClusterName "Name-of-K8s-Cluster-to-Connect" -AMLComputeName "AML-Compute-Name-to-Create"
 ```
 
+### Change compute intense size
+The default compute instance only provision a small portion of your k8s cluster (specifically, 1.5G memory and 0.6 cpu). You may need to override this by the following steps.
+- Setup your local kubectl environment and connect to the aks
+- Get the node name and apply a label
+- Deploy a new computer instance with your choice of computer power
+**Resource units explanation can be found [here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu). More information on requests and limits can be found [here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).**
+
+
+
+Here again, there is a script that does all of that for you: `ChangeComputeSize.ps1`. It takes the following input arguments.
+- `SubscriptionId`: the Id of the subscription to which the k8s cluster is in.
+- `K8sClusterName`: the name of the K8s cluster created (default: "cont-k8s-01"). 
+
+
+The command should look something like the below (with the parameters replaced by your own values of course).
+
+```ps
+./ps/ChangeComputeSize.ps1 -SubscriptionId "Your-Silo-SubscriptionId" -K8sClusterName "Name-of-K8s-Cluster-Created" 
+```
+
+To verify, go to the orchestrator AML workspace, and find the attached cluster by click "Compute" &mapsto; "Attached computers" and search your cluster with "AML-Compute-Name".
+
 ### Add more silos
 Just repeat the 2 steps above for every silo you want to create.
 
