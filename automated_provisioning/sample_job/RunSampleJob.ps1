@@ -18,17 +18,18 @@ az account set --subscription $SubscriptionId
 # log in
 az login
 
-# Create the mnist dataset from public URL if it doesn't exist
-$DatasetName = "mnist_test_for_fl"
-$ExistingMNISTDataset = az ml dataset list --resource-group $ResourceGroup --workspace-name $WorkspaceName --name $DatasetName
-$PublicURL = "https://azureopendatastorage.blob.core.windows.net/mnist/*.gz"
-$PublicURLWithPrefix = "file:" + $PublicURL
-if ($ExistingMNISTDataset.Length -eq 0){
-    Write-Output "The dataset '$DatasetName' does not exist. Creating it from the public URL '$PublicURL'..."
-    az ml dataset create --resource-group $ResourceGroup --workspace-name $WorkspaceName --name $DatasetName --paths $PublicURLWithPrefix
-} else {
-    Write-Output "The dataset '$DatasetName' already exists."
-}
+# REMOVING THIS PART SINCE THE PUBLIC BLOB STORAGE DOES NOT SEEM TO BE AVAILABLE ANYMORE
+# # Create the mnist dataset from public URL if it doesn't exist
+# $DatasetName = "mnist_restored"
+# $ExistingMNISTDataset = az ml data list --resource-group $ResourceGroup --workspace-name $WorkspaceName --name $DatasetName
+# $PublicURL = "https://azureopendatastorage.blob.core.windows.net/mnist/*.gz"
+# $PublicURLWithPrefix = "file:" + $PublicURL
+# if ($ExistingMNISTDataset.Length -eq 0){
+#     Write-Output "The dataset '$DatasetName' does not exist. Creating it from the public URL '$PublicURL'..."
+#     az ml data create --resource-group $ResourceGroup --workspace-name $WorkspaceName --name $DatasetName --path $PublicURLWithPrefix
+# } else {
+#     Write-Output "The dataset '$DatasetName' already exists."
+# }
 
 # run the job
 Write-Output "Submitting the job..."
