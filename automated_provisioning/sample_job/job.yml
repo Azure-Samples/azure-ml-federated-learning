@@ -1,7 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 experiment_name: Test-FL-Auto-Provisioning
 code: ./src
-command: python train.py --data-folder ./minst-data --regularization 0.8 # ${{ inputs.mnist }}
+command: python train.py --data-folder ./mnist-data --regularization 0.8 # ${{ inputs.mnist }}
 environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu:24
 compute: azureml:med-01-compute # adjust the compute name accordingly
 # REMOVING THIS PART SINCE THE PUBLIC BLOB STORAGE DOES NOT SEEM TO BE AVAILABLE ANYMORE
