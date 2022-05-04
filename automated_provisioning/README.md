@@ -75,14 +75,12 @@ The command should look something like the below (with the parameters replaced b
 ./ps/ConnectSiloToOrchestrator.ps1 -SubscriptionId_Orchestrator "Your-Orchestrator-SubscriptionId" -AMLWorkspaceName "Your-Orchestrator-Workspace-Name" -AMLWorkspaceRGName "Your-Orchestrator-Resource-Group-Name" -AMLWorkspaceLocation "Your-Orchestrator-Location" -K8sClusterName "Name-of-K8s-Cluster-to-Connect" -AMLComputeName "AML-Compute-Name-to-Create"
 ```
 
-### Change compute intense size
-The default compute instance only provision a small portion of your k8s cluster (specifically, 1.5G memory and 0.6 cpu). You may need to override this by the following steps.
-- Setup your local kubectl environment and connect to the aks
-- Get the node name and apply a label
-- Deploy a new computer instance with your choice of computer power
+### Change Compute Instance size
+The default compute instance only provisions a small portion of your k8s cluster (specifically, 1.5G memory and 0.6 cpu). You may need to override this by taking the following steps.
+- Setup your local kubectl environment and connect to the AKS.
+- Get the node name and apply a label.
+- Deploy a new computer instance with your choice of computer power.
 **Resource units explanation can be found [here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu). More information on requests and limits can be found [here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).**
-
-
 
 Here again, there is a script that does all of that for you: `ChangeComputeSize.ps1`. It takes the following input arguments.
 - `SubscriptionId`: the Id of the subscription to which the k8s cluster is in.
@@ -92,7 +90,7 @@ Here again, there is a script that does all of that for you: `ChangeComputeSize.
 The command should look something like the below (with the parameters replaced by your own values of course).
 
 ```ps
-./ps/ChangeComputeSize.ps1 -SubscriptionId "Your-Silo-SubscriptionId" -K8sClusterName "Name-of-K8s-Cluster-Created" 
+./ps/ChangeComputeSize.ps1 -SubscriptionId "Your-Silo-SubscriptionId" -K8sClusterName "Name-of-Created-K8s-Cluster" 
 ```
 
 To verify, go to the orchestrator AML workspace, and find the attached cluster by click "Compute" &mapsto; "Attached computers" and search your cluster with "AML-Compute-Name".
@@ -110,7 +108,7 @@ Just repeat the 2 steps above for every silo you want to create.
 
 To double check that you can actually run Azure ML jobs on the Arc Cluster, we provide all the files required for a sample job, following the example [here](https://github.com/Azure/AML-Kubernetes/blob/master/docs/simple-train-cli.md). First, you'll need to open `./sample_job/job.yml` - this is the file where the job you are going to run is defined. Adjust the compute name (the part after `compute: azureml:`) to the name of your Azure ML compute.
 
-Then you will need to create the `mnist_test_for_fl` dataset if it doesn't exist already, and submit the job. The PowerShell script `RunSampleJob.ps1` will do that for you. It takes the following arguments.
+The PowerShell script `RunSampleJob.ps1` will submit the job and upload the classic MNIST train and test data for you, from the files locally available in the repository. It takes the following arguments.
 - `SubscriptionId`: the Id of the subscription to which the Azure ML orchestrator workspace belongs.
 - `WorkspaceName`: the name of the Azure ML orchestrator workspace.
 - `ResourceGroup`: the resource group of the Azure ML orchestrator workspace.
