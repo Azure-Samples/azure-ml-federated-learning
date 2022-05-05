@@ -93,7 +93,7 @@ The command should look something like the below (with the parameters replaced b
 ./ps/ChangeComputeSize.ps1 -SubscriptionId "Your-Silo-SubscriptionId" -K8sClusterName "Name-of-Created-K8s-Cluster" 
 ```
 
-To verify, go to the orchestrator AML workspace, and find the attached cluster by click "Compute" &mapsto; "Attached computers" and search your cluster with "AML-Compute-Name".
+To verify, go to the orchestrator AML workspace, and find the attached cluster by clicking "Compute" &mapsto; "Attached computers" and search your cluster with the `AMLComputeName` you used in the previous step.
 
 ### Add more silos
 Just repeat the 2 steps above for every silo you want to create.
@@ -122,6 +122,7 @@ The command should look something like the below (with the parameters replaced b
 ## Future work
 - Add more validation on input strings if issues come up.
 - Validate all silos at once.
+- Create dataset for silo validation based on public blob (instead of local files).
 - Provision data-related resources.
 - ...
 
