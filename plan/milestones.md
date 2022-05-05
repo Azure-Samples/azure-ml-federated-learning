@@ -17,7 +17,7 @@ __Compute__. Anything that can run "code" (deliberately vague). In this file, co
 
 __Job__. Execute code (a collection of files) in an environment (a Docker image) against data (from storage). A job can consume data from multiple storage instances and write back to multiple instances. 
 
-__Approval__. REST endpoint which the platform "asks permission" before running any job. The platform sends the approval endpoint information including: 
+__Approval__. REST endpoint to which the platform "asks permission" before running any job. The platform sends the approval endpoint information including: 
 
 1. Input and output storage 
 2. Which compute the job wishes to run in 
@@ -44,7 +44,7 @@ __Orchestrator__. Collection of storage and compute. The storage is for model pa
 ## Key Milestones
 
 - A machine learning model. A working model or model architecture with learning algorithm in a non-federated scheme. 
-- Resource provision. Get the orchestrator and silos ready for FL. 
+- Resource provisioning. Get the orchestrator and silos ready for FL. 
 - A test FL job. Run a synthetic test for the FL framework and understand the effect of each FL hyperparameters. 
 - An actual FL job. Set the FL hyperparameters and execute the actual job. 
 
@@ -57,9 +57,9 @@ The prerequisite of a _federated_ learning job is a _machine_ learning model, wh
 - a working model trained with some real yet small data, or  
 - a model architecture that is proven effective via synthetic training data. 
 
-One example of a hospital (i.e., the customer) is described below. The hospital’s task is to classify a medical image into positive or negative of a specific disease. The data scientists at the hospital _already_ have a neural network model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance as more hospitals would like to participate in a federated learning way without their data leaving their cluster. 
+One example of a hospital (i.e., the customer) is described below. The hospital’s task is to classify a medical image into positive or negative of a specific disease. The data scientists at the hospital _already_ have a neural network model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance as more hospitals would like to participate in a federated learning way without their data leaving their clusters. 
 
-## Resource provision 
+## Resource provisioning 
 
 If all the data live in __one__ AAD (Azure Active Directory) tenant, we could simply create “vanilla” AML computes and easily use managed identity to enforce silos (via compute --> storage access). Briefly speaking, per-silo storage accounts should be locked down with only RBAC for access and don’t give anyone access keys, and per-silo compute should have a managed identity, give just that managed identity the "blob storage contributor" roles to access the data. For further details, please check out this [public document](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-use-managed-identities?tabs=python) on managed identity.
 
@@ -77,9 +77,9 @@ If __multiple__ AAD tenants are involved, we provide the following resource prov
 4. Upload the provided data to each silo’s storage. 
 5. Download the provided FL script and model to the machine that can connect to the orchestrator workspace. 
 6. Define one or several metric(s) of interest (they should be consistent with your actual FL job). 
-7. Select the setting according to the scenario of your actual FL job. For example, differentiable privacy may be added to improve privacy preservation. 
+7. Select the setting according to the scenario of your actual FL job. For example, differential privacy may be added to improve privacy preservation. 
 8. Submit the test job to AML and compare the results to our results. 
-9. Play around the FL hyperparameters (e.g., parameters in differentiable privacy, weights for aggregation) to see their impact on the metrics of interest.  
+9. Play around the FL hyperparameters (e.g., parameters in differential privacy, weights for aggregation) to see their impact on the metrics of interest.  
 
 
 ## Actual FL job 
