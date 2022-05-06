@@ -119,12 +119,5 @@ The command should look something like the below (with the parameters replaced b
 ./sample_job/RunSampleJob.ps1 -SubscriptionId "Your-Orchestrator-SubscriptionId" -WorkspaceName "Your-Orchestrator-Workspace-Name" -ResourceGroup "Your-Orchestrator-Resource-Group"
 ```
 
-## Future work
-- Add more validation on input strings if issues come up.
-- Validate all silos at once.
-- Create dataset for silo validation based on public blob (instead of local files).
-- Provision data-related resources.
-- ...
-
 ## Further reading
 - The part about creating/connecting K8s clusters is based on [these instructions](https://github.com/Azure/AML-Kubernetes). A summary can also be found in [this deck](https://microsoft.sharepoint.com/:p:/t/AMLDataScience/EQSxAxYrjX1BiOh3s23GpJUB81sgQfNQJFTWCRR0T8pODg?e=6hcvRL).
