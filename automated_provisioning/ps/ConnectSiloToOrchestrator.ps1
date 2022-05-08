@@ -69,7 +69,7 @@ az connectedk8s connect --name $ArcClusterName --resource-group $ArcClusterRGNam
 
 # Deploy the Azure ML extension to the Arc cluster
 Write-Output "Deploying the Azure ML extension to the Arc cluster..."
-az k8s-extension create --name arcml-extension --extension-type Microsoft.AzureML.Kubernetes --config enableTraining=True --cluster-type connectedClusters --cluster-name $ArcClusterName --resource-group $ArcClusterRGName --scope cluster --auto-upgrade-minor-version False
+az k8s-extension create --name arcml-extension --extension-type Microsoft.AzureML.Kubernetes --config enableTraining=True installNvidiaDevicePlugin=True --cluster-type connectedClusters --cluster-name $ArcClusterName --resource-group $ArcClusterRGName --scope cluster --auto-upgrade-minor-version False
 
 # Attach the Arc cluster to the Azure ML workspace
 Write-Output "Attaching the Arc cluster to the Azure ML workspace..."

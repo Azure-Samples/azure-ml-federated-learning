@@ -19,6 +19,6 @@ Write-Output "Connecting to the k8s"
 $kubenodes = kubectl get nodes
 $kubenodes_name = $kubenodes[1].Split(" ")[0]
 Write-Output "Find the node $kubenodes_name"
-kubectl label nodes $kubenodes_name training_node=my_beefy_node
+kubectl label nodes $kubenodes_name training_node=my_beefy_node --overwrite
 kubectl apply -f kube_instance/my_instance_type.yaml
 Write-Output "Done!"

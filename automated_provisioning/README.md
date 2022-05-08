@@ -45,7 +45,7 @@ For starters, you need to create a K8s cluster and the associated resource group
 - `K8sClusterName`: the name of the K8s cluster to be created (default: "cont-k8s-01"). It will live in a resource group named like the cluster, with "-rg" appended.
 - `RGLocation`: the location of the K8s cluster and its corresponding resource group (default: "westus2").
 - `AgentCount`: the number of agents in the K8s cluster (default: 1 - beware, this should be an _int_, not a _string_).
-- `AgentVMSize`: The agent VM SKU (default: "Standard_B4ms").
+- `AgentVMSize`: The agent VM SKU (default: "Standard_A2_v2"). Here, we suggest to use a weak VM as the default pool of k8s, since we will introduce more powerful compute instances for silo training. 
 
 The command should look something like the below (with the parameters replaced by your own values of course).
 
