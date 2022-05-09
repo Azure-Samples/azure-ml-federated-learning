@@ -16,9 +16,9 @@ Param(
     [int]
     $AgentCount=1,
     [Parameter(Mandatory=$false,
-    HelpMessage="The agent VM SKU ('Standard_B4ms' by default).")]
+    HelpMessage="The agent VM SKU ('Standard_A2_v2' by default).")]
     [string]
-    $AgentVMSize="Standard_B4ms"
+    $AgentVMSize="Standard_A2_v2"
 )
 
 # load useful functions
