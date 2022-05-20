@@ -26,6 +26,7 @@ conda create --name tes-env python==3.8
 conda activate tes-env
 pip install -r requirements.txt
 ```
-2. Prepare a config file pointing to your Azure ML workspace and put it in the 'config' directory (see [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace) for more information on config files).
-3. Make sure you have some datasets, a compute, and an environment already available in your Azure ML workspace. (If you don't, the links in the above section are a good starting point for learning how to create them.)
-4. Open the 'demo.py' script, use the config file you just created, point to your data, compute target and environment, then you should be good to run the demo script!
+2. Set the current directory ('tes-api-on-azure-ml') as your working directory.
+3. Prepare a config file pointing to your Azure ML workspace and put it in the 'config' directory (see [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace) for more information on config files).
+4. Make sure you have some datasets, a compute, and an environment already available in your Azure ML workspace. (If you don't, the links in the above section are a good starting point for learning how to create them.)
+5. Open the 'demo.py' script, use the config file you just created, point to your data, compute target and environment, then you should be good to run the demo script!
