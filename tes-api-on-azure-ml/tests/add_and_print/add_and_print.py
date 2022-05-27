@@ -36,10 +36,10 @@ def get_arg_parser(parser=None) -> ArgumentParser:
 def main():
     parser = get_arg_parser()
     args, _ = parser.parse_known_args()
-    print(f'Operand 1: {args.operand_1}')
-    print(f'Operand 2: {args.operand_2}')
+    print(f"Operand 1: {args.operand_1}")
+    print(f"Operand 2: {args.operand_2}")
     print(
-        f'Result: {args.operand_1} + {args.operand_2} = {int(args.operand_1) + int(args.operand_2)}'
+        f"Result: {args.operand_1} + {args.operand_2} = {int(args.operand_1) + int(args.operand_2)}"
     )
 
 

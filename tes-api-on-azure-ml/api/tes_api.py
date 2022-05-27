@@ -1,4 +1,11 @@
-from azureml.core import Workspace, Experiment, Run, ScriptRunConfig, Environment, Dataset
+from azureml.core import (
+    Workspace,
+    Experiment,
+    Run,
+    ScriptRunConfig,
+    Environment,
+    Dataset,
+)
 import time
 
 
@@ -6,7 +13,9 @@ class TesApi:
     def __init__(self, workspace: Workspace):
         self.ws = workspace
 
-    def list_tasks(self, view="mini", task_group="test_TES_API", include_children=False):
+    def list_tasks(
+        self, view="mini", task_group="test_TES_API", include_children=False
+    ):
         """Returns the list of "tasks" (a.k.a. "runs" in Azure ML jargon) in a given "task group" (a.k.a. "experiment" in Azure3 ML jargon).
         Inputs:
           - view: "mini" to only get Task Id and Status (default), "full" to get all the details
@@ -58,13 +67,13 @@ class TesApi:
         compute_target="cpu-cluster",
         environment="AzureML-minimal-ubuntu18.04-py37-cpu-inference",
         executors={
-            'source_directory': './tests/hello_world',
-            'script': 'hello.py',
-            'command': [],
-            'arguments': [],
+            "source_directory": "./tests/hello_world",
+            "script": "hello.py",
+            "command": [],
+            "arguments": [],
         },
         volumes=None,
-        tags={'test_tag_1': 'test_value_1', 'test_tag_2': 'test_value_2'},
+        tags={"test_tag_1": "test_value_1", "test_tag_2": "test_value_2"},
         task_group="test_TES_API",
     ):
         """Creates a new "task" (a.k.a. "run" in Azure ML jargon) in a given "task group" (a.k.a. "experiment" in Azure3 ML jargon). Currently, only supports tasks with a single component.
@@ -87,7 +96,9 @@ class TesApi:
         tic = time.perf_counter()
         experiment = Experiment(self.ws, task_group)
         command, arguments = executors["command"], executors["arguments"]
-        datasets_inputs = [Dataset.get_by_name(self.ws, input).as_mount() for input in inputs]
+        datasets_inputs = [
+            Dataset.get_by_name(self.ws, input).as_mount() for input in inputs
+        ]
         command, arguments = TesApi.update_command_and_arguments(
             command, arguments, datasets_inputs
         )

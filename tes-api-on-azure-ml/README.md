@@ -1,10 +1,10 @@
 # A prototype of Task Execution API relying on Azure ML
 
-This folder contains a prototype of a Task Execution API that relies on Azure ML. It provides functionality similar to GA4GH's [task execution service](https://ga4gh.github.io/task-execution-schemas/docs/). It exposes the following functions:
-- list_tasks();
-- get_tasks();
-- create_task();
-- cancel_task().
+This folder contains a prototype of a Task Execution API that relies on Azure ML. It provides functionality similar to the [task execution service](https://ga4gh.github.io/task-execution-schemas/docs/) of GA4GH (Global Alliance for Genomics and Health). It exposes the following functions:
+- `list_tasks()`;
+- `get_tasks()`;
+- `create_task()`;
+- `cancel_task()`.
 
 ## Current limitations
 
@@ -20,13 +20,12 @@ Even with these limitations, we believe the current prototype is sufficicent to 
 
 Here below are the steps you'll need to follow to try the prototype.
 
-1. We first recommend setting up a new environment.
+1. Set the current directory ('tes-api-on-azure-ml') as your working directory.
+2. Create and then activate a new conda environment.
 ```ps1
-conda create --name tes-env python==3.8
+conda env create -f environment.yml
 conda activate tes-env
-pip install -r requirements.txt
 ```
-2. Set the current directory ('tes-api-on-azure-ml') as your working directory.
 3. Prepare a config file pointing to your Azure ML workspace and put it in the 'config' directory (see [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace) for more information on config files).
 4. Make sure you have some datasets, a compute, and an environment already available in your Azure ML workspace. (If you don't, the links in the above section are a good starting point for learning how to create them.)
 5. Open the 'demo.py' script, use the config file you just created, point to your data, compute target and environment, then you should be good to run the demo script!
