@@ -1,0 +1,5 @@
+name: tes-env
+dependencies:
+- python=3.9
+- pip:
+  - -r requirements.txt
