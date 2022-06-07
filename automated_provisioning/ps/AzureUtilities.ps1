@@ -26,16 +26,25 @@ function Deploy-RGIfInexistent {
     }
 }
 
-function Confirm-ComputeName {
+function Confirm-Name {
     Param(
-        $ComputeName
+        $Name,
+        $ResourceType
     )
-    Write-Output "Validating requested compute name..."
-    $RegEx = '^[a-z0-9-]{2,16}$'
-    if ($ComputeName -match $RegEx){
-        Write-Output "Compute name $ComputeName is valid."
+    Write-Output "Validating requested $ResourceType name..."
+    if ($ResourceType -eq "Compute"){
+        $RegEx = '^[a-z0-9-]{2,16}$'
+    } elseif ($ResourceType -eq "AMLWorkspace"){
+        $RegEx = '^[a-zA-Z0-9-]{3,21}$'
+    } else {
+        Write-Error "Invalid resource type: $ResourceType. It should be either 'Compute' or 'AMLWorkspace'."
+        exit
+    }
+    
+    if ($Name -match $RegEx){
+        Write-Output "$ResourceType name $Name is valid."
     } else{
-        Write-Error "Compute name $ComputeName is invalid. It can include letters, digits and dashes. It must start with a letter, end with a letter or digit, and be between 2 and 16 characters in length."
+        Write-Error "$ResourceType name $Name is invalid. It can include letters, digits and dashes. It must start with a letter, end with a letter or digit, and be between {2 for Compute, 3 for AMLWorkspace} and {16 for Compute, 21 for AMLWorkspace} characters in length."
         exit
     }
 }
