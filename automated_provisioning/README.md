@@ -79,11 +79,11 @@ The command should look something like the below (with the parameters replaced b
 The default compute instance only provisions a small portion of your k8s cluster (specifically, 1.5G memory and 0.6 cpu). You may need to override this by taking the following steps.
 - Setup your local kubectl environment and connect to the AKS.
 - Get the node name and apply a label.
-- Deploy a new computer instance with your choice of computer power.
-**Resource units explanation can be found [here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu). More information on requests and limits can be found [here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).**
+- Deploy a new compute instance with your choice of compute power.
+**Resource units explanation can be found [here](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/#meaning-of-cpu). More information on requests and limits can be found [there](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).**
 
 Here again, there is a script that does all of that for you: `ChangeComputeSize.ps1`. It takes the following input arguments.
-- `SubscriptionId`: the Id of the subscription to which the k8s cluster is in.
+- `SubscriptionId`: the Id of the subscription to which the k8s cluster belongs.
 - `K8sClusterName`: the name of the K8s cluster created (default: "cont-k8s-01"). 
 
 
