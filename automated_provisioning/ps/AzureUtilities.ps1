@@ -22,7 +22,7 @@ function Deploy-RGIfInexistent {
         Write-Output "The resource group '$RGName' already exists."
     } else {
         Write-Output "Creating the resource group..."
-        az deployment sub create --location $RGLocation --template-file $PSScriptRoot/../bicep/ResourceGroup.bicep --parameters rgname=$RGName rglocation=$RGLocation
+        az deployment sub create --name $RGName --location $RGLocation --template-file $PSScriptRoot/../bicep/ResourceGroup.bicep --parameters rgname=$RGName rglocation=$RGLocation
     }
 }
 
