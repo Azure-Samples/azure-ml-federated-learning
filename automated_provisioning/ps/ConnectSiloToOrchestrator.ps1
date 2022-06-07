@@ -41,7 +41,7 @@ az login
 $Workspaces =  az ml workspace list --resource-group $AMLWorkspaceRGName --query "[?name=='$AMLWorkspaceName']" | ConvertFrom-Json
 if ($Workspaces.Length -eq 0){
     Write-Output "Name of the AML workspace's resource group to create: $AMLWorkspaceRGName, in $AMLWorkspaceLocation location."
-    Deploy-RGIfInexistent $AMLWorkspaceRGName, $AMLWorkspaceLocation, "AML workspace"
+    Deploy-RGIfInexistent $AMLWorkspaceRGName $AMLWorkspaceLocation "AML workspace"
     Write-Output "Creating the workspace '$AMLWorkspaceName'..."
     az deployment group create --resource-group $AMLWorkspaceRGName --template-file ./bicep/AMLWorkspace.bicep --parameters workspacename=$AMLWorkspaceName  location=$AMLWorkspaceLocation
 } else {
