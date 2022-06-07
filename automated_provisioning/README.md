@@ -84,19 +84,19 @@ The default compute instance only provisions a small portion of your K8s cluster
 
 Here again, there is a script that does all of that for you: `ChangeComputeSize.ps1`. It takes the following input arguments.
 - `SubscriptionId`: the Id of the subscription to which the K8s cluster belongs.
-- `K8sClusterName`: the name of the K8s cluster created (default: "cont-k8s-01"). 
+- `K8sClusterName`: the name of the K8s cluster whose size we want to change (default: "cont-k8s-01"). 
 
 
 The command should look something like the below (with the parameters replaced by your own values of course).
 
 ```ps
-./ps/ChangeComputeSize.ps1 -SubscriptionId "Your-Silo-SubscriptionId" -K8sClusterName "Name-of-Created-K8s-Cluster" 
+./ps/ChangeComputeSize.ps1 -SubscriptionId "Your-Silo-SubscriptionId" -K8sClusterName "Name-of-K8s-Cluster-to-Resize" 
 ```
 
 To verify, go to the orchestrator AML workspace, and find the attached cluster by clicking "Compute" &mapsto; "Attached computers" and search your cluster with the `AMLComputeName` you used in the previous step.
 
 ### Add more silos
-Just repeat the 2 steps above for every silo you want to create.
+Just repeat the steps above for every silo you want to create.
 
 > You need to create a cluster, then connect it. If you first create several clusters, then try to connect them, you will run into issues. This is because the connection script implicitly uses the cluster reference from the first step. 
 
