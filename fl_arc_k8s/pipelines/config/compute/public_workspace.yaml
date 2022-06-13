@@ -1,3 +1,4 @@
+# @package _global_
 compute:
   default_compute_target: cpu-cluster
   compliant_datastore: workspaceblobstore

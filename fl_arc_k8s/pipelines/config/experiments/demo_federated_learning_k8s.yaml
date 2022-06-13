@@ -1,3 +1,4 @@
+# @package _global_
 defaults:
 - aml: public_workspace
 - compute: public_workspace
@@ -12,7 +13,7 @@ module_loader:
   local_steps_folder: ../../../components
 
 democomponent:
-  input_data: irisdata
+  input_data: mnist
   input_data_version: latest
 
 federated_config:
@@ -20,16 +21,16 @@ federated_config:
   data_transfer_component: datatransfer
   deactivate_data_transfer: False
   silos:
-    westus:
-      compute: shizs-cont1-comp
+    westus2:
+      compute: silo-01-westus2
       inherit: [foo_config]
       params:
-        dataset: test_uploaded_from_local
-    eastus:
-      compute: shizs-k8s-arc2 
+        dataset: mnist
+    eastus2:
+      compute: silo-03-eastus2 
       datastore: fl_eus
-    canada:
-      compute: thopo-k8s-arc2
+    northcentral:
+      compute: silo-04-ncentus
       datastore: fl_canada
       inherit: [foo_config, bar_config]
   params:
@@ -38,7 +39,7 @@ federated_config:
     default_config:
       params:
         msg: shared msg
-        dataset: test_csv_new
+        dataset: mnist
     foo_config:
       datastore: fl_wus
     bar_config:
