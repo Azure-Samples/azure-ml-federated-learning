@@ -1,6 +1,6 @@
 aml:
-  subscription_id: 48bbc269-ce89-4f6f-9a12-c6f91fcb772d
-  resource_group: aml1p-rg
-  workspace_name: aml1p-ml-wus2
+  subscription_id: 6560575d-fa06-4e7d-95fb-f962e74efd7a
+  resource_group: thopo-orchestrator-rg
+  workspace_name: thopo-orchestrator
   tenant: 72f988bf-86f1-41af-91ab-2d7cd011db47
   auth: interactive
