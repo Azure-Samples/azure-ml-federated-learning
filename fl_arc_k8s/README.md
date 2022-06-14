@@ -21,7 +21,7 @@ Make sure you are in the `fl_arc_k8s` directory, and the conda environment 'fl-d
 python pipelines/experiments/demo_federated_learning_k8s.py --config-dir pipelines/config --config-name experiments/demo_federated_learning_k8s +run.submit=True
 ```
 
-Here is an [example successful experiment](https://ml.azure.com/runs/7d2e979a-0785-4ff0-a5d0-b1d43f6c8467?wsid=/subscriptions/48bbc269-ce89-4f6f-9a12-c6f91fcb772d/resourcegroups/aml1p-rg/workspaces/aml1p-ml-wus2&tid=72f988bf-86f1-41af-91ab-2d7cd011db47#).
+Here is an [example successful experiment](https://ml.azure.com/experiments/id/91a7d6e7-31cc-4bc9-95f5-2e683932238b/runs/829e9ab8-79b1-4184-8317-8e8a3f5302a1?wsid=/subscriptions/48bbc269-ce89-4f6f-9a12-c6f91fcb772d/resourcegroups/aml1p-rg/workspaces/aml1p-ml-wus2&tid=72f988bf-86f1-41af-91ab-2d7cd011db47#).
 
 Note that the example here is using the AIMS team's `aml1p-ml-wus2` workspace. If you don't have access to this workspace and are a Microsoft employee, you can get access by joining the "aims-contrib" security group in idweb.
 
