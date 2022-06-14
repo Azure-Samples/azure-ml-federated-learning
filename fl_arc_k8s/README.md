@@ -33,7 +33,7 @@ For provisioning the orchestrator workspace and the silos computes, we recommend
 By default, the orchestrator workspace will not come with any compute cluster. We need to create one for  running the aggregation step. To do so, just run the following command with the appropriate parameter values for your orchestrator workspace name and resource group.
 
 ```ps1
-az ml compute create --file .\utils\template\compute_cluster.yml --resource-group <Your-Orchestrator-Resource-Group> --workspace-name <Your-Orchestrator-Workspace-Name>
+az ml compute create --file .\utils\template\cpu-cluster.yml --resource-group <Your-Orchestrator-Resource-Group> --workspace-name <Your-Orchestrator-Workspace-Name>
 ```
 
 It will create a basic compute cluster in your orchestrator workspace and name it `cpu-cluster`. For more details about the ARM template used to create the cluster, see [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-create-attach-compute-cluster?tabs=azure-cli#create).
@@ -46,11 +46,21 @@ If you don't have any data, you can use the [MNIST dataset](https://en.wikipedia
 az ml dataset create --name mnist --description "MNIST dataset" --local-path ../automated_provisioning/sample_job/src/mnist-data --resource-group <Your-Orchestrator-Resource-Group> --workspace-name <Your-Orchestrator-Workspace-Name>
 ```
 
-This will create a dataset with name `mnist` in your workspace. That's the data we will use in this example.
+This will create a dataset with name `mnist` in your workspace. That's the data we will use in this example. Note that in a real experiment, you would be using different datasets, one per silo. 
 
 ### Configuration files
 Since you won't be using the default `aml1p-ml-wus2` workspace, you need to update the [aml/public_workspace.yaml](./pipelines/config/aml/public_workspace.yaml) config file in the `fl_arc_k8s/pipelines/config/` directory to point to your workspace of choice.
 
 Once that is done, you need to update the [experiments/demo_federated_learning_k8s.yaml](./pipelines/config/experiments/demo_federated_learning_k8s.yaml) config file to point to your dataset of choice, and to your silos. For the silos, you will need to make sure that each silo's `compute` value matches the name of the compute attached to the orchestrator workspace. The silos name in the config file is arbitrary.
 
-Datastores?
+### GPU, Data Factory
+
+### Datastores?
+
+1. az storage account create -n flwestus2thopo -g thopo-orchestrator-rg -l westus2 --kind StorageV2 --access-tier Hot
+
+(name of the RG should be the one used for creating the K8s cluster in the first place)
+
+2. az ml datastore create --file .\utils\template\datastore.yml --resource-group thopo-orchestrator-rg --workspace thopo-orchestrator
+
+3. Update datastore credentials (account key auth)
