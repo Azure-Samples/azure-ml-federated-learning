@@ -1,6 +1,0 @@
-$schema: https://azuremlschemas.azureedge.net/latest/azureBlob.schema.json
-name: fl_northcentralus # add name of your datastore here
-type: azure_blob
-description: Datastore in northcentralus region # add a description of your datastore here
-account_name: flnorthcentralusthopo # add storage account name here
-container_name: federated-learning # add storage container name here

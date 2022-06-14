@@ -19,11 +19,11 @@ def get_or_create_data_factory(workspace, factory_name):
             raise e
 
 
-# ws = Workspace.from_config(path='./pipelines/config/aml/public_workspace.yaml')
+# Enter your workspace name, resource group, and subscription Id here
 ws = Workspace.get(
-    name="thopo-orchestrator",
-    subscription_id="6560575d-fa06-4e7d-95fb-f962e74efd7a",
-    resource_group="thopo-orchestrator-rg",
+    name="Your-Workspace-Name",
+    subscription_id="Your-Workspace-Subscription-Id",
+    resource_group="Your-Workspace-Resource-Group",
 )
 data_factory_name = "data-factory"
 data_factory_compute = get_or_create_data_factory(ws, data_factory_name)
