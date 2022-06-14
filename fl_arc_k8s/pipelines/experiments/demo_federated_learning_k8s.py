@@ -31,7 +31,9 @@ class DemoFederatedLearning(FederatedPipelineBase):
     def midprocess(self, config, silo1_input, silo2_input, silo3_input):
         demo_subgraph = self.subgraph_load("demo-subgraph")
         midprocess_step = demo_subgraph(
-            input_data_01=silo1_input, input_data_02=silo2_input, input_data_03=silo3_input
+            input_data_01=silo1_input,
+            input_data_02=silo2_input,
+            input_data_03=silo3_input,
         )
         return StepOutput(midprocess_step)
 
