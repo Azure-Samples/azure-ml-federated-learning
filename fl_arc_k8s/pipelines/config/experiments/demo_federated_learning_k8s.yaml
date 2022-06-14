@@ -25,10 +25,12 @@ federated_config:
       compute: silo-01-westus2
       inherit: [foo_config]
       params:
-        dataset: mnist
+        dataset: mnist_01
     eastus2:
       compute: silo-03-eastus2 
       datastore: fl_eastus2
+      params:
+        dataset: mnist_02
     northcentral:
       compute: silo-04-ncentus
       datastore: fl_northcentralus
@@ -45,3 +47,4 @@ federated_config:
     bar_config:
       params:
         msg: per-silo msg
+        dataset: mnist_03
