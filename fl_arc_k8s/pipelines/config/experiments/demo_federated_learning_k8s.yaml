@@ -28,10 +28,10 @@ federated_config:
         dataset: mnist
     eastus2:
       compute: silo-03-eastus2 
-      datastore: fl_eus
+      datastore: fl_eastus2
     northcentral:
       compute: silo-04-ncentus
-      datastore: fl_canada
+      datastore: fl_northcentralus
       inherit: [foo_config, bar_config]
   params:
     msg: random msg
@@ -41,7 +41,7 @@ federated_config:
         msg: shared msg
         dataset: mnist
     foo_config:
-      datastore: fl_wus
+      datastore: fl_westus2
     bar_config:
       params:
         msg: per-silo msg
