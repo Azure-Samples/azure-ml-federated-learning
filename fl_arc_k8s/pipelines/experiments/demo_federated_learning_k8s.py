@@ -24,20 +24,22 @@ class DemoFederatedLearning(FederatedPipelineBase):
         train_func = self.component_load("traininsilo")
         input_data = self.dataset_load(silo.params.dataset)
         train_step = train_func(
-            input_01=input_data, input_02=input[0], message=silo.params.msg
+            input_01=input_data, input_02=input, message=silo.params.msg
         )
         return StepOutput(train_step, ["results"])
 
-    def midprocess(self, config, input):
+    def midprocess(self, config, silo1_input, silo2_input, silo3_input):
         demo_subgraph = self.subgraph_load("demo-subgraph")
         midprocess_step = demo_subgraph(
-            input_data_01=input[0], input_data_02=input[1], input_data_03=input[2]
+            input_data_01=silo1_input,
+            input_data_02=silo2_input,
+            input_data_03=silo3_input,
         )
         return StepOutput(midprocess_step)
 
     def postprocess(self, config, input):
         postprocess_func = self.component_load("postprocessing")
-        postprocess_step = postprocess_func(input_data=input[0])
+        postprocess_step = postprocess_func(input_data=input)
         return StepOutput(postprocess_step, ["results"])
 
 

@@ -28,8 +28,9 @@ Param(
 # load useful functions
 . "$PSScriptRoot/AzureUtilities.ps1"
 
-# Validating the required name of the Azure ML compute
-Confirm-ComputeName $AMLComputeName
+# Validating the required name of the Azure ML compute and workspace
+Confirm-Name $AMLComputeName "Compute"
+Confirm-Name $AMLWorkspaceName "AMLWorkspace"
 
 # making sure we're in the right subscription
 Write-Output "We'll be setting up the orchestrator in this subscription: $SubscriptionId_Orchestrator."
