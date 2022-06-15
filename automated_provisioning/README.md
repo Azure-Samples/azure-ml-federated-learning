@@ -140,7 +140,7 @@ After that, you will have 2 new compute clusters in your orchestrator workspace,
 
 A typical Federated Learning experiment involves transferring some model weights back and forth between the orchestrator and the silos. This is achieved using a particular Azure ML component: the [Data Transfer Component](https://componentsdk.azurewebsites.net/components/data_transfer_component.html). This component requires a Data Factory compute, along with some properly configured datastores and storage accounts.
 
-Attaching a Data Factory compute should be straightforward. Just install the `azureml-core` package via `pip install azureml-core` and run the [./python/attach_data_factory.py](./python/attach_data_factory.py) script _after_ having entered the proper values of the workspace name, resource group, and subscription Id for your setup.
+Attaching a Data Factory compute should be straightforward. Just install the `azureml-core` package _via_ `pip install azureml-core` and run the [./python/attach_data_factory.py](./python/attach_data_factory.py) script _after_ having entered the proper values of the workspace name, resource group, and subscription Id for your setup.
 
 The next step after that is to create some datastores and the underlying storage accounts (these will be used for communicating model weights between the silos and the orchestrator).
 

@@ -21,27 +21,29 @@ federated_config:
   data_transfer_component: datatransfer
   deactivate_data_transfer: False
   silos:
-    westus:
-      compute: shizs-cont1-comp
+    silo_01:
+      compute: thopo-arc-wus2
       inherit: [foo_config]
       params:
-        dataset: test_uploaded_from_local
-    eastus:
-      compute: shizs-k8s-arc2 
-      datastore: fl_eus
-    canada:
-      compute: thopo-k8s-arc2
-      datastore: fl_canada
+        dataset: mnist_01
+    silo_02:
+      compute: thopo-arc-2-wus2
+      datastore: fl_wus2
+      params:
+        dataset: mnist_02
+    silo_03:
+      compute: med-01-compute
       inherit: [foo_config, bar_config]
+      params:
+        dataset: mnist_03
   params:
     msg: random msg
   config_group:
     default_config:
       params:
         msg: shared msg
-        dataset: test_csv_new
     foo_config:
-      datastore: fl_wus
+      datastore: fl_wus2
     bar_config:
       params:
         msg: per-silo msg
