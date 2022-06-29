@@ -28,8 +28,9 @@ Param(
 # load useful functions
 . "$PSScriptRoot/AzureUtilities.ps1"
 
-# Validating the required name of the Azure ML compute
-Confirm-ComputeName $AMLComputeName
+# Validating the required name of the Azure ML compute and workspace
+Confirm-Name $AMLComputeName "Compute"
+Confirm-Name $AMLWorkspaceName "AMLWorkspace"
 
 # making sure we're in the right subscription
 Write-Output "We'll be setting up the orchestrator in this subscription: $SubscriptionId_Orchestrator."
@@ -41,7 +42,7 @@ az login
 $Workspaces =  az ml workspace list --resource-group $AMLWorkspaceRGName --query "[?name=='$AMLWorkspaceName']" | ConvertFrom-Json
 if ($Workspaces.Length -eq 0){
     Write-Output "Name of the AML workspace's resource group to create: $AMLWorkspaceRGName, in $AMLWorkspaceLocation location."
-    Deploy-RGIfInexistent $AMLWorkspaceRGName, $AMLWorkspaceLocation, "AML workspace"
+    Deploy-RGIfInexistent $AMLWorkspaceRGName $AMLWorkspaceLocation "AML workspace"
     Write-Output "Creating the workspace '$AMLWorkspaceName'..."
     az deployment group create --resource-group $AMLWorkspaceRGName --template-file ./bicep/AMLWorkspace.bicep --parameters workspacename=$AMLWorkspaceName  location=$AMLWorkspaceLocation
 } else {
