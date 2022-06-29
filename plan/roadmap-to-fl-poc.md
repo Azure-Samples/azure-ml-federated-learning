@@ -27,7 +27,9 @@ In this first part, we create the basic blocks that are required for doing FL: a
 
 ### 1.1 Orchestrator
 
-For all customers, the orchestrator will be an AML workspace. Even if you already have an AML workspace, we recommend you create a specific one for ths PoC. You can find more instructions [here](https://docs.microsoft.com/en-us/azure/machine-learning/concept-workspace).
+For all customers, the orchestrator will be an AML workspace. Even if you already have an AML workspace, we recommend you create a specific one for this PoC. You can find more instructions [here](https://docs.microsoft.com/en-us/azure/machine-learning/concept-workspace).
+
+The orchestrator needs some compute clusters too - for aggregating the model weights, or doing some pre-processing. We recommend a regular CPU cluster, and a GPU cluster too. These compute clusters can be created through the UI directly from the workspace, or by using the resources provided [here](https://github.com/Azure-Samples/azure-ml-federated-learning/tree/main/automated_provisioning#6-create-compute-resources-in-the-orchestrator) (section 6, "Create compute resources in the orchestrator").
 
 ### 1.2 Silos
 
@@ -43,15 +45,21 @@ All other types of silos (silos in a different AAD tenant, in a different cloud,
 
 This means that for a PoC, all these types of silos can be mimicked in the same way: by introducing an Arc cluster, connected on the one hand to the orchestrator workspace, and on the other hand to a Kubernetes compute cluster mimicking a silo.
 
-For creating the Arc and Kubernetes clusters, please follow the instructions [here](https://github.com/Azure-Samples/azure-ml-federated-learning/tree/main/automated_provisioning). As indicated in the instructions, please make sure you can actually run a sample (non-ML) job.
+For creating the Arc and Kubernetes clusters, please follow the instructions [here](https://github.com/Azure-Samples/azure-ml-federated-learning/tree/main/automated_provisioning). As indicated in the instructions, please make sure you can actually run a sample (non-FL) job.
 
 Once the silos' computes have been created, please create a datastore for each silo - refer to the instructions provided above for case 1.
 
-### 1.3 :checkered_flag: Exit criterion: Run mock FL job
+### 1.3 Additional resources for data transfer steps
+
+Transferring model weights from each silo to the orchestrator and back will be done through a [Data Transfer Component](https://componentsdk.azurewebsites.net/components/data_transfer_component.html). This component requires a Data Factory compute, along with some properly configured datastores and storage accounts.
+
+To create these resources, please follow [these instructions](https://github.com/Azure-Samples/azure-ml-federated-learning/tree/main/automated_provisioning#7-create-resources-for-data-transfer-steps) (section 7, "Create resources for data transfer steps").
+
+### 1.4 :checkered_flag: Exit criterion: Run mock FL job
 
 Once an orchestrator and a couple of silos are available, we can start running a mock FL job. This is a very simple job, and it will be used to ensure that the basic infrastructure is working. We recommend simply adapting [this example job](https://github.com/Azure-Samples/azure-ml-federated-learning/tree/main/fl_arc_k8s) to point at your own orchestrator and silos. 
 
-Please note that for this job to run, you will need to upload some sample data. Detailed instructions can be found at: :construction: **Work in Progress** :construction:.
+Please note that for this job to run, you will need to upload some sample data. Detailed instructions can be found [over there](https://github.com/Azure-Samples/azure-ml-federated-learning/tree/main/automated_provisioning#8-add-some-data) (section 8, "Add some data").
 
 ## 2. Second part: Add the security mechanisms
 
