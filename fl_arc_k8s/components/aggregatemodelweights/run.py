@@ -1,4 +1,5 @@
 """run.py for mock components"""
+import os
 import argparse
 
 
@@ -28,13 +29,13 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--model_silo_2",
         type=str,
-        required=True,
+        required=False,
         help=""
     )
     parser.add_argument(
         "--model_silo_3",
         type=str,
-        required=True,
+        required=False,
         help=""
     )
     parser.add_argument(
