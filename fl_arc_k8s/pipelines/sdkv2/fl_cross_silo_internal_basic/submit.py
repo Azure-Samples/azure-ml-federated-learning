@@ -96,7 +96,7 @@ def fl_cross_silo_internal_basic():
     # once per silo, we're running a pre-processing step
 
     silo_preprocessed_train_data = [] # list of preprocessed train datasets for each silo
-    silo_preprocessed_test_data = [] # list of preprocessed train datasets for each silo
+    silo_preprocessed_test_data = [] # list of preprocessed test datasets for each silo
 
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # run the pre-processing component once
@@ -147,7 +147,7 @@ def fl_cross_silo_internal_basic():
                 train_data=silo_preprocessed_train_data[silo_index],
 
                 # with the test_data from the pre_processing step
-                test_data=silo_preprocessed_train_data[silo_index],
+                test_data=silo_preprocessed_test_data[silo_index],
 
                 # and the checkpoint from previous epoch (or None if epoch == 0)
                 checkpoint = running_checkpoint

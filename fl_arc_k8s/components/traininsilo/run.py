@@ -46,7 +46,7 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-    with(open(os.path.join(args.model, "model.txt"), "w") as out_file:
+    with(open(os.path.join(args.model, "model.txt"), "w")) as out_file:
         out_file.write("fake model")
 
 
