@@ -20,18 +20,8 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument(
-        "--input_data",
-        type=str,
-        required=True,
-        help=""
-    )
-    parser.add_argument(
-        "--results",
-        type=str,
-        required=True,
-        help=""
-    )
+    parser.add_argument("--input_data", type=str, required=True, help="")
+    parser.add_argument("--results", type=str, required=True, help="")
     return parser
 
 
@@ -45,7 +35,7 @@ def run(args):
 
 
 def main(cli_args=None):
-    """ Component main function.
+    """Component main function.
     It parses arguments and executes run() with the right arguments.
 
     Args:

@@ -20,24 +20,9 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument(
-        "--raw_data",
-        type=str,
-        required=True,
-        help=""
-    )
-    parser.add_argument(
-        "--train_output",
-        type=str,
-        required=True,
-        help=""
-    )
-    parser.add_argument(
-        "--test_output",
-        type=str,
-        required=True,
-        help=""
-    )
+    parser.add_argument("--raw_data", type=str, required=True, help="")
+    parser.add_argument("--train_output", type=str, required=True, help="")
+    parser.add_argument("--test_output", type=str, required=True, help="")
     return parser
 
 
@@ -47,15 +32,15 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-    with(open(os.path.join(args.train_output, "output.txt"), "w")) as out_file:
+    with (open(os.path.join(args.train_output, "output.txt"), "w")) as out_file:
         out_file.write("fake training output")
 
-    with(open(os.path.join(args.test_output, "output.txt"), "w")) as out_file:
+    with (open(os.path.join(args.test_output, "output.txt"), "w")) as out_file:
         out_file.write("fake testing output")
 
 
 def main(cli_args=None):
-    """ Component main function.
+    """Component main function.
     It parses arguments and executes run() with the right arguments.
 
     Args:
