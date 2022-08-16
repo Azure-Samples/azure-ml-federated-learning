@@ -1,6 +1,5 @@
 """run.py for mock components"""
 import argparse
-from distutils.dir_util import copy_tree
 
 
 def get_arg_parser(parser=None):
@@ -20,15 +19,43 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    for arg in ["--input_data", "--results"]:
-        parser.add_argument(arg)
+    parser.add_argument(
+        "--input_data",
+        type=str,
+        required=True,
+        help=""
+    )
+    parser.add_argument(
+        "--results",
+        type=str,
+        required=True,
+        help=""
+    )
     return parser
 
 
-if __name__ == "__main__":
+def run(args):
+    """Run script with arguments (the core of the component)
+
+    Args:
+        args (argparse.namespace): command line arguments provided to script
+    """
+    pass
+
+
+def main(cli_args=None):
+    """ Component main function.
+    It parses arguments and executes run() with the right arguments.
+
+    Args:
+        cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
+    """
     # get the arguments
     parser = get_arg_parser()
     args = parser.parse_args()
-    args = vars(args)
+    print(f"Running script with arguments: {args}")
+    run(args)
 
-    copy_tree(args["input_data"], args["results"])
+
+if __name__ == "__main__":
+    main()
