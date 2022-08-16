@@ -30,8 +30,8 @@ code: .
 
 command: >-
   python run.py --aggregated_model ${{outputs.aggregated_model}}
-  --model_1 ${{inputs.model_silo_1}}
-  [--model_2 ${{inputs.model_silo_2}}]
-  [--model_3 ${{inputs.model_silo_3}}]
+  --model_silo_1 ${{inputs.model_silo_1}}
+  [--model_silo_2 ${{inputs.model_silo_2}}]
+  [--model_silo_3 ${{inputs.model_silo_3}}]
 
 environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest

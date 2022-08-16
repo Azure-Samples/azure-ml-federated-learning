@@ -26,6 +26,7 @@ from omegaconf import OmegaConf
 YAML_CONFIG = OmegaConf.load(os.path.join(os.path.dirname(__file__), "config.yaml"))
 
 # create a unique id for a folder on our datastore
+# TODO: one major issue here is that we'll never use caching
 UNIQUE_FOLDER_ID = str(uuid.uuid4())
 
 # path to the components
