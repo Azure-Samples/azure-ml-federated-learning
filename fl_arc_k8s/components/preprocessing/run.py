@@ -19,7 +19,7 @@ def get_arg_parser(parser=None):
     # add arguments that are specific to the component
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
-    for arg in ["--input_data", "--message", "--results"]:
+    for arg in ["--raw_data", "--message", "--results"]:
         parser.add_argument(arg)
     return parser
 

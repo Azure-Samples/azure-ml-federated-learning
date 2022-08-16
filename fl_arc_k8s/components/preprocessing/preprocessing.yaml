@@ -1,34 +1,26 @@
-$schema: http://azureml/sdk-2-0/CommandComponent.json
-name: preprocessing
-version: 0.0.2
-display_name: PreProcessing
-type: CommandComponent
-description: Mock component for displaying a diagram.
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: preprocessing_in_silo
+version: 0.1.0
+display_name: Pre-Processing (in silo)
+type: command
+description: Mock component for preprocessing raw data in a given silo.
 is_deterministic: true
-tags:
-  FL:
 
 inputs:
-  input_data:
-    type: AnyDirectory
-    description: the input data
-    optional: true
-  message:
-    type: String
-    description: the message to display
-    default: This is the default message.
-    optional: true
+  raw_data:
+    type: uri_folder
+    description: the raw data in a given silo
 
 outputs:
-  results:
-    type: AnyDirectory
-    description: the output data
+  processed_train_data:
+    type: uri_folder
+    description: the output training data from preprocessing
+  processed_test_data:
+    type: uri_folder
+    description: the output testing data from preprocessing
 
 command: >-
-  python run.py --results {outputs.results} [--message {inputs.message}] [--input_data {inputs.input_data}]
-environment:
-  conda:
-    conda_dependencies_file: component_env.yaml
-  docker:
-    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu18.04
-  os: Linux
+  python run.py --raw_data ${{inputs.raw_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}}
+
+environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest

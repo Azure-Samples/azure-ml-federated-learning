@@ -1,37 +1,35 @@
-$schema: http://azureml/sdk-2-0/CommandComponent.json
-name: aggregatemodelweights
-version: 0.0.5
-display_name: AggregateModelWeights
-type: CommandComponent
-description: Mock component for displaying a diagram.
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: aggregate_model_weights
+version: 0.1.0
+display_name: Aggregate Model Weights (from all silos)
+type: command
+description: Mock component for aggreating model weights.
 is_deterministic: true
-tags:
-  FL:
 
 inputs:
-  input_data_01:
-    type: AnyDirectory
-    description: the input data - 01
+  model_silo_1:
+    type: uri_folder
+    description: the model weights mounted from silo 01
+    optional: false
+  model_silo_2:
+    type: uri_folder
+    description: the model weights mounted from silo 02
     optional: true
-  input_data_02:
-    type: AnyDirectory
-    description: the input data - 02
-    optional: true
-  input_data_03:
-    type: AnyDirectory
-    description: the input data - 03
+  model_silo_3:
+    type: uri_folder
+    description: the model weights mounted from silo 03
     optional: true
 
 outputs:
-  results:
-    type: AnyDirectory
-    description: the output data
+  aggregated_model:
+    type: uri_folder
+    description: the aggregated model, residing in the orchestrator compute.
 
 command: >-
-  python run.py --results {outputs.results} [--input_data_01 {inputs.input_data_01}] [--input_data_02 {inputs.input_data_02}] [--input_data_03 {inputs.input_data_03}]
-environment:
-  conda:
-    conda_dependencies_file: component_env.yaml
-  docker:
-    image: mcr.microsoft.com/azureml/openmpi4.1.0-cuda11.1-cudnn8-ubuntu18.04
-  os: Linux
+  python run.py --aggregated_model ${{outputs.aggregated_model}}
+  --model_1 ${{inputs.model_silo_1}}
+  [--model_2 ${{inputs.model_silo_2}}]
+  [--model_3 ${{inputs.model_silo_3}}]
+
+environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
