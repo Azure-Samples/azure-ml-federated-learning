@@ -33,6 +33,12 @@ def get_arg_parser(parser=None):
         help=""
     )
     parser.add_argument(
+        "--checkpoint",
+        type=str,
+        required=False,
+        help=""
+    )
+    parser.add_argument(
         "--model",
         type=str,
         required=True,
