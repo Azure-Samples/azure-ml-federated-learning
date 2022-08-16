@@ -18,6 +18,8 @@ outputs:
     type: uri_folder
     description: the output data
 
+code: .
+
 command: >-
   python run.py --results ${{outputs.results} [--input_data ${{inputs.input_data}}]
 

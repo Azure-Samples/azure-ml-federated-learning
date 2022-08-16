@@ -20,6 +20,8 @@ outputs:
     type: uri_folder
     description: the output testing data from preprocessing
 
+code: .
+
 command: >-
   python run.py --raw_data ${{inputs.raw_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}}
 

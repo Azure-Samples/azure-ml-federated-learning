@@ -26,6 +26,8 @@ outputs:
     type: uri_folder
     description: the aggregated model, residing in the orchestrator compute.
 
+code: .
+
 command: >-
   python run.py --aggregated_model ${{outputs.aggregated_model}}
   --model_1 ${{inputs.model_silo_1}}
