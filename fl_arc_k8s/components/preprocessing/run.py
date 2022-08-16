@@ -46,7 +46,11 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-    pass
+    with(open(os.path.join(args.train_output, "output.txt"), "w") as out_file:
+        out_file.write("fake training output")
+
+    with(open(os.path.join(args.test_output, "output.txt"), "w") as out_file:
+        out_file.write("fake testing output")
 
 
 def main(cli_args=None):

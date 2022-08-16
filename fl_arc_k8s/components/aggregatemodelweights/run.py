@@ -52,7 +52,8 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-    pass
+    with(open(os.path.join(args.aggregated_model, "model.txt"), "w") as out_file:
+        out_file.write("fake aggregated model")
 
 
 def main(cli_args=None):
