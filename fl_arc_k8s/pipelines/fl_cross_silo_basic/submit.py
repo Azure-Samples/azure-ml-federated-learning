@@ -1,8 +1,8 @@
 """Federated Learning Cross-Silo basic pipeline.
 
 This script:
-1) reads the components from a given folder,
-2) reads a config file in yaml specifying the number of silos and their parameters,
+1) reads a config file in yaml specifying the number of silos and their parameters,
+2) reads the components from a given folder,
 3) builds a flexible pipeline depending on the config,
 4) configures each step of this pipeline to read/write from the right silo.
 """
