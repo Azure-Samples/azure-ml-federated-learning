@@ -73,7 +73,7 @@ try:
     ML_CLIENT = MLClient.from_config(credential=credential)
 
 except Exception as ex:
-    logging.info(
+    print(
         "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
     )
 
