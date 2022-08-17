@@ -1,10 +1,10 @@
-"""run.py for mock components"""
+"""Script for mock components."""
 import os
 import argparse
 
 
 def get_arg_parser(parser=None):
-    """Parse the command line arguments for merge using argparse
+    """Parse the command line arguments for merge using argparse.
 
     Args:
         parser (argparse.ArgumentParser or CompliantArgumentParser):
@@ -27,7 +27,7 @@ def get_arg_parser(parser=None):
 
 
 def run(args):
-    """Run script with arguments (the core of the component)
+    """Run script with arguments (the core of the component).
 
     Args:
         args (argparse.namespace): command line arguments provided to script
@@ -41,6 +41,7 @@ def run(args):
 
 def main(cli_args=None):
     """Component main function.
+
     It parses arguments and executes run() with the right arguments.
 
     Args:
