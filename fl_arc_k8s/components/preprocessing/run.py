@@ -46,9 +46,12 @@ def main(cli_args=None):
     Args:
         cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
     """
-    # get the arguments
+    # build an arg parser
     parser = get_arg_parser()
-    args = parser.parse_args()
+
+    # run the parser on cli args
+    args = parser.parse_args(cli_args)
+
     print(f"Running script with arguments: {args}")
     run(args)
 

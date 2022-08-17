@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+import argparse
 
 # import required libraries
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
@@ -23,8 +24,15 @@ from omegaconf import OmegaConf
 ### CONFIGURE THE SCRIPT ###
 ############################
 
+parser = argparse.ArgumentParser(description=__doc__)
+
+parser.add_argument("--config", type=str, required=False, default=os.path.join(os.path.dirname(__file__), "config.yaml"), help="path to a config yaml file")
+parser.add_argument("--submit", default=False, action='store_true', help="actually submits the experiment to AzureML")
+
+args = parser.parse_args()
+
 # load the config from a local yaml file
-YAML_CONFIG = OmegaConf.load(os.path.join(os.path.dirname(__file__), "config.yaml"))
+YAML_CONFIG = OmegaConf.load(args.config)
 
 # create a unique id for a folder on our datastore
 # TODO: one major issue here is that we'll never use caching
@@ -32,7 +40,7 @@ UNIQUE_FOLDER_ID = str(uuid.uuid4())
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "components"
+    os.path.dirname(__file__), "..", "..", "components"
 )
 
 
@@ -223,9 +231,12 @@ pipeline_job = fl_cross_silo_internal_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-# Submit pipeline job to workspace
-pipeline_job = ML_CLIENT.jobs.create_or_update(pipeline_job, experiment_name="fl_dev")
+if args.submit:
+    print("Submitting the pipeline job to your AzureML workspace...")
 
-# get a URL for the status of the job
-print("The url to see your live job running is returned by the sdk:")
-print(pipeline_job.services["Studio"].endpoint)
+    pipeline_job = ML_CLIENT.jobs.create_or_update(pipeline_job, experiment_name="fl_dev")
+
+    print("The url to see your live job running is returned by the sdk:")
+    print(pipeline_job.services["Studio"].endpoint)
+else:
+    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
