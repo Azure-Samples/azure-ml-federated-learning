@@ -1,0 +1,4 @@
+# install these requirements to run scripts from pipelines/ folder
+pytest==7.1.2
+black==22.6.0
+azure-ai-ml==0.1.0b6
