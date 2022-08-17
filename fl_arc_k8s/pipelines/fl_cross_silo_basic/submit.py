@@ -28,8 +28,19 @@ from omegaconf import OmegaConf
 
 parser = argparse.ArgumentParser(description=__doc__)
 
-parser.add_argument("--config", type=str, required=False, default=os.path.join(os.path.dirname(__file__), "config.yaml"), help="path to a config yaml file")
-parser.add_argument("--submit", default=False, action='store_true', help="actually submits the experiment to AzureML")
+parser.add_argument(
+    "--config",
+    type=str,
+    required=False,
+    default=os.path.join(os.path.dirname(__file__), "config.yaml"),
+    help="path to a config yaml file",
+)
+parser.add_argument(
+    "--submit",
+    default=False,
+    action="store_true",
+    help="actually submits the experiment to AzureML",
+)
 
 args = parser.parse_args()
 
@@ -41,9 +52,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 UNIQUE_FOLDER_ID = str(uuid.uuid4())
 
 # path to the components
-COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components"
-)
+COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..", "components")
 
 
 ###########################
@@ -236,7 +245,9 @@ print(pipeline_job)
 if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
 
-    pipeline_job = ML_CLIENT.jobs.create_or_update(pipeline_job, experiment_name="fl_dev")
+    pipeline_job = ML_CLIENT.jobs.create_or_update(
+        pipeline_job, experiment_name="fl_dev"
+    )
 
     print("The url to see your live job running is returned by the sdk:")
     print(pipeline_job.services["Studio"].endpoint)
