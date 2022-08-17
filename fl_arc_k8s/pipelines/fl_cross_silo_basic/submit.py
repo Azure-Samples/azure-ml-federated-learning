@@ -1,19 +1,21 @@
+"""Federated Learning Cross-Silo basic pipeline.
+
+This script:
+1) reads the components from a given folder,
+2) reads a config file in yaml specifying the number of silos and their parameters,
+3) builds a flexible pipeline depending on the config,
+4) configures each step of this pipeline to read/write from the right silo.
+"""
 import os
 import sys
 import uuid
 import argparse
 
-# import required libraries
+# Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-
 from azure.ai.ml import MLClient, command, Input, Output
-from azure.ai.ml.dsl import pipeline
-from azure.ai.ml.entities import Environment, BuildContext
-from azure.ai.ml import command
-from azure.ai.ml import Input, Output
 from azure.ai.ml.constants import AssetTypes
-
-# importing the Component Package
+from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
 
 # to handle yaml config easily
