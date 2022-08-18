@@ -104,13 +104,23 @@ aggregate_component = load_component(
 ########################
 
 
-def custom_fl_data_path(datastore_name, data_name, unique_id="${{name}}", epoch=None):
-    """This method produces a path to store the data during FL training"""
-    base_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{unique_id}/{data_name}/"
-    if epoch:
-        base_path += f"epoch_{epoch}/"
+def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", epoch=None):
+    """This method produces a path to store the data during FL training.
 
-    return base_path
+    Args:
+        datastore_name (str): name of the Azure ML datastore
+        output_name (str): a name unique to this output
+        unique_id (str): a unique id for the run, by default will use Azure ML run id. (${{name}})
+        epoch (str): an epoch id if relevant
+
+    Returns:
+        data_path (str): direct url to the data path to store the data
+    """
+    data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{unique_id}/{output_name}/"
+    if epoch:
+        data_path += f"epoch_{epoch}/"
+
+    return data_path
 
 
 @pipeline(
