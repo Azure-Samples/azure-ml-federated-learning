@@ -8,7 +8,6 @@ This script:
 """
 import os
 import sys
-import uuid
 import argparse
 
 # Azure ML sdk v2 imports
@@ -46,10 +45,6 @@ args = parser.parse_args()
 
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
-
-# create a unique id for a folder on our datastore
-# TODO: one major issue here is that we'll never use caching
-UNIQUE_FOLDER_ID = str(uuid.uuid4())
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..", "components")
@@ -109,7 +104,7 @@ aggregate_component = load_component(
 ########################
 
 
-def custom_fl_data_path(datastore_name, unique_id, data_name, epoch=None):
+def custom_fl_data_path(datastore_name, data_name, unique_id="${{name}}", epoch=None):
     """This method produces a path to store the data during FL training"""
     base_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{unique_id}/{data_name}/"
     if epoch:
@@ -150,14 +145,14 @@ def fl_cross_silo_internal_basic():
             type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
-                silo_config.datastore, UNIQUE_FOLDER_ID, "train_data"
+                silo_config.datastore, "train_data"
             ),
         )
         silo_pre_processing_step.outputs.processed_test_data = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
-                silo_config.datastore, UNIQUE_FOLDER_ID, "test_data"
+                silo_config.datastore, "test_data"
             ),
         )
 
@@ -201,7 +196,7 @@ def fl_cross_silo_internal_basic():
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
                 path=custom_fl_data_path(
-                    silo_config.datastore, UNIQUE_FOLDER_ID, "silo_model", epoch=epoch
+                    silo_config.datastore, "silo_model", epoch=epoch
                 ),
             )
 
@@ -223,7 +218,6 @@ def fl_cross_silo_internal_basic():
             mode="mount",
             path=custom_fl_data_path(
                 YAML_CONFIG.federated_learning.orchestrator.datastore,
-                UNIQUE_FOLDER_ID,
                 "aggregated_model",
                 epoch=epoch,
             ),
