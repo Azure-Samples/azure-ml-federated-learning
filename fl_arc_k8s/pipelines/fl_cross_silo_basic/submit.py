@@ -105,12 +105,12 @@ aggregate_component = load_component(
 
 
 def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", epoch=None):
-    """This method produces a path to store the data during FL training.
+    """Produces a path to store the data during FL training.
 
     Args:
         datastore_name (str): name of the Azure ML datastore
         output_name (str): a name unique to this output
-        unique_id (str): a unique id for the run, by default will use Azure ML run id. (${{name}})
+        unique_id (str): a unique id for the run (default: inject run id with ${{name}})
         epoch (str): an epoch id if relevant
 
     Returns:
