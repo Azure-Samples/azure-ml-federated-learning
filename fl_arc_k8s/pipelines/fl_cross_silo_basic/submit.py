@@ -144,16 +144,12 @@ def fl_cross_silo_internal_basic():
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
-            path=custom_fl_data_path(
-                silo_config.datastore, "train_data"
-            ),
+            path=custom_fl_data_path(silo_config.datastore, "train_data"),
         )
         silo_pre_processing_step.outputs.processed_test_data = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
-            path=custom_fl_data_path(
-                silo_config.datastore, "test_data"
-            ),
+            path=custom_fl_data_path(silo_config.datastore, "test_data"),
         )
 
         # store a handle to the train data for this silo
