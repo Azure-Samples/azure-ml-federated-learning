@@ -1,0 +1,25 @@
+# example yaml config
+
+# using this to store references to Azure ML
+aml:
+  subscription_id: "<SUBSCRIPTION_ID>"
+  resource_group_name: "<RESOURCE_GROUP>"
+  workspace_name: "<AML_WORKSPACE_NAME>"
+
+# federated learning parameters
+federated_learning:
+  orchestrator:
+    compute: "cpu-cluster"
+    datastore: "workspaceblobstore"
+
+  silos:
+    - compute: cpu-cluster-silo-1
+      datastore: workspaceblobstore
+      training_data_path: "azureml://datastores/workspaceblobstore/paths/azureml/ee95ed94-03d5-4b85-ad5e-883880b44735/extracted_data/"
+    - compute: cpu-cluster-silo-2
+      datastore: workspaceblobstore
+      training_data_path: "azureml://datastores/workspaceblobstore/paths/azureml/ee95ed94-03d5-4b85-ad5e-883880b44735/extracted_data/"
+
+# training parameters
+training_parameters:
+  epochs: 5

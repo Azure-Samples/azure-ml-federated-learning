@@ -1,10 +1,10 @@
-"""run.py for mock components"""
+"""Script for mock components."""
+import os
 import argparse
-from distutils.dir_util import copy_tree
 
 
 def get_arg_parser(parser=None):
-    """Parse the command line arguments for merge using argparse
+    """Parse the command line arguments for merge using argparse.
 
     Args:
         parser (argparse.ArgumentParser or CompliantArgumentParser):
@@ -20,15 +20,37 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    for arg in ["--input_data", "--results"]:
-        parser.add_argument(arg)
+    parser.add_argument("--input_data", type=str, required=True, help="")
+    parser.add_argument("--results", type=str, required=True, help="")
     return parser
 
 
-if __name__ == "__main__":
-    # get the arguments
-    parser = get_arg_parser()
-    args = parser.parse_args()
-    args = vars(args)
+def run(args):
+    """Run script with arguments (the core of the component).
 
-    copy_tree(args["input_data"], args["results"])
+    Args:
+        args (argparse.namespace): command line arguments provided to script
+    """
+    pass
+
+
+def main(cli_args=None):
+    """Component main function.
+
+    It parses arguments and executes run() with the right arguments.
+
+    Args:
+        cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
+    """
+    # build an arg parser
+    parser = get_arg_parser()
+
+    # run the parser on cli args
+    args = parser.parse_args(cli_args)
+
+    print(f"Running script with arguments: {args}")
+    run(args)
+
+
+if __name__ == "__main__":
+    main()
