@@ -8,30 +8,30 @@ description: Mock component for aggreating model weights.
 is_deterministic: true
 
 inputs:
-  model_silo_1:
+  input_silo_1:
     type: uri_folder
-    description: the model weights mounted from silo 01
+    description: input from silo 1 (e.g., model weights, or gradient updates)
     optional: false
-  model_silo_2:
+  input_silo_2:
     type: uri_folder
-    description: the model weights mounted from silo 02
+    description: input from silo 1 (e.g., model weights, or gradient updates)
     optional: true
-  model_silo_3:
+  input_silo_3:
     type: uri_folder
-    description: the model weights mounted from silo 03
+    description: input from silo 1 (e.g., model weights, or gradient updates)
     optional: true
 
 outputs:
   aggregated_model:
     type: uri_folder
-    description: the aggregated model, residing in the orchestrator compute.
+    description: the aggregated model or gradiants, residing in the orchestrator compute.
 
 code: .
 
 command: >-
   python run.py --aggregated_model ${{outputs.aggregated_model}}
-  --model_silo_1 ${{inputs.model_silo_1}}
-  [--model_silo_2 ${{inputs.model_silo_2}}]
-  [--model_silo_3 ${{inputs.model_silo_3}}]
+  --input_silo_1 ${{inputs.input_silo_1}}
+  [--input_silo_2 ${{inputs.input_silo_2}}]
+  [--input_silo_3 ${{inputs.input_silo_3}}]
 
 environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest

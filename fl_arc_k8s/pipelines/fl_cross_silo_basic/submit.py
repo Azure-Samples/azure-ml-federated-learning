@@ -208,7 +208,7 @@ def fl_cross_silo_internal_basic():
 
             # each output is indexed to be fed into aggregate_component as a distinct input
             silo_weights_outputs[
-                f"model_silo_{silo_index+1}"
+                f"input_silo_{silo_index+1}"
             ] = silo_training_step.outputs.model
 
         # aggregate all silo models into one

@@ -20,9 +20,9 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--model_silo_1", type=str, required=True, help="")
-    parser.add_argument("--model_silo_2", type=str, required=False, help="")
-    parser.add_argument("--model_silo_3", type=str, required=False, help="")
+    parser.add_argument("--input_silo_1", type=str, required=True, help="")
+    parser.add_argument("--input_silo_2", type=str, required=False, help="")
+    parser.add_argument("--input_silo_3", type=str, required=False, help="")
     parser.add_argument("--aggregated_model", type=str, required=True, help="")
     return parser
 
