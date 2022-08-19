@@ -23,7 +23,7 @@ def get_arg_parser(parser=None):
     parser.add_argument("--input_silo_1", type=str, required=True, help="")
     parser.add_argument("--input_silo_2", type=str, required=False, help="")
     parser.add_argument("--input_silo_3", type=str, required=False, help="")
-    parser.add_argument("--aggregated_model", type=str, required=True, help="")
+    parser.add_argument("--aggregated_output", type=str, required=True, help="")
     return parser
 
 
@@ -33,7 +33,7 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-    with (open(os.path.join(args.aggregated_model, "model.txt"), "w")) as out_file:
+    with (open(os.path.join(args.aggregated_output, "model.txt"), "w")) as out_file:
         out_file.write("fake aggregated model")
 
 

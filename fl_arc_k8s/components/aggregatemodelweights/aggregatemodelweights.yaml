@@ -22,14 +22,14 @@ inputs:
     optional: true
 
 outputs:
-  aggregated_model:
+  aggregated_output:
     type: uri_folder
     description: the aggregated model or gradiants, residing in the orchestrator compute.
 
 code: .
 
 command: >-
-  python run.py --aggregated_model ${{outputs.aggregated_model}}
+  python run.py --aggregated_output ${{outputs.aggregated_output}}
   --input_silo_1 ${{inputs.input_silo_1}}
   [--input_silo_2 ${{inputs.input_silo_2}}]
   [--input_silo_3 ${{inputs.input_silo_3}}]
