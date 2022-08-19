@@ -219,18 +219,18 @@ def fl_cross_silo_internal_basic():
         )
 
         # make sure the data is written in the right datastore
-        aggregate_weights_step.outputs.aggregated_model = Output(
+        aggregate_weights_step.outputs.aggregated_output = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
                 YAML_CONFIG.federated_learning.orchestrator.datastore,
-                "aggregated_model",
+                "aggregated_output",
                 epoch=epoch,
             ),
         )
 
         # let's keep track of the checkpoint to be used as input for next epoch
-        running_checkpoint = aggregate_weights_step.outputs.aggregated_model
+        running_checkpoint = aggregate_weights_step.outputs.aggregated_output
 
     # NOTE: a pipeline returns a dictionary of outputs
     # keys will code for the pipeline output identifier
