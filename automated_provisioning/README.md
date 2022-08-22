@@ -152,10 +152,10 @@ Note that there is nothing special about this job, except for the fact that it w
 By default, the orchestrator workspace might not come with any CPU compute cluster. We need to create one (for running the aggregation or preprocessing steps). To do so, just run the following command with the appropriate parameter values for your orchestrator workspace name and resource group.
 
 ```ps1
-az ml compute create --file .\yaml\cpu-cluster.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
+az ml compute create --file ./yaml/cpu-cluster.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
 ```
 
-You will likely need a GPU cluster too. Just re-run the command above, but this time pointing at the `.\yaml\gpu-cluster.yml` file.
+You will likely need a GPU cluster too. Just re-run the command above, but this time pointing at the `./yaml/gpu-cluster.yml` file.
 
 After that, you will have 2 new compute clusters in your orchestrator workspace, named `cpu-cluster` and `gpu-cluster`. (For more details about compute cluster creation, see [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-create-attach-compute-cluster?tabs=azure-cli#create).)
 
