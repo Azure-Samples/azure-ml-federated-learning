@@ -39,6 +39,8 @@ RUN az extension add --name connectedk8s \
     && az extension add -n ml -y
 # Install bicep CLI
 RUN az bicep install
+# Install azureml-core
+RUN pip install azureml-core
 # Copy all files in parent directory to the container
 COPY . /automated_provisioning
 # Set working directory
