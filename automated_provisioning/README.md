@@ -133,7 +133,7 @@ Just repeat the steps above for every silo you want to create. For running the [
 
 > This simple validation job currently just tests **one** silo. You will need top run it on every one of them.
 
-To double check that you can actually run Azure ML jobs on the Arc Cluster, we provide all the files required for a sample job, following the example [here](https://github.com/Azure/AML-Kubernetes/blob/master/docs/simple-train-cli.md). First, you'll need to open `./sample_job/job.yml` - this is the file where the job you are going to run is defined. Adjust the compute name (the part after `compute: azureml:`) to the name of your Azure ML compute.
+To double check that you can actually run Azure ML jobs on the Arc Cluster, we provide all the files required for a sample job, following the example [here](https://github.com/Azure/AML-Kubernetes/blob/master/docs/simple-train-cli.md). First, you'll need to open `./sample_job/job.yml` - this is the file where the job you are going to run is defined. Adjust the compute name (the part after `compute: azureml:`) to the name of your Azure ML compute. _Note that you need to modify that file **on the docker image**. Either modify the file locally and rebuild the docker image, or modify the file straight from the docker terminal._
 
 The PowerShell script `RunSampleJob.ps1` will submit the job and upload the classic MNIST train and test data for you, from the files locally available in the repository. It takes the following arguments.
 - `SubscriptionId`: the Id of the subscription to which the Azure ML orchestrator workspace belongs.
