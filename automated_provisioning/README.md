@@ -177,10 +177,12 @@ A few notes on the parameter values you need to provide:
 - although not mandatory, we recommend attaching the storage account to the resource group containing the orchestrator Azure ML workspace (`-g` parameter);
 - we recommend using the same location as the silo (`-l` parameter).
 
-Now that we have a storage account, we need to create an Azure ML datastore and connect it to the storage account (more information on datastores can be found [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-datastore?tabs=cli-identity-based-access%2Ccli-adls-identity-based-access%2Ccli-azfiles-account-key%2Ccli-adlsgen1-identity-based-access)). To do so, we will first update the [./yaml/datastore.yml](./yaml/datastore.yml) file with the proper values for the datastore name and description, and for the storage account we just created. Then, we will run the following command with the appropriate parameter values for the workspace name and resource group.
+Now that we have a storage account, we need to create an Azure ML datastore and connect it to the storage account (more information on datastores can be found [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-datastore?tabs=cli-identity-based-access%2Ccli-adls-identity-based-access%2Ccli-azfiles-account-key%2Ccli-adlsgen1-identity-based-access)). To do so, we will first update the [./yaml/datastore.yml](./yaml/datastore.yml) file with the proper values for the datastore name and description, and for the storage account we just created. _Note that you need to modify that file **on the docker image**. Either modify the file locally and rebuild the docker image, or modify the file straight from the docker terminal._ 
+
+Then, we will run the following command with the appropriate parameter values for the workspace name and resource group.
 
 ```ps1
-az ml datastore create --file .\yaml\datastore.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace "Your-Orchestrator-Workspace-Name"
+az ml datastore create --file ./yaml/datastore.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace "Your-Orchestrator-Workspace-Name"
 ```
 
 Last, we need to update the datastore credentials so it can connect to the storage account. This will be done through the UI, as follows.
