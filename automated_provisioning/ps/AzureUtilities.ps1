@@ -45,6 +45,9 @@ function Confirm-Name {
         Write-Output "$ResourceType name $Name is valid."
     } else{
         Write-Error "$ResourceType name $Name is invalid. It can include letters, digits and dashes. It must start with a letter, end with a letter or digit, and be between {2 for Compute, 3 for AMLWorkspace} and {16 for Compute, 21 for AMLWorkspace} characters in length."
+        if ($ResourceType -eq "AMLWorkspace"){
+            Write-Error "Note that even though Azure ML does accept underscores in workspace names, this provisioning tool does not. This restriction could be lifted in a future iteration if needed."
+        }
         exit
     }
 }

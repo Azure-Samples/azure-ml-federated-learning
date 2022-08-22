@@ -2,7 +2,7 @@
 
 ## Contents
 
-This document proposes a procedure to provision the resources required for running Contoso Federated Learning experiments.
+This document proposes a procedure to provision the resources required for Contoso to be running Federated Learning experiments. (Contoso is just a fictional organization.)
 
 The resources can then be used to explore Federated Learning in Azure ML, for instance by running the [example experiment](../fl_arc_k8s/README.md).
 
@@ -19,6 +19,10 @@ The procedure outlined in this document will provision resources that meet the r
 
 ## Prerequisites
 
+We are providing a [docker file](./Dockerfile) which contains all the prerequisites below. We strongly recommend you use this dockerfile to ensure you have all the required dependencies.
+
+> Reading the rest of this **Prerequisites** section is completely optional, as all these steps have been incorporated in the docker file.
+
 Taken from [here](https://github.com/Azure/AML-Kubernetes#prerequisites) (along with the K8s cluster creation/connection steps).
 
 0. Have PowerShell (or PowerShell Core if not on Windows).
@@ -27,19 +31,37 @@ Taken from [here](https://github.com/Azure/AML-Kubernetes#prerequisites) (along 
 3. Meet the pre-requisites listed under the [generic cluster extensions documentation](https://docs.microsoft.com/azure/azure-arc/kubernetes/extensions#prerequisites).
     - Azure CLI version >=2.24.0
     - Azure CLI extension k8s-extension version >=1.0.0.
-4. Install and setup the [latest AzureML CLI v2](https://docs.microsoft.com/azure/machine-learning/how-to-configure-cli).
+    - Only focus on the extensions, no need to create the k8s cluster yet.
+4. Install and setup the v2 version of the _Azure ML CLI extension_ following [these instructions](https://docs.microsoft.com/azure/machine-learning/how-to-configure-cli).
 5. Install the [Bicep CLI](https://docs.microsoft.com/en-us/azure/azure-resource-manager/bicep/install) and the [Bicep extension in VS Code](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep).
+6. Allow PowerShell to run non-signed scripts, by setting the _ExecutionPolicy_ to _Unrestricted_ - more information [here](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.2).
 
 ## Procedure
 
-> Set `automated_provisioning` as your working directory!
+The procedure is fairly simple (detailed instructions are given in the numbered subsections below, this section is just a preview of what you'll have to do).
 
-The procedure is fairly simple (detailed instructions are given in the below sections).
-1. After setting your working directory and  verifying you are meeting the prerequisites, you will first run the `CreateK8sCluster.ps1` script (with the appropriate arguments) and log in when prompted.
-2. Then you will run the `ConnectSiloToOrchestrator.ps1` script (with the appropriate arguments) and log in when prompted.
+0. Use the docker image that contains all the prerequisites.
+1. You will first run the `CreateK8sCluster.ps1` script (with the appropriate arguments) and log in when prompted. This will create your k8s cluster, _a,k,a,_ your silo.
+2. Then you will run the `ConnectSiloToOrchestrator.ps1` script (with the appropriate arguments) and log in when prompted. This will create an Azure ML workspace (if it doesn't exist already) and connect your silo to it.
+3. You will have the option to change the silo compute size by running `ChangeComputeSize.ps1` (with the appropriate arguments).
+4. Add more silos by repeating the steps above.
+5. Run a simple silo validation job. All resources are provided, you'll just need to point at your silo.
+6. Create compute resources in the orchestrator.
+7. Create the resources required for Data Transfer steps.
+8. Upload some (non-sensitive) data
 
-We also suggest a way to run a simple validation job (highly recommended, to make sure the newly provisioned resources are usable). That being said, there is nothing special about this job, except for the fact that it will run on the new Arc-enabled K8s cluster; if you feel more comfortable using one of your own jobs to achieve that, it is perfectly acceptable.
-
+### 0. Use the docker image that contains all the prerequisites
+- Clone the current repository and set `automated_provisioning` as your working directory.
+- Build a docker image based on the [docker file](./Dockerfile) by running: 
+  ```ps1
+  docker build -t fl-rp .
+  ```
+  ("fl-rp" will be the name of the docker image and stands for FL-Resource Provisioning).
+- Run the docker image with the following command:
+    ```ps1
+    docker run -i fl-rp
+    ```
+> All the steps below will need to be carried out **from within the docker image**.
 ### 1. Set up a silo
 
 For starters, you need to create a K8s cluster and the associated resource group if they don't exist already. Then you'll need to connect to this cluster and create the _kube_ config file (which will be used implicitly by the second script to point at this particular cluster). There is a script that does all that for you: `CreateK8sCluster.ps1`. It takes the following input arguments.
@@ -124,6 +146,8 @@ The command should look something like the below (with the parameters replaced b
 ```ps
 ./sample_job/RunSampleJob.ps1 -SubscriptionId "Your-Orchestrator-SubscriptionId" -WorkspaceName "Your-Orchestrator-Workspace-Name" -ResourceGroup "Your-Orchestrator-Resource-Group"
 ```
+
+Note that there is nothing special about this job, except for the fact that it will run on the new Arc-enabled K8s cluster; if you feel more comfortable using one of your own jobs to achieve that, it is perfectly acceptable.
 
 ### 6. Create compute resources in the orchestrator
 By default, the orchestrator workspace might not come with any CPU compute cluster. We need to create one (for running the aggregation or preprocessing steps). To do so, just run the following command with the appropriate parameter values for your orchestrator workspace name and resource group.
