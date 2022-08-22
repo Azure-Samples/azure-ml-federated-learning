@@ -204,11 +204,11 @@ We now explain how to create datasets that we will use for running the [example 
 This can be done by running the following command, which will create an Azure ML dataset named `mnist` (see the value of the `--name` parameter). We will use this dataset as _primer_ data.
 
 ```ps1
-az ml dataset create --name mnist --description "MNIST dataset" --local-path ./sample_job/src/mnist-data --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
+az ml data create --name mnist --description "MNIST dataset" --type uri_folder --path ./sample_job/src/mnist-data --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
 ```
 
 For the time being, we create the _silo_ data in the exact same fashion. Just re-run the above command once per silo, giving a unique `--name` each time. (We recommend naming the datasets something like `mnist_01`, `mnist_02`, etc...)
 
 
-## Further reading
+## Further (optional) reading
 - The part about creating/connecting K8s clusters is based on [these instructions](https://github.com/Azure/AML-Kubernetes). A summary can also be found in [this deck](https://microsoft.sharepoint.com/:p:/t/AMLDataScience/EQSxAxYrjX1BiOh3s23GpJUB81sgQfNQJFTWCRR0T8pODg?e=6hcvRL).
