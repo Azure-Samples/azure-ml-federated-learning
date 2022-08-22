@@ -8,12 +8,12 @@ The resources can then be used to explore Federated Learning in Azure ML, for in
 
 ## Requirements
 
-For running Federated Learning experiments, the Contoso team needs the following ingredients:
+For running _external_ cross-_silo_ Federated Learning experiments, the Contoso team needs the following ingredients:
 
 - an "orchestrator" Azure ML workspace;
 - some Kubernetes (K8s) clusters;
 - connections between the K8s clusters and the Azure ML workspace;
-- <other ingredients related to data store, to be added later>...
+- computes and datastores to run the DataTransfer steps.
 
 The procedure outlined in this document will provision resources that meet the requirements above.
 
@@ -34,7 +34,6 @@ Taken from [here](https://github.com/Azure/AML-Kubernetes#prerequisites) (along 
     - Only focus on the extensions, no need to create the k8s cluster yet.
 4. Install and setup the v2 version of the _Azure ML CLI extension_ following [these instructions](https://docs.microsoft.com/azure/machine-learning/how-to-configure-cli).
 5. Install the [Bicep CLI](https://docs.microsoft.com/en-us/azure/azure-resource-manager/bicep/install) and the [Bicep extension in VS Code](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep).
-6. Allow PowerShell to run non-signed scripts, by setting the _ExecutionPolicy_ to _Unrestricted_ - more information [here](https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.security/set-executionpolicy?view=powershell-7.2).
 
 ## Procedure
 
