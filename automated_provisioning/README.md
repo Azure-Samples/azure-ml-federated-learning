@@ -2,22 +2,26 @@
 
 ## Contents
 
-This document proposes a procedure to provision the resources required for running Contoso Federated Learning experiments.
+This document proposes a procedure to provision the resources required for Contoso to be running Federated Learning experiments. (Contoso is just a fictional organization.)
 
 The resources can then be used to explore Federated Learning in Azure ML, for instance by running the [example experiment](../fl_arc_k8s/README.md).
 
 ## Requirements
 
-For running Federated Learning experiments, the Contoso team needs the following ingredients:
+For running _external_ cross-_silo_ Federated Learning experiments, the Contoso team needs the following ingredients:
 
 - an "orchestrator" Azure ML workspace;
 - some Kubernetes (K8s) clusters;
 - connections between the K8s clusters and the Azure ML workspace;
-- <other ingredients related to data store, to be added later>...
+- computes and datastores to run the DataTransfer steps.
 
 The procedure outlined in this document will provision resources that meet the requirements above.
 
 ## Prerequisites
+
+We are providing a [docker file](./Dockerfile) which contains all the prerequisites below. We strongly recommend you use this dockerfile to ensure you have all the required dependencies.
+
+> Reading the rest of this **Prerequisites** section is completely optional, as all these steps have been incorporated in the docker file.
 
 Taken from [here](https://github.com/Azure/AML-Kubernetes#prerequisites) (along with the K8s cluster creation/connection steps).
 
@@ -27,19 +31,36 @@ Taken from [here](https://github.com/Azure/AML-Kubernetes#prerequisites) (along 
 3. Meet the pre-requisites listed under the [generic cluster extensions documentation](https://docs.microsoft.com/azure/azure-arc/kubernetes/extensions#prerequisites).
     - Azure CLI version >=2.24.0
     - Azure CLI extension k8s-extension version >=1.0.0.
-4. Install and setup the [latest AzureML CLI v2](https://docs.microsoft.com/azure/machine-learning/how-to-configure-cli).
+    - Only focus on the extensions, no need to create the k8s cluster yet.
+4. Install and setup the v2 version of the _Azure ML CLI extension_ following [these instructions](https://docs.microsoft.com/azure/machine-learning/how-to-configure-cli).
 5. Install the [Bicep CLI](https://docs.microsoft.com/en-us/azure/azure-resource-manager/bicep/install) and the [Bicep extension in VS Code](https://marketplace.visualstudio.com/items?itemName=ms-azuretools.vscode-bicep).
 
 ## Procedure
 
-> Set `automated_provisioning` as your working directory!
+The procedure is fairly simple (detailed instructions are given in the numbered subsections below, this section is just a preview of what you'll have to do).
 
-The procedure is fairly simple (detailed instructions are given in the below sections).
-1. After setting your working directory and  verifying you are meeting the prerequisites, you will first run the `CreateK8sCluster.ps1` script (with the appropriate arguments) and log in when prompted.
-2. Then you will run the `ConnectSiloToOrchestrator.ps1` script (with the appropriate arguments) and log in when prompted.
+0. Use the docker image that contains all the prerequisites.
+1. You will first run the `CreateK8sCluster.ps1` script (with the appropriate arguments) and log in when prompted. This will create your k8s cluster, _a,k,a,_ your silo.
+2. Then you will run the `ConnectSiloToOrchestrator.ps1` script (with the appropriate arguments) and log in when prompted. This will create an Azure ML workspace (if it doesn't exist already) and connect your silo to it.
+3. You will have the option to change the silo compute size by running `ChangeComputeSize.ps1` (with the appropriate arguments).
+4. Add more silos by repeating the steps above.
+5. Run a simple silo validation job. All resources are provided, you'll just need to point at your silo.
+6. Create compute resources in the orchestrator.
+7. Create the resources required for Data Transfer steps.
+8. Upload some (non-sensitive) data
 
-We also suggest a way to run a simple validation job (highly recommended, to make sure the newly provisioned resources are usable). That being said, there is nothing special about this job, except for the fact that it will run on the new Arc-enabled K8s cluster; if you feel more comfortable using one of your own jobs to achieve that, it is perfectly acceptable.
-
+### 0. Use the docker image that contains all the prerequisites
+- Clone the current repository and set `automated_provisioning` as your working directory.
+- Build a docker image based on the [docker file](./Dockerfile) by running: 
+  ```ps1
+  docker build -t fl-rp .
+  ```
+  ("fl-rp" will be the name of the docker image and stands for FL-Resource Provisioning).
+- Run the docker image with the following command:
+    ```ps1
+    docker run -i fl-rp
+    ```
+> All the steps below will need to be carried out **from within the docker image**.
 ### 1. Set up a silo
 
 For starters, you need to create a K8s cluster and the associated resource group if they don't exist already. Then you'll need to connect to this cluster and create the _kube_ config file (which will be used implicitly by the second script to point at this particular cluster). There is a script that does all that for you: `CreateK8sCluster.ps1`. It takes the following input arguments.
@@ -112,7 +133,7 @@ Just repeat the steps above for every silo you want to create. For running the [
 
 > This simple validation job currently just tests **one** silo. You will need top run it on every one of them.
 
-To double check that you can actually run Azure ML jobs on the Arc Cluster, we provide all the files required for a sample job, following the example [here](https://github.com/Azure/AML-Kubernetes/blob/master/docs/simple-train-cli.md). First, you'll need to open `./sample_job/job.yml` - this is the file where the job you are going to run is defined. Adjust the compute name (the part after `compute: azureml:`) to the name of your Azure ML compute.
+To double check that you can actually run Azure ML jobs on the Arc Cluster, we provide all the files required for a sample job, following the example [here](https://github.com/Azure/AML-Kubernetes/blob/master/docs/simple-train-cli.md). First, you'll need to open `./sample_job/job.yml` - this is the file where the job you are going to run is defined. Adjust the compute name (the part after `compute: azureml:`) to the name of your Azure ML compute. _Note that you need to modify that file **on the docker image**. Either modify the file locally and rebuild the docker image, or modify the file straight from the docker terminal._
 
 The PowerShell script `RunSampleJob.ps1` will submit the job and upload the classic MNIST train and test data for you, from the files locally available in the repository. It takes the following arguments.
 - `SubscriptionId`: the Id of the subscription to which the Azure ML orchestrator workspace belongs.
@@ -125,14 +146,16 @@ The command should look something like the below (with the parameters replaced b
 ./sample_job/RunSampleJob.ps1 -SubscriptionId "Your-Orchestrator-SubscriptionId" -WorkspaceName "Your-Orchestrator-Workspace-Name" -ResourceGroup "Your-Orchestrator-Resource-Group"
 ```
 
+Note that there is nothing special about this job, except for the fact that it will run on the new Arc-enabled K8s cluster; if you feel more comfortable using one of your own jobs to achieve that, it is perfectly acceptable.
+
 ### 6. Create compute resources in the orchestrator
 By default, the orchestrator workspace might not come with any CPU compute cluster. We need to create one (for running the aggregation or preprocessing steps). To do so, just run the following command with the appropriate parameter values for your orchestrator workspace name and resource group.
 
 ```ps1
-az ml compute create --file .\yaml\cpu-cluster.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
+az ml compute create --file ./yaml/cpu-cluster.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
 ```
 
-You will likely need a GPU cluster too. Just re-run the command above, but this time pointing at the `.\yaml\gpu-cluster.yml` file.
+You will likely need a GPU cluster too. Just re-run the command above, but this time pointing at the `./yaml/gpu-cluster.yml` file.
 
 After that, you will have 2 new compute clusters in your orchestrator workspace, named `cpu-cluster` and `gpu-cluster`. (For more details about compute cluster creation, see [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-create-attach-compute-cluster?tabs=azure-cli#create).)
 
@@ -140,7 +163,7 @@ After that, you will have 2 new compute clusters in your orchestrator workspace,
 
 A typical Federated Learning experiment involves transferring some model weights back and forth between the orchestrator and the silos. This is achieved using a particular Azure ML component: the [Data Transfer Component](https://componentsdk.azurewebsites.net/components/data_transfer_component.html). This component requires a Data Factory compute, along with some properly configured datastores and storage accounts.
 
-Attaching a Data Factory compute should be straightforward. Just install the `azureml-core` package _via_ `pip install azureml-core` and run the [./python/attach_data_factory.py](./python/attach_data_factory.py) script _after_ having entered the proper values of the workspace name, resource group, and subscription Id for your setup.
+Attaching a Data Factory compute should be straightforward. Just run the [./python/attach_data_factory.py](./python/attach_data_factory.py) script _after_ having entered the proper values of the workspace name, resource group, and subscription Id for your setup.  _Note that you need to modify that file **on the docker image**. Either modify the file locally and rebuild the docker image, or modify the file straight from the docker terminal._
 
 The next step after that is to create some datastores and the underlying storage accounts (these will be used for communicating model weights between the silos and the orchestrator).
 
@@ -154,10 +177,12 @@ A few notes on the parameter values you need to provide:
 - although not mandatory, we recommend attaching the storage account to the resource group containing the orchestrator Azure ML workspace (`-g` parameter);
 - we recommend using the same location as the silo (`-l` parameter).
 
-Now that we have a storage account, we need to create an Azure ML datastore and connect it to the storage account (more information on datastores can be found [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-datastore?tabs=cli-identity-based-access%2Ccli-adls-identity-based-access%2Ccli-azfiles-account-key%2Ccli-adlsgen1-identity-based-access)). To do so, we will first update the [./yaml/datastore.yml](./yaml/datastore.yml) file with the proper values for the datastore name and description, and for the storage account we just created. Then, we will run the following command with the appropriate parameter values for the workspace name and resource group.
+Now that we have a storage account, we need to create an Azure ML datastore and connect it to the storage account (more information on datastores can be found [here](https://docs.microsoft.com/en-us/azure/machine-learning/how-to-datastore?tabs=cli-identity-based-access%2Ccli-adls-identity-based-access%2Ccli-azfiles-account-key%2Ccli-adlsgen1-identity-based-access)). To do so, we will first update the [./yaml/datastore.yml](./yaml/datastore.yml) file with the proper values for the datastore name and description, and for the storage account we just created. _Note that you need to modify that file **on the docker image**. Either modify the file locally and rebuild the docker image, or modify the file straight from the docker terminal._ 
+
+Then, we will run the following command with the appropriate parameter values for the workspace name and resource group.
 
 ```ps1
-az ml datastore create --file .\yaml\datastore.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace "Your-Orchestrator-Workspace-Name"
+az ml datastore create --file ./yaml/datastore.yml --resource-group "Your-Orchestrator-Resource-Group" --workspace "Your-Orchestrator-Workspace-Name"
 ```
 
 Last, we need to update the datastore credentials so it can connect to the storage account. This will be done through the UI, as follows.
@@ -179,11 +204,11 @@ We now explain how to create datasets that we will use for running the [example 
 This can be done by running the following command, which will create an Azure ML dataset named `mnist` (see the value of the `--name` parameter). We will use this dataset as _primer_ data.
 
 ```ps1
-az ml dataset create --name mnist --description "MNIST dataset" --local-path ./sample_job/src/mnist-data --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
+az ml data create --name mnist --description "MNIST dataset" --type uri_folder --path ./sample_job/src/mnist-data --resource-group "Your-Orchestrator-Resource-Group" --workspace-name "Your-Orchestrator-Workspace-Name"
 ```
 
 For the time being, we create the _silo_ data in the exact same fashion. Just re-run the above command once per silo, giving a unique `--name` each time. (We recommend naming the datasets something like `mnist_01`, `mnist_02`, etc...)
 
 
-## Further reading
+## Further (optional) reading
 - The part about creating/connecting K8s clusters is based on [these instructions](https://github.com/Azure/AML-Kubernetes). A summary can also be found in [this deck](https://microsoft.sharepoint.com/:p:/t/AMLDataScience/EQSxAxYrjX1BiOh3s23GpJUB81sgQfNQJFTWCRR0T8pODg?e=6hcvRL).
