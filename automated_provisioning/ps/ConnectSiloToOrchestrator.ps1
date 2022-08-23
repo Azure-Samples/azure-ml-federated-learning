@@ -34,9 +34,10 @@ Confirm-Name $AMLWorkspaceName "AMLWorkspace"
 
 # making sure we're in the right subscription
 Write-Output "We'll be setting up the orchestrator in this subscription: $SubscriptionId_Orchestrator."
-az account set --subscription $SubscriptionId_Orchestrator
 # log in
 az login
+az account set --subscription $SubscriptionId_Orchestrator
+
 
 # create the orchestrator workspace if it does not exist already
 $Workspaces =  az ml workspace list --resource-group $AMLWorkspaceRGName --query "[?name=='$AMLWorkspaceName']" | ConvertFrom-Json

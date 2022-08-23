@@ -13,10 +13,10 @@ Param(
     $ResourceGroup  
 )
 
-# making sure we're in the right subscription
-az account set --subscription $SubscriptionId
 # log in
 az login
+# making sure we're in the right subscription
+az account set --subscription $SubscriptionId
 
 # run the job
 Write-Output "Submitting the job..."
