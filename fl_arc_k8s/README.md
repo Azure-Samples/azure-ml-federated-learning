@@ -27,7 +27,7 @@ Here is an [example successful experiment](https://ml.azure.com/runs/e5fe7afa-08
 
 Note that the example here is using the AIMS team's `aml1p-ml-wus2` workspace. If you don't have access to this workspace and are a Microsoft employee, you can get access by joining the "aims-contrib" security group in idweb.
 
-If you are not a Microsoft employee, then you will not be able to get access. You will first need to create all the resources yourself; we recommend using the scripts in the  `automated_provisioning` folder, as explained in the associated [README](../automated_provisioning/README.md). Then you will have to modify the configuration files under directory `fl_arc_k8s/pipelines/config/` to point to your own AML workspace, silos, etc... This last part is explained in the section below.
+If you are not a Microsoft employee, then you will not be able to get access. You will first need to create all the resources yourself; we recommend using the scripts in the  `mlops` folder, as explained in the associated [README](../mlops/README.md). Then you will have to modify the configuration files under directory `fl_arc_k8s/pipelines/config/` to point to your own AML workspace, silos, etc... This last part is explained in the section below.
 
 ### Modify the configuration files
 Since you won't be using the default `aml1p-ml-wus2` workspace, you need to update the [aml/public_workspace.yaml](./pipelines/config/aml/public_workspace.yaml) config file in the `fl_arc_k8s/pipelines/config/` directory to point to your workspace of choice.

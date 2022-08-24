@@ -1,6 +1,6 @@
 # Federated Learning in Azure ML
 
-> :warning: Need to update!
+> :warning: Need to update this README!
 
 **Disclaimer:** this repo is examples + recipes only, and none of this has SLAs on support or correctness.
 
@@ -12,7 +12,7 @@ Although there is no specific commitment to a timeline yet, Azure ML is working 
 Silos are expected to be reliable (i.e., no concerns around network connectivity or uptime). We also assume a hard cap of **≤ 100 silos**.
 
 Current contents:
-- `automated_provisioning`: a collection of resources to automatically provision the orchestrator and silos resources.
+- `mlops`: a collection of resources to automatically provision the orchestrator and silos resources.
 - `fl_arc_k8s`: simple example of using shrike Federated Learning API + Arc + Kubernetes + Azure ML to submit a Federated Learning experiment.
 - `docs`: generic plan for a company to onboard to Federated Learning through Azure ML.
 
