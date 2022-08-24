@@ -13,7 +13,7 @@ Silos are expected to be reliable (i.e., no concerns around network connectivity
 
 Current contents:
 - `mlops`: a collection of resources to automatically provision the orchestrator and silos resources.
-- `fl_arc_k8s`: simple example of using shrike Federated Learning API + Arc + Kubernetes + Azure ML to submit a Federated Learning experiment.
+- `examples`: simple example of using shrike Federated Learning API + Arc + Kubernetes + Azure ML to submit a Federated Learning experiment.
 - `docs`: generic plan for a company to onboard to Federated Learning through Azure ML.
 
 More details, recipes, and examples coming soon!
