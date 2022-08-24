@@ -8,7 +8,7 @@ The goal is NOT to train a _real_ model on _real_ data, it is just to demonstrat
 
 ## Setup
 
-- Clone the current repository and set `fl_arc_k8s` as your working directory.
+- Clone the current repository and set `examples` as your working directory.
 - Set up a new conda environment with python version 3.8 and shrike dependencies (the environment is defined in `environment.yml` and `requirements.txt`) by running the following command.
 
   `conda env create --file environment.yml`
@@ -17,7 +17,7 @@ The goal is NOT to train a _real_ model on _real_ data, it is just to demonstrat
 
 ## How to run the example
 
-Make sure you are in the `fl_arc_k8s` directory, and the conda environment 'fl-demo-env-py38' described in the Setup step above is activated. If you have access to the `aml1p-ml-wus2` Azure ML workspace, you can simply run the following command to submit the experiment:
+Make sure you are in the `examples` directory, and the conda environment 'fl-demo-env-py38' described in the Setup step above is activated. If you have access to the `aml1p-ml-wus2` Azure ML workspace, you can simply run the following command to submit the experiment:
 
 ```ps1
 python pipelines/experiments/demo_federated_learning_k8s.py --config-dir pipelines/config --config-name experiments/demo_federated_learning_k8s +run.submit=True
@@ -27,9 +27,9 @@ Here is an [example successful experiment](https://ml.azure.com/runs/e5fe7afa-08
 
 Note that the example here is using the AIMS team's `aml1p-ml-wus2` workspace. If you don't have access to this workspace and are a Microsoft employee, you can get access by joining the "aims-contrib" security group in idweb.
 
-If you are not a Microsoft employee, then you will not be able to get access. You will first need to create all the resources yourself; we recommend using the scripts in the  `automated_provisioning` folder, as explained in the associated [README](../automated_provisioning/README.md). Then you will have to modify the configuration files under directory `fl_arc_k8s/pipelines/config/` to point to your own AML workspace, silos, etc... This last part is explained in the section below.
+If you are not a Microsoft employee, then you will not be able to get access. You will first need to create all the resources yourself; we recommend using the scripts in the  `mlops` folder, as explained in the associated [README](../mlops/README.md). Then you will have to modify the configuration files under directory `examples/pipelines/config/` to point to your own AML workspace, silos, etc... This last part is explained in the section below.
 
 ### Modify the configuration files
-Since you won't be using the default `aml1p-ml-wus2` workspace, you need to update the [aml/public_workspace.yaml](./pipelines/config/aml/public_workspace.yaml) config file in the `fl_arc_k8s/pipelines/config/` directory to point to your workspace of choice.
+Since you won't be using the default `aml1p-ml-wus2` workspace, you need to update the [aml/public_workspace.yaml](./pipelines/config/aml/public_workspace.yaml) config file in the `examples/pipelines/config/` directory to point to your workspace of choice.
 
 Once that is done, you need to update the [experiments/demo_federated_learning_k8s.yaml](./pipelines/config/experiments/demo_federated_learning_k8s.yaml) config file to point to your dataset of choice, and to your silos. For the silos, you will need to make sure that each silo's `compute` value in the config file matches the name of the compute attached to the orchestrator workspace. The silo's name in the config file is arbitrary.

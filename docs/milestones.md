@@ -1,5 +1,7 @@
 # Milestones to Cross-silo Federated Learning Using Azure ML 
 
+> :warning: If we end up keeping this doc, we need to update the links.
+
 ## Summary
 This document is for third party customers who are interested in cross-silo Federated Learning (FL) on Azure ML. Specifically, we discuss milestones and main steps to getting a FL project running. 
 

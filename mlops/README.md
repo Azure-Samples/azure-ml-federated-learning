@@ -4,7 +4,7 @@
 
 This document proposes a procedure to provision the resources required for Contoso to be running Federated Learning experiments. (Contoso is just a fictional organization.)
 
-The resources can then be used to explore Federated Learning in Azure ML, for instance by running the [example experiment](../fl_arc_k8s/README.md).
+The resources can then be used to explore Federated Learning in Azure ML, for instance by running the [example experiment](../examples/README.md).
 
 ## Requirements
 
@@ -50,7 +50,7 @@ The procedure is fairly simple (detailed instructions are given in the numbered 
 8. Upload some (non-sensitive) data
 
 ### 0. Use the docker image that contains all the prerequisites
-- Clone the current repository and set `automated_provisioning` as your working directory.
+- Clone the current repository and set `mlops` as your working directory.
 - Build a docker image based on the [docker file](./Dockerfile) by running: 
   ```ps1
   docker build -t fl-rp .
@@ -100,7 +100,7 @@ The command should look something like the below (with the parameters replaced b
 
 ### 3. Change Compute Instance size (optional)
 
-> If you're just exploring Federated Learning on Azure ML (for instance by running the [example experiment](../fl_arc_k8s/README.md)), you probably won't need a lot of compute resources, so you can skip this step.
+> If you're just exploring Federated Learning on Azure ML (for instance by running the [example experiment](../examples/README.md)), you probably won't need a lot of compute resources, so you can skip this step.
 
 The default compute instance only provisions a small portion of your K8s cluster (specifically, 1.5G memory and 0.6 cpu). You may need to override this by taking the following steps.
 - Setup your local kubectl environment and connect to the AKS.
@@ -121,7 +121,7 @@ The command should look something like the below (with the parameters replaced b
 To verify, go to the orchestrator AML workspace, and find the attached cluster by clicking "Compute" &mapsto; "Attached computers" and search your cluster with the `AMLComputeName` you used in the previous step.
 
 ### 4. Add more silos
-Just repeat the steps above for every silo you want to create. For running the [example experiment](../fl_arc_k8s/README.md), **you will need to create 3 silos**.
+Just repeat the steps above for every silo you want to create. For running the [example experiment](../examples/README.md), **you will need to create 3 silos**.
 
 > You need to create a cluster, then connect it. If you first create several clusters, then try to connect them, you will run into issues. This is because the connection script implicitly uses the cluster reference from the first step. 
 
@@ -193,13 +193,13 @@ That's it, you now should have a datastore and a storage account configured prop
 
 ### 8. Add some data
 
-> This section is still pretty much work in progress. We haven't introduced the parts to control access to the _silo_ data yet. This is enough to get you going with the [example experiment](../fl_arc_k8s/README.md), but please do not use any sensitive data for now!
+> This section is still pretty much work in progress. We haven't introduced the parts to control access to the _silo_ data yet. This is enough to get you going with the [example experiment](../examples/README.md), but please do not use any sensitive data for now!
 
 In general, a Federated Learning experiment needs two kinds of data:
 - the _silo_ data (_e.g._ the sensitive data on which to train the local models);
 - the _primer_ data (_e.g._ some pre-trained model weights, or some public data on which to train the baseline model in the orchestrator).
 
-We now explain how to create datasets that we will use for running the [example experiment](../fl_arc_k8s/README.md). We are going to use the public [MNIST dataset](https://en.wikipedia.org/wiki/MNIST_database), and are going to create several copies of it to mimic the various kinds of data mentioned above. The data are included in the current repository, so all we have to do is upload them, and package them as an Azure ML dataset (more information [here](https://docs.microsoft.com/en-us/azure/machine-learning/v1/how-to-create-register-datasets) if needed).
+We now explain how to create datasets that we will use for running the [example experiment](../examples/README.md). We are going to use the public [MNIST dataset](https://en.wikipedia.org/wiki/MNIST_database), and are going to create several copies of it to mimic the various kinds of data mentioned above. The data are included in the current repository, so all we have to do is upload them, and package them as an Azure ML dataset (more information [here](https://docs.microsoft.com/en-us/azure/machine-learning/v1/how-to-create-register-datasets) if needed).
 
 This can be done by running the following command, which will create an Azure ML dataset named `mnist` (see the value of the `--name` parameter). We will use this dataset as _primer_ data.
 

@@ -42,8 +42,8 @@ RUN az bicep install
 # Install azureml-core
 RUN pip install azureml-core
 # Copy all files in parent directory to the container
-COPY . /automated_provisioning
+COPY . /mlops
 # Set working directory
-WORKDIR /automated_provisioning
+WORKDIR /mlops
 # Start PowerShell
 CMD pwsh
