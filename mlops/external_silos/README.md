@@ -50,7 +50,7 @@ The procedure is fairly simple (detailed instructions are given in the numbered 
 8. Upload some (non-sensitive) data
 
 ### 0. Use the docker image that contains all the prerequisites
-- Clone the current repository and set `mlops` as your working directory.
+- Clone the current repository and set `mlops/external_silos` as your working directory.
 - Build a docker image based on the [docker file](./Dockerfile) by running: 
   ```ps1
   docker build -t fl-rp .
