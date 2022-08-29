@@ -77,5 +77,3 @@ foreach ($Silo in $Silos)
     }
     $SiloIndex=$SiloIndex+1
 }
-# Validating the required name of the Azure ML compute and workspace
-#Confirm-Name $AMLComputeName "Compute"

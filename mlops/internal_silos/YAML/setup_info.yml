@@ -1,8 +1,8 @@
 subscription_id: 6560575d-fa06-4e7d-95fb-f962e74efd7a
 workspace:
-  name: thopo-vanilla-fl 
+  name: vanilla-fl 
   region: westus2
-  resource_group: thopo-vanilla-fl-rg
+  resource_group: vanilla-fl-rg
 silos:
   - silo_01:
     name: silo-wus2
