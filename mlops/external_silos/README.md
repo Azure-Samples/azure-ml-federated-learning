@@ -15,7 +15,7 @@ For running _external_ cross-_silo_ Federated Learning experiments, the Contoso 
 - connections between the K8s clusters and the Azure ML workspace;
 - computes and datastores to run the DataTransfer steps.
 
-The procedure outlined in this document will provision resources that meet the requirements above.
+The procedure outlined in this document will provision resources that meet the requirements above. You will need the _Contributor_ role on the Azure subscription(s) where the resources will be provisioned.
 
 ## Prerequisites
 
