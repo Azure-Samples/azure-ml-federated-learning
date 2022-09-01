@@ -23,6 +23,7 @@ foreach ($Silo in $Silos)
     $SiloRegion = $Silo['region']
     $SiloSummary = "Silo number $SiloIndex will be named '$SiloName' and will be created in the '$SiloRegion' region."
     Write-Output $SiloSummary
+    # Increment the silo index to keep it accurate
     $SiloIndex=$SiloIndex+1
 }
 # 0.d Load useful functions
@@ -52,7 +53,7 @@ if ($OrchestratorComputes.Length -eq 0){
 } else {
     Write-Output "The orchestrator compute $ComputeName already exists."
 }
-
+Write-Output "Done with workspace creation"
 
 # 2. Create silos (in the vanilla case, silos are just computes)
 $SiloIndex = 1
@@ -75,5 +76,41 @@ foreach ($Silo in $Silos)
     } else {
         Write-Output "The silo compute $SiloComputeName already exists."
     }
+    # Increment the silo index to keep it accurate
     $SiloIndex=$SiloIndex+1
 }
+Write-Output "Done with silos creation."
+
+# 3. Upload some MNIST data to each silo (one training set and one test set). At this point, the data in all 3 silos is identical, but we'll pre-process the data so each silo only considers a different subset.
+$SiloIndex = 1
+foreach ($Silo in $Silos)
+{
+    Write-Output "Uploading training and test data to silo $SiloIndex..."
+    # Pad the silo number with a zero (for nicer display name)
+    $FormattedSiloIndex = $SiloIndex.ToString("D2")
+    # We prepare the data assets definition in YAML.
+    # First for the training set...
+    $TrainingDataYAML="`$schema: https://azuremlschemas.azureedge.net/latest/data.schema.json
+name: mnist-train-$FormattedSiloIndex
+description: Dataset created from folder in cloud using https URL.
+type: uri_file
+path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv"
+    # Then for the test set.
+    $TestDataYAML="`$schema: https://azuremlschemas.azureedge.net/latest/data.schema.json
+name: mnist-test-$FormattedSiloIndex
+description: Dataset created from folder in cloud using https URL.
+type: uri_file
+path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv"
+    # We write the YAML's into 2 files
+    $TrainingDataYAML | Out-File -FilePath ./mnist_train.yml
+    $TestDataYAML | Out-File -FilePath ./mnist_test.yml
+    # We use the CLI to create the data assets
+    az ml data create --file ./mnist_train.yml --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --subscription $SubscriptionId
+    az ml data create --file ./mnist_test.yml --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --subscription $SubscriptionId
+    # And finally we delete the temporary files
+    Remove-Item -Path ./mnist_train.yml
+    Remove-Item -Path ./mnist_test.yml
+    # Increment the silo index to keep it accurate
+    $SiloIndex=$SiloIndex+1
+}
+Write-Output "Done with data assets creation."
