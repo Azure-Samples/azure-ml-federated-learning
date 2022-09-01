@@ -9,3 +9,4 @@ dependencies:
     - azure-ai-ml==0.1.0b6
     - torch==1.12.1 
     - torchvision==0.13.1
+    - pandas
