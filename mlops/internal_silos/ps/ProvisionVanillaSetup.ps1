@@ -9,6 +9,7 @@ $SubscriptionId = $yaml['subscription_id']
 $WorkspaceName = $yaml['workspace']['name']
 $WorkspaceRegion = $yaml['workspace']['region']
 $WorkspaceResourceGroup = $yaml['workspace']['resource_group']
+$OrchestratorComputeName = $yaml['workspace']['orchestrator_compute_name']
 $Silos = $yaml['silos']
 $NumSilos = $Silos.Count
 # 0.c Display summary of what will be created
@@ -45,13 +46,12 @@ if ($Workspaces.Length -eq 0){
     Write-Output "The AML workspace $WorkspaceName already exists."
 }
 # 1.c Create compute cluster for the orchestrator
-$ComputeName = 'cpu-cluster'
-$OrchestratorComputes = az ml compute list -g $WorkspaceResourceGroup -w $WorkspaceName --query "[?name=='$ComputeName']" | ConvertFrom-Json
+$OrchestratorComputes = az ml compute list -g $WorkspaceResourceGroup -w $WorkspaceName --query "[?name=='$OrchestratorComputeName']" | ConvertFrom-Json
 if ($OrchestratorComputes.Length -eq 0){
-    Write-Output "Creating the '$ComputeName' compute in the orchestrator workspace."
-    az ml compute create --name $ComputeName --type AmlCompute --size STANDARD_DS3_v2 --min-instances 0 --max-instances 2 --idle-time-before-scale-down 120 --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName
+    Write-Output "Creating the '$OrchestratorComputeName' compute in the orchestrator workspace."
+    az ml compute create --name $OrchestratorComputeName --type AmlCompute --size STANDARD_DS3_v2 --min-instances 0 --max-instances 2 --idle-time-before-scale-down 120 --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName
 } else {
-    Write-Output "The orchestrator compute $ComputeName already exists."
+    Write-Output "The orchestrator compute $OrchestratorComputeName already exists."
 }
 Write-Output "Done with workspace creation"
 

@@ -3,6 +3,7 @@ workspace:
   name: vanilla-fl 
   region: westus2
   resource_group: vanilla-fl-rg
+  orchestrator_compute_name: cpu-cluster
 silos:
   - silo_01:
     name: silo-wus2
