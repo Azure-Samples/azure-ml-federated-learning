@@ -8,9 +8,12 @@ description: Mock component for preprocessing raw data in a given silo.
 is_deterministic: true
 
 inputs:
-  raw_data:
-    type: uri_folder
-    description: the raw data in a given silo
+  raw_training_data:
+    type: uri_file
+    description: the raw training data in a given silo
+  raw_testing_data:
+    type: uri_file
+    description: the raw testing data in a given silo
 
 outputs:
   processed_train_data:
@@ -23,6 +26,8 @@ outputs:
 code: .
 
 command: >-
-  python run.py --raw_data ${{inputs.raw_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}}
+  python run.py --raw_training_data ${{inputs.raw_training_data}} --raw_testing_data ${{inputs.raw_testing_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}}
 
-environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04

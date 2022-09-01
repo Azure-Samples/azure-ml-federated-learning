@@ -41,13 +41,20 @@ parser.add_argument(
     help="actually submits the experiment to AzureML",
 )
 
+parser.add_argument(
+    "--example", 
+    required=True, 
+    choices=["MNIST"],
+    help="dataset name"
+)
+
 args = parser.parse_args()
 
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
-COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..", "components")
+COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..", "components", args.example)
 
 
 ###########################
@@ -86,12 +93,14 @@ except Exception as ex:
 ####################################
 
 # Loading the component from their yaml specifications
-training_component = load_component(
-    path=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
-)
 preprocessing_component = load_component(
     path=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
 )
+
+training_component = load_component(
+    path=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+)
+
 aggregate_component = load_component(
     path=os.path.join(
         COMPONENTS_FOLDER, "aggregatemodelweights", "aggregatemodelweights.yaml"
@@ -104,21 +113,21 @@ aggregate_component = load_component(
 ########################
 
 
-def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", epoch=None):
+def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", round=None):
     """Produces a path to store the data during FL training.
 
     Args:
         datastore_name (str): name of the Azure ML datastore
         output_name (str): a name unique to this output
         unique_id (str): a unique id for the run (default: inject run id with ${{name}})
-        epoch (str): an epoch id if relevant
+        round (str): an round id if relevant
 
     Returns:
         data_path (str): direct url to the data path to store the data
     """
     data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{unique_id}/{output_name}/"
-    if epoch:
-        data_path += f"epoch_{epoch}/"
+    if round:
+        data_path += f"round_{round}/"
 
     return data_path
 
@@ -141,10 +150,15 @@ def fl_cross_silo_internal_basic():
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # run the pre-processing component once
         silo_pre_processing_step = preprocessing_component(
-            raw_data=Input(
-                type=AssetTypes.URI_FOLDER,
+            raw_training_data=Input(
+                type=AssetTypes.URI_FILE,
                 mode="mount",
                 path=silo_config.training_data_path,
+            ),
+            raw_testing_data=Input(
+                type=AssetTypes.URI_FILE,
+                mode="mount",
+                path=silo_config.testing_data_path,
             )
         )
         # make sure the compute corresponds to the silo
@@ -175,10 +189,10 @@ def fl_cross_silo_internal_basic():
     ### TRAINING ###
     ################
 
-    running_checkpoint = None  # for epoch 0, we have no pre-existing checkpoint
+    running_checkpoint = None  # for round 0, we have no pre-existing checkpoint
 
-    # now for each epoch, run training
-    for epoch in range(YAML_CONFIG.training_parameters.epochs):
+    # now for each round, run training
+    for round in range(YAML_CONFIG.training_parameters.num_rounds):
         # collect all outputs in a dict to be used for aggregation
         silo_weights_outputs = {}
 
@@ -190,8 +204,11 @@ def fl_cross_silo_internal_basic():
                 train_data=silo_preprocessed_train_data[silo_index],
                 # with the test_data from the pre_processing step
                 test_data=silo_preprocessed_test_data[silo_index],
-                # and the checkpoint from previous epoch (or None if epoch == 0)
+                # and the checkpoint from previous round (or None if round == 0)
                 checkpoint=running_checkpoint,
+                lr = YAML_CONFIG.training_parameters.lr,
+                epochs = YAML_CONFIG.training_parameters.epochs,
+                batch_size = YAML_CONFIG.training_parameters.batch_size,
             )
 
             # make sure the compute corresponds to the silo
@@ -202,7 +219,7 @@ def fl_cross_silo_internal_basic():
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
                 path=custom_fl_data_path(
-                    silo_config.datastore, "silo_model", epoch=epoch
+                    silo_config.datastore, "silo_model", round=round
                 ),
             )
 
@@ -225,11 +242,11 @@ def fl_cross_silo_internal_basic():
             path=custom_fl_data_path(
                 YAML_CONFIG.federated_learning.orchestrator.datastore,
                 "aggregated_output",
-                epoch=epoch,
+                round=round,
             ),
         )
 
-        # let's keep track of the checkpoint to be used as input for next epoch
+        # let's keep track of the checkpoint to be used as input for next round
         running_checkpoint = aggregate_weights_step.outputs.aggregated_output
 
     # NOTE: a pipeline returns a dictionary of outputs

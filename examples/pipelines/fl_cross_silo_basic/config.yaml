@@ -2,9 +2,9 @@
 
 # using this to store references to Azure ML
 aml:
-  subscription_id: "<SUBSCRIPTION_ID>"
-  resource_group_name: "<RESOURCE_GROUP>"
-  workspace_name: "<AML_WORKSPACE_NAME>"
+  subscription_id: "48bbc269-ce89-4f6f-9a12-c6f91fcb772d"
+  resource_group_name: "amit-aml-ws-fl-rg"
+  workspace_name: "amit-aml-ws-fl"
 
 # federated learning parameters
 federated_learning:
@@ -14,12 +14,21 @@ federated_learning:
 
   silos:
     - compute: cpu-cluster-silo-1
-      datastore: workspaceblobstore
-      training_data_path: "azureml://datastores/workspaceblobstore/paths/azureml/ee95ed94-03d5-4b85-ad5e-883880b44735/extracted_data/"
+      datastore: workspaceblobstoresilo1
+      training_data_path: "https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv"
+      testing_data_path: "https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv"
     - compute: cpu-cluster-silo-2
-      datastore: workspaceblobstore
-      training_data_path: "azureml://datastores/workspaceblobstore/paths/azureml/ee95ed94-03d5-4b85-ad5e-883880b44735/extracted_data/"
+      datastore: workspaceblobstoresilo2
+      training_data_path: "https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv"
+      testing_data_path: "https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv"
+    - compute: cpu-cluster-silo-3
+      datastore: workspaceblobstoresilo3
+      training_data_path: "https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv"
+      testing_data_path: "https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv"
 
 # training parameters
 training_parameters:
-  epochs: 5
+  num_rounds: 2
+  epochs: 3
+  lr: 0.01
+  batch_size: 64
