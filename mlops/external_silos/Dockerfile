@@ -42,8 +42,8 @@ RUN az bicep install
 # Install azureml-core
 RUN pip install azureml-core
 # Copy all files in parent directory to the container
-COPY . /mlops
+COPY . /mlops/external_silos
 # Set working directory
-WORKDIR /mlops
+WORKDIR /mlops/external_silos
 # Start PowerShell
 CMD pwsh
