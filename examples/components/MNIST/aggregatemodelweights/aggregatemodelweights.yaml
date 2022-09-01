@@ -4,7 +4,7 @@ name: aggregate_model_weights
 version: 0.1.0
 display_name: Aggregate Model Weights (from all silos)
 type: command
-description: Mock component for aggreating model weights.
+description: Component for aggreating model weights.
 is_deterministic: true
 
 inputs:
@@ -14,11 +14,11 @@ inputs:
     optional: false
   input_silo_2:
     type: uri_folder
-    description: input from silo 1 (e.g., model weights, or gradient updates)
+    description: input from silo 2 (e.g., model weights, or gradient updates)
     optional: true
   input_silo_3:
     type: uri_folder
-    description: input from silo 1 (e.g., model weights, or gradient updates)
+    description: input from silo 3 (e.g., model weights, or gradient updates)
     optional: true
 
 outputs:

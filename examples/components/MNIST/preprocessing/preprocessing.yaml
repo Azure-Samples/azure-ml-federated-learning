@@ -4,7 +4,7 @@ name: preprocessing_in_silo
 version: 0.1.0
 display_name: Pre-Processing (in silo)
 type: command
-description: Mock component for preprocessing raw data in a given silo.
+description: Component for preprocessing raw data in a given silo.
 is_deterministic: true
 
 inputs:
@@ -18,10 +18,10 @@ inputs:
 outputs:
   processed_train_data:
     type: uri_folder
-    description: the output training data from preprocessing
+    description: the output training data after preprocessing
   processed_test_data:
     type: uri_folder
-    description: the output testing data from preprocessing
+    description: the output testing data after preprocessing
 
 code: .
 

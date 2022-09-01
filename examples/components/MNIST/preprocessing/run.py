@@ -1,7 +1,7 @@
-"""Script for mock components."""
 import os
 import argparse
 import logging
+import sys
 
 from torchvision import transforms
 from torchvision.utils import save_image
@@ -9,7 +9,14 @@ from torch.utils.data import Dataset
 import torch
 import pandas as pd
 
+# Set logging to sys.out
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG) 
+log_format = logging.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
+handler = logging.StreamHandler(sys.stdout)                             
+handler.setLevel(logging.DEBUG)                                        
+handler.setFormatter(log_format)                                        
+logger.addHandler(handler)   
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.

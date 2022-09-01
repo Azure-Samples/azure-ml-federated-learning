@@ -1,10 +1,21 @@
-"""Script for mock components."""
 import os
 import argparse
+import logging
+import sys
 
 import torch
 from torch import nn
 from torchvision import models
+
+
+# Set logging to sys.out
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG) 
+log_format = logging.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
+handler = logging.StreamHandler(sys.stdout)                             
+handler.setLevel(logging.DEBUG)                                        
+handler.setFormatter(log_format)                                        
+logger.addHandler(handler)
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -85,10 +96,17 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
+    logger.debug("Get client models")
     client_models = get_client_models(args)
+    logger.info(f"Total number of client models: {len(client_models)}")
+    
+    logger.debug(f"Get global model")
     global_model = get_global_model(args)
 
+    logger.debug("aggregate model weights")
     global_model = aggregate_model_weights(global_model, client_models)
+
+    logger.info("Saving model weights")
     torch.save(global_model.state_dict(), args.aggregated_output + '/model.pt')
 
 

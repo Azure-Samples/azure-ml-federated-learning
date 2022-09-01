@@ -7,12 +7,11 @@ This script:
 4) configures each step of this pipeline to read/write from the right silo.
 """
 import os
-import sys
 import argparse
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azure.ai.ml import MLClient, command, Input, Output
+from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
@@ -206,8 +205,11 @@ def fl_cross_silo_internal_basic():
                 test_data=silo_preprocessed_test_data[silo_index],
                 # and the checkpoint from previous round (or None if round == 0)
                 checkpoint=running_checkpoint,
+                # Learning rate for local training
                 lr = YAML_CONFIG.training_parameters.lr,
+                # Number of epochs 
                 epochs = YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
                 batch_size = YAML_CONFIG.training_parameters.batch_size,
             )
 
@@ -249,9 +251,7 @@ def fl_cross_silo_internal_basic():
         # let's keep track of the checkpoint to be used as input for next round
         running_checkpoint = aggregate_weights_step.outputs.aggregated_output
 
-    # NOTE: a pipeline returns a dictionary of outputs
-    # keys will code for the pipeline output identifier
-    return {}
+    return {'final_aggregated_model': running_checkpoint}
 
 
 pipeline_job = fl_cross_silo_internal_basic()

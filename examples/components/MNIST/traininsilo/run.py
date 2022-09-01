@@ -1,6 +1,7 @@
 """Script for mock components."""
 import argparse
 import logging
+import sys
 
 import mlflow
 import torch
@@ -9,7 +10,14 @@ from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torchvision import models, datasets, transforms
 
+# Set logging to sys.out
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG) 
+log_format = logging.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
+handler = logging.StreamHandler(sys.stdout)                             
+handler.setLevel(logging.DEBUG)                                        
+handler.setFormatter(log_format)                                        
+logger.addHandler(handler)   
 
 class MnistTrainer():
     def __init__(
@@ -21,9 +29,7 @@ class MnistTrainer():
         epochs=1,
         batch_size=64
     ):
-        """MNIST Trainer handles train and submit_model tasks. During train_task, it trains a
-        simple network on CIFAR10 dataset. For submit_model task, it sends the locally trained model
-        (if present) to the server.
+        """MNIST Trainer trains RESNET18 model on the MNIST dataset. 
 
         Args:
             train_data_dir(str, optional): Training data directory path
@@ -31,29 +37,38 @@ class MnistTrainer():
             lr (float, optional): Learning rate. Defaults to 0.01
             epochs (int, optional): Epochs. Defaults to 5
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+
+        Attributes:
+            model_: RESNET18 model
+            loss_: CrossEntropy loss
+            optimizer_: Stochastic gradient descent
+            train_dataset_: Training Dataset obj
+            train_loader_: Training DataLoader
+            test_dataset_: Testing Dataset obj
+            test_loader_: Testing DataLoader
         """
         
         # Training setup
         self._lr = lr
         self._epochs = epochs
-        self.batch_size = batch_size
+        self._batch_size = batch_size
 
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # Build model
-        self.model = models.resnet18(pretrained=True)
-        self.model.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False) 
-        num_ftrs = self.model.fc.in_features
-        self.model.fc = nn.Linear(num_ftrs, 10)
-        self.model.to(self.device)
-        self.model_path = model_path
+        self.model_ = models.resnet18(pretrained=True)
+        self.model_.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False) 
+        num_ftrs = self.model_.fc.in_features
+        self.model_.fc = nn.Linear(num_ftrs, 10)
+        self.model_.to(self.device_)
+        self._model_path = model_path
         
-        self.loss = nn.CrossEntropyLoss()
-        self.optimizer = SGD(self.model.parameters(), lr=lr, momentum=0.9)
+        self.loss_ = nn.CrossEntropyLoss()
+        self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
         
-        self._train_dataset, self._test_dataset = self.load_dataset(train_data_dir, test_data_dir)
-        self._train_loader = DataLoader(self._train_dataset, batch_size=batch_size, shuffle=True)
-        self._test_loader = DataLoader(self._test_dataset, batch_size=batch_size, shuffle=True)
+        self.train_dataset_, self.test_dataset_ = self.load_dataset(train_data_dir, test_data_dir)
+        self.train_loader_ = DataLoader(self.train_dataset_, batch_size=batch_size, shuffle=True)
+        self.test_loader_ = DataLoader(self.test_dataset_, batch_size=batch_size, shuffle=True)
 
     def load_dataset(self,train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -81,51 +96,50 @@ class MnistTrainer():
         Args:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
-        # Basic training
+
         mlflow.autolog(log_input_examples=True)
         if checkpoint:
-            self.model.load_state_dict(torch.load(checkpoint+'/model.pt'))
+            self.model_.load_state_dict(torch.load(checkpoint+'/model.pt'))
 
-        mlflow.start_run()
-        self.model.train()
-        logger.debug("Local training started")  
-        for epoch in range(self._epochs):
-            running_loss = 0.0
-            for i, batch in enumerate(self._train_loader):
+        with mlflow.start_run() as mlflow_run:
+            self.model_.train()
+            logger.debug("Local training started")  
+            for epoch in range(self._epochs):
+                running_loss = 0.0
+                for i, batch in enumerate(self.train_loader_):
 
-                images, labels = batch[0].to(self.device), batch[1].to(self.device)
-                self.optimizer.zero_grad()
+                    images, labels = batch[0].to(self.device_), batch[1].to(self.device_)
+                    self.optimizer_.zero_grad()
 
-                predictions = self.model(images)
-                cost = self.loss(predictions, labels)
-                cost.backward()
-                self.optimizer.step()
+                    predictions = self.model_(images)
+                    cost = self.loss_(predictions, labels)
+                    cost.backward()
+                    self.optimizer_.step()
 
-                running_loss += cost.cpu().detach().numpy() / images.size()[0]
-                if i!=0 and i % 3000 == 0:
-                    print( f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, " f"Loss: {running_loss/3000}")
-                    running_loss = 0.0
-        test_loss, test_acc = self.test()
-        logger.info(f"Test Loss: {test_loss} and Test Accuracy: {test_acc}")
-        mlflow.end_run()
+                    running_loss += cost.cpu().detach().numpy() / images.size()[0]
+                    if i!=0 and i % 3000 == 0:
+                        print( f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, " f"Loss: {running_loss/3000}")
+                        running_loss = 0.0
+            test_loss, test_acc = self.test()
+            logger.info(f"Test Loss: {test_loss} and Test Accuracy: {test_acc}")
 
     def test(self):
         """Test the trained model and report test loss and accuracy
 
         """
-        self.model.eval()
+        self.model_.eval()
         test_loss = 0
         correct = 0
         with torch.no_grad():
-            for data, target in self._test_loader:
-                data, target = data.to(self.device), target.to(self.device)
-                output = self.model(data)
-                test_loss += self.loss(output, target).item()
+            for data, target in self.test_loader_:
+                data, target = data.to(self.device_), target.to(self.device_)
+                output = self.model_(data)
+                test_loss += self.loss_(output, target).item()
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
-        test_loss /= len(self._test_loader.dataset)
-        acc = correct / len(self._test_loader.dataset)
+        test_loss /= len(self.test_loader_.dataset)
+        acc = correct / len(self.test_loader_.dataset)
 
         return test_loss, acc
 
@@ -139,8 +153,8 @@ class MnistTrainer():
         self.local_train(checkpoint)
 
         logger.debug("Save model")
-        torch.save(self.model.state_dict(), self.model_path)
-        logger.info(f"Model saved to {self.model_path}")
+        torch.save(self.model_.state_dict(), self._model_path)
+        logger.info(f"Model saved to {self._model_path}")
 
 
 def get_arg_parser(parser=None):
@@ -176,6 +190,7 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
+
     trainer = MnistTrainer(train_data_dir = args.train_data, test_data_dir = args.test_data, model_path=args.model+'/model.pt', lr= args.lr, epochs=args.epochs)
     trainer.execute(args.checkpoint)
 
