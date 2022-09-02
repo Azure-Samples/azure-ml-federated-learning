@@ -63,11 +63,11 @@ foreach ($Silo in $Silos)
     $SiloName = $Silo['name']
     $SiloRegion = $Silo['region'] # unused for now due to bug https://dev.azure.com/msdata/Vienna/_workitems/edit/1953178
     # Derive the compute name
-    $SiloComputeName = "gpu-" + $SiloName
+    $SiloComputeName = "cpu-" + $SiloName
     # Validate the compute name
     Confirm-Name $SiloComputeName "Compute"
     # The kind of GPU we want
-    $ComputeSKU = "STANDARD_NC6"
+    $ComputeSKU = "STANDARD_DS3_v2"
     # Create it if it does not exist already
     $SiloComputes = az ml compute list -g $WorkspaceResourceGroup -w $WorkspaceName --query "[?name=='$SiloComputeName']" | ConvertFrom-Json
     if ($SiloComputes.Length -eq 0){
