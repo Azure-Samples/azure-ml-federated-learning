@@ -35,7 +35,7 @@ class MnistTrainer():
             train_data_dir(str, optional): Training data directory path
             test_data_dir(str, optional): Testing data directory path
             lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 5
+            epochs (int, optional): Epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
 
         Attributes:
