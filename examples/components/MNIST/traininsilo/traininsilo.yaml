@@ -26,7 +26,7 @@ inputs:
   epochs:
     type: integer
     description: total number of local training rounds
-    default: 2
+    default: 3
     optional: true
   batch_size:
     type: integer
