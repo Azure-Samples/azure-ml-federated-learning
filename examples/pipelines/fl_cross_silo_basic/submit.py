@@ -42,8 +42,9 @@ parser.add_argument(
 
 parser.add_argument(
     "--example", 
-    required=True, 
+    required=False, 
     choices=["MNIST"],
+    default="MNIST",
     help="dataset name"
 )
 
