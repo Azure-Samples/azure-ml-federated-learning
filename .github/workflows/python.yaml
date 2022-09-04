@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
     - main
+    - release-sdkv2-mvp
 
 jobs:
   build:
@@ -23,3 +24,9 @@ jobs:
 
     - run:  black --check .
       if: github.base_ref
+    
+    - name: Intall python dependencies
+      run: pip install -r examples/pipelines/fl_cross_silo_basic/requirements.txt
+    
+    - name: Validate fl_cross_silo_basic pipeline
+      run: python examples/pipelines/fl_cross_silo_basic/submit.py
