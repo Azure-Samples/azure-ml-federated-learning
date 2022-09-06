@@ -13,13 +13,22 @@ federated_learning:
     datastore: "workspaceblobstore"
 
   silos:
-    - compute: cpu-cluster-silo-1
+    - compute: silo-wus2
       datastore: workspaceblobstore
-      training_data_path: "azureml://datastores/workspaceblobstore/paths/azureml/ee95ed94-03d5-4b85-ad5e-883880b44735/extracted_data/"
-    - compute: cpu-cluster-silo-2
+      training_data_path: "azureml:mnist-train-01:1"
+      testing_data_path: "azureml:mnist-test-01:1"
+    - compute: silo-eus2
       datastore: workspaceblobstore
-      training_data_path: "azureml://datastores/workspaceblobstore/paths/azureml/ee95ed94-03d5-4b85-ad5e-883880b44735/extracted_data/"
+      training_data_path: "azureml:mnist-train-02:1"
+      testing_data_path: "azureml:mnist-test-02:1"
+    - compute: silo-weu
+      datastore: workspaceblobstore
+      training_data_path: "azureml:mnist-train-03:1"
+      testing_data_path: "azureml:mnist-test-03:1"
 
 # training parameters
 training_parameters:
-  epochs: 5
+  num_rounds: 2
+  epochs: 3
+  lr: 0.01
+  batch_size: 64
