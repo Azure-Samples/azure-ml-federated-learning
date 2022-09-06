@@ -49,7 +49,7 @@ if ($Workspaces.Length -eq 0){
 $OrchestratorComputes = az ml compute list -g $WorkspaceResourceGroup -w $WorkspaceName --query "[?name=='$OrchestratorComputeName']" | ConvertFrom-Json
 if ($OrchestratorComputes.Length -eq 0){
     Write-Output "Creating the '$OrchestratorComputeName' compute in the orchestrator workspace."
-    az ml compute create --name $OrchestratorComputeName --type AmlCompute --size STANDARD_DS3_v2 --min-instances 0 --max-instances 2 --idle-time-before-scale-down 120 --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName
+    az ml compute create --name $OrchestratorComputeName --type AmlCompute --size STANDARD_DS3_v2 --min-instances 0 --max-instances 4 --idle-time-before-scale-down 120 --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName
 } else {
     Write-Output "The orchestrator compute $OrchestratorComputeName already exists."
 }
@@ -63,11 +63,11 @@ foreach ($Silo in $Silos)
     $SiloName = $Silo['name']
     $SiloRegion = $Silo['region'] # unused for now due to bug https://dev.azure.com/msdata/Vienna/_workitems/edit/1953178
     # Derive the compute name
-    $SiloComputeName = "gpu-" + $SiloName
+    $SiloComputeName = "cpu-" + $SiloName
     # Validate the compute name
     Confirm-Name $SiloComputeName "Compute"
     # The kind of GPU we want
-    $ComputeSKU = "STANDARD_NC6"
+    $ComputeSKU = "STANDARD_DS3_v2"
     # Create it if it does not exist already
     $SiloComputes = az ml compute list -g $WorkspaceResourceGroup -w $WorkspaceName --query "[?name=='$SiloComputeName']" | ConvertFrom-Json
     if ($SiloComputes.Length -eq 0){
