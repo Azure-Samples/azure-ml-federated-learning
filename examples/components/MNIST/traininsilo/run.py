@@ -10,15 +10,6 @@ from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torchvision import models, datasets, transforms
 
-# Set logging to sys.out
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG) 
-log_format = logging.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
-handler = logging.StreamHandler(sys.stdout)                             
-handler.setLevel(logging.DEBUG)                                        
-handler.setFormatter(log_format)                                        
-logger.addHandler(handler)   
-
 class MnistTrainer():
     def __init__(
         self,
@@ -202,7 +193,8 @@ def main(cli_args=None):
 
     Args:
         cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
-    """
+    """  
+    
     # build an arg parser
     parser = get_arg_parser()
 
@@ -214,4 +206,14 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
+    
+    # Set logging to sys.out
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG) 
+    log_format = logging.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
+    handler = logging.StreamHandler(sys.stdout)                             
+    handler.setLevel(logging.DEBUG)                                        
+    handler.setFormatter(log_format)                                        
+    logger.addHandler(handler) 
+
     main()
