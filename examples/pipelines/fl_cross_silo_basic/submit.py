@@ -41,11 +41,7 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--example", 
-    required=False, 
-    choices=["MNIST"],
-    default="MNIST",
-    help="dataset name"
+    "--example", required=False, choices=["MNIST"], default="MNIST", help="dataset name"
 )
 
 args = parser.parse_args()
@@ -54,7 +50,9 @@ args = parser.parse_args()
 YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
-COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "..", "..", "components", args.example)
+COMPONENTS_FOLDER = os.path.join(
+    os.path.dirname(__file__), "..", "..", "components", args.example
+)
 
 
 ###########################
@@ -159,7 +157,7 @@ def fl_cross_silo_internal_basic():
                 type=AssetTypes.URI_FILE,
                 mode="mount",
                 path=silo_config.testing_data_path,
-            )
+            ),
         )
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
@@ -207,11 +205,11 @@ def fl_cross_silo_internal_basic():
                 # and the checkpoint from previous round (or None if round == 0)
                 checkpoint=running_checkpoint,
                 # Learning rate for local training
-                lr = YAML_CONFIG.training_parameters.lr,
-                # Number of epochs 
-                epochs = YAML_CONFIG.training_parameters.epochs,
+                lr=YAML_CONFIG.training_parameters.lr,
+                # Number of epochs
+                epochs=YAML_CONFIG.training_parameters.epochs,
                 # Dataloader batch size
-                batch_size = YAML_CONFIG.training_parameters.batch_size,
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
             )
 
             # make sure the compute corresponds to the silo
@@ -252,7 +250,7 @@ def fl_cross_silo_internal_basic():
         # let's keep track of the checkpoint to be used as input for next round
         running_checkpoint = aggregate_weights_step.outputs.aggregated_output
 
-    return {'final_aggregated_model': running_checkpoint}
+    return {"final_aggregated_model": running_checkpoint}
 
 
 pipeline_job = fl_cross_silo_internal_basic()

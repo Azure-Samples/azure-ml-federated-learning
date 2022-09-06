@@ -7,7 +7,8 @@ from torchvision import transforms
 from torchvision.utils import save_image
 from torch.utils.data import Dataset
 import torch
-import pandas as pd 
+import pandas as pd
+
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -32,17 +33,19 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_output", type=str, required=True, help="")
     return parser
 
+
 class MnistDataset(Dataset):
     """MNIST Dataset - combination of features and labels
 
     Args:
         feature: MNIST images tensors
-        target: Tensor of labels corresponding to features 
+        target: Tensor of labels corresponding to features
         transform: Transformation to be applied on each image
 
     Returns:
         None
     """
+
     def __init__(self, feature, target=None, transform=None):
         self.X = feature
         self.Y = target
@@ -58,7 +61,10 @@ class MnistDataset(Dataset):
             return [self.X[idx]]
         return self.X[idx], self.Y[idx]
 
-def preprocess_data(raw_training_data, raw_testing_data, train_data_dir = './', test_data_dir = './'):
+
+def preprocess_data(
+    raw_training_data, raw_testing_data, train_data_dir="./", test_data_dir="./"
+):
     """Preprocess the raw_training_data and raw_testing_data and save the processed data to train_data_dir and test_data_dir.
 
     Args:
@@ -70,45 +76,52 @@ def preprocess_data(raw_training_data, raw_testing_data, train_data_dir = './', 
         None
     """
 
-    logger.info(f"Raw Training Data path: {raw_training_data}, Raw Testing Data path: {raw_testing_data}, Processed Training Data dir path: {train_data_dir}, Processed Testing Data dir path: {test_data_dir}")
+    logger.info(
+        f"Raw Training Data path: {raw_training_data}, Raw Testing Data path: {raw_testing_data}, Processed Training Data dir path: {train_data_dir}, Processed Testing Data dir path: {test_data_dir}"
+    )
     train_data = pd.read_csv(raw_training_data)
     test_data = pd.read_csv(raw_testing_data)
 
     logger.debug(f"Segregating labels and features")
-    X_train = torch.tensor(train_data.loc[:, train_data.columns != 'label'].values)
+    X_train = torch.tensor(train_data.loc[:, train_data.columns != "label"].values)
     X_train = torch.reshape(X_train, (-1, 28, 28))
-    y_train = torch.tensor(train_data['label'].values)
+    y_train = torch.tensor(train_data["label"].values)
 
-    X_test = torch.tensor(test_data.loc[:, test_data.columns != 'label'].values)
+    X_test = torch.tensor(test_data.loc[:, test_data.columns != "label"].values)
     X_test = torch.reshape(X_test, (-1, 28, 28))
-    y_test = torch.tensor(test_data['label'].values)
+    y_test = torch.tensor(test_data["label"].values)
 
-    X_train = X_train/255.0
-    X_test = X_test/255.0
+    X_train = X_train / 255.0
+    X_test = X_test / 255.0
 
     train_set = MnistDataset(X_train.float(), y_train)
-    train_loader = torch.utils.data.DataLoader(train_set, batch_size = 128, shuffle = True)
+    train_loader = torch.utils.data.DataLoader(train_set, batch_size=128, shuffle=True)
     data = next(iter(train_loader))
     mean = data[0].mean()
     std = data[0].std()
 
-    transform = transforms.Compose([
+    transform = transforms.Compose(
+        [
             transforms.ToPILImage(),
-            transforms.RandomAffine(degrees = 30),
+            transforms.RandomAffine(degrees=30),
             transforms.RandomPerspective(),
             transforms.ToTensor(),
-            transforms.Normalize(mean, std)])
+            transforms.Normalize(mean, std),
+        ]
+    )
 
-    logger.info(f"Transforming images data and saving processed data to {train_data_dir} and {test_data_dir}")
-    train_dataset = MnistDataset(X_train.float(), y_train, transform=transform)    
-    test_dataset = MnistDataset(X_test.float(), y_test, transform=transform)  
-    datasets = {'train': train_dataset, 'test': test_dataset}
+    logger.info(
+        f"Transforming images data and saving processed data to {train_data_dir} and {test_data_dir}"
+    )
+    train_dataset = MnistDataset(X_train.float(), y_train, transform=transform)
+    test_dataset = MnistDataset(X_test.float(), y_test, transform=transform)
+    datasets = {"train": train_dataset, "test": test_dataset}
 
-    for x in ['train', 'test']:
-        processed_data_dir = train_data_dir if x=='train' else test_data_dir
+    for x in ["train", "test"]:
+        processed_data_dir = train_data_dir if x == "train" else test_data_dir
         for idx, (data, target) in enumerate(datasets[x]):
-            os.makedirs(processed_data_dir+f'/{target}', exist_ok=True)
-            save_image(data, processed_data_dir + f'/{target}/{idx}.jpg')
+            os.makedirs(processed_data_dir + f"/{target}", exist_ok=True)
+            save_image(data, processed_data_dir + f"/{target}/{idx}.jpg")
 
 
 def run(args):
@@ -117,8 +130,13 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-    
-    preprocess_data(args.raw_training_data, args.raw_testing_data, args.train_output, args.test_output)
+
+    preprocess_data(
+        args.raw_training_data,
+        args.raw_testing_data,
+        args.train_output,
+        args.test_output,
+    )
 
 
 def main(cli_args=None):
@@ -143,11 +161,11 @@ if __name__ == "__main__":
 
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG) 
-    log_format = logging.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
-    handler = logging.StreamHandler(sys.stdout)                             
-    handler.setLevel(logging.DEBUG)                                        
-    handler.setFormatter(log_format)                                        
-    logger.addHandler(handler)  
-    
+    logger.setLevel(logging.DEBUG)
+    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+
     main()

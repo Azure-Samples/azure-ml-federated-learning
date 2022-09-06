@@ -10,17 +10,18 @@ from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torchvision import models, datasets, transforms
 
-class MnistTrainer():
+
+class MnistTrainer:
     def __init__(
         self,
-        train_data_dir = './',
-        test_data_dir = './',
+        train_data_dir="./",
+        test_data_dir="./",
         model_path=None,
         lr=0.01,
         epochs=1,
-        batch_size=64
+        batch_size=64,
     ):
-        """MNIST Trainer trains RESNET18 model on the MNIST dataset. 
+        """MNIST Trainer trains RESNET18 model on the MNIST dataset.
 
         Args:
             train_data_dir(str, optional): Training data directory path
@@ -38,7 +39,7 @@ class MnistTrainer():
             test_dataset_: Testing Dataset obj
             test_loader_: Testing DataLoader
         """
-        
+
         # Training setup
         self._lr = lr
         self._epochs = epochs
@@ -48,20 +49,28 @@ class MnistTrainer():
 
         # Build model
         self.model_ = models.resnet18(pretrained=True)
-        self.model_.conv1 = nn.Conv2d(1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False) 
+        self.model_.conv1 = nn.Conv2d(
+            1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+        )
         num_ftrs = self.model_.fc.in_features
         self.model_.fc = nn.Linear(num_ftrs, 10)
         self.model_.to(self.device_)
         self._model_path = model_path
-        
+
         self.loss_ = nn.CrossEntropyLoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
-        
-        self.train_dataset_, self.test_dataset_ = self.load_dataset(train_data_dir, test_data_dir)
-        self.train_loader_ = DataLoader(self.train_dataset_, batch_size=batch_size, shuffle=True)
-        self.test_loader_ = DataLoader(self.test_dataset_, batch_size=batch_size, shuffle=True)
 
-    def load_dataset(self,train_data_dir, test_data_dir):
+        self.train_dataset_, self.test_dataset_ = self.load_dataset(
+            train_data_dir, test_data_dir
+        )
+        self.train_loader_ = DataLoader(
+            self.train_dataset_, batch_size=batch_size, shuffle=True
+        )
+        self.test_loader_ = DataLoader(
+            self.test_dataset_, batch_size=batch_size, shuffle=True
+        )
+
+    def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
 
         Args:
@@ -71,15 +80,17 @@ class MnistTrainer():
             epochs (int, optional): Epochs. Defaults to 5
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
         """
-        logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")    
-        transformer = transforms.Compose([
-            transforms.Grayscale(num_output_channels=1),
-            transforms.ToTensor(),
-        ])
+        logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
+        transformer = transforms.Compose(
+            [
+                transforms.Grayscale(num_output_channels=1),
+                transforms.ToTensor(),
+            ]
+        )
         train_dataset = datasets.ImageFolder(train_data_dir, transformer)
         test_dataset = datasets.ImageFolder(test_data_dir, transformer)
-        
-        return train_dataset, test_dataset     
+
+        return train_dataset, test_dataset
 
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
@@ -90,16 +101,18 @@ class MnistTrainer():
 
         mlflow.autolog(log_input_examples=True)
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint+'/model.pt'))
+            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
             self.model_.train()
-            logger.debug("Local training started")  
+            logger.debug("Local training started")
             for epoch in range(self._epochs):
                 running_loss = 0.0
                 for i, batch in enumerate(self.train_loader_):
 
-                    images, labels = batch[0].to(self.device_), batch[1].to(self.device_)
+                    images, labels = batch[0].to(self.device_), batch[1].to(
+                        self.device_
+                    )
                     self.optimizer_.zero_grad()
 
                     predictions = self.model_(images)
@@ -108,16 +121,17 @@ class MnistTrainer():
                     self.optimizer_.step()
 
                     running_loss += cost.cpu().detach().numpy() / images.size()[0]
-                    if i!=0 and i % 3000 == 0:
-                        print( f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, " f"Loss: {running_loss/3000}")
+                    if i != 0 and i % 3000 == 0:
+                        print(
+                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, "
+                            f"Loss: {running_loss/3000}"
+                        )
                         running_loss = 0.0
             test_loss, test_acc = self.test()
             logger.info(f"Test Loss: {test_loss} and Test Accuracy: {test_acc}")
 
     def test(self):
-        """Test the trained model and report test loss and accuracy
-
-        """
+        """Test the trained model and report test loss and accuracy"""
         self.model_.eval()
         test_loss = 0
         correct = 0
@@ -136,7 +150,7 @@ class MnistTrainer():
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.
-        
+
         Args:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
@@ -169,8 +183,15 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_data", type=str, required=True, help="")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
     parser.add_argument("--model", type=str, required=True, help="")
-    parser.add_argument("--lr", type=float, required=False, help="Training algorithm's learning rate")
-    parser.add_argument("--epochs", type=int, required=False, help="Total number of rounds for local training")
+    parser.add_argument(
+        "--lr", type=float, required=False, help="Training algorithm's learning rate"
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        required=False,
+        help="Total number of rounds for local training",
+    )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
     return parser
 
@@ -182,7 +203,13 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    trainer = MnistTrainer(train_data_dir = args.train_data, test_data_dir = args.test_data, model_path=args.model+'/model.pt', lr= args.lr, epochs=args.epochs)
+    trainer = MnistTrainer(
+        train_data_dir=args.train_data,
+        test_data_dir=args.test_data,
+        model_path=args.model + "/model.pt",
+        lr=args.lr,
+        epochs=args.epochs,
+    )
     trainer.execute(args.checkpoint)
 
 
@@ -193,8 +220,8 @@ def main(cli_args=None):
 
     Args:
         cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
-    """  
-    
+    """
+
     # build an arg parser
     parser = get_arg_parser()
 
@@ -206,14 +233,14 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-    
+
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG) 
-    log_format = logging.Formatter('[%(asctime)s] [%(levelname)s] - %(message)s')
-    handler = logging.StreamHandler(sys.stdout)                             
-    handler.setLevel(logging.DEBUG)                                        
-    handler.setFormatter(log_format)                                        
-    logger.addHandler(handler) 
+    logger.setLevel(logging.DEBUG)
+    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
 
     main()
