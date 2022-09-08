@@ -45,4 +45,6 @@ In this section, we outline the procedure to automatically provision the setup.
     ./ps/ProvisionVanillaSetup.ps1
     ```
 
+> Please note that will need to log in to Azure. Just follow the instructions in the terminal.
+
 > If you need to modify any file after having completed step 3, you will need to either modify the file _from within the docker environment_, or _modify on your local machine and rebuild the docker environment_ for the changes to be taken into account.
