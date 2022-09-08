@@ -132,17 +132,24 @@ def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", roun
 
     return data_path
 
+
 def getUniqueIdentifier(length):
-    """Generate a random string"""
+    """Generates a random string and concatenates it with today's date
+
+    Args:
+        length (int): length of the random string
+
+    """
     str = string.ascii_lowercase
     date = datetime.date.today().strftime("%B_%d_%Y_")
-    return date + ''.join(random.choice(str) for i in range(length))
+    return date + "".join(random.choice(str) for i in range(length))
 
 
 pipeline_identifier = getUniqueIdentifier(8)
 
+
 @pipeline(
-    description=f"FL cross-silo basic pipeline and the unique identifier is \"{pipeline_identifier}\" that can help you to track files in the storage account.",
+    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_cross_silo_internal_basic():
     ######################
@@ -201,7 +208,7 @@ def fl_cross_silo_internal_basic():
     running_checkpoint = None  # for round 1, we have no pre-existing checkpoint
 
     # now for each round, run training
-    for round in range(1, YAML_CONFIG.training_parameters.num_rounds+1):
+    for round in range(1, YAML_CONFIG.training_parameters.num_rounds + 1):
         # collect all outputs in a dict to be used for aggregation
         silo_weights_outputs = {}
 
