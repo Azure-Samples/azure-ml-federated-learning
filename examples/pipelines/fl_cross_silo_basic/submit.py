@@ -8,6 +8,9 @@ This script:
 """
 import os
 import argparse
+import random
+import string
+import datetime
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
@@ -123,15 +126,30 @@ def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", roun
     Returns:
         data_path (str): direct url to the data path to store the data
     """
-    data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{unique_id}/{output_name}/"
+    data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/{unique_id}/"
     if round:
         data_path += f"round_{round}/"
 
     return data_path
 
 
+def getUniqueIdentifier(length=8):
+    """Generates a random string and concatenates it with today's date
+
+    Args:
+        length (int): length of the random string (default: 8)
+
+    """
+    str = string.ascii_lowercase
+    date = datetime.date.today().strftime("%Y_%m_%d_")
+    return date + "".join(random.choice(str) for i in range(length))
+
+
+pipeline_identifier = getUniqueIdentifier()
+
+
 @pipeline(
-    description="FL cross-silo basic pipeline",
+    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_cross_silo_internal_basic():
     ######################
@@ -187,10 +205,10 @@ def fl_cross_silo_internal_basic():
     ### TRAINING ###
     ################
 
-    running_checkpoint = None  # for round 0, we have no pre-existing checkpoint
+    running_checkpoint = None  # for round 1, we have no pre-existing checkpoint
 
     # now for each round, run training
-    for round in range(YAML_CONFIG.training_parameters.num_rounds):
+    for round in range(1, YAML_CONFIG.training_parameters.num_rounds + 1):
         # collect all outputs in a dict to be used for aggregation
         silo_weights_outputs = {}
 
@@ -202,7 +220,7 @@ def fl_cross_silo_internal_basic():
                 train_data=silo_preprocessed_train_data[silo_index],
                 # with the test_data from the pre_processing step
                 test_data=silo_preprocessed_test_data[silo_index],
-                # and the checkpoint from previous round (or None if round == 0)
+                # and the checkpoint from previous round (or None if round == 1)
                 checkpoint=running_checkpoint,
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
@@ -243,6 +261,7 @@ def fl_cross_silo_internal_basic():
             path=custom_fl_data_path(
                 YAML_CONFIG.federated_learning.orchestrator.datastore,
                 "aggregated_output",
+                unique_id=pipeline_identifier,
                 round=round,
             ),
         )

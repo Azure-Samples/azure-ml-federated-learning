@@ -7,7 +7,7 @@ on:
   pull_request:
     branches:
     - main
-    - release-sdkv2-mvp
+    - release-sdkv2-iteration-02
 
 jobs:
   build:
