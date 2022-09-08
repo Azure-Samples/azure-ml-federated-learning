@@ -133,19 +133,19 @@ def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", roun
     return data_path
 
 
-def getUniqueIdentifier(length):
+def getUniqueIdentifier(length=8):
     """Generates a random string and concatenates it with today's date
 
     Args:
-        length (int): length of the random string
+        length (int): length of the random string (default: 8)
 
     """
     str = string.ascii_lowercase
-    date = datetime.date.today().strftime("%B_%d_%Y_")
+    date = datetime.date.today().strftime("%Y_%m_%d_")
     return date + "".join(random.choice(str) for i in range(length))
 
 
-pipeline_identifier = getUniqueIdentifier(8)
+pipeline_identifier = getUniqueIdentifier()
 
 
 @pipeline(
