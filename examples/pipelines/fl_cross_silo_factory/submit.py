@@ -125,9 +125,10 @@ aggregate_component = load_component(
 # This is your section, please modify anything here following the guidelines
 # in the docstrings.
 
-# The idea is that each of the following method is a "contract" you own 
+# The idea is that each of the following method is a "contract" you own
 # and specify. The factory will read this contract and assemble the
 # pieces of your pipeline based on input and output keys.
+
 
 def silo_inputs(training_data_path: str, testing_data_path: str) -> Dict[str, Input]:
     """Create AzureML SDK v2 objects for the inputs required for preprocessing.
@@ -182,9 +183,9 @@ def silo_training(
     train_data: Input = None,  # output from silo_preprocessing()
     test_data: Input = None,  # output from silo_preprocessing()
     running_checkpoint: Input = None,  # output from orchestrator_aggregation()
-    lr: int=0.01,  # custom param given to factory build_basic_fl_pipeline()
-    batch_size: int=64,  # custom param given to factory build_basic_fl_pipeline()
-    epochs: int=1  # custom param given to factory build_basic_fl_pipeline()
+    lr: int = 0.01,  # custom param given to factory build_basic_fl_pipeline()
+    batch_size: int = 64,  # custom param given to factory build_basic_fl_pipeline()
+    epochs: int = 1,  # custom param given to factory build_basic_fl_pipeline()
 ):
     """Create steps for running FL training in the silo.
 
@@ -277,7 +278,6 @@ for silo_config in YAML_CONFIG.federated_learning.silos:
         # provide settings for this silo
         silo_config.compute,
         silo_config.datastore,
-
         # any additional custom kwarg will be sent to silo_inputs() as is
         training_data_path=silo_config.training_data_path,
         testing_data_path=silo_config.testing_data_path,
@@ -286,19 +286,17 @@ for silo_config in YAML_CONFIG.federated_learning.silos:
 # 3. use a pipeline factory method
 
 pipeline_job = builder.build_basic_fl_pipeline(
-    # building required all 4 functions provided as argument below
+    # building requires all 4 functions provided as argument below
     silo_inputs,
     silo_preprocessing,
     silo_training,
     orchestrator_aggregation,
-
     # RESERVED: this kwarg is for building iterations
     iterations=YAML_CONFIG.training_parameters.num_rounds,
-
     # any additional custom kwarg will be sent to silo_training() as is
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
-    epochs=YAML_CONFIG.training_parameters.epochs
+    epochs=YAML_CONFIG.training_parameters.epochs,
 )
 
 # 4. Submit built pipeline job

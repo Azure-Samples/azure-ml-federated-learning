@@ -19,29 +19,23 @@ import itertools
 from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
 
 
-class FederatedLearningPipelineFactory():
+class FederatedLearningPipelineFactory:
     def __init__(self):
         self.silos = []
         self.orchestrator = {}
         self.unique_identifier = self.getUniqueIdentifier()
 
+    def set_orchestrator(self, compute: str, datastore: str):
+        self.orchestrator = {"compute": compute, "datastore": datastore}
 
-    def set_orchestrator(self, compute:str, datastore:str):
-        self.orchestrator = {
-            "compute" : compute,
-            "datastore": datastore
-        }
-
-
-    def add_silo(self, compute:str, datastore:str, **custom_input_args):
+    def add_silo(self, compute: str, datastore: str, **custom_input_args):
         self.silos.append(
             {
-                "compute" : compute,
-                "datastore" : datastore,
-                "custom_input_args" : custom_input_args or {}
+                "compute": compute,
+                "datastore": datastore,
+                "custom_input_args": custom_input_args or {},
             }
         )
-
 
     def custom_fl_data_output(
         self, datastore_name, output_name, unique_id="${{name}}", round=None
@@ -63,7 +57,6 @@ class FederatedLearningPipelineFactory():
 
         return Output(type=AssetTypes.URI_FOLDER, mode="mount", path=data_path)
 
-
     def getUniqueIdentifier(self, length=8):
         """Generates a random string and concatenates it with today's date
 
@@ -75,8 +68,9 @@ class FederatedLearningPipelineFactory():
         date = datetime.date.today().strftime("%Y_%m_%d_")
         return date + "".join(random.choice(str) for i in range(length))
 
-
-    def anchor_step_in_silo(self, pipeline_step, silo_config, tags={}, description=None):
+    def anchor_step_in_silo(
+        self, pipeline_step, silo_config, tags={}, description=None
+    ):
         """Takes a step and enforces the right compute/datastore config"""
         # make sure the compute corresponds to the silo
         pipeline_step.compute = silo_config["compute"]
@@ -90,7 +84,6 @@ class FederatedLearningPipelineFactory():
             )
 
         return pipeline_step
-
 
     def build_basic_fl_pipeline(
         self,
@@ -169,7 +162,7 @@ class FederatedLearningPipelineFactory():
                             silo_index
                         ],  # feed kwargs as produced by silo_preprocessing()
                         **running_outputs,  # feed optional running kwargs as produced by aggregate_component()
-                        **training_kwargs  # # providing training params
+                        **training_kwargs,  # # providing training params
                     )
 
                     # TODO: verify _step is an actual step
@@ -241,13 +234,11 @@ class FederatedLearningPipelineFactory():
                     ), f"orchestrator_aggregation() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(aggregation_outputs[key])})."
 
                 # this is done in the orchestrator compute/datastore
-                self.anchor_step_in_silo(
-                    aggregation_step, self.orchestrator
-                )
+                self.anchor_step_in_silo(aggregation_step, self.orchestrator)
 
                 # let's keep track of the running outputs (dict) to be used as input for next round
                 running_outputs = aggregation_outputs
 
-            return running_outputs    
+            return running_outputs
 
         return _fl_cross_silo_factory_pipeline()
