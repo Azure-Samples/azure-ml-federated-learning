@@ -26,8 +26,6 @@ federated_learning:
       training_data_path: "azureml:mnist-train-03:1"
       testing_data_path: "azureml:mnist-test-03:1"
 
-components:
-  
 # training parameters
 training_parameters:
   num_rounds: 2
