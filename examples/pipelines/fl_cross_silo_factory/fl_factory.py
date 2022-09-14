@@ -262,32 +262,56 @@ class FederatedLearningPipelineFactory:
 
         # orchestrator permissions
         self.set_affinity(
-            self.orchestrator["compute"], self.orchestrator["datastore"], self.OPERATION_READ, True
+            self.orchestrator["compute"],
+            self.orchestrator["datastore"],
+            self.OPERATION_READ,
+            True,
         )
         self.set_affinity(
-            self.orchestrator["compute"], self.orchestrator["datastore"], self.OPERATION_WRITE, True
+            self.orchestrator["compute"],
+            self.orchestrator["datastore"],
+            self.OPERATION_WRITE,
+            True,
         )
 
         # silo permissions
         for silo in self.silos:
-            self.set_affinity(silo["compute"], silo["datastore"], self.OPERATION_READ, True)
-            self.set_affinity(silo["compute"], silo["datastore"], self.OPERATION_WRITE, True)
+            self.set_affinity(
+                silo["compute"], silo["datastore"], self.OPERATION_READ, True
+            )
+            self.set_affinity(
+                silo["compute"], silo["datastore"], self.OPERATION_WRITE, True
+            )
 
             # it's actually ok to read from anywhere?
-            self.set_affinity(silo["compute"], self.DATASTORE_UNKNOWN, self.OPERATION_READ, True)
+            self.set_affinity(
+                silo["compute"], self.DATASTORE_UNKNOWN, self.OPERATION_READ, True
+            )
 
             self.set_affinity(
-                silo["compute"], self.orchestrator["datastore"], self.OPERATION_READ, True
+                silo["compute"],
+                self.orchestrator["datastore"],
+                self.OPERATION_READ,
+                True,
             )  # OK to get data in
             self.set_affinity(
-                silo["compute"], self.orchestrator["datastore"], self.OPERATION_WRITE, False
+                silo["compute"],
+                self.orchestrator["datastore"],
+                self.OPERATION_WRITE,
+                False,
             )  # NOT OK to exfiltrate from the silo
 
             self.set_affinity(
-                self.orchestrator["compute"], silo["datastore"], self.OPERATION_READ, False
+                self.orchestrator["compute"],
+                silo["datastore"],
+                self.OPERATION_READ,
+                False,
             )  # NOT OK to read from silo
             self.set_affinity(
-                self.orchestrator["compute"], silo["datastore"], self.OPERATION_WRITE, False
+                self.orchestrator["compute"],
+                silo["datastore"],
+                self.OPERATION_WRITE,
+                False,
             )  # NOT OK to write in silo?
 
         return self.affinity_map
@@ -297,7 +321,9 @@ class FederatedLearningPipelineFactory:
     ) -> None:
         """Set the affinity of a given compute and datastore for this operation."""
         if operation not in [self.OPERATION_READ, self.OPERATION_WRITE]:
-            raise ValueError(f"set_affinity() for operation {affinity} is not allowed, only READ and WRITE.")
+            raise ValueError(
+                f"set_affinity() for operation {affinity} is not allowed, only READ and WRITE."
+            )
 
         affinity_key = (compute, datastore, operation)
         self.affinity_map[affinity_key] = affinity
@@ -323,7 +349,9 @@ class FederatedLearningPipelineFactory:
         """
         # build an affinity of compute-datastore for READ/WRITE
         if len(self.affinity_map) == 0:
-            raise Exception("Affinity map hasn't been built, use set_affinity() or default_affinity_map() to set.")
+            raise Exception(
+                "Affinity map hasn't been built, use set_affinity() or default_affinity_map() to set."
+            )
 
         # accumulate errors found in a list for debugging
         soft_validation_report = []

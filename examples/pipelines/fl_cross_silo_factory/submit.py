@@ -308,8 +308,7 @@ builder.set_default_affinity_map()
 
 # run affinity map validation
 builder.soft_validate(
-    pipeline_job,
-    raise_exception=False  # set to False if you know what you're doing
+    pipeline_job, raise_exception=False  # set to False if you know what you're doing
 )
 
 # 5. Submit to Azure ML
