@@ -299,9 +299,20 @@ pipeline_job = builder.build_basic_fl_pipeline(
     epochs=YAML_CONFIG.training_parameters.epochs,
 )
 
-# 4. Submit built pipeline job
+# 4. Validate the pipeline using soft rules
 
 print(pipeline_job)  # print yaml for visual debugging
+
+# use a default set of rules
+builder.set_default_affinity_map()
+
+# run affinity map validation
+builder.soft_validate(
+    pipeline_job,
+    raise_exception=False  # set to False if you know what you're doing
+)
+
+# 5. Submit to Azure ML
 
 if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")

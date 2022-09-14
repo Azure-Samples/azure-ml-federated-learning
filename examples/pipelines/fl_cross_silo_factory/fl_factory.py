@@ -4,6 +4,7 @@ import argparse
 import random
 import string
 import datetime
+import logging
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
@@ -17,6 +18,7 @@ from typing import Callable, Dict
 from dataclasses import dataclass
 import itertools
 from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
+from azure.ai.ml._ml_exceptions import ValidationException
 
 
 class FederatedLearningPipelineFactory:
@@ -24,6 +26,9 @@ class FederatedLearningPipelineFactory:
         self.silos = []
         self.orchestrator = {}
         self.unique_identifier = self.getUniqueIdentifier()
+
+        # see soft_validate()
+        self.affinity_map = {}
 
     def set_orchestrator(self, compute: str, datastore: str):
         self.orchestrator = {"compute": compute, "datastore": datastore}
@@ -242,3 +247,152 @@ class FederatedLearningPipelineFactory:
             return running_outputs
 
         return _fl_cross_silo_factory_pipeline()
+
+    ###########################
+    ### AFFINITY VALIDATION ###
+    ###########################
+
+    OPERATION_READ = "READ"
+    OPERATION_WRITE = "WRITE"
+    DATASTORE_UNKNOWN = "UNKNOWN"
+
+    def set_default_affinity_map(self):
+        """Build a map of affinities between computes and datastores for soft validation."""
+        self.affinity_map = {}
+
+        # orchestrator permissions
+        self.set_affinity(
+            self.orchestrator["compute"], self.orchestrator["datastore"], self.OPERATION_READ, True
+        )
+        self.set_affinity(
+            self.orchestrator["compute"], self.orchestrator["datastore"], self.OPERATION_WRITE, True
+        )
+
+        # silo permissions
+        for silo in self.silos:
+            self.set_affinity(silo["compute"], silo["datastore"], self.OPERATION_READ, True)
+            self.set_affinity(silo["compute"], silo["datastore"], self.OPERATION_WRITE, True)
+
+            # it's actually ok to read from anywhere?
+            self.set_affinity(silo["compute"], self.DATASTORE_UNKNOWN, self.OPERATION_READ, True)
+
+            self.set_affinity(
+                silo["compute"], self.orchestrator["datastore"], self.OPERATION_READ, True
+            )  # OK to get data in
+            self.set_affinity(
+                silo["compute"], self.orchestrator["datastore"], self.OPERATION_WRITE, False
+            )  # NOT OK to exfiltrate from the silo
+
+            self.set_affinity(
+                self.orchestrator["compute"], silo["datastore"], self.OPERATION_READ, False
+            )  # NOT OK to read from silo
+            self.set_affinity(
+                self.orchestrator["compute"], silo["datastore"], self.OPERATION_WRITE, False
+            )  # NOT OK to write in silo?
+
+        return self.affinity_map
+
+    def set_affinity(
+        self, compute: str, datastore: str, operation: str, affinity: bool
+    ) -> None:
+        """Set the affinity of a given compute and datastore for this operation."""
+        if operation not in [self.OPERATION_READ, self.OPERATION_WRITE]:
+            raise ValueError(f"set_affinity() for operation {affinity} is not allowed, only READ and WRITE.")
+
+        affinity_key = (compute, datastore, operation)
+        self.affinity_map[affinity_key] = affinity
+
+    def check_affinity(self, compute: str, datastore: str, operation: str) -> bool:
+        """Verify the affinity of a given compute and datastore for this operation."""
+        affinity_key = (compute, datastore, operation)
+
+        if affinity_key not in self.affinity_map:
+            return False
+        else:
+            return self.affinity_map[affinity_key]
+
+    def soft_validate(self, pipeline_job, raise_exception=True):
+        """Runs a soft validation to verify computes and datastores have affinity.
+
+        Args:
+            pipeline_job (Pipeline): returned by factory methods.
+            raise_exception (bool): fail hard if we do not validate.
+
+        Returns:
+            bool: result of validation
+        """
+        # build an affinity of compute-datastore for READ/WRITE
+        if len(self.affinity_map) == 0:
+            raise Exception("Affinity map hasn't been built, use set_affinity() or default_affinity_map() to set.")
+
+        # accumulate errors found in a list for debugging
+        soft_validation_report = []
+
+        # loop on all the jobs
+        for job_key in pipeline_job.jobs:
+            job = pipeline_job.jobs[job_key]
+            compute = job.compute
+
+            # loop on all the inputs
+            for input_key in job.inputs:
+                try:
+                    # get the path of this input
+                    input_path = job.inputs[input_key].path
+                except ValidationException:
+                    continue
+
+                # extract the datastore
+                if input_path.startswith("azureml://datastores/"):
+                    datastore = input_path[21:].split("/")[0]
+                else:
+                    # if using a registered dataset, let's consider datastore UNKNOWN
+                    datastore = self.DATASTORE_UNKNOWN
+
+                # verify affinity and log errors
+                if not self.check_affinity(compute, datastore, self.OPERATION_READ):
+                    soft_validation_report.append(
+                        f"In job {job_key}, input={input_key} is located on datastore={datastore} which should not have READ access by compute={compute}"
+                    )
+
+            # loop on all the outputs
+            for output_key in job.outputs:
+                try:
+                    # get the path of this output
+                    output_path = job.outputs[output_key].path
+                except ValidationException:
+                    continue
+
+                # extract the datastore
+                if output_path.startswith("azureml://datastores/"):
+                    datastore = output_path[21:].split("/")[0]
+                else:
+                    soft_validation_report.append(
+                        f"In job {job_key}, output={output_key} does not start with azureml://datastores/"
+                    )
+                    continue
+
+                # verify affinity and log errors
+                if not self.check_affinity(compute, datastore, self.OPERATION_WRITE):
+                    soft_validation_report.append(
+                        f"In job {job_key}, output={output_key} is located on datastore={datastore} which is should have WRITE access by compute={compute}"
+                    )
+
+        # when looping through all jobs is done
+        if soft_validation_report:
+            # if any error is found
+            soft_validation_report.insert(
+                0,
+                "Soft validation could not validate pipeline job due to the following issues:\n",
+            )
+
+            soft_validation_report.append("\nAccording to the affinity_map:")
+            for key in self.affinity_map:
+                soft_validation_report.append(f" -- {key}=>{self.affinity_map[key]}")
+
+            if raise_exception:
+                raise Exception("\n".join(soft_validation_report))
+            else:
+                logging.critical("\n".join(soft_validation_report))
+                return False
+
+        return True
