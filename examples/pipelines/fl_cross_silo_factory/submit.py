@@ -64,11 +64,6 @@ args = parser.parse_args()
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
 
-# path to the components
-COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", args.example
-)
-
 # CONNECT TO AZURE ML
 
 try:
@@ -101,6 +96,11 @@ except Exception as ex:
 #######################################
 ### B. LOAD THE PIPELINE COMPONENTS ###
 #######################################
+
+# path to the components
+COMPONENTS_FOLDER = os.path.join(
+    os.path.dirname(__file__), "..", "..", "components", args.example
+)
 
 # Loading the component from their yaml specifications
 preprocessing_component = load_component(
