@@ -9,6 +9,7 @@ $yaml = ConvertFrom-YAML $content
 $SubscriptionId = $yaml['subscription_id']
 $WorkspaceName = $yaml['workspace']['name']
 $WorkspaceResourceGroup = $yaml['workspace']['resource_group']
+$WorkspaceRegion = $yaml['workspace']['region']
 $Silos = $yaml['silos']
 $NumSilos = $Silos.Count
 # 0.c Display summary of what will be created
@@ -112,7 +113,26 @@ path: azureml://datastores/$SiloDatastoreName/paths/t10k.csv" # adjust path and 
     $SiloComputeName = "cpu-" + $SiloName
     Write-Output "Giving the user-assigned identity '$SiloIdentityName' to silo compute '$SiloComputeName'"
     $IdentityResourceId = "/subscriptions/$SubscriptionId/resourcegroups/$WorkspaceResourceGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$SiloIdentityName"
-    az ml compute update --name $SiloComputeName --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --identity-type UserAssigned --user-assigned-identities $IdentityResourceId --subscription $SubscriptionId
+    #az ml compute update --name $SiloComputeName --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --identity-type UserAssigned --user-assigned-identities $IdentityResourceId --subscription $SubscriptionId
+
+    # 5. create a "sharing" storage account if it does not exist already and if the inferred name is valid
+    $SiloSharingStorageAccountName = $SiloName.replace('-', '') + "sharingstacc"
+    $NameCheck = az storage account check-name --name $SiloSharingStorageAccountName --subscription $SubscriptionId | ConvertFrom-Json
+    $Message = $NameCheck.message
+    $NameAvailable = $NameCheck.nameAvailable
+    $Reason = $NameCheck.reason
+    if ($NameAvailable -eq $true){
+        Write-Output "Creating sharing storage account '$SiloSharingStorageAccountName'..."
+        az storage account create --name $SiloSharingStorageAccountName --resource-group $WorkspaceResourceGroup --location $WorkspaceRegion --sku Standard_LRS --subscription $SubscriptionId --access-tier Hot --allow-blob-public-access false
+    }
+    else {
+        if ($Reason -eq "AlreadyExists"){
+            Write-Output "Sharing storage account '$SiloSharingStorageAccountName' already exists. Not creating a new one."
+        }
+        else {
+            Write-Output "Sharing storage account name '$SiloSharingStorageAccountName' is not valid. $Message"
+        }
+    }
 
     # Increment the silo index to keep it accurate
     Write-Output "Done securing silo '$SiloName'."
