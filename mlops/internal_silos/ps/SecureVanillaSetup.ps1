@@ -1,5 +1,5 @@
 
-# 0. Extract setup information, load dependencies, set subscription
+# 0. Extract setup information, load dependencies, set subscription, created managed identity for the orchestrator compute
 # 0.a Read the YAML file
 [string[]]$fileContent = Get-Content "./YAML/setup_info.yml"
 $content = ''
@@ -10,6 +10,7 @@ $SubscriptionId = $yaml['subscription_id']
 $WorkspaceName = $yaml['workspace']['name']
 $WorkspaceResourceGroup = $yaml['workspace']['resource_group']
 $WorkspaceRegion = $yaml['workspace']['region']
+$OrchestratorComputeName = $yaml['workspace']['orchestrator_compute_name']
 $Silos = $yaml['silos']
 $NumSilos = $Silos.Count
 # 0.c Some "global" variables
@@ -20,9 +21,19 @@ $SharingContainerName = 'sharing'
 # 0.e Log in and make sure we're in the right subscription
 az login --output none
 az account set --subscription $SubscriptionId
+# 0.f create a user-assigned managed identity for the orchestrator compute if it does not exist already
+$OrchestratorIdentityName = $OrchestratorComputeName + "-identity"
+$MatchingIdentities = az identity list --resource-group $WorkspaceResourceGroup --query "[?name=='$OrchestratorIdentityName']"  | ConvertFrom-Json
+if ($MatchingIdentities.Length -eq 0){
+    Write-Output "Creating user-assigned identity '$OrchestratorIdentityName'..."
+    az identity create --name $OrchestratorIdentityName --resource-group $WorkspaceResourceGroup --location $WorkspaceRegion --subscription $SubscriptionId
+}
+else {
+    Write-Output "Identity '$OrchestratorIdentityName' already exists."
+}
 
 
-# SECURE TRAINING INPUTS
+# SECURE SILOS
 $SiloIndex = 1
 foreach ($Silo in $Silos)
 {
@@ -164,6 +175,19 @@ container_name: $SharingContainerName"
     else {
         Write-Output "Silo sharing datastore '$SharingDatastoreName' already exists."
     }
+
+    # 7. give the silo and orchestrator compute identities write access to the sharing datastore
+    Write-Output "Giving the silo identity '$SiloIdentityName' and orchestrator identity '$OrchestratorIdentityName' write access to the sharing storage account '$SiloSharingStorageAccountName'..."
+    # 7.1 let's get the silo's and orchestrator's identities' Principal ID's (needed to create the role assignments)
+    $Identity = az identity list --resource-group $WorkspaceResourceGroup --query "[?name=='$SiloIdentityName']" | ConvertFrom-Json
+    $PrincipalId = $Identity.principalId
+    $Identity_Orchestrator = az identity list --resource-group $WorkspaceResourceGroup --query "[?name=='$OrchestratorIdentityName']" | ConvertFrom-Json
+    $PrincipalId_Orchestrator = $Identity_Orchestrator.principalId
+    # 7.2 build the resource ID of the storage account (also needed to create the role assignment)
+    $StorageAccountResourceId = "/subscriptions/$SubscriptionId/resourceGroups/$WorkspaceResourceGroup/providers/Microsoft.Storage/storageAccounts/$SiloSharingStorageAccountName"
+    # 7.3 actually create the role assignments
+    az role assignment create --role "Storage Blob Data Contributor" --scope $StorageAccountResourceId --assignee-object-id $PrincipalId --subscription $SubscriptionId
+    az role assignment create --role "Storage Blob Data Contributor" --scope $StorageAccountResourceId --assignee-object-id $PrincipalId_Orchestrator --subscription $SubscriptionId
 
     # Increment the silo index to keep it accurate
     Write-Output "Done securing silo '$SiloName'."
