@@ -12,8 +12,9 @@ $WorkspaceResourceGroup = $yaml['workspace']['resource_group']
 $WorkspaceRegion = $yaml['workspace']['region']
 $Silos = $yaml['silos']
 $NumSilos = $Silos.Count
-# 0.c Display summary of what will be created
-# 0.c.ii Per-silo summary
+# 0.c Some "global" variables
+$SiloComputeNamePrefix = "cpu-"
+$SharingContainerName = 'sharing'
 # 0.d Load useful functions
 . "$PSScriptRoot/../../external_silos/ps/AzureUtilities.ps1"
 # 0.e Log in and make sure we're in the right subscription
@@ -110,7 +111,7 @@ path: azureml://datastores/$SiloDatastoreName/paths/t10k.csv" # adjust path and 
     }
     
     # 4. give managed identity to the silo compute, if it does not have it already
-    $SiloComputeName = "cpu-" + $SiloName
+    $SiloComputeName = $SiloComputeNamePrefix + $SiloName
     $IdentityResourceId = "/subscriptions/$SubscriptionId/resourcegroups/$WorkspaceResourceGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$SiloIdentityName"
     $Compute = az ml compute show --name $SiloComputeName --resource-group $WorkspaceResourceGroup --workspace $WorkspaceName | ConvertFrom-Json
     if ($Compute.identity.user_assigned_identities.resource_id -contains $IdentityResourceId){
@@ -121,7 +122,7 @@ path: azureml://datastores/$SiloDatastoreName/paths/t10k.csv" # adjust path and 
         az ml compute update --name $SiloComputeName --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --identity-type UserAssigned --user-assigned-identities $IdentityResourceId --subscription $SubscriptionId
     }
 
-    # 5. create a "sharing" storage account if it does not exist already and if the inferred name is valid
+    # 5. create a "sharing" storage account if it does not exist already and if the inferred name is valid; inside it, create a sharing container
     $SiloSharingStorageAccountName = $SiloName.replace('-', '') + "sharingstacc"
     $NameCheck = az storage account check-name --name $SiloSharingStorageAccountName --subscription $SubscriptionId | ConvertFrom-Json
     $Message = $NameCheck.message
@@ -130,6 +131,7 @@ path: azureml://datastores/$SiloDatastoreName/paths/t10k.csv" # adjust path and 
     if ($NameAvailable -eq $true){
         Write-Output "Creating sharing storage account '$SiloSharingStorageAccountName'..."
         az storage account create --name $SiloSharingStorageAccountName --resource-group $WorkspaceResourceGroup --location $WorkspaceRegion --sku Standard_LRS --subscription $SubscriptionId --access-tier Hot --allow-blob-public-access false
+        az storage container create -n $SharingContainerName --account-name $SiloSharingStorageAccountName --subscription $SubscriptionId
     }
     else {
         if ($Reason -eq "AlreadyExists"){
@@ -138,6 +140,29 @@ path: azureml://datastores/$SiloDatastoreName/paths/t10k.csv" # adjust path and 
         else {
             Write-Output "Sharing storage account name '$SiloSharingStorageAccountName' is not valid. $Message"
         }
+    }
+
+    # 6. create a "sharing" datastore if it does not exist already
+    $SharingDatastoreName = $SiloName.replace('-', '') + "sharing"
+    $MatchingSharingDatastores = az ml datastore list --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --query "[?name=='$SharingDatastoreName']"  | ConvertFrom-Json
+    if ($MatchingSharingDatastores.Length -eq 0){
+        Write-Output "Creating sharing silo datastore '$SiloDatastoreName'..."
+        # 6.1 build the definition in YAML 
+        $DatastoreYAML="`$schema: https://azuremlschemas.azureedge.net/latest/azureBlob.schema.json
+name: $SharingDatastoreName
+type: azure_blob
+description: Credential-less datastore pointing to a blob container.
+account_name: $SiloSharingStorageAccountName
+container_name: $SharingContainerName"
+        # 6.2 write the YAML
+        $DatastoreYAML | Out-File -FilePath ./datastore.yml
+        # 6.3 use the CLI to create the datastore
+        az ml datastore create --file datastore.yml --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName
+        # 6.4 delete the temporary YAML file
+        Remove-Item -Path ./datastore.yml
+    }
+    else {
+        Write-Output "Silo sharing datastore '$SharingDatastoreName' already exists."
     }
 
     # Increment the silo index to keep it accurate
