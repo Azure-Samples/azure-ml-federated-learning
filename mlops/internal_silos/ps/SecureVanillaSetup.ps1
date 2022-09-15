@@ -109,11 +109,17 @@ path: azureml://datastores/$SiloDatastoreName/paths/t10k.csv" # adjust path and 
         Write-Output "Identity '$SiloIdentityName' already exists."
     }
     
-    # 4. give managed identity to the silo compute
+    # 4. give managed identity to the silo compute, if it does not have it already
     $SiloComputeName = "cpu-" + $SiloName
-    Write-Output "Giving the user-assigned identity '$SiloIdentityName' to silo compute '$SiloComputeName'"
     $IdentityResourceId = "/subscriptions/$SubscriptionId/resourcegroups/$WorkspaceResourceGroup/providers/Microsoft.ManagedIdentity/userAssignedIdentities/$SiloIdentityName"
-    #az ml compute update --name $SiloComputeName --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --identity-type UserAssigned --user-assigned-identities $IdentityResourceId --subscription $SubscriptionId
+    $Compute = az ml compute show --name $SiloComputeName --resource-group $WorkspaceResourceGroup --workspace $WorkspaceName | ConvertFrom-Json
+    if ($Compute.identity.user_assigned_identities.resource_id -contains $IdentityResourceId){
+        Write-Output "The silo compute '$SiloComputeName' has already been given the user-assigned identity '$SiloIdentityName'."
+    }
+    else{
+        Write-Output "Giving the user-assigned identity '$SiloIdentityName' to silo compute '$SiloComputeName'..."
+        az ml compute update --name $SiloComputeName --resource-group $WorkspaceResourceGroup --workspace-name $WorkspaceName --identity-type UserAssigned --user-assigned-identities $IdentityResourceId --subscription $SubscriptionId
+    }
 
     # 5. create a "sharing" storage account if it does not exist already and if the inferred name is valid
     $SiloSharingStorageAccountName = $SiloName.replace('-', '') + "sharingstacc"
