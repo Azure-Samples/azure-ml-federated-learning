@@ -1,6 +1,11 @@
 // This BICEP script will fully provision a functional federated learning demo
 // based on simple internal silos secured with UAI.
 
+// Usage (sh):
+// az deployment sub create --template-file .\mlops\bicep\vanilla_demo_setup.bicep \
+//                          --location eastus \
+//                          --parameters demoBaseName="fldemo6"
+
 targetScope = 'subscription'
 
 // please specify the base name for all resources
@@ -12,10 +17,10 @@ param demoBaseName string
 param workspaceName string = '${demoBaseName}-aml'
 
 @description('Name of the resource group to create.')
-param resourceGroupName string = '${demoBaseName}-deleteme20220916rc2-rg'
+param resourceGroupName string = '${demoBaseName}-rg'
 
 @description('Location of the orchestrator (workspace, central storage and compute).')
-param orchestratorLocation string = 'eastus'
+param location string = 'eastus'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = ['eastus', 'westus', 'westus2']
@@ -32,22 +37,21 @@ param tags object = {
 // Create resource group for the demo (cold start)
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
-  location: orchestratorLocation
+  location: location
   tags: tags
 }
 
-// Create Azure Machine Learning workspace for orchestrator
-module workspaceDeployment './modules/azureml_workspace.bicep' = {
-  name: '${demoBaseName}deployazuremlworkspace${orchestratorLocation}'
+// Create Azure Machine Learning workspace for orchestration
+// with an orchestration compute
+module workspaceDeployment './modules/orchestrator.bicep' = {
+  name: '${demoBaseName}deployazuremlworkspace${location}'
   params: {
     workspaceName: workspaceName
-    location: orchestratorLocation
+    location: location
+    orchestratorComputeName: 'cpu-cluster-orchestrator'
   }
   scope: resourceGroup
 }
-
-// Create vanilla orchestrator "silo" with its own storage and compute
-// TODO
 
 // Create all vanilla silos using a provided bicep module
 module siloDeployments './modules/silos/internal_blob_uai.bicep' = [for region in siloRegions: {
@@ -55,6 +59,8 @@ module siloDeployments './modules/silos/internal_blob_uai.bicep' = [for region i
   params: {
     workspaceName: workspaceName
     region: region
+    // TODO: pass name of compute for UAI setup in silo
+    // orchestratorComputeName: 'cpu-cluster-orchestrator'
     // all other parameters left default
   }
   scope: resourceGroup

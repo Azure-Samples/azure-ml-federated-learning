@@ -1,6 +1,8 @@
 // This BICEP script will provision an AzureML workspace
 // copied from initial script in this repo
 
+// TODO: clean up and comment this script
+
 // resource group must be specified as scope in az cli or module call
 targetScope = 'resourceGroup'
 
@@ -10,6 +12,8 @@ param workspaceName string
 param location string = resourceGroup().location
 @description('Specifies whether to reduce telemetry collection and enable additional encryption.')
 param hbi_workspace bool = false
+
+param orchestratorComputeName string = 'cpu-cluster'
 
 var tenantId = subscription().tenantId
 var storageAccountName_var = replace('st-${workspaceName}','-','') // replace because only alphanumeric characters are supported
@@ -89,4 +93,25 @@ resource azuremlWorkspace 'Microsoft.MachineLearningServices/workspaces@2021-07-
     containerRegistry: containerRegistry
     hbiWorkspace: hbi_workspace
   }
+}
+
+resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-01-preview' = {
+  name: '${workspaceName}/${orchestratorComputeName}'
+  location: location
+  properties: {
+    computeType: 'AmlCompute'
+    properties: {
+      vmSize: 'Standard_DS3_v2'
+      subnet: json('null')
+      osType: 'Linux'
+      scaleSettings: {
+        maxNodeCount: 4
+        minNodeCount: 0
+        // nodeIdleTimeBeforeScaleDown: '180' // TODO: "The NodeIdleTimeBeforeScaleDown string '180' does not conform to the W3C XML Schema Part for duration."
+      }
+    }
+  }
+  dependsOn: [
+    azuremlWorkspace
+  ]
 }
