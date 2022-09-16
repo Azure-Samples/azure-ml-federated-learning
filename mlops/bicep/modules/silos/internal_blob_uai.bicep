@@ -2,7 +2,7 @@
 //
 // Given an AzureML workspace, and a specific region, this BICEP script will provision:
 // - a new blob storage account in the given region
-// - create 2 containers in this storage, one private and one shared
+// - create 1 containers in this storage for private silo data
 // - 1 AzureML compute cluster in that same region, attached to the AzureML workspace
 // - 2 AzureML datastores for each of the private/shared containers
 // - a User Assigned Identity
@@ -81,7 +81,7 @@ resource siloStoragePrivateContainer 'Microsoft.Storage/storageAccounts/blobServ
 
 // attach as a datastore in AzureML
 resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
-  name: '${workspaceName}/${datastoreName}'
+  name: '${workspaceName}/${datastoreName}_private'
   properties: {
     credentials: {
       credentialsType: 'None'
