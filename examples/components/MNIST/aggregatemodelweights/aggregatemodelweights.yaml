@@ -31,8 +31,8 @@ code: .
 command: >-
   python run.py --aggregated_output ${{outputs.aggregated_output}}
   --input_silo_1 ${{inputs.input_silo_1}}
-  [--input_silo_2 ${{inputs.input_silo_2}}]
-  [--input_silo_3 ${{inputs.input_silo_3}}]
+  $[[--input_silo_2 ${{inputs.input_silo_2}}]]
+  $[[--input_silo_3 ${{inputs.input_silo_3}}]]
 
 environment: 
   conda_file: ./conda.yaml
