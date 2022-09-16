@@ -357,22 +357,30 @@ class FederatedLearningPipelineFactory:
         soft_validation_report = []
 
         # check if there's overlap in the configured datastores
-        silo_datastore_names = set([ _silo["datastore"] for _silo in self.silos ])
+        silo_datastore_names = set([_silo["datastore"] for _silo in self.silos])
         if len(silo_datastore_names) == 0:
             soft_validation_report.append("No silo datastores have been configured.")
         elif len(silo_datastore_names) < len(self.silos):
-            soft_validation_report.append("You have multiple silos using the same datastore, please fix your config.")
+            soft_validation_report.append(
+                "You have multiple silos using the same datastore, please fix your config."
+            )
         if self.orchestrator["datastore"] in silo_datastore_names:
-            soft_validation_report.append("You have the orchestrator and silos using the same datastore, please fix your config.")
+            soft_validation_report.append(
+                "You have the orchestrator and silos using the same datastore, please fix your config."
+            )
 
         # check if there's overlap in the configured computes
-        silo_computes_names = set([ _silo["compute"] for _silo in self.silos ])
+        silo_computes_names = set([_silo["compute"] for _silo in self.silos])
         if len(silo_computes_names) == 0:
             soft_validation_report.append("No silo computes have been configured.")
         elif len(silo_computes_names) < len(self.silos):
-            soft_validation_report.append("You have multiple silos using the same compute, please fix your config.")
+            soft_validation_report.append(
+                "You have multiple silos using the same compute, please fix your config."
+            )
         if self.orchestrator["compute"] in silo_computes_names:
-            soft_validation_report.append("You have the orchestrator and silos using the same compute, please fix your config.")
+            soft_validation_report.append(
+                "You have the orchestrator and silos using the same compute, please fix your config."
+            )
 
         # loop on all the jobs
         for job_key in pipeline_job.jobs:
