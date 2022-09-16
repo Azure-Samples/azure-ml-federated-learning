@@ -1,8 +1,8 @@
 subscription_id: <Your-SubscriptionId>
 workspace:
-  name: thopo-vanilla-fl-2
+  name: vanilla-fl
   region: westus2
-  resource_group: thopo-vanilla-fl-2-rg
+  resource_group: vanilla-fl-rg
   orchestrator_compute_name: cpu-cluster
 silos:
   - silo_01:
