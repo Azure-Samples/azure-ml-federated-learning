@@ -130,3 +130,6 @@ dmypy.json
 
 # if you use an AzureML config file locally
 config.json
+
+mlops/internal_silos/YAML/setup_info_local.yml
+examples/pipelines/test_job
