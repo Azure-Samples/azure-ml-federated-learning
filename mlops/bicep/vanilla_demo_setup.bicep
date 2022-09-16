@@ -4,7 +4,7 @@
 // Usage (sh):
 // az deployment sub create --template-file .\mlops\bicep\vanilla_demo_setup.bicep \
 //                          --location eastus \
-//                          --parameters demoBaseName="fldemo6"
+//                          --parameters demoBaseName="fldemo1"
 
 targetScope = 'subscription'
 
