@@ -1,6 +1,10 @@
 // This BICEP script will fully provision a functional federated learning demo
 // based on simple internal silos secured with UAI.
 
+// For a given set of regions, it will provision:
+// - an AzureML workspace and compute cluster for orchestration
+// - per region, a silo (1 storage with 2 private/shared containers, 1 compute, 1 UAI)
+
 // Usage (sh):
 // > az login
 // > az account set --name <subscription name>
