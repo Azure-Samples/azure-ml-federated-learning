@@ -2,9 +2,11 @@
 // based on simple internal silos secured with UAI.
 
 // Usage (sh):
-// az deployment sub create --template-file .\mlops\bicep\vanilla_demo_setup.bicep \
-//                          --location eastus \
-//                          --parameters demoBaseName="fldemo1"
+// > az login
+// > az account set --name <subscription name>
+// > az deployment sub create --template-file .\mlops\bicep\vanilla_demo_setup.bicep \
+//                            --location eastus \
+//                            --parameters demoBaseName="fldemo1"
 
 targetScope = 'subscription'
 
