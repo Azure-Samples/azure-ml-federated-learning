@@ -1,0 +1,5 @@
+$schema: https://azuremlschemas.azureedge.net/latest/data.schema.json
+name: mnist-train
+description: Dataset created from folder in cloud using https URL.
+type: uri_file
+path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv

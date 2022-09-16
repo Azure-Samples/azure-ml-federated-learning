@@ -74,3 +74,8 @@ module siloDeployments './modules/silos/internal_blob_uai.bicep' = [for region i
     workspaceDeployment
   ]
 }]
+
+// TODO: output the config for local submit???
+output subscription_id string = subscription().subscriptionId
+output resource_group string = resourceGroupName
+output workspace_name string = workspaceName
