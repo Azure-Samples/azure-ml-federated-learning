@@ -81,7 +81,7 @@ resource siloStoragePrivateContainer 'Microsoft.Storage/storageAccounts/blobServ
 
 // attach as a datastore in AzureML
 resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
-  name: '${workspaceName}/${datastoreName}_private'
+  name: '${workspaceName}/${datastoreName}'
   properties: {
     credentials: {
       credentialsType: 'None'
@@ -93,48 +93,6 @@ resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspac
     // For remaining properties, see DatastoreProperties objects
     accountName: siloStorageAccount.name
     containerName: 'siloprivate'
-    // endpoint: 'string'
-    // protocol: 'string'
-    resourceGroup: resourceGroup().name
-    // serviceDataAccessAuthIdentity: 'string'
-    subscriptionId: subscription().subscriptionId
-  }
-  dependsOn: [
-    siloStoragePrivateContainer
-  ]
-}
-
-// create a "shared" container in the storage account
-// this one will be readable by orchestrator compute
-resource siloStorageSharedContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
-  name: '${siloStorageAccount.name}/default/siloshared'
-  properties: {
-    // defaultEncryptionScope: 'string'
-    // denyEncryptionScopeOverride: bool
-    // enableNfsV3AllSquash: bool
-    // enableNfsV3RootSquash: bool
-    // immutableStorageWithVersioning: {
-    //   enabled: bool
-    // }
-    metadata: {}
-    publicAccess: 'None'
-  }
-}
-
-// attach as a datastore in AzureML
-resource siloAzureMLSharedDatastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
-  name: '${workspaceName}/${datastoreName}_shared'
-  properties: {
-    credentials: {
-      credentialsType: 'None'
-      // For remaining properties, see DatastoreCredentials objects
-    }
-    description: 'Silo storage account in region ${region}'
-    properties: {}
-    datastoreType: 'AzureBlob'
-    // For remaining properties, see DatastoreProperties objects
-    accountName: siloStorageAccount.name
-    containerName: 'siloshared'
     // endpoint: 'string'
     // protocol: 'string'
     resourceGroup: resourceGroup().name
