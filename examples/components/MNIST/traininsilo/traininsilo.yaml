@@ -42,7 +42,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} [--checkpoint ${{inputs.checkpoint}}] --model ${{outputs.model}} [--lr ${{inputs.lr}}] [--epochs ${{inputs.epochs}}] [--batch_size ${{inputs.batch_size}}]
+  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
 
 environment: 
   conda_file: ./conda.yaml

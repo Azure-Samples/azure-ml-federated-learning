@@ -9,22 +9,22 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: "cpu-cluster"
+    compute: "cpu-cluster-orchestrator"
     datastore: "workspaceblobstore"
 
   silos:
-    - compute: cpu-silo-wus2
-      datastore: workspaceblobstore
-      training_data_path: "azureml:mnist-train-01:1"
-      testing_data_path: "azureml:mnist-test-01:1"
-    - compute: cpu-silo-eus2
-      datastore: workspaceblobstore
-      training_data_path: "azureml:mnist-train-02:1"
-      testing_data_path: "azureml:mnist-test-02:1"
-    - compute: cpu-silo-weu
-      datastore: workspaceblobstore
-      training_data_path: "azureml:mnist-train-03:1"
-      testing_data_path: "azureml:mnist-test-03:1"
+    - compute: cpu-cluster-eastus
+      datastore: silo_datatore_eastus_private
+      training_data_path: "azureml:mnist-train-eastus:1"
+      testing_data_path: "azureml:mnist-test-eastus:1"
+    - compute: cpu-cluster-westus
+      datastore: silo_datatore_westus_private
+      training_data_path: "azureml:mnist-train-westus:1"
+      testing_data_path: "azureml:mnist-test-westus:1"
+    - compute: cpu-cluster-westus2
+      datastore: silo_datatore_westus2_private
+      training_data_path: "azureml:mnist-train-westus2:1"
+      testing_data_path: "azureml:mnist-test-westus2:1"
 
 # training parameters
 training_parameters:
