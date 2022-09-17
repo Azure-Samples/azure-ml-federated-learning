@@ -17,10 +17,6 @@ targetScope = 'resourceGroup'
 @description('Specifies the name of the workspace.')
 param workspaceName string
 
-// TODO: pass name of compute for UAI setup in silo
-// @description('Specifies the name of the compute cluster used for orchestration.')
-// param orchestratorComputeName string
-
 @description('Specifies the region of the silo (for storage + compute).')
 param region string
 
@@ -36,6 +32,7 @@ param datastoreName string = 'silo_datatore_${region}'
 
 @description('Specifies the name of the User Assigned Identity to provision.')
 param uaiName string = '${replace('${workspaceName}', '-', '')}-uai-${region}'
+
 
 
 // deploy a storage account for the silo
@@ -105,41 +102,22 @@ resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspac
 }
 
 
-// deploy a user assigned identify for this silo
+// provision a user assigned identify for this silo
 resource siloUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: uaiName
   location: region
 }
 
-// var roleAssignmentsToCreate = [{
-//   name: guid(siloUserAssignedIdentity.id, resourceGroup().id, 'Storage Blob Data Contributor')
-//   roleDefinitionId: 'Storage Blob Data Contributor'
-// }]
-
-// // set the UAI role assignment for the silo storage account
-// resource roleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = [for roleAssignmentToCreate in roleAssignmentsToCreate: {
-//   name: roleAssignmentToCreate.name
-//   scope: resourceGroup()
-//   properties: {
-//     description: 'Add Storage Blob Data Contributor role to the silo storage account'
-//     principalId: siloUserAssignedIdentity.properties.principalId
-//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', roleAssignmentToCreate.roleDefinitionId)
-//     principalType: 'ServicePrincipal' // See https://docs.microsoft.com/azure/role-based-access-control/role-assignments-template#new-service-principal to understand why this property is included.
-//   }
-// }]
-
+// provision a compute cluster for the silo and assigned the silo UAI to it
 resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-01-preview' = {
   name: '${workspaceName}/${computeClusterName}'
   location: region
-  // identity: {
-  //   type: 'UserAssigned'
-  //   userAssignedIdentities: {
-  //     '/subscriptions/${subscription()}/resourceGroups/${resourceGroup()}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${siloUserAssignedIdentity.name}': {
-  //         // principalId: siloUserAssignedIdentity.properties.principalId
-  //         // clientId: siloUserAssignedIdentity.properties.clientId
-  //     }
-  //   }
-  // }
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${siloUserAssignedIdentity.name}': {}
+    }
+  }
   properties: {
     computeType: 'AmlCompute'
     properties: {
@@ -153,4 +131,14 @@ resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/comput
       }
     }
   }
+}
+
+
+// output the orchestrator config for next actions (permission model)
+output siloConfig object = {
+  region: region
+  storage: siloStorageAccount
+  compute: siloAzureMLCompute
+  datastore: siloAzureMLPrivateDatastore
+  uai: siloUserAssignedIdentity
 }

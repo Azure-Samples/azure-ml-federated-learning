@@ -48,6 +48,7 @@ resource storageAccountName 'Microsoft.Storage/storageAccounts@2021-06-01' = {
     supportsHttpsTrafficOnly: true
   }
 }
+
 resource keyVaultName 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
   name: keyVaultName_var
   location: location
@@ -95,9 +96,22 @@ resource azuremlWorkspace 'Microsoft.MachineLearningServices/workspaces@2021-07-
   }
 }
 
-resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-01-preview' = {
+// provision a user assigned identify for this silo
+resource orchestratorUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: 'orchestrator-uai'
+  location: location
+}
+
+// provision a compute cluster, and assign the user assigned identity to it
+resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-01-preview' = {
   name: '${workspaceName}/${orchestratorComputeName}'
   location: location
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${orchestratorUserAssignedIdentity.name}': {}
+    }
+  }
   properties: {
     computeType: 'AmlCompute'
     properties: {
@@ -114,4 +128,13 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
   dependsOn: [
     azuremlWorkspace
   ]
+}
+
+// output the orchestrator config for next actions (permission model)
+output orchestratorConfig object = {
+  region: location
+  workspace: azuremlWorkspace
+  compute: orchestratorCompute
+  storage: storageAccountName
+  uai: orchestratorUserAssignedIdentity
 }

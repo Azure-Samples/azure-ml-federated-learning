@@ -40,6 +40,8 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
+var siloCount = length(siloRegions)
+
 // Create resource group for the demo (cold start)
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   name: resourceGroupName
@@ -49,7 +51,7 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 
 // Create Azure Machine Learning workspace for orchestration
 // with an orchestration compute
-module workspaceDeployment './modules/orchestrator.bicep' = {
+module orchestratorDeployment './modules/orchestrators/orchestrator_with_uai.bicep' = {
   name: '${demoBaseName}deployazuremlworkspace${location}'
   params: {
     workspaceName: workspaceName
@@ -60,20 +62,32 @@ module workspaceDeployment './modules/orchestrator.bicep' = {
 }
 
 // Create all vanilla silos using a provided bicep module
-module siloDeployments './modules/silos/internal_blob_uai.bicep' = [for region in siloRegions: {
-  name: '${demoBaseName}deploysilo${region}'
+module siloDeployments './modules/silos/internal_blob_with_uai.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}deploysilo${siloRegions[i]}'
   params: {
     workspaceName: workspaceName
-    region: region
-    // TODO: pass name of compute for UAI setup in silo
-    // orchestratorComputeName: 'cpu-cluster-orchestrator'
-    // all other parameters left default
+    region: siloRegions[i]
   }
   scope: resourceGroup
   dependsOn: [
-    workspaceDeployment
+    orchestratorDeployment
   ]
 }]
+
+// Set permissions model
+module permissionModelDeployment './modules/permissions/model_uai_single_direction_write.bicep' = {
+  name: '${demoBaseName}permissionmodeldeployment'
+  params: {
+    orchestratorConfig: orchestratorDeployment.outputs.orchestratorConfig
+    siloConfigArray: [ for i in range(0, siloCount): siloDeployments[i].outputs.siloConfig ]
+  }
+  scope: resourceGroup
+  dependsOn: [
+    orchestratorDeployment
+    siloDeployments
+  ]
+}
+
 
 // TODO: output the config for local submit???
 output subscription_id string = subscription().subscriptionId
