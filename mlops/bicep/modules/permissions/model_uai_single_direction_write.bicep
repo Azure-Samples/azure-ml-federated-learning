@@ -32,11 +32,11 @@ var siloCount = length(siloConfigArray)
 
 // create specific roles for the UAIs
 module storageWriteOnlyRoleDeployment './role_storage_write_only.bicep' = {
-  name: 'fl_demo_write_only_role'
+  name: guid(resourceGroup().name, 'role_storage_write_only')
   scope: resourceGroup()
 }
 module storageReadWriteRoleDeployment './role_storage_read_write.bicep' = {
-  name: 'fl_demo_read_write_role'
+  name: guid(resourceGroup().name, 'role_storage_read_write')
   scope: resourceGroup()
 }
 
@@ -47,7 +47,6 @@ resource orchestratorStorageContainer 'Microsoft.Storage/storageAccounts@2021-06
 }
 resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: orchestratorStorageContainer
-  // '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${orchestratorConfig.uai.name}'
   name: guid(orchestratorStorageContainer.id, storageReadWriteRoleDeployment.name, orchestratorConfig.uaiPrincipalId)
   properties: {
     roleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
@@ -57,42 +56,42 @@ resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
 }
 
 // assign the R/W permisisons between silo UAI and storage container
-// resource siloStorageContainersArray 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' existing = [for i in range(0, siloCount) : {
-//   name: siloConfigArray[i].storage
-//   scope: resourceGroup()
-// }]
+resource siloStorageContainersArray 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' existing = [for i in range(0, siloCount) : {
+  name: '${siloConfigArray[i].storage}/default/${siloConfigArray[i].container}'
+  scope: resourceGroup()
+}]
 
-// resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, siloCount) : {
-//   scope: siloStorageContainersArray[i]
-//   name: guid(siloStorageContainersArray[i].id, storageReadWriteRoleDeployment.name, siloConfigArray[i].uaiPrincipalId)
-//   properties: {
-//     roleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
-//     principalId: siloConfigArray[i].uaiPrincipalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }]
+resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, siloCount) : {
+  scope: siloStorageContainersArray[i]
+  name: guid(siloStorageContainersArray[i].id, storageReadWriteRoleDeployment.name, siloConfigArray[i].uaiPrincipalId)
+  properties: {
+    roleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    principalId: siloConfigArray[i].uaiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}]
 
 // assign the W-only permissions between orchestrator UAI and silo storage containers
-// resource orchestratorToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, siloCount) : {
-//   scope: siloStorageContainersArray[i]
-//   name: guid(siloStorageContainersArray[i].id, storageWriteOnlyRoleDeployment.name, orchestratorConfig.uaiPrincipalId)
-//   properties: {
-//     roleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
-//     principalId: orchestratorConfig.uaiPrincipalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }]
+resource orchestratorToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, siloCount) : {
+  scope: siloStorageContainersArray[i]
+  name: guid(siloStorageContainersArray[i].id, storageWriteOnlyRoleDeployment.name, orchestratorConfig.uaiPrincipalId)
+  properties: {
+    roleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
+    principalId: orchestratorConfig.uaiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}]
 
 // assign the W-only permissions between silo UAI and orchestrator storage containers
-// resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, siloCount) : {
-//   scope: orchestratorStorageContainer
-//   name: guid(siloStorageContainersArray[i].id, storageWriteOnlyRoleDeployment.name, siloConfigArray[i].uaiPrincipalId)
-//   properties: {
-//     roleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
-//     principalId: siloConfigArray[i].uaiPrincipalId
-//     principalType: 'ServicePrincipal'
-//   }
-// }]
+resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [for i in range(0, siloCount) : {
+  scope: orchestratorStorageContainer
+  name: guid(siloStorageContainersArray[i].id, storageWriteOnlyRoleDeployment.name, siloConfigArray[i].uaiPrincipalId)
+  properties: {
+    roleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
+    principalId: siloConfigArray[i].uaiPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}]
 
 
 
