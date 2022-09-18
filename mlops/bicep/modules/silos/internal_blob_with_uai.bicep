@@ -33,6 +33,12 @@ param datastoreName string = 'silo_datatore_${region}'
 @description('Specifies the name of the User Assigned Identity to provision.')
 param uaiName string = '${replace('${workspaceName}', '-', '')}-uai-${region}'
 
+// permissions model arguments
+param orchestratorUAIPrincipalID string
+param orchestratorStorageAccountName string
+param siloToSiloRoleDefinitionId string
+param orchToSiloRoleDefinitionId string
+param siloToOrchRoleDefinitionId string
 
 
 // deploy a storage account for the silo
@@ -133,6 +139,41 @@ resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/comput
   }
 }
 
+resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: siloStoragePrivateContainer
+  name: guid(siloStoragePrivateContainer.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+  properties: {
+    roleDefinitionId: siloToSiloRoleDefinitionId
+    principalId: siloUserAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// assign the W-only permissions between orchestrator UAI and silo storage containers
+resource orchestratorToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: siloStoragePrivateContainer
+  name: guid(siloStoragePrivateContainer.name, orchToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+  properties: {
+    roleDefinitionId: orchToSiloRoleDefinitionId
+    principalId: orchestratorUAIPrincipalID
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// assign the W-only permissions between silo UAI and orchestrator storage containers
+resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
+  name: orchestratorStorageAccountName
+  scope: resourceGroup()
+}
+resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: orchestratorStorageAccount
+  name: guid(siloStoragePrivateContainer.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+  properties: {
+    roleDefinitionId: siloToOrchRoleDefinitionId
+    principalId: siloUserAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 // output the orchestrator config for next actions (permission model)
 output siloConfig object = {

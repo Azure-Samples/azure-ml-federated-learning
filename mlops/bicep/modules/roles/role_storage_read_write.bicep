@@ -1,7 +1,7 @@
 // This BICEP script will create a custom RBAC role with read/write actions.
 
 // resource group must be specified as scope in az cli or module call
-targetScope = 'resourceGroup'
+targetScope = 'subscription'
 
 // Array of actions for the roleDefinition'
 var singleDirectionWriteActions = [
@@ -46,8 +46,7 @@ resource roleDefinition 'Microsoft.Authorization/roleDefinitions@2022-04-01' = {
       }
     ]
     assignableScopes: [
-      // NOTE: restricting this role to the resource group
-      resourceGroup().id
+      subscription().id
     ]
   }
 }

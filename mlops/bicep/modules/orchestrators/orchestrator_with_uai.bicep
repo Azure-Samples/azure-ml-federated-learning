@@ -15,6 +15,9 @@ param hbi_workspace bool = false
 
 param orchestratorComputeName string = 'cpu-cluster'
 
+@description('Which role the orchestrator compute should have towards its own storage.')
+param orchToOrchRoleDefinitionId string
+
 var tenantId = subscription().tenantId
 var storageAccountName_var = replace('st-${workspaceName}','-','') // replace because only alphanumeric characters are supported
 var keyVaultName_var = 'kv-${workspaceName}'
@@ -129,6 +132,18 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
     azuremlWorkspace
   ]
 }
+
+// assign the role orch compute should have with orch storage
+resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: storageAccountName
+  name: guid(storageAccountName.id, orchToOrchRoleDefinitionId, orchestratorUserAssignedIdentity.name)
+  properties: {
+    roleDefinitionId: orchToOrchRoleDefinitionId
+    principalId: orchestratorUserAssignedIdentity.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
 
 // output the orchestrator config for next actions (permission model)
 output orchestratorConfig object = {

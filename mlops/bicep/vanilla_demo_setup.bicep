@@ -5,6 +5,13 @@
 // - an AzureML workspace and compute cluster for orchestration
 // - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 UAI)
 
+// The demo permission model is represented by the following matrix:
+// |               | orch.compute | siloA.compute | siloB.compute |
+// |---------------|--------------|---------------|---------------|
+// | orch.storage  |     R/W      |       W       |       W       |
+// | siloA.storage |      W       |      R/W      |       -       |
+// | siloB.storage |      W       |       -       |      R/W      |
+
 // Usage (sh):
 // > az login
 // > az account set --name <subscription name>
@@ -49,6 +56,16 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: tags
 }
 
+// create customers roles for Federated Learning
+module storageWriteOnlyRoleDeployment './modules/roles/role_storage_write_only.bicep' = {
+  name: guid(subscription().subscriptionId, 'role_storage_write_only')
+  scope: subscription()
+}
+module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
+  name: guid(subscription().subscriptionId, 'role_storage_read_write')
+  scope: subscription()
+}
+
 // Create Azure Machine Learning workspace for orchestration
 // with an orchestration compute
 module orchestratorDeployment './modules/orchestrators/orchestrator_with_uai.bicep' = {
@@ -57,6 +74,8 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_with_uai.bic
     workspaceName: workspaceName
     location: location
     orchestratorComputeName: 'cpu-cluster-orchestrator'
+    // permission model
+    orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
   scope: resourceGroup
 }
@@ -67,26 +86,18 @@ module siloDeployments './modules/silos/internal_blob_with_uai.bicep' = [for i i
   params: {
     workspaceName: workspaceName
     region: siloRegions[i]
+    // permission model
+    orchestratorUAIPrincipalID: orchestratorDeployment.outputs.orchestratorConfig.uaiPrincipalId
+    orchestratorStorageAccountName: orchestratorDeployment.outputs.orchestratorConfig.storage
+    siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    orchToSiloRoleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
+    siloToOrchRoleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
   }
   scope: resourceGroup
   dependsOn: [
     orchestratorDeployment
   ]
 }]
-
-// Set permissions model
-module permissionModelDeployment './modules/permissions/model_uai_single_direction_write.bicep' = {
-  name: '${demoBaseName}permissionmodeldeployment'
-  params: {
-    orchestratorConfig: orchestratorDeployment.outputs.orchestratorConfig
-    siloConfigArray: [ for i in range(0, siloCount): siloDeployments[i].outputs.siloConfig ]
-  }
-  scope: resourceGroup
-  dependsOn: [
-    orchestratorDeployment
-    siloDeployments
-  ]
-}
 
 
 // TODO: output the config for local submit???
