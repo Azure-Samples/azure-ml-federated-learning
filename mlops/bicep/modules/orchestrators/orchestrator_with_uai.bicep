@@ -134,7 +134,7 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
 output orchestratorConfig object = {
   region: location
   workspace: azuremlWorkspace
-  compute: orchestratorCompute
-  storage: storageAccountName
-  uai: orchestratorUserAssignedIdentity
+  compute: orchestratorCompute.name
+  storage: storageAccountName.name
+  uaiPrincipalId: orchestratorUserAssignedIdentity.properties.principalId
 }

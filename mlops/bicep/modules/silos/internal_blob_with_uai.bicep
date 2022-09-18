@@ -137,8 +137,9 @@ resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/comput
 // output the orchestrator config for next actions (permission model)
 output siloConfig object = {
   region: region
-  storage: siloStorageAccount
-  compute: siloAzureMLCompute
-  datastore: siloAzureMLPrivateDatastore
-  uai: siloUserAssignedIdentity
+  storage: siloStorageAccount.name
+  container: siloStoragePrivateContainer.name
+  compute: siloAzureMLCompute.name
+  datastore: siloAzureMLPrivateDatastore.name
+  uaiPrincipalId: siloUserAssignedIdentity.properties.principalId
 }
