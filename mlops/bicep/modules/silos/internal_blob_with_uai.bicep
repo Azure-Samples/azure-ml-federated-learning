@@ -26,6 +26,7 @@ param storageAccountName string = '${replace('${workspaceName}', '-', '')}silo${
 
 @description('Specifies the name of the compute cluster to provision.')
 param computeClusterName string = 'cpu-cluster-${region}'
+param siloComputeSKU string = 'Standard_DS3_v2'
 
 @description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
 param datastoreName string = 'silo_datatore_${region}'
@@ -127,7 +128,7 @@ resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/comput
   properties: {
     computeType: 'AmlCompute'
     properties: {
-      vmSize: 'Standard_DS3_v2'
+      vmSize: siloComputeSKU
       subnet: json('null')
       osType: 'Linux'
       scaleSettings: {

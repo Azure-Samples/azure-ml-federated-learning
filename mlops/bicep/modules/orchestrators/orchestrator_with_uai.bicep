@@ -14,6 +14,7 @@ param location string = resourceGroup().location
 param hbi_workspace bool = false
 
 param orchestratorComputeName string = 'cpu-cluster'
+param orchestratorComputeSKU string = 'Standard_DS3_v2'
 
 @description('Which role the orchestrator compute should have towards its own storage.')
 param orchToOrchRoleDefinitionId string
@@ -118,7 +119,7 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
   properties: {
     computeType: 'AmlCompute'
     properties: {
-      vmSize: 'Standard_DS3_v2'
+      vmSize: orchestratorComputeSKU
       subnet: json('null')
       osType: 'Linux'
       scaleSettings: {

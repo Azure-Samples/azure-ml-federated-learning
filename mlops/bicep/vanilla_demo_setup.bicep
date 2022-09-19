@@ -36,7 +36,9 @@ param resourceGroupName string = '${demoBaseName}-rg'
 param location string = 'eastus'
 
 @description('List of each region in which to create an internal silo.')
-param siloRegions array = ['eastus', 'westus', 'westus2']
+param siloRegions array = ['westus', 'westus2', 'eastus2']
+
+param computeSKU string = 'Standard_DS3_v2'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {
@@ -74,6 +76,7 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_with_uai.bic
     workspaceName: workspaceName
     location: location
     orchestratorComputeName: 'cpu-cluster-orchestrator'
+    orchestratorComputeSKU: computeSKU
     // permission model
     orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
@@ -86,6 +89,7 @@ module siloDeployments './modules/silos/internal_blob_with_uai.bicep' = [for i i
   params: {
     workspaceName: workspaceName
     region: siloRegions[i]
+    siloComputeSKU: computeSKU
     // permission model
     orchestratorUAIPrincipalID: orchestratorDeployment.outputs.orchestratorConfig.uaiPrincipalId
     orchestratorStorageAccountName: orchestratorDeployment.outputs.orchestratorConfig.storage
