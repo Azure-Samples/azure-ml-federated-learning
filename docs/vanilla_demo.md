@@ -7,28 +7,10 @@
 ```bash
 az login
 az account set --name <subscription name>
-az deployment sub create --template-file .\mlops\bicep\vanilla_demo_setup.bicep --location eastus --parameters demoBaseName="fldemo1"
+az deployment sub create --template-file .\mlops\bicep\vanilla_demo_setup.bicep --location eastus --parameters demoBaseName="fldemo"
 ```
 
-## Create toy datasets
-
-TODO: is there a better process here?
-
-```bash
-# a pair for eastus
-az ml data create --file .\examples\data\mnist_test.yaml -w fldemo1-aml -g fldemo1-rg --set name=mnist-test-eastus
-az ml data create --file .\examples\data\mnist_train.yaml -w fldemo1-aml -g fldemo1-rg --set name=mnist-train-eastus
-
-# a pair for westus
-az ml data create --file .\examples\data\mnist_test.yaml -w fldemo1-aml -g fldemo1-rg --set name=mnist-test-westus
-az ml data create --file .\examples\data\mnist_train.yaml -w fldemo1-aml -g fldemo1-rg --set name=mnist-train-westus
-
-# a pair for westus2
-az ml data create --file .\examples\data\mnist_test.yaml -w fldemo1-aml -g fldemo1-rg --set name=mnist-test-westus2
-az ml data create --file .\examples\data\mnist_train.yaml -w fldemo1-aml -g fldemo1-rg --set name=mnist-train-westus2
-```
-
-## Launch the experiment
+## Launch the demo experiment
 
 TODO: figure out how to retrieve config locally
 

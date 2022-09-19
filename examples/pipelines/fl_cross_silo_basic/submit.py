@@ -167,14 +167,14 @@ def fl_cross_silo_internal_basic():
         # run the pre-processing component once
         silo_pre_processing_step = preprocessing_component(
             raw_training_data=Input(
-                type=AssetTypes.URI_FILE,
-                mode="mount",
-                path=silo_config.training_data_path,
+                type=silo_config.training_data.type,
+                mode=silo_config.training_data.mode,
+                path=silo_config.training_data.path,
             ),
             raw_testing_data=Input(
-                type=AssetTypes.URI_FILE,
-                mode="mount",
-                path=silo_config.testing_data_path,
+                type=silo_config.testing_data.type,
+                mode=silo_config.testing_data.mode,
+                path=silo_config.testing_data.path,
             ),
         )
         # make sure the compute corresponds to the silo
