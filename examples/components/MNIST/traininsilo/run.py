@@ -9,6 +9,7 @@ from torch import nn
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torchvision import models, datasets, transforms
+from mlflow import log_metric, log_param
 
 
 class MnistTrainer:
@@ -92,6 +93,13 @@ class MnistTrainer:
 
         return train_dataset, test_dataset
 
+    def log_params(self):
+        log_param("learning_rate", self._lr)
+        log_param("epochs", self._epochs)
+        log_param("batch_size", self._batch_size)
+        log_param("loss", self.loss_.__class__.__name__)
+        log_param("optimizer", self.optimizer_.__class__.__name__)
+
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
 
@@ -99,15 +107,20 @@ class MnistTrainer:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
 
-        mlflow.autolog(log_input_examples=True)
         if checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
             self.model_.train()
             logger.debug("Local training started")
+
+            self.log_params()
+
             for epoch in range(self._epochs):
+
                 running_loss = 0.0
+                num_of_iter_before_logging = 3000
+
                 for i, batch in enumerate(self.train_loader_):
 
                     images, labels = batch[0].to(self.device_), batch[1].to(
@@ -121,14 +134,22 @@ class MnistTrainer:
                     self.optimizer_.step()
 
                     running_loss += cost.cpu().detach().numpy() / images.size()[0]
-                    if i != 0 and i % 3000 == 0:
+                    if i != 0 and i % num_of_iter_before_logging == 0:
                         print(
                             f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, "
-                            f"Loss: {running_loss/3000}"
+                            f"Loss: {running_loss/num_of_iter_before_logging}"
+                        )
+                        log_metric(
+                            "Train Loss", f"{running_loss/num_of_iter_before_logging}"
                         )
                         running_loss = 0.0
-            test_loss, test_acc = self.test()
-            logger.info(f"Test Loss: {test_loss} and Test Accuracy: {test_acc}")
+
+                test_loss, test_acc = self.test()
+                log_metric("Test Loss", f"{test_loss}", step=epoch)
+                log_metric("Test Accuracy", f"{test_acc}", step=epoch)
+                logger.info(
+                    f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
+                )
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
