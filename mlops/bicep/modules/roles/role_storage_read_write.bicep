@@ -5,6 +5,11 @@ targetScope = 'subscription'
 
 // Array of actions for the roleDefinition'
 var singleDirectionWriteActions = [
+  // see https://learn.microsoft.com/en-us/azure/storage/blobs/authorize-data-operations-portal#use-the-account-access-key
+  // need the 2 below to get token to mount data
+  'Microsoft.Storage/storageAccounts/listkeys/action'
+  'Microsoft.Storage/storageAccounts/ListAccountSas/action'
+  // read the 'container' (not the data)
   'Microsoft.Storage/storageAccounts/blobServices/containers/read'
 ]
 var singleDirectionWriteDataActions = [

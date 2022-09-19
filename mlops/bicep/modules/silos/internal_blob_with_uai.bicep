@@ -152,7 +152,7 @@ resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
 // assign the W-only permissions between orchestrator UAI and silo storage containers
 resource orchestratorToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: siloStoragePrivateContainer
-  name: guid(siloStoragePrivateContainer.name, orchToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+  name: guid(siloStoragePrivateContainer.name, orchToSiloRoleDefinitionId, orchestratorUAIPrincipalID)
   properties: {
     roleDefinitionId: orchToSiloRoleDefinitionId
     principalId: orchestratorUAIPrincipalID
