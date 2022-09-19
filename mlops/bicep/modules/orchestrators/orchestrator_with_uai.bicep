@@ -150,6 +150,6 @@ output orchestratorConfig object = {
   region: location
   workspace: azuremlWorkspace
   compute: orchestratorCompute.name
-  storage: storageAccountName.name
+  storage: storageAccountName_var
   uaiPrincipalId: orchestratorUserAssignedIdentity.properties.principalId
 }

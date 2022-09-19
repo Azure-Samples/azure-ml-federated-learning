@@ -161,19 +161,19 @@ resource orchestratorToSiloRoleAssignment 'Microsoft.Authorization/roleAssignmen
 }
 
 // assign the W-only permissions between silo UAI and orchestrator storage containers
-resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
-  name: orchestratorStorageAccountName
-  scope: resourceGroup()
-}
-resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: orchestratorStorageAccount
-  name: guid(siloStoragePrivateContainer.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
-  properties: {
-    roleDefinitionId: siloToOrchRoleDefinitionId
-    principalId: siloUserAssignedIdentity.properties.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
+// resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
+//   name: orchestratorStorageAccountName
+// }
+// resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+//   //scope: orchestratorStorageAccount
+//   scope: orchestratorStorageAccountName
+//   name: guid(siloStoragePrivateContainer.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+//   properties: {
+//     roleDefinitionId: siloToOrchRoleDefinitionId
+//     principalId: siloUserAssignedIdentity.properties.principalId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
 // output the orchestrator config for next actions (permission model)
 output siloConfig object = {
