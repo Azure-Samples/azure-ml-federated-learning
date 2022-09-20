@@ -74,7 +74,13 @@ class FederatedLearningPipelineFactory:
         return date + "".join(random.choice(str) for i in range(length))
 
     def anchor_step_in_silo(
-        self, pipeline_step, compute, output_datastore, model_output_datastore=None, tags={}, description=None
+        self,
+        pipeline_step,
+        compute,
+        output_datastore,
+        model_output_datastore=None,
+        tags={},
+        description=None,
     ):
         """Takes a step and enforces the right compute/datastore config"""
         # make sure the compute corresponds to the silo
@@ -87,7 +93,9 @@ class FederatedLearningPipelineFactory:
                 setattr(
                     pipeline_step.outputs,
                     key,
-                    self.custom_fl_data_output(model_output_datastore or output_datastore, key),
+                    self.custom_fl_data_output(
+                        model_output_datastore or output_datastore, key
+                    ),
                 )
             else:
                 setattr(
@@ -140,8 +148,8 @@ class FederatedLearningPipelineFactory:
                 # make sure the data is written in the right datastore
                 self.anchor_step_in_silo(
                     preprocessing_step,
-                    compute=silo_config['compute'],
-                    output_datastore=silo_config['datastore'],
+                    compute=silo_config["compute"],
+                    output_datastore=silo_config["datastore"],
                 )
 
                 # each output is indexed to be fed into training_component as a distinct input
@@ -184,9 +192,9 @@ class FederatedLearningPipelineFactory:
                     # make sure the data is written in the right datastore
                     self.anchor_step_in_silo(
                         training_step,
-                        compute=silo_config['compute'],
-                        output_datastore=silo_config['datastore'],
-                        model_output_datastore=self.orchestrator['datastore']
+                        compute=silo_config["compute"],
+                        output_datastore=silo_config["datastore"],
+                        model_output_datastore=self.orchestrator["datastore"],
                     )
 
                     # each output is indexed to be fed into aggregate_component as a distinct input
@@ -245,9 +253,9 @@ class FederatedLearningPipelineFactory:
                 # this is done in the orchestrator compute/datastore
                 self.anchor_step_in_silo(
                     aggregation_step,
-                    compute=self.orchestrator['compute'],
-                    output_datastore=self.orchestrator['datastore'],
-                    model_output_datastore=self.orchestrator['datastore']
+                    compute=self.orchestrator["compute"],
+                    output_datastore=self.orchestrator["datastore"],
+                    model_output_datastore=self.orchestrator["datastore"],
                 )
 
                 # let's keep track of the running outputs (dict) to be used as input for next round
@@ -329,7 +337,12 @@ class FederatedLearningPipelineFactory:
         return self.affinity_map
 
     def set_affinity(
-        self, compute: str, datastore: str, operation: str, affinity: bool, data_type=None
+        self,
+        compute: str,
+        datastore: str,
+        operation: str,
+        affinity: bool,
+        data_type=None,
     ) -> None:
         """Set the affinity of a given compute and datastore for this operation."""
         if operation not in [self.OPERATION_READ, self.OPERATION_WRITE]:
@@ -337,13 +350,25 @@ class FederatedLearningPipelineFactory:
                 f"set_affinity() for operation {affinity} is not allowed, only READ and WRITE."
             )
 
-        affinity_key = (compute, datastore, operation, data_type or self.DATATYPE_UNKNOWN)
+        affinity_key = (
+            compute,
+            datastore,
+            operation,
+            data_type or self.DATATYPE_UNKNOWN,
+        )
         self.affinity_map[affinity_key] = affinity
 
-    def check_affinity(self, compute: str, datastore: str, operation: str, data_type=None) -> bool:
+    def check_affinity(
+        self, compute: str, datastore: str, operation: str, data_type=None
+    ) -> bool:
         """Verify the affinity of a given compute and datastore for this operation."""
         # check the specific affinity as provided
-        affinity_key = (compute, datastore, operation, data_type or self.DATATYPE_UNKNOWN)
+        affinity_key = (
+            compute,
+            datastore,
+            operation,
+            data_type or self.DATATYPE_UNKNOWN,
+        )
 
         if affinity_key in self.affinity_map:
             return self.affinity_map[affinity_key]
@@ -422,7 +447,9 @@ class FederatedLearningPipelineFactory:
                     datastore = self.DATASTORE_UNKNOWN
 
                 # verify affinity and log errors
-                if not self.check_affinity(compute, datastore, self.OPERATION_READ, job.inputs[input_key].type):
+                if not self.check_affinity(
+                    compute, datastore, self.OPERATION_READ, job.inputs[input_key].type
+                ):
                     soft_validation_report.append(
                         f"In job {job_key}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={compute}"
                     )
@@ -445,7 +472,12 @@ class FederatedLearningPipelineFactory:
                     continue
 
                 # verify affinity and log errors
-                if not self.check_affinity(compute, datastore, self.OPERATION_WRITE, job.outputs[output_key].type):
+                if not self.check_affinity(
+                    compute,
+                    datastore,
+                    self.OPERATION_WRITE,
+                    job.outputs[output_key].type,
+                ):
                     soft_validation_report.append(
                         f"In job {job_key}, output={output_key} of type={job.inputs[output_key].type} is located on datastore={datastore} which should not have WRITE access by compute={compute}"
                     )

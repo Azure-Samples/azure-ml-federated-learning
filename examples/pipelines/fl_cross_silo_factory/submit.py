@@ -263,7 +263,7 @@ for silo_config in YAML_CONFIG.federated_learning.silos:
             type=silo_config.testing_data.type,
             mode=silo_config.testing_data.mode,
             path=silo_config.testing_data.path,
-        )
+        ),
     )
 
 # 3. use a pipeline factory method
