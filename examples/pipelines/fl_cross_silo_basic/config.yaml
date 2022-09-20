@@ -13,8 +13,8 @@ federated_learning:
     datastore: "workspaceblobstore"
 
   silos:
-    - compute: cpu-cluster-eastus
-      datastore: silo_datatore_eastus_private
+    - compute: cpu-cluster-eastus2
+      datastore: silo_datatore_eastus2_private
       # in this demo, we're using public data from a url instead
       training_data:
         type: uri_file
