@@ -47,7 +47,7 @@ In this section, we'll use a sample python script to submit a federated learning
 1. Install the python dependencies
     
     ```bash
-    python -m pip install -r ./examples/pipelines/requirements.txt
+    python -m pip install -r ./examples/pipelines/fl_cross_silo_basic/requirements.txt
     ```
 
 2. To connect to your newly created Azure ML workspace, we'll need to create a `config.json` file at the root of this repo. Follow the instructions on how to get this from the [Azure ML documentation](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace).
