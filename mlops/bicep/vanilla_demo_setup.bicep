@@ -8,7 +8,7 @@
 // The demo permission model is represented by the following matrix:
 // |               | orch.compute | siloA.compute | siloB.compute |
 // |---------------|--------------|---------------|---------------|
-// | orch.storage  |     R/W      |       W       |       W       |
+// | orch.storage  |     R/W      |      R/W      |      R/W      |
 // | siloA.storage |      W       |      R/W      |       -       |
 // | siloB.storage |      W       |       -       |      R/W      |
 
