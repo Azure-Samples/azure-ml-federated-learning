@@ -167,28 +167,32 @@ def fl_cross_silo_internal_basic():
         # run the pre-processing component once
         silo_pre_processing_step = preprocessing_component(
             raw_training_data=Input(
-                type=AssetTypes.URI_FILE,
-                mode="mount",
-                path=silo_config.training_data_path,
+                type=silo_config.training_data.type,
+                mode=silo_config.training_data.mode,
+                path=silo_config.training_data.path,
             ),
             raw_testing_data=Input(
-                type=AssetTypes.URI_FILE,
-                mode="mount",
-                path=silo_config.testing_data_path,
+                type=silo_config.testing_data.type,
+                mode=silo_config.testing_data.mode,
+                path=silo_config.testing_data.path,
             ),
         )
+
+        # add a readable name to the step
+        silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
+
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
 
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
-            mode="mount",
+            mode="upload",
             path=custom_fl_data_path(silo_config.datastore, "train_data"),
         )
         silo_pre_processing_step.outputs.processed_test_data = Output(
             type=AssetTypes.URI_FOLDER,
-            mode="mount",
+            mode="upload",
             path=custom_fl_data_path(silo_config.datastore, "test_data"),
         )
 
@@ -229,16 +233,21 @@ def fl_cross_silo_internal_basic():
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
             )
+            # add a readable name to the step
+            silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.compute
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
-                type=AssetTypes.URI_FOLDER,
+                type=AssetTypes.CUSTOM_MODEL,
                 mode="mount",
                 path=custom_fl_data_path(
-                    silo_config.datastore, "silo_model", round=round
+                    # IMPORTANT: writing the output of training into the orchestrator datastore
+                    YAML_CONFIG.federated_learning.orchestrator.datastore,
+                    f"model/silo{silo_index}",
+                    round=round,
                 ),
             )
 
@@ -253,10 +262,12 @@ def fl_cross_silo_internal_basic():
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
+        # add a readable name to the step
+        silo_training_step.name = f"round_{round}_aggregation"
 
         # make sure the data is written in the right datastore
         aggregate_weights_step.outputs.aggregated_output = Output(
-            type=AssetTypes.URI_FOLDER,
+            type=AssetTypes.CUSTOM_MODEL,
             mode="mount",
             path=custom_fl_data_path(
                 YAML_CONFIG.federated_learning.orchestrator.datastore,
