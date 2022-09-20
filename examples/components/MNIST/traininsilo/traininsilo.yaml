@@ -14,6 +14,16 @@ inputs:
   test_data:
     type: uri_folder
     description: the input testing data
+  silo_name:
+    type: string
+    description: Silo name
+    default: Default-name
+    optional: true
+  round:
+    type: integer
+    description: Iteration name
+    default: Default-round
+    optional: true
   checkpoint:
     type: uri_folder
     description: a given pre-existing checkpoint
@@ -42,8 +52,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
-
+  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--silo_name ${{inputs.silo_name}}]] $[[--round ${{inputs.round}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04

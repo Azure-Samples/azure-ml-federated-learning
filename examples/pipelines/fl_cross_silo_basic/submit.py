@@ -228,6 +228,10 @@ def fl_cross_silo_internal_basic():
                 epochs=YAML_CONFIG.training_parameters.epochs,
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                silo_name=silo_config.name,
+                # Round name
+                round=f"Round-{round}",
             )
 
             # make sure the compute corresponds to the silo

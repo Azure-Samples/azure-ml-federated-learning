@@ -21,6 +21,8 @@ class MnistTrainer:
         lr=0.01,
         epochs=1,
         batch_size=64,
+        experiment_name="default-experiment",
+        iteration_name="default-iteration",
     ):
         """MNIST Trainer trains RESNET18 model on the MNIST dataset.
 
@@ -45,6 +47,8 @@ class MnistTrainer:
         self._lr = lr
         self._epochs = epochs
         self._batch_size = batch_size
+        self._experiment_name = experiment_name
+        self._iteration_name = iteration_name
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -93,12 +97,28 @@ class MnistTrainer:
 
         return train_dataset, test_dataset
 
-    def log_params(self):
-        log_param("learning_rate", self._lr)
-        log_param("epochs", self._epochs)
-        log_param("batch_size", self._batch_size)
-        log_param("loss", self.loss_.__class__.__name__)
-        log_param("optimizer", self.optimizer_.__class__.__name__)
+    def log_params(self, client, run_id):
+        client.log_param(
+            run_id=run_id, key=f"learning_rate {self._experiment_name}", value=self._lr
+        )
+        client.log_param(
+            run_id=run_id, key=f"epochs {self._experiment_name}", value=self._epochs
+        )
+        client.log_param(
+            run_id=run_id,
+            key=f"batch_size {self._experiment_name}",
+            value=self._batch_size,
+        )
+        client.log_param(
+            run_id=run_id,
+            key=f"loss {self._experiment_name}",
+            value=self.loss_.__class__.__name__,
+        )
+        client.log_param(
+            run_id=run_id,
+            key=f"optimizer {self._experiment_name}",
+            value=self.optimizer_.__class__.__name__,
+        )
 
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
@@ -111,15 +131,20 @@ class MnistTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
+
+            # get Mlflow client
+            mlflow_client = mlflow.tracking.client.MlflowClient()
+            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
+            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            self.log_params(mlflow_client, root_run_id)
+
             self.model_.train()
             logger.debug("Local training started")
-
-            self.log_params()
 
             for epoch in range(self._epochs):
 
                 running_loss = 0.0
-                num_of_iter_before_logging = 3000
+                num_of_iter_before_logging = 100
 
                 for i, batch in enumerate(self.train_loader_):
 
@@ -139,14 +164,45 @@ class MnistTrainer:
                             f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, "
                             f"Loss: {running_loss/num_of_iter_before_logging}"
                         )
-                        log_metric(
-                            "Train Loss", f"{running_loss/num_of_iter_before_logging}"
+                        mlflow_client.log_metric(
+                            run_id=root_run_id,
+                            key=f"Train Loss, {self._experiment_name}",
+                            value=f"{running_loss/num_of_iter_before_logging}",
                         )
+                        mlflow_client.log_metric(
+                            run_id=root_run_id,
+                            key=f"Train Loss, {self._experiment_name}, {self._iteration_name}",
+                            value=f"{running_loss/num_of_iter_before_logging}",
+                        )
+
                         running_loss = 0.0
 
                 test_loss, test_acc = self.test()
-                log_metric("Test Loss", f"{test_loss}", step=epoch)
-                log_metric("Test Accuracy", f"{test_acc}", step=epoch)
+
+                # Aggregated metric display
+                mlflow_client.log_metric(
+                    run_id=root_run_id,
+                    key=f"Test Loss {self._experiment_name}",
+                    value=f"{test_loss}",
+                )
+                mlflow_client.log_metric(
+                    run_id=root_run_id,
+                    key=f"Test Accuracy {self._experiment_name}",
+                    value=f"{test_acc}",
+                )
+
+                # Display metrics for each round
+                mlflow_client.log_metric(
+                    run_id=root_run_id,
+                    key=f"Test Loss {self._experiment_name}, {self._iteration_name}",
+                    value=f"{test_loss}",
+                )
+                mlflow_client.log_metric(
+                    run_id=root_run_id,
+                    key=f"Test Accuracy {self._experiment_name}, {self._iteration_name}",
+                    value=f"{test_acc}",
+                )
+
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
@@ -204,6 +260,9 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_data", type=str, required=True, help="")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
     parser.add_argument("--model", type=str, required=True, help="")
+    parser.add_argument("--silo_name", type=str, required=False, help="Silo name")
+    parser.add_argument("--round", type=str, required=False, help="Iteration name")
+
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -230,6 +289,8 @@ def run(args):
         model_path=args.model + "/model.pt",
         lr=args.lr,
         epochs=args.epochs,
+        experiment_name=args.silo_name,
+        iteration_name=args.round,
     )
     trainer.execute(args.checkpoint)
 
