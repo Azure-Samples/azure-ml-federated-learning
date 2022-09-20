@@ -38,7 +38,7 @@ param location string = 'eastus'
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = ['westus', 'westus2', 'eastus2']
 
-param computeSKU string = 'Standard_DS3_v2'
+param computeSKU string = 'Standard_DS13_v2'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {
@@ -90,12 +90,15 @@ module siloDeployments './modules/silos/internal_blob_with_uai.bicep' = [for i i
     workspaceName: workspaceName
     region: siloRegions[i]
     siloComputeSKU: computeSKU
-    // permission model
+
+    // reference of the orchestrator to set permissions
     orchestratorUAIPrincipalID: orchestratorDeployment.outputs.orchestratorConfig.uaiPrincipalId
     orchestratorStorageAccountName: orchestratorDeployment.outputs.orchestratorConfig.storage
+
+    // permission model (if you don't specify, default is none)
     siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
-    orchToSiloRoleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
-    siloToOrchRoleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
+    // orchToSiloRoleDefinitionId: storageWriteOnlyRoleDeployment.outputs.roleDefinitionId
+    siloToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
   scope: resourceGroup
   dependsOn: [
