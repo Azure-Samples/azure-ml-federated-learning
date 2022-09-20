@@ -74,25 +74,32 @@ class FederatedLearningPipelineFactory:
         return date + "".join(random.choice(str) for i in range(length))
 
     def anchor_step_in_silo(
-        self, pipeline_step, silo_config, tags={}, description=None
+        self, pipeline_step, compute, output_datastore, model_output_datastore=None, tags={}, description=None
     ):
         """Takes a step and enforces the right compute/datastore config"""
         # make sure the compute corresponds to the silo
-        pipeline_step.compute = silo_config["compute"]
+        pipeline_step.compute = compute
 
         # make sure every output data is written in the right datastore
         for key in pipeline_step.outputs:
-            setattr(
-                pipeline_step.outputs,
-                key,
-                self.custom_fl_data_output(silo_config["datastore"], key),
-            )
+            _output = getattr(pipeline_step.outputs, key)
+            if _output.type == AssetTypes.CUSTOM_MODEL:
+                setattr(
+                    pipeline_step.outputs,
+                    key,
+                    self.custom_fl_data_output(model_output_datastore or output_datastore, key),
+                )
+            else:
+                setattr(
+                    pipeline_step.outputs,
+                    key,
+                    self.custom_fl_data_output(output_datastore, key),
+                )
 
         return pipeline_step
 
     def build_basic_fl_pipeline(
         self,
-        silo_inputs,
         silo_preprocessing,
         silo_training,
         orchestrator_aggregation,
@@ -113,21 +120,9 @@ class FederatedLearningPipelineFactory:
             silo_preprocessed_outputs = {}
 
             for silo_index, silo_config in enumerate(self.silos):
-                # building the inputs as specified by developer
-                preprocessing_inputs = silo_inputs(**silo_config["custom_input_args"])
-
-                # verify the outputs from the developer code
-                assert isinstance(
-                    preprocessing_inputs, dict
-                ), f"your silo_inputs() function should return a dictionary (currently returns a {type(preprocessing_inputs)}"
-                for key in preprocessing_inputs.keys():
-                    assert isinstance(
-                        preprocessing_inputs[key], Input
-                    ), f"silo_inputs() returned dict contains a key {key} that should map to an Input class from Azure ML SDK v2 (current type is {type(preprocessing_inputs[key])})."
-
                 # building the preprocessing as specified by developer
                 preprocessing_step, preprocessing_outputs = silo_preprocessing(
-                    **preprocessing_inputs  # feed kwargs as produced by silo_inputs()
+                    **silo_config["custom_input_args"]  # feed kwargs as given as kwargs
                 )
 
                 # TODO: verify _step is an actual step
@@ -143,7 +138,11 @@ class FederatedLearningPipelineFactory:
 
                 # make sure the compute corresponds to the silo
                 # make sure the data is written in the right datastore
-                self.anchor_step_in_silo(preprocessing_step, silo_config)
+                self.anchor_step_in_silo(
+                    preprocessing_step,
+                    compute=silo_config['compute'],
+                    output_datastore=silo_config['datastore'],
+                )
 
                 # each output is indexed to be fed into training_component as a distinct input
                 silo_preprocessed_outputs[silo_index] = preprocessing_outputs
@@ -183,7 +182,12 @@ class FederatedLearningPipelineFactory:
 
                     # make sure the compute corresponds to the silo
                     # make sure the data is written in the right datastore
-                    self.anchor_step_in_silo(training_step, silo_config)
+                    self.anchor_step_in_silo(
+                        training_step,
+                        compute=silo_config['compute'],
+                        output_datastore=silo_config['datastore'],
+                        model_output_datastore=self.orchestrator['datastore']
+                    )
 
                     # each output is indexed to be fed into aggregate_component as a distinct input
                     silo_training_outputs.append(training_outputs)
@@ -239,7 +243,12 @@ class FederatedLearningPipelineFactory:
                     ), f"orchestrator_aggregation() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(aggregation_outputs[key])})."
 
                 # this is done in the orchestrator compute/datastore
-                self.anchor_step_in_silo(aggregation_step, self.orchestrator)
+                self.anchor_step_in_silo(
+                    aggregation_step,
+                    compute=self.orchestrator['compute'],
+                    output_datastore=self.orchestrator['datastore'],
+                    model_output_datastore=self.orchestrator['datastore']
+                )
 
                 # let's keep track of the running outputs (dict) to be used as input for next round
                 running_outputs = aggregation_outputs
@@ -254,7 +263,8 @@ class FederatedLearningPipelineFactory:
 
     OPERATION_READ = "READ"
     OPERATION_WRITE = "WRITE"
-    DATASTORE_UNKNOWN = "UNKNOWN"
+    DATASTORE_UNKNOWN = "UNKNOWN_DATASTORE"
+    DATATYPE_UNKNOWN = "UNKNOWN_DATATYPE"
 
     def set_default_affinity_map(self):
         """Build a map of affinities between computes and datastores for soft validation."""
@@ -293,13 +303,15 @@ class FederatedLearningPipelineFactory:
                 self.orchestrator["datastore"],
                 self.OPERATION_READ,
                 True,
-            )  # OK to get data in
+                data_type=AssetTypes.CUSTOM_MODEL,
+            )  # OK to get a model our of the orchestrator
             self.set_affinity(
                 silo["compute"],
                 self.orchestrator["datastore"],
                 self.OPERATION_WRITE,
                 True,
-            )  # OK to exfiltrate from the silo using the silo compute?
+                data_type=AssetTypes.CUSTOM_MODEL,
+            )  # OK to write a model into the orchestrator
 
             self.set_affinity(
                 self.orchestrator["compute"],
@@ -317,7 +329,7 @@ class FederatedLearningPipelineFactory:
         return self.affinity_map
 
     def set_affinity(
-        self, compute: str, datastore: str, operation: str, affinity: bool
+        self, compute: str, datastore: str, operation: str, affinity: bool, data_type=None
     ) -> None:
         """Set the affinity of a given compute and datastore for this operation."""
         if operation not in [self.OPERATION_READ, self.OPERATION_WRITE]:
@@ -325,17 +337,24 @@ class FederatedLearningPipelineFactory:
                 f"set_affinity() for operation {affinity} is not allowed, only READ and WRITE."
             )
 
-        affinity_key = (compute, datastore, operation)
+        affinity_key = (compute, datastore, operation, data_type or self.DATATYPE_UNKNOWN)
         self.affinity_map[affinity_key] = affinity
 
-    def check_affinity(self, compute: str, datastore: str, operation: str) -> bool:
+    def check_affinity(self, compute: str, datastore: str, operation: str, data_type=None) -> bool:
         """Verify the affinity of a given compute and datastore for this operation."""
-        affinity_key = (compute, datastore, operation)
+        # check the specific affinity as provided
+        affinity_key = (compute, datastore, operation, data_type or self.DATATYPE_UNKNOWN)
 
-        if affinity_key not in self.affinity_map:
-            return False
-        else:
+        if affinity_key in self.affinity_map:
             return self.affinity_map[affinity_key]
+
+        # if we don't have a specific affinity, let's check if we have a generic one
+        affinity_key = (compute, datastore, operation, self.DATATYPE_UNKNOWN)
+
+        if affinity_key in self.affinity_map:
+            return self.affinity_map[affinity_key]
+
+        return False
 
     def soft_validate(self, pipeline_job, raise_exception=True):
         """Runs a soft validation to verify computes and datastores have affinity.
@@ -403,9 +422,9 @@ class FederatedLearningPipelineFactory:
                     datastore = self.DATASTORE_UNKNOWN
 
                 # verify affinity and log errors
-                if not self.check_affinity(compute, datastore, self.OPERATION_READ):
+                if not self.check_affinity(compute, datastore, self.OPERATION_READ, job.inputs[input_key].type):
                     soft_validation_report.append(
-                        f"In job {job_key}, input={input_key} is located on datastore={datastore} which should not have READ access by compute={compute}"
+                        f"In job {job_key}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={compute}"
                     )
 
             # loop on all the outputs
@@ -426,9 +445,9 @@ class FederatedLearningPipelineFactory:
                     continue
 
                 # verify affinity and log errors
-                if not self.check_affinity(compute, datastore, self.OPERATION_WRITE):
+                if not self.check_affinity(compute, datastore, self.OPERATION_WRITE, job.outputs[output_key].type):
                     soft_validation_report.append(
-                        f"In job {job_key}, output={output_key} is located on datastore={datastore} which is should have WRITE access by compute={compute}"
+                        f"In job {job_key}, output={output_key} of type={job.inputs[output_key].type} is located on datastore={datastore} which should not have WRITE access by compute={compute}"
                     )
 
         # when looping through all jobs is done

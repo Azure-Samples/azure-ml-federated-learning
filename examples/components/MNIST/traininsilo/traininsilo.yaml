@@ -15,7 +15,7 @@ inputs:
     type: uri_folder
     description: the input testing data
   checkpoint:
-    type: uri_folder
+    type: custom_model
     description: a given pre-existing checkpoint
     optional: true
   lr:
@@ -36,7 +36,7 @@ inputs:
 
 outputs:
   model:
-    type: uri_folder
+    type: custom_model
     description: the output checkpoint
 
 code: .

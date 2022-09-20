@@ -130,37 +130,12 @@ aggregate_component = load_component(
 # pieces of your pipeline based on input and output keys.
 
 
-def silo_inputs(training_data_path: str, testing_data_path: str) -> Dict[str, Input]:
-    """Create AzureML SDK v2 objects for the inputs required for preprocessing.
-
-    Args:
-        training_data_path (str): url to the training data (ex: azureml://)
-        testing_data_path (str): url to the testing data (ex: azureml://)
-
-    Returns:
-        Dict[str, Input]: a map of the inputs expected as kwargs by silo_preprocessing()
-    """
-    return {
-        # IMPORTANT: use a key that is consistent with kwargs of silo_preprocessing()
-        "raw_train_data": Input(
-            type=AssetTypes.URI_FILE,
-            mode="mount",
-            path=training_data_path,
-        ),
-        "raw_test_data": Input(
-            type=AssetTypes.URI_FILE,
-            mode="mount",
-            path=testing_data_path,
-        ),
-    }
-
-
 def silo_preprocessing(raw_train_data: Input, raw_test_data: Input) -> Dict[str, Input]:
     """Create steps for running FL preprocessing in the silo.
 
     Args:
-        raw_train_data (Input): preprocessed data (see silo_inputs())
-        raw_test_data (Input): preprocessed data (see silo_inputs())
+        raw_train_data (Input): preprocessed data (see FederatedLearningPipelineFactory.add_silo())
+        raw_test_data (Input): preprocessed data (see FederatedLearningPipelineFactory.add_silo())
 
     Returns:
         PipelineStep: the preprocessing step of the FL pipeline
@@ -190,8 +165,8 @@ def silo_training(
     """Create steps for running FL training in the silo.
 
     Args:
-        train_data (Input): preprocessed data (see silo_inputs())
-        test_data (Input): preprocessed data (see silo_inputs())
+        train_data (Input): preprocessed data (see outputs of silo_preprocessing())
+        test_data (Input): preprocessed data (see outputs of silo_preprocessing())
         running_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
         lr (int): learning rate for training component
         batch_size (int): batch size for training component
@@ -227,8 +202,8 @@ def orchestrator_aggregation(weights=[]):
     """Create steps for running FL training in the silo.
 
     Args:
-        train_data (Input): preprocessed data (see silo_inputs())
-        test_data (Input): preprocessed data (see silo_inputs())
+        train_data (Input): preprocessed data (see silo_training())
+        test_data (Input): preprocessed data (see silo_training())
         running_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
         lr (int): learning rate for training component
         batch_size (int): batch size for training component
@@ -278,16 +253,23 @@ for silo_config in YAML_CONFIG.federated_learning.silos:
         # provide settings for this silo
         silo_config.compute,
         silo_config.datastore,
-        # any additional custom kwarg will be sent to silo_inputs() as is
-        training_data_path=silo_config.training_data_path,
-        testing_data_path=silo_config.testing_data_path,
+        # any additional custom kwarg will be sent to silo_preprocessing() as is
+        raw_train_data=Input(
+            type=silo_config.training_data.type,
+            mode=silo_config.training_data.mode,
+            path=silo_config.training_data.path,
+        ),
+        raw_test_data=Input(
+            type=silo_config.testing_data.type,
+            mode=silo_config.testing_data.mode,
+            path=silo_config.testing_data.path,
+        )
     )
 
 # 3. use a pipeline factory method
 
 pipeline_job = builder.build_basic_fl_pipeline(
-    # building requires all 4 functions provided as argument below
-    silo_inputs,
+    # building requires all 3 functions provided as argument below
     silo_preprocessing,
     silo_training,
     orchestrator_aggregation,
