@@ -245,7 +245,9 @@ def fl_cross_silo_internal_basic():
                 mode="mount",
                 path=custom_fl_data_path(
                     # IMPORTANT: writing the output of training into the orchestrator datastore
-                    YAML_CONFIG.federated_learning.orchestrator.datastore, f"model/silo{silo_index}", round=round
+                    YAML_CONFIG.federated_learning.orchestrator.datastore,
+                    f"model/silo{silo_index}",
+                    round=round,
                 ),
             )
 
