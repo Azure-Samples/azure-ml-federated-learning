@@ -123,12 +123,12 @@ class MnistTrainer:
     def log_metrics(self, client, run_id, key, value):
         client.log_metric(
             run_id=run_id,
-            key=key + f", {self._experiment_name}",
+            key=f"{self._experiment_name}/{key}",
             value=value,
         )
         client.log_metric(
             run_id=run_id,
-            key=key + f", {self._experiment_name}, {self._iteration_name}",
+            key=f"{self._iteration_name}/{self._experiment_name}/{key}",
             value=value,
         )
 
@@ -251,7 +251,9 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_data", type=str, required=True, help="")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
     parser.add_argument("--model", type=str, required=True, help="")
-    parser.add_argument("--silo_name", type=str, required=False, help="Silo name")
+    parser.add_argument(
+        "--metrics_prefix", type=str, required=False, help="Metrics prefix"
+    )
     parser.add_argument("--round", type=str, required=False, help="Iteration name")
 
     parser.add_argument(
@@ -280,7 +282,7 @@ def run(args):
         model_path=args.model + "/model.pt",
         lr=args.lr,
         epochs=args.epochs,
-        experiment_name=args.silo_name,
+        experiment_name=args.metrics_prefix,
         iteration_name=args.round,
     )
     trainer.execute(args.checkpoint)

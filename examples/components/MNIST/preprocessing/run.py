@@ -32,6 +32,9 @@ def get_arg_parser(parser=None):
     parser.add_argument("--raw_testing_data", type=str, required=True, help="")
     parser.add_argument("--train_output", type=str, required=True, help="")
     parser.add_argument("--test_output", type=str, required=True, help="")
+    parser.add_argument(
+        "--metrics_prefix", type=str, required=False, help="Metrics prefix"
+    )
     return parser
 
 
@@ -64,7 +67,11 @@ class MnistDataset(Dataset):
 
 
 def preprocess_data(
-    raw_training_data, raw_testing_data, train_data_dir="./", test_data_dir="./"
+    raw_training_data,
+    raw_testing_data,
+    train_data_dir="./",
+    test_data_dir="./",
+    metrics_prefix="default-prefix",
 ):
     """Preprocess the raw_training_data and raw_testing_data and save the processed data to train_data_dir and test_data_dir.
 
@@ -119,7 +126,7 @@ def preprocess_data(
     datasets = {"train": train_dataset, "test": test_dataset}
 
     # Mlflow logging
-    log_metdata(X_train, X_test)
+    log_metadata(X_train, X_test, metrics_prefix)
 
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
@@ -128,7 +135,7 @@ def preprocess_data(
             save_image(data, processed_data_dir + f"/{target}/{idx}.jpg")
 
 
-def log_metdata(X_train, X_test):
+def log_metadata(X_train, X_test, metrics_prefix):
     with mlflow.start_run() as mlflow_run:
         # get Mlflow client
         mlflow_client = mlflow.tracking.client.MlflowClient()
@@ -136,13 +143,13 @@ def log_metdata(X_train, X_test):
         root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
         mlflow_client.log_metric(
             run_id=root_run_id,
-            key=f"Number of train datapoints",
+            key=f"{metrics_prefix}/Number of train datapoints",
             value=f"{X_train.size(dim=0)}",
         )
 
         mlflow_client.log_metric(
             run_id=root_run_id,
-            key=f"Number of test datapoints",
+            key=f"{metrics_prefix}/Number of test datapoints",
             value=f"{X_test.size(dim=0)}",
         )
 
@@ -159,6 +166,7 @@ def run(args):
         args.raw_testing_data,
         args.train_output,
         args.test_output,
+        args.metrics_prefix,
     )
 
 
