@@ -20,7 +20,7 @@ inputs:
     default: Default-name
     optional: true
   round:
-    type: integer
+    type: string
     description: Iteration name
     default: Default-round
     optional: true

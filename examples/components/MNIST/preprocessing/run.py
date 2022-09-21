@@ -8,6 +8,7 @@ from torchvision.utils import save_image
 from torch.utils.data import Dataset
 import torch
 import pandas as pd
+import mlflow
 
 
 def get_arg_parser(parser=None):
@@ -117,11 +118,33 @@ def preprocess_data(
     test_dataset = MnistDataset(X_test.float(), y_test, transform=transform)
     datasets = {"train": train_dataset, "test": test_dataset}
 
+    #Mlflow logging
+    log_metdata(X_train, X_test)
+
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
         for idx, (data, target) in enumerate(datasets[x]):
             os.makedirs(processed_data_dir + f"/{target}", exist_ok=True)
             save_image(data, processed_data_dir + f"/{target}/{idx}.jpg")
+
+
+def log_metdata(X_train, X_test):
+    with mlflow.start_run() as mlflow_run:
+        # get Mlflow client
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
+        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+        mlflow_client.log_metric(
+            run_id=root_run_id,
+            key=f"Number of train datapoints",
+            value=f"{X_train.size(dim=0)}",
+        )
+
+        mlflow_client.log_metric(
+            run_id=root_run_id,
+            key=f"Number of test datapoints",
+            value=f"{X_test.size(dim=0)}",
+        )
 
 
 def run(args):

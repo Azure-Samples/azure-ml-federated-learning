@@ -120,6 +120,18 @@ class MnistTrainer:
             value=self.optimizer_.__class__.__name__,
         )
 
+    def log_metrics(self, client, run_id, key, value):
+        client.log_metric(
+            run_id=run_id,
+            key=key + f", {self._experiment_name}",
+            value=value,
+        )
+        client.log_metric(
+            run_id=run_id,
+            key=key + f", {self._experiment_name}, {self._iteration_name}",
+            value=value,
+        )
+
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
 
@@ -132,10 +144,12 @@ class MnistTrainer:
 
         with mlflow.start_run() as mlflow_run:
 
-            # get Mlflow client
+            # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
             logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
             root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            
+            #log params
             self.log_params(mlflow_client, root_run_id)
 
             self.model_.train()
@@ -160,48 +174,20 @@ class MnistTrainer:
 
                     running_loss += cost.cpu().detach().numpy() / images.size()[0]
                     if i != 0 and i % num_of_iter_before_logging == 0:
-                        print(
-                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, "
-                            f"Loss: {running_loss/num_of_iter_before_logging}"
+                        logger.info(
+                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {running_loss/num_of_iter_before_logging}"
                         )
-                        mlflow_client.log_metric(
-                            run_id=root_run_id,
-                            key=f"Train Loss, {self._experiment_name}",
-                            value=f"{running_loss/num_of_iter_before_logging}",
-                        )
-                        mlflow_client.log_metric(
-                            run_id=root_run_id,
-                            key=f"Train Loss, {self._experiment_name}, {self._iteration_name}",
-                            value=f"{running_loss/num_of_iter_before_logging}",
-                        )
+                        
+                        # log train loss
+                        self.log_metrics(root_run_id, "Train Loss", running_loss/num_of_iter_before_logging)
 
                         running_loss = 0.0
 
                 test_loss, test_acc = self.test()
 
-                # Aggregated metric display
-                mlflow_client.log_metric(
-                    run_id=root_run_id,
-                    key=f"Test Loss {self._experiment_name}",
-                    value=f"{test_loss}",
-                )
-                mlflow_client.log_metric(
-                    run_id=root_run_id,
-                    key=f"Test Accuracy {self._experiment_name}",
-                    value=f"{test_acc}",
-                )
-
-                # Display metrics for each round
-                mlflow_client.log_metric(
-                    run_id=root_run_id,
-                    key=f"Test Loss {self._experiment_name}, {self._iteration_name}",
-                    value=f"{test_loss}",
-                )
-                mlflow_client.log_metric(
-                    run_id=root_run_id,
-                    key=f"Test Accuracy {self._experiment_name}, {self._iteration_name}",
-                    value=f"{test_acc}",
-                )
+                # log test metrics
+                self.log_metrics(root_run_id, "Test Loss", test_loss)
+                self.log_metrics(root_run_id, "Test Accuracy", test_acc)
 
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
