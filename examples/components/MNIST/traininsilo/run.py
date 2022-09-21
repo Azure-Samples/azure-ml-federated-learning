@@ -148,8 +148,8 @@ class MnistTrainer:
             mlflow_client = mlflow.tracking.client.MlflowClient()
             logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
             root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-            
-            #log params
+
+            # log params
             self.log_params(mlflow_client, root_run_id)
 
             self.model_.train()
@@ -177,9 +177,13 @@ class MnistTrainer:
                         logger.info(
                             f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {running_loss/num_of_iter_before_logging}"
                         )
-                        
+
                         # log train loss
-                        self.log_metrics(root_run_id, "Train Loss", running_loss/num_of_iter_before_logging)
+                        self.log_metrics(
+                            root_run_id,
+                            "Train Loss",
+                            running_loss / num_of_iter_before_logging,
+                        )
 
                         running_loss = 0.0
 

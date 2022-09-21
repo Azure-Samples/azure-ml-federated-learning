@@ -118,7 +118,7 @@ def preprocess_data(
     test_dataset = MnistDataset(X_test.float(), y_test, transform=transform)
     datasets = {"train": train_dataset, "test": test_dataset}
 
-    #Mlflow logging
+    # Mlflow logging
     log_metdata(X_train, X_test)
 
     for x in ["train", "test"]:
