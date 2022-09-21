@@ -180,6 +180,7 @@ class MnistTrainer:
 
                         # log train loss
                         self.log_metrics(
+                            mlflow_client,
                             root_run_id,
                             "Train Loss",
                             running_loss / num_of_iter_before_logging,
@@ -190,8 +191,8 @@ class MnistTrainer:
                 test_loss, test_acc = self.test()
 
                 # log test metrics
-                self.log_metrics(root_run_id, "Test Loss", test_loss)
-                self.log_metrics(root_run_id, "Test Accuracy", test_acc)
+                self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
+                self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc)
 
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
