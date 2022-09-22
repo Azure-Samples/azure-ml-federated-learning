@@ -19,6 +19,10 @@ To enjoy this quickstart, you will need:
 
 In this section, we will use a [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) script to automatically provision a minimal set of resources for an FL sandbox demo.
 
+This will help you provision a Federated Learning setup with [_internal silos_](./glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
+
+For this iteration, we are only provisioning a _vanilla_ setup, _i.e._ a setup with no security or governance features, where the silos are NOT locked down. We will add these features in future iterations. In the mean time, you should NOT be uploading sensitive data to this setup. However, you CAN use this setup for refining your training pipelines and algorithms. The only elements that will need to change when working on a _real_ secure setup will just be the orchestrator and silos names in a config file - you will be able to re-use all your code as-is.
+
 We will provision:
 - 1 Azure ML workspace
 - 1 CPU cluster and 1 blob storage account for the [orchestrator](./glossary.md)
@@ -47,7 +51,7 @@ In this section, we'll use a sample python script to submit a federated learning
 1. Install the python dependencies
     
     ```bash
-    python -m pip install -r ./examples/pipelines/fl_cross_silo_basic/requirements.txt
+    python -m pip install -r ./examples/pipelines/fl_cross_silo_native/requirements.txt
     ```
 
 2. To connect to your newly created Azure ML workspace, we'll need to create a `config.json` file at the root of this repo. Follow the instructions on how to get this from the [Azure ML documentation](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace).
@@ -65,7 +69,7 @@ In this section, we'll use a sample python script to submit a federated learning
 3. Run a sample python script:
 
     ```bash
-    python ./examples/pipelines/fl_cross_silo_basic/submit.py --example MNIST --submit
+    python ./examples/pipelines/fl_cross_silo_native/submit.py --example MNIST --submit
     ```
 
 The script will submit the experiment to Azure ML. **It should open a direct link to the experiment** in the Azure ML UI.

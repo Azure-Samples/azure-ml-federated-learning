@@ -5,10 +5,17 @@
 
 ## Table of contents
 
+- [Motivation](#motivation)
 - [Getting Started](#getting-started)
 - [Why Federated Learning?](#why-should-you-consider-federated-learning)
 - [What this repo as to offer?](#what-this-repo-as-to-offer)
 - [Glossary](#glossary)
+
+### Motivation
+
+Due to privacy regulations and limitations created due to trust boundaries, not all data used for training Machine Learning (ML) models can be gathered in a central location to train a model on all available data (_e.g._, some highly sensitive user data located in the DataProvider embassies). This constraint makes it hard to leverage the data for training models in classic training techniques. 
+
+An ML technique called Federated Learning (FL) does just that: train the various models locally on the data available in the clients (_a.k.a._ the silos, and in our case _embassies_), then combine the different models on a central server (_a.k.a._ the _orchestrator_) without data ever leaving the embassy. 
 
 ### Getting Started
 
@@ -26,6 +33,8 @@ When the computes and data are in the cloud, we say they live in silos, and cros
 
 <br/><br/>
 <img src="./pics/fl_fig.png" alt="Federated Learning Solution Figure" width="300">
+
+One example of a hospital (i.e., the customer) is described below. The hospital’s task is to classify a medical image into positive or negative of a specific disease. The data scientists at the hospital _already_ have a neural network model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance as more hospitals would like to participate in a federated learning way without their data leaving their clusters. 
 
 ### What this repo as to offer?
 
