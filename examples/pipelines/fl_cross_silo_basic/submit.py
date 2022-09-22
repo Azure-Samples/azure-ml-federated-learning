@@ -177,6 +177,7 @@ def fl_cross_silo_internal_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
+            metrics_prefix=silo_config.compute,
         )
 
         # add a readable name to the step
@@ -233,6 +234,10 @@ def fl_cross_silo_internal_basic():
                 epochs=YAML_CONFIG.training_parameters.epochs,
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                # Round name
+                round=f"Round-{round}",
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
