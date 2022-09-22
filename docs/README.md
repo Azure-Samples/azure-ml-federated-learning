@@ -25,7 +25,7 @@ The basic idea of FL is to train a model by aggregating the results of N isolate
 When the computes and data are in the cloud, we say they live in silos, and cross-silo federated learning consists in orchestrating the training and aggregation jobs against the cloud provider. The following figure illustrates how a federated learning solution looks like.
 
 <br/><br/>
-<img src="./pics/fl-fig.png" alt="Federated Learning Solution Figure" width="300">
+<img src="./pics/fl_fig.png" alt="Federated Learning Solution Figure" width="300">
 
 ### What this repo as to offer?
 
