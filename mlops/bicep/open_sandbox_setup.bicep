@@ -1,5 +1,8 @@
-// This BICEP script will fully provision a functional federated learning demo
-// based on simple internal silos secured with UAI.
+// This BICEP script will fully provision a functional federated learning sandbox
+// based on simple internal silos secured with only UAI.
+
+// IMPORTANT: This setup is intended only for demo purpose. The data is still accessible
+// by the users when opening the storage accounts, and data exfiltration is easy.
 
 // For a given set of regions, it will provision:
 // - an AzureML workspace and compute cluster for orchestration
