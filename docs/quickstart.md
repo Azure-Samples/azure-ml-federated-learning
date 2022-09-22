@@ -4,7 +4,7 @@ In this tutorial, you will:
 * Provision a fully functional environment in your own Azure subscription
 * Run a sample federated learning pipeline in Azure ML
 
-:warning: **IMPORTANT** :warning: This setup is intended only for demo purpose.
+:warning: **IMPORTANT** :warning: This setup is intended only for demo purposes.
 The data is still accessible by the a user of your subscription when opening the storage accounts,
 and data exfiltration is easy.
 
@@ -12,18 +12,18 @@ and data exfiltration is easy.
 
 To enjoy this quickstart, you will need:
 - [ ] to have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purpose,
-- [ ] to have permissions to create resources, set permissions and create identities in this subscription,
+- [ ] to have permissions to create resources, set permissions, and create identities in this subscription,
 - [ ] to [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
 ## Deploy demo resources in Azure
 
-In this section, we will use a [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) script to automatically provision a minimal set of resources for a FL sandbox demo.
+In this section, we will use a [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) script to automatically provision a minimal set of resources for an FL sandbox demo.
 
 We will provision:
 - 1 Azure ML workspace
 - 1 CPU cluster and 1 blob storage account for the [orchestrator](./glossary.md)
 - 3 [internal silos](./glossary.md) in 3 different regions (`eastus2`, `westus`, `westus2`) with their respective compute cluster and storage account
-- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict permission access to the silos storage accounts.
+- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict permission access to the silo's storage accounts.
 
 1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
 
@@ -70,7 +70,7 @@ In this section, we'll use a sample python script to submit a federated learning
 
 The script will submit the experiment to Azure ML. **It should open a direct link to the experiment** in the Azure ML UI.
 
-If not, the script will print the url to use in clear:
+If not, the script will print the URL to use in clear:
 
 ```log
 Submitting the pipeline job to your AzureML workspace...

@@ -1,17 +1,31 @@
 # Glossary
 
 
-__Data__. Any file or collection of files. Data will be described in terms of classification. 
+__Data__ 
+<br> 
 
+Any file or collection of files. Data will be described in terms of classification. 
 Only three classifications are required for the context of this document. "Sensitive" (cannot be moved or even looked at), "intermediate" (can be moved around, but looser restrictions on visibility), and "eyes-on" (can be moved freely and seen by everyone participating in the federated training). 
 
-__Storage__. Wherever data is stored. In this file, storage is assumed to live in Azure. It may exist in locked-down virtual networks. 
+__Storage__ 
+<br>
 
-__Compute__. Anything that can run "code" (deliberately vague). In this file, compute is assumed to live in Azure. 
+Wherever data is stored. In this file, storage is assumed to live in Azure. It may exist in locked-down virtual networks. 
 
-__Job__. Execute code (a collection of files) in an environment (a Docker image) against data (from storage). A job can consume data from multiple storage instances and write back to multiple instances. 
+__Compute__ 
+<br> 
 
-__Approval__. REST endpoint to which the platform "asks permission" before running any job. The platform sends the approval endpoint information including: 
+Anything that can run "code" (deliberately vague). In this file, compute is assumed to live in Azure. 
+
+__Job__ 
+<br> 
+
+Execute code (a collection of files) in an environment (a Docker image) against data (from storage). A job can consume data from multiple storage instances and write back to multiple instances. 
+
+__Approval__ 
+<br>
+
+REST endpoint to which the platform "asks permission" before running any job. The platform sends the approval endpoint information including: 
 
 1. Input and output storage 
 2. Which compute the job wishes to run in 
@@ -22,7 +36,10 @@ The approval endpoint can either approve / reject the job based on checked-in co
 
 :exclamation: Note that the approval endpoints do not support 3P-facing AML yet. 
 
-__Silo__. Isolated collection of storage and compute. Here, "isolated" means that the platform guarantees: 
+__Silo__ 
+<br> 
+
+Isolated collection of storage and compute. Here, "isolated" means that the platform guarantees: 
 
 - Only compute within the silo can "touch" storage within the silo. 
 - Only data of intermediate or eyes-on classification can be moved outside the silo. 
@@ -32,8 +49,17 @@ Silos are expected to be reliable (i.e., no concerns around network connectivity
 
 :exclamation:  Note that we assume a hard cap of ≤ 100 silos at current stage. 
 
-__Orchestrator__. Collection of storage and compute. The storage is for model parameters, rather than the actual data. A task orchestrator broadcasts the FL task, sends the current model to each silo, and aggregates the gradients from the silos. In this file, orchestrator is assumed to live in an AML workspace. 
+__Orchestrator__ 
+<br> 
 
-__Internal Silos__ Collection of silos belong to the same Azure tenant.
+Collection of storage and compute. The storage is for model parameters, rather than the actual data. A task orchestrator broadcasts the FL task, sends the current model to each silo, and aggregates the gradients from the silos. In this file, orchestrator is assumed to live in an AML workspace. 
 
-__External Silos__ Collection of silos that resides in either different Azure tenant or different cloud provider.
+__Internal Silos__ 
+<br>
+
+Collection of silos belong to the same Azure tenant.
+
+__External Silos__ 
+<br>
+
+Collection of silos that resides in either different Azure tenant or different cloud provider.
