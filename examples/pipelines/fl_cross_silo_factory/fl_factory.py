@@ -1,4 +1,12 @@
-"""Factory to build a basic FL pipeline."""
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
+"""
+This script provides a class to help building Federated Learning pipelines in AzureML.
+
+We invite you to NOT MODIFY THIS SCRIPT unless you know what you are doing, and you
+are trying to achieve a particular edge case scenario.
+"""
 import os
 import argparse
 import random
@@ -23,6 +31,7 @@ from azure.ai.ml._ml_exceptions import ValidationException
 
 class FederatedLearningPipelineFactory:
     def __init__(self):
+        """Constructor"""
         self.silos = []
         self.orchestrator = {}
         self.unique_identifier = self.getUniqueIdentifier()
@@ -31,9 +40,22 @@ class FederatedLearningPipelineFactory:
         self.affinity_map = {}
 
     def set_orchestrator(self, compute: str, datastore: str):
+        """Set the internal configuration of the orchestrator.
+
+        Args:
+            compute (str): name of the compute target
+            datastore (str): name of the datastore
+        """
         self.orchestrator = {"compute": compute, "datastore": datastore}
 
     def add_silo(self, compute: str, datastore: str, **custom_input_args):
+        """Add a silo to the internal configuration of the builder.
+
+        Args:
+            compute (str): name of the compute target
+            datastore (str): name of the datastore
+            **custom_input_args: any of those will be passed to the preprocessing step as-is
+        """
         self.silos.append(
             {
                 "compute": compute,
@@ -45,7 +67,7 @@ class FederatedLearningPipelineFactory:
     def custom_fl_data_output(
         self, datastore_name, output_name, unique_id="${{name}}", round=None
     ):
-        """Produces a path to store the data during FL training.
+        """Returns an Output pointing to a path to store the data during FL training.
 
         Args:
             datastore_name (str): name of the Azure ML datastore
@@ -63,11 +85,10 @@ class FederatedLearningPipelineFactory:
         return Output(type=AssetTypes.URI_FOLDER, mode="mount", path=data_path)
 
     def getUniqueIdentifier(self, length=8):
-        """Generates a random string and concatenates it with today's date
+        """Generate a random string and concatenates it with today's date
 
         Args:
             length (int): length of the random string (default: 8)
-
         """
         str = string.ascii_lowercase
         date = datetime.date.today().strftime("%Y_%m_%d_")
@@ -82,7 +103,19 @@ class FederatedLearningPipelineFactory:
         tags={},
         description=None,
     ):
-        """Takes a step and enforces the right compute/datastore config"""
+        """Take a step and enforces the right compute/datastore config.
+
+        Args:
+            pipeline_step (PipelineStep): a step to anchor
+            compute (str): name of the compute target
+            output_datastore (str): name of the datastore for the outputs of this step
+            model_output_datastore (str): name of the datastore for the model/weights outputs of this step
+            tags (dict): tags to add to the step in AzureML UI
+            description (str): description of the step in AzureML UI
+
+        Returns:
+            pipeline_step (PipelineStep): the anchored step
+        """
         # make sure the compute corresponds to the silo
         pipeline_step.compute = compute
 
@@ -114,6 +147,16 @@ class FederatedLearningPipelineFactory:
         iterations=1,
         **training_kwargs,
     ):
+        """Build a typical FL pipeline based on the provided steps.
+
+        Args:
+            silo_preprocessing (func): preprocessing step to run in each silo
+            silo_training (func): training step to run in each silo
+            orchestrator_aggregation (func): aggregation step to run in the orchestrator
+            iterations (int): number of iterations to run (default: 1)
+            **training_kwargs: any of those will be passed to the training step as-is
+        """
+
         @pipeline(
             description=f'FL cross-silo basic pipeline and the unique identifier is "{self.unique_identifier}" that can help you to track files in the storage account.',
         )

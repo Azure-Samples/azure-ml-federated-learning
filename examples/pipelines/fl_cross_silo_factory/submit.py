@@ -1,3 +1,6 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
+
 """Federated Learning Cross-Silo pipeline built by a factory class.
 
 This scripts wraps up the FL pipeline orchestration code in a "factory" class.
@@ -10,6 +13,15 @@ A) reads a config file in yaml specifying the number of silos and their paramete
 B) reads the components from a given folder,
 C) allow developers to write FL pipeline steps as pythonic functions,
 D) call the factory class to build the full FL pipeline based on custom user code.
+
+
+To adapt this script to your scenario, you can:
+- modify the config file to change the number of silos
+  and their parameters (see section A and config.yaml file),
+- modify the components directly in the components folder (see section B),
+- modify the silo_preprocessing()m silo_training() and orchestrator_aggregation() functions
+  to change the steps behaviors (see section C and D.2 D.3),
+- modify the affinity map according to a custom permission model (see section D.4).
 """
 import os
 import argparse
