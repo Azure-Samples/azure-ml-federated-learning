@@ -1,29 +1,34 @@
 # Run a Federated Learning Demo in 5 mins
 
-In this tutorial, you run your first Python script in the cloud with Azure Machine Learning. This tutorial is *part 1 of a three-part tutorial series*.
-
-This tutorial avoids the complexity of training a machine learning model. You will run a "Hello World" Python script in the cloud. You will learn how a control script is used to configure and create a run in Azure Machine Learning.
-
 In this tutorial, you will:
 * Provision a fully functional environment in your own Azure subscription
 * Run a sample federated learning pipeline in Azure ML
+
+:warning: **IMPORTANT** :warning: This setup is intended only for demo purposes.
+The data is still accessible by the a user of your subscription when opening the storage accounts,
+and data exfiltration is easy.
 
 ## Prerequisites
 
 To enjoy this quickstart, you will need:
 - [ ] to have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purpose,
-- [ ] to have permissions to create resources, set permissions and create identities in this subscription,
+- [ ] to have permissions to create resources, set permissions, and create identities in this subscription,
 - [ ] to [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
 ## Deploy demo resources in Azure
 
-In this section, we will use a [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) script to automatically provision a minimal set of resources for a FL sandbox demo.
+In this section, we will use a [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) script to automatically provision a minimal set of resources for an FL sandbox demo.
+
+This will help you provision a Federated Learning setup with [_internal silos_](./glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
+
+For this iteration, we are only provisioning a _vanilla_ setup, _i.e._ a setup with no security or governance features, where the silos are NOT locked down. We will add these features in future iterations. In the mean time, you should NOT be uploading sensitive data to this setup. However, you CAN use this setup for refining your training pipelines and algorithms. The only elements that will need to change when working on a _real_ secure setup will just be the orchestrator and silos names in a config file - you will be able to re-use all your code as-is.
 
 We will provision:
 - 1 Azure ML workspace
-- 1 CPU cluster and 1 blob storage account for the [orchestrator](concepts.md)
-- 3 [internal silos](concepts.md) in 3 different regions (`eastus2`, `westus`, `westus2`) with their respective compute cluster and storage account
-- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict permission access to the silos storage accounts.
+- 1 CPU cluster and 1 blob storage account for the [orchestrator](./glossary.md)
+- 3 [internal silos](./glossary.md) in 3 different regions (`eastus2`, `westus`, `westus2`) with their respective compute cluster and storage account
+- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict permission access to the silo's storage accounts.
+- 1 custom RBAC role at the subscription level to configure permissions between compute and storage via UAI.
 
 1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
 
@@ -35,7 +40,11 @@ We will provision:
 2. Run the bicep deployment script:
 
     ```bash
-    az deployment sub create --template-file ./mlops/bicep/vanilla_demo_setup.bicep --location eastus --parameters demoBaseName="fldemo"
+    # create a resource group for the resources
+    az group create --name <resource group name> --location <region>
+
+    # deploy the demo resources in your resource group
+    az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
     ```
 
     > NOTE: if someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
@@ -47,7 +56,7 @@ In this section, we'll use a sample python script to submit a federated learning
 1. Install the python dependencies
     
     ```bash
-    python -m pip install -r ./examples/pipelines/fl_cross_silo_basic/requirements.txt
+    python -m pip install -r ./examples/pipelines/fl_cross_silo_native/requirements.txt
     ```
 
 2. To connect to your newly created Azure ML workspace, we'll need to create a `config.json` file at the root of this repo. Follow the instructions on how to get this from the [Azure ML documentation](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace).
@@ -65,12 +74,12 @@ In this section, we'll use a sample python script to submit a federated learning
 3. Run a sample python script:
 
     ```bash
-    python ./examples/pipelines/fl_cross_silo_basic/submit.py --example MNIST --submit
+    python ./examples/pipelines/fl_cross_silo_native/submit.py --example MNIST --submit
     ```
 
 The script will submit the experiment to Azure ML. **It should open a direct link to the experiment** in the Azure ML UI.
 
-If not, the script will print the url to use in clear:
+If not, the script will print the URL to use in clear:
 
 ```log
 Submitting the pipeline job to your AzureML workspace...
