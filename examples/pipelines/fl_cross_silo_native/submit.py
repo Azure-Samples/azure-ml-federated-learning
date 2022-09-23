@@ -269,7 +269,7 @@ def fl_cross_silo_internal_basic():
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
         # add a readable name to the step
-        silo_training_step.name = f"round_{round}_aggregation"
+        aggregate_weights_step.name = f"round_{round}_aggregation"
 
         # make sure the data is written in the right datastore
         aggregate_weights_step.outputs.aggregated_output = Output(
