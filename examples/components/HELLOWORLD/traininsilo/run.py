@@ -56,6 +56,7 @@ def test_input(path):
             f.read()
 
 def test_output(path):
+    print(f"Writing output to {path}/model.txt")
     with open(os.path.join(path, "model.txt"), "w") as f:
         f.write("Hello World!")
 
@@ -78,7 +79,8 @@ def main(cli_args=None):
     print(f"Running script with arguments: {args}")
     test_input(args.train_data)
     test_input(args.test_data)
-    test_input(args.checkpoint)
+    if args.checkpoint:
+        test_input(args.checkpoint)
     test_output(args.model)
 
 

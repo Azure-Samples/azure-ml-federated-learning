@@ -38,6 +38,7 @@ def test_input(path):
             f.read()
 
 def test_output(path):
+    print(f"Writing output to {path}/aggregate.txt")
     with open(os.path.join(path, "aggregate.txt"), "w") as f:
         f.write("Hello World!")
 
