@@ -28,6 +28,7 @@ We will provision:
 - 1 CPU cluster and 1 blob storage account for the [orchestrator](./glossary.md)
 - 3 [internal silos](./glossary.md) in 3 different regions (`eastus2`, `westus`, `westus2`) with their respective compute cluster and storage account
 - 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict permission access to the silo's storage accounts.
+- 1 custom RBAC role at the subscription level to configure permissions between compute and storage via UAI.
 
 1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
 
@@ -39,7 +40,11 @@ We will provision:
 2. Run the bicep deployment script:
 
     ```bash
-    az deployment sub create --template-file ./mlops/bicep/open_sandbox_setup.bicep --location eastus --parameters demoBaseName="fldemo"
+    # create a resource group for the resources
+    az group create --name <resource group name> --location <region>
+
+    # deploy the demo resources in your resource group
+    az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
     ```
 
     > NOTE: if someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
