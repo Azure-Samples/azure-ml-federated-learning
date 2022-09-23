@@ -90,3 +90,19 @@ Uploading aggregatemodelweights (0.01 MBs): 100%|###############################
 The url to see your live job running is returned by the sdk:
 https://ml.azure.com/runs/.....
 ```
+### Look at the pipeline in the AML UI
+
+Go to the above URL and your pipeline would look similar to this: 
+
+<br/><br/>
+<img src="./pics/pipeline-aml.PNG" alt="Federated Learning AML pipeline Figure" width="400">
+
+If you want to look at the pipeline metrics, go to the "Job overview" (top-right corner) and then click on the "Metrics(preview)". The following screenshot shows what that would look like.
+
+<br/><br/>
+<img src="./pics/metrics.PNG" alt="Federated Learning AML pipeline Figure" width="400">
+
+You can also create your own custom graph by clicking on the "Create custom chart" icon. Here is a sample custom chart showing the "Training Loss" of multiple silos in one graph. 
+
+<br/><br/>
+<img src="./pics/combined-losses-silos.PNG" alt="Federated Learning muliple silos Training Loss Figure" width="400">
