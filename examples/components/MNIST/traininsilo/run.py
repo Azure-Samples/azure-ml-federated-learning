@@ -268,7 +268,7 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-    parser.add_argument("--round", type=str, required=False, help="Iteration name")
+    parser.add_argument("--iteration_name", type=str, required=False, help="Iteration name")
 
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
@@ -277,7 +277,7 @@ def get_arg_parser(parser=None):
         "--epochs",
         type=int,
         required=False,
-        help="Total number of rounds for local training",
+        help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
     return parser
@@ -297,7 +297,7 @@ def run(args):
         lr=args.lr,
         epochs=args.epochs,
         experiment_name=args.metrics_prefix,
-        iteration_name=args.round,
+        iteration_name=args.iteration_name,
     )
     trainer.execute(args.checkpoint)
 
