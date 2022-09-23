@@ -142,8 +142,8 @@ resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/comput
 
 // role of silo compute -> silo storage
 resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(siloToSiloRoleDefinitionId)) {
-  scope: siloStoragePrivateContainer
-  name: guid(siloStoragePrivateContainer.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+  scope: siloStorageAccount
+  name: guid(siloStorageAccount.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
   properties: {
     roleDefinitionId: siloToSiloRoleDefinitionId
     principalId: siloUserAssignedIdentity.properties.principalId
