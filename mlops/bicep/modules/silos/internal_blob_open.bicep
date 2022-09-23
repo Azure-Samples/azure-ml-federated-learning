@@ -32,7 +32,7 @@ param computeClusterName string = 'cpu-cluster-${siloBaseName}'
 param siloComputeSKU string = 'Standard_DS3_v2'
 
 @description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
-param datastoreName string = 'datatore_${replace('${siloBaseName}', '-', '_')}'
+param siloDatastoreName string = 'datatore_${replace('${siloBaseName}', '-', '_')}'
 
 @description('Specifies the name of the User Assigned Identity to provision.')
 param siloUAIName string = 'uai-${siloBaseName}'
@@ -84,7 +84,7 @@ resource siloStoragePrivateContainer 'Microsoft.Storage/storageAccounts/blobServ
 
 // attach as a datastore in AzureML
 resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
-  name: '${workspaceName}/${datastoreName}_private'
+  name: '${workspaceName}/${siloDatastoreName}'
   properties: {
     credentials: {
       credentialsType: 'None'

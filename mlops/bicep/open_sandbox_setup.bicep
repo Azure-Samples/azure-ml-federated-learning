@@ -48,6 +48,10 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
+module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
+  name: guid(subscription().subscriptionId, 'role_storage_read_write')
+  scope: subscription()
+}
 
 // Create Azure Machine Learning workspace for orchestration
 // with an orchestration compute
@@ -63,8 +67,7 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' 
     orchestratorComputeSKU: computeSKU
 
     // RBAC role of orch compute -> orch storage
-    // Storage Blob Data Contributor (read,write,delete)
-    orchToOrchRoleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
 }
 
@@ -75,23 +78,25 @@ module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in ra
   name: '${demoBaseName}-deploysilo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloBaseName: 'silo${i}-${siloRegions[i]}'
+    siloBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
     workspaceName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
 
+    computeClusterName: 'cpu-silo${i}-${siloRegions[i]}'
     siloComputeSKU: computeSKU
+    siloDatastoreName: 'datastore_silo${i}_${siloRegions[i]}'
 
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
 
     // RBAC role of silo compute -> silo storage
      // Storage Blob Data Contributor (read,write,delete)
-    siloToSiloRoleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
 
     // RBAC role of silo compute -> orch storage (to r/w model weights)
      // Storage Blob Data Contributor (read,write,delete)
-    siloToOrchRoleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+    siloToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
   // scope: resourceGroup
   dependsOn: [
