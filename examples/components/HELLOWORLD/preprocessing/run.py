@@ -4,6 +4,7 @@ import logging
 import sys
 import glob
 
+
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
 
@@ -30,6 +31,7 @@ def get_arg_parser(parser=None):
     )
     return parser
 
+
 def test_input(path):
     file_list = glob.glob(os.path.join(path, "*.*"), recursive=True)
     print(f"Found {len(file_list)} files in {path}")
@@ -40,9 +42,11 @@ def test_input(path):
         with open(file, "r") as f:
             f.read()
 
+
 def test_output(path):
     with open(os.path.join(path, "output.txt"), "w") as f:
         f.write("Hello World!")
+
 
 def main(cli_args=None):
     """Component main function.
@@ -63,6 +67,7 @@ def main(cli_args=None):
     test_input(args.raw_testing_data)
     test_output(args.train_output)
     test_output(args.test_output)
+
 
 if __name__ == "__main__":
 

@@ -55,6 +55,7 @@ def test_input(path):
         with open(file, "r") as f:
             f.read()
 
+
 def test_output(path):
     print(f"Writing output to {path}/model.txt")
     with open(os.path.join(path, "model.txt"), "w") as f:
