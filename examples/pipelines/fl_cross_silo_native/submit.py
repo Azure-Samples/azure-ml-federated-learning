@@ -115,7 +115,9 @@ aggregate_component = load_component(
 ########################
 
 
-def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", iteration_num=None):
+def custom_fl_data_path(
+    datastore_name, output_name, unique_id="${{name}}", iteration_num=None
+):
     """Produces a path to store the data during FL training.
 
     Args:

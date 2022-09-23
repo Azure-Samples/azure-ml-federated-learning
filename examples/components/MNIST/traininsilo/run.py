@@ -121,7 +121,7 @@ class MnistTrainer:
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-        
+
         if pipeline_level:
             client.log_metric(
                 run_id=run_id,
@@ -134,7 +134,6 @@ class MnistTrainer:
                 key=f"{self._iteration_name}/{self._experiment_name}/{key}",
                 value=value,
             )
-
 
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
@@ -182,7 +181,7 @@ class MnistTrainer:
 
                     running_loss += cost.cpu().detach().numpy() / images.size()[0]
                     if i != 0 and i % num_of_batches_before_logging == 0:
-                        training_loss = running_loss/num_of_batches_before_logging
+                        training_loss = running_loss / num_of_batches_before_logging
                         logger.info(
                             f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
                         )
@@ -206,11 +205,25 @@ class MnistTrainer:
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
-            
-            #log metrics at the pipeline level
-            self.log_metrics(mlflow_client, root_run_id, "Train Loss", training_loss, pipeline_level=True)
-            self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True)
-            self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc, pipeline_level=True)
+
+            # log metrics at the pipeline level
+            self.log_metrics(
+                mlflow_client,
+                root_run_id,
+                "Train Loss",
+                training_loss,
+                pipeline_level=True,
+            )
+            self.log_metrics(
+                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
+            )
+            self.log_metrics(
+                mlflow_client,
+                root_run_id,
+                "Test Accuracy",
+                test_acc,
+                pipeline_level=True,
+            )
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
@@ -268,7 +281,9 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-    parser.add_argument("--iteration_name", type=str, required=False, help="Iteration name")
+    parser.add_argument(
+        "--iteration_name", type=str, required=False, help="Iteration name"
+    )
 
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
