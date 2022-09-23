@@ -120,17 +120,21 @@ class MnistTrainer:
             value=self.optimizer_.__class__.__name__,
         )
 
-    def log_metrics(self, client, run_id, key, value):
-        client.log_metric(
-            run_id=run_id,
-            key=f"{self._experiment_name}/{key}",
-            value=value,
-        )
-        client.log_metric(
-            run_id=run_id,
-            key=f"{self._iteration_name}/{self._experiment_name}/{key}",
-            value=value,
-        )
+    def log_metrics(self, client, run_id, key, value, pipeline_level=False):
+        
+        if pipeline_level:
+            client.log_metric(
+                run_id=run_id,
+                key=f"{self._experiment_name}/{key}",
+                value=value,
+            )
+        else:
+            client.log_metric(
+                run_id=run_id,
+                key=f"{self._iteration_name}/{self._experiment_name}/{key}",
+                value=value,
+            )
+
 
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
@@ -155,10 +159,14 @@ class MnistTrainer:
             self.model_.train()
             logger.debug("Local training started")
 
+            training_loss = 0.0
+            test_loss = 0.0
+            test_acc = 0.0
+
             for epoch in range(self._epochs):
 
                 running_loss = 0.0
-                num_of_iter_before_logging = 100
+                num_of_batches_before_logging = 100
 
                 for i, batch in enumerate(self.train_loader_):
 
@@ -173,9 +181,10 @@ class MnistTrainer:
                     self.optimizer_.step()
 
                     running_loss += cost.cpu().detach().numpy() / images.size()[0]
-                    if i != 0 and i % num_of_iter_before_logging == 0:
+                    if i != 0 and i % num_of_batches_before_logging == 0:
+                        training_loss = running_loss/num_of_batches_before_logging
                         logger.info(
-                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {running_loss/num_of_iter_before_logging}"
+                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
                         )
 
                         # log train loss
@@ -183,20 +192,25 @@ class MnistTrainer:
                             mlflow_client,
                             root_run_id,
                             "Train Loss",
-                            running_loss / num_of_iter_before_logging,
+                            training_loss,
                         )
 
                         running_loss = 0.0
 
                 test_loss, test_acc = self.test()
 
-                # log test metrics
+                # log test metrics after each epoch
                 self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
                 self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc)
 
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
+            
+            #log metrics at the pipeline level
+            self.log_metrics(mlflow_client, root_run_id, "Train Loss", training_loss, pipeline_level=True)
+            self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True)
+            self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc, pipeline_level=True)
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
