@@ -63,7 +63,8 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' 
     orchestratorComputeSKU: computeSKU
 
     // RBAC role of orch compute -> orch storage
-    orchToOrchRoleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+    // Storage Blob Data Contributor (read,write,delete)
+    orchToOrchRoleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   }
 }
 
@@ -74,7 +75,7 @@ module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in ra
   name: '${demoBaseName}-deploysilo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloBaseName: '$silo${i}-${siloRegions[i]}'
+    siloBaseName: 'silo${i}-${siloRegions[i]}'
     workspaceName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
@@ -85,9 +86,12 @@ module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in ra
     orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
 
     // RBAC role of silo compute -> silo storage
-    siloToSiloRoleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+     // Storage Blob Data Contributor (read,write,delete)
+    siloToSiloRoleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+
     // RBAC role of silo compute -> orch storage (to r/w model weights)
-    siloToOrchRoleDefinitionId: 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+     // Storage Blob Data Contributor (read,write,delete)
+    siloToOrchRoleDefinitionId: '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   }
   // scope: resourceGroup
   dependsOn: [

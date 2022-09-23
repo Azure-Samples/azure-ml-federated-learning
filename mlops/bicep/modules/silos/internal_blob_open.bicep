@@ -38,10 +38,10 @@ param datastoreName string = 'datatore_${replace('${siloBaseName}', '-', '_')}'
 param siloUAIName string = 'uai-${siloBaseName}'
 
 @description('Which RBAC role to use for silo compute -> silo storage (default R/W).')
-param siloToSiloRoleDefinitionId string = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+param siloToSiloRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
 
 @description('Which RBAC role to use for silo compute -> orchestrator storage (default R/W).')
-param siloToOrchRoleDefinitionId string = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+param siloToOrchRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
