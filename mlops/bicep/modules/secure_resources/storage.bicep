@@ -36,9 +36,9 @@ param storageSkuName string = 'Standard_LRS'
 
 var storageNameCleaned = replace(storageName, '-', '')
 
-var blobPrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
+var blobPrivateDnsZoneName = 'privatelink.blob.${storageNameCleaned}.${environment().suffixes.storage}'
 
-var filePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
+var filePrivateDnsZoneName = 'privatelink.file.${storageNameCleaned}.${environment().suffixes.storage}'
 
 resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   name: storageNameCleaned
@@ -151,6 +151,7 @@ resource blobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
 
 resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2020-06-01' = {
   name: '${storagePrivateEndpointBlob.name}/blob-PrivateDnsZoneGroup'
+  //name: '${storagePrivateEndpointBlob.name}/blob-${uniqueString(storage.id)}-PrivateDnsZoneGroup'
   properties:{
     privateDnsZoneConfigs: [
       {

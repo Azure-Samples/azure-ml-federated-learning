@@ -86,7 +86,7 @@ module siloDeployments './modules/silos/internal_blob_vnet.bicep' = [for i in ra
   scope: resourceGroup()
   params: {
     siloBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
-    workspaceName: 'aml-${demoBaseName}'
+    machineLearningName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
 
@@ -97,10 +97,10 @@ module siloDeployments './modules/silos/internal_blob_vnet.bicep' = [for i in ra
     // networking
     vnetAddressPrefix: '10.0.${i+1}.0/24'
     trainingSubnetPrefix: '10.0.${i+1}.0/24'
-    orchestratorVNet: orchestratorDeployment.outputs.vnet
+    //orchestratorVNet: orchestratorDeployment.outputs.vnetId
 
     // reference of the orchestrator to set permissions
-    orchestratorStorageAccountName: orchestratorDeployment.outputs.orchestratorConfig.storage
+    orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
 
     // RBAC role of silo compute -> silo storage
      // Storage Blob Data Contributor (read,write,delete)

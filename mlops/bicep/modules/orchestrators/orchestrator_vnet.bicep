@@ -4,40 +4,45 @@
 // resource group must be specified as scope in az cli or module call
 targetScope = 'resourceGroup'
 
-@description('Azure region of the deployment')
-param location string = resourceGroup().location
-
-@description('Tags to add to the resources')
-param tags object = {}
-
+// required parameters
 @description('Machine learning workspace name')
 param machineLearningName string
 
+// optional parameters
 @description('Machine learning workspace display name')
 param machineLearningFriendlyName string = machineLearningName
 
 @description('Machine learning workspace description')
 param machineLearningDescription string = 'Federated Learning Orchestration Workspace'
 
+@description('Specifies the location of the Azure Machine Learning workspace and dependent resources.')
+param location string = resourceGroup().location
+
+@description('Specifies whether to reduce telemetry collection and enable additional encryption.')
+param hbi_workspace bool = false
+
+@description('Tags to curate the resources in Azure.')
+param tags object = {}
+
 @description('Name of the application insights resource')
 param applicationInsightsName string = 'appi-${machineLearningName}'
 
 @description('Name of the container registry resource')
-param containerRegistryName string = 'cr${machineLearningName}'
+param containerRegistryName string = replace('cr-${machineLearningName}','-','') // replace because only alphanumeric characters are supported
 
 @description('Name of the key vault resource')
 param keyVaultName string = 'kv-${machineLearningName}'
 
 @description('Name of the storage account resource')
-param storageAccountName string = 'st${machineLearningName}'
+param storageAccountName string = replace('st-${machineLearningName}','-','') // replace because only alphanumeric characters are supported
 
-@description('Name of the orchestrator compute cluster (CPU)')
-param orchestratorComputeName string = 'cpu-orchestrator'
+@description('Name of the default compute cluster in orchestrator')
+param orchestratorComputeName string = 'cpu-cluster-orchestrator'
 
 @description('VM size for the default compute cluster')
-param orchestratorComputeSKU string = 'Standard_DS13_v2'
+param orchestratorComputeSKU string = 'Standard_DS3_v2'
 
-@description('Name of the vNET resource')
+@description('Name of the Network Security Group resource')
 param nsgResourceName string = 'nsg-${machineLearningName}-orchestrator'
 
 @description('Name of the vNET resource')
@@ -49,11 +54,14 @@ param vnetAddressPrefix string = '10.0.0.0/16'
 @description('Training subnet address prefix')
 param trainingSubnetPrefix string = '10.0.0.0/24'
 
-@description('Virtual network address prefix')
-param userAssignedIdentityName string = 'uai-${machineLearningName}-orchestrator'
+@description('Name of the UAI for the default compute cluster')
+param orchestratorUAIName string = 'uai-${machineLearningName}-orchestrator'
 
-// @description('Which role the orchestrator compute should have towards its own storage.')
-// param orchToOrchRoleDefinitionId string = '' // default Contributor
+@description('Role definition ID for the compute towards the internal storage')
+param orchToOrchRoleDefinitionId string = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+
+param allowPublicAccessWhenBehindVnet bool = true
+param accessThroughBastion bool = false // TODO
 
 
 // Virtual network and network security group
@@ -145,19 +153,20 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-01-0
     containerRegistry: containerRegistry.outputs.containerRegistryId
     keyVault: keyvault.outputs.keyvaultId
     storageAccount: storage.outputs.storageId
+    hbiWorkspace: hbi_workspace
 
-    // IMPORTANT: we still want to allow this
-    allowPublicAccessWhenBehindVnet: true
+    // security end-to-end
+    allowPublicAccessWhenBehindVnet: allowPublicAccessWhenBehindVnet
 
-    // configuration for workspaces with private link endpoint
+    // configuration for workspaces with private link endpoint TODO
     // imageBuildCompute: 'cluster001'
     // publicNetworkAccess: 'Disabled'
   }
 }
 
 // provision a user assigned identify for this silo
-resource orchestratorUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
-  name: userAssignedIdentityName
+resource orchestratorUAI 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: orchestratorUAIName
   location: location
   tags: tags
 }
@@ -179,10 +188,11 @@ module machineLearningPrivateEndpoint '../networking/aml_ple.bicep' = {
 resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-01-preview' = {
   name: '${machineLearningName}/${orchestratorComputeName}'
   location: location
+  tags: tags
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${orchestratorUserAssignedIdentity.name}': {}
+      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${orchestratorUAI.name}': {}
     }
   }
   properties: {
@@ -215,10 +225,10 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
 // assign the role orch compute should have with orch storage
 // resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 //   scope: storage.outputs.storageId
-//   name: guid(storage.name, orchToOrchRoleDefinitionId, orchestratorUserAssignedIdentity.name)
+//   name: guid(storage.name, orchToOrchRoleDefinitionId, orchestratorUAI.name)
 //   properties: {
 //     roleDefinitionId: orchToOrchRoleDefinitionId
-//     principalId: orchestratorUserAssignedIdentity.properties.principalId
+//     principalId: orchestratorUAI.properties.principalId
 //     principalType: 'ServicePrincipal'
 //   }
 //   dependsOn: [
@@ -226,7 +236,11 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
 //   ]
 // }
 
+output uaiPrincipalId string = orchestratorUAI.properties.principalId
+output storage string = storageAccountName
+output compute string = orchestratorCompute.name
+output workspace string = machineLearning.name
 output machineLearningId string = machineLearning.id
-output uaiId string = orchestratorUserAssignedIdentity.id
-output uaiPrincipalId string = orchestratorUserAssignedIdentity.properties.principalId
-output storageId string = storage.outputs.storageId
+output region string = location
+output uaiId string = orchestratorUAI.id
+output vnetId string = vnet.outputs.id
