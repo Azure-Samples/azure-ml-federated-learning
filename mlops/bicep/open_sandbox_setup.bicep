@@ -48,10 +48,10 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
-module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
-  name: guid(subscription().subscriptionId, 'role_storage_read_write')
-  scope: subscription()
-}
+// module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
+//   name: guid(subscription().subscriptionId, 'role_storage_read_write')
+//   scope: subscription()
+// }
 
 // Create Azure Machine Learning workspace for orchestration
 // with an orchestration compute
@@ -67,7 +67,7 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' 
     orchestratorComputeSKU: computeSKU
 
     // RBAC role of orch compute -> orch storage
-    orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    // orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
 }
 
@@ -92,11 +92,11 @@ module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in ra
 
     // RBAC role of silo compute -> silo storage
      // Storage Blob Data Contributor (read,write,delete)
-    siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    // siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
 
     // RBAC role of silo compute -> orch storage (to r/w model weights)
-     // Storage Blob Data Contributor (read,write,delete)
-    siloToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    // Storage Blob Data Contributor (read,write,delete)
+    // siloToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
   // scope: resourceGroup
   dependsOn: [

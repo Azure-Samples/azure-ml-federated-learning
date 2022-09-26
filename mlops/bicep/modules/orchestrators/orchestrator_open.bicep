@@ -49,7 +49,7 @@ param orchestratorComputeSKU string = 'Standard_DS3_v2'
 param orchestratorUAIName string = '${machineLearningName}-orchestrator-uai'
 
 @description('Role definition ID for the compute towards the internal storage')
-param orchToOrchRoleDefinitionId string = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+param orchToOrchRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
 
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
