@@ -45,7 +45,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--example", required=False, choices=["MNIST"], default="MNIST", help="dataset name"
+    "--example",
+    required=False,
+    choices=["MNIST", "HELLOWORLD"],
+    default="MNIST",
+    help="dataset name",
 )
 
 args = parser.parse_args()
