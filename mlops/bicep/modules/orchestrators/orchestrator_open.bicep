@@ -27,17 +27,17 @@ param hbi_workspace bool = false
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
-@description('Resource ID of the application insights resource')
+@description('Name of the application insights resource')
 param applicationInsightsName string = 'appi-${machineLearningName}'
 
-@description('Resource ID of the container registry resource')
+@description('Name of the container registry resource')
 param containerRegistryName string = replace('cr-${machineLearningName}','-','') // replace because only alphanumeric characters are supported
 
-@description('Resource ID of the key vault resource')
+@description('Name of the key vault resource')
 param keyVaultName string = 'kv-${machineLearningName}'
 
-@description('Resource ID of the storage account resource')
-param storageAccountName string =replace('st-${machineLearningName}','-','') // replace because only alphanumeric characters are supported
+@description('Name of the storage account resource')
+param storageAccountName string = replace('st-${machineLearningName}','-','') // replace because only alphanumeric characters are supported
 
 @description('Name of the default compute cluster in orchestrator')
 param orchestratorComputeName string = 'cpu-cluster-orchestrator'
@@ -46,7 +46,7 @@ param orchestratorComputeName string = 'cpu-cluster-orchestrator'
 param orchestratorComputeSKU string = 'Standard_DS3_v2'
 
 @description('Name of the UAI for the default compute cluster')
-param orchestratorUAIName string = '${machineLearningName}-orchestrator-uai'
+param orchestratorUAIName string = 'uai-${machineLearningName}-orchestrator'
 
 @description('Role definition ID for the compute towards the internal storage')
 param orchToOrchRoleDefinitionId string = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
