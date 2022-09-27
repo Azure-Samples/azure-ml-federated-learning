@@ -42,7 +42,7 @@ param orchToOrchRoleDefinitionIds array = [
 ]
 
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
+resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   name: storageAccountName
   location: region
   tags: tags
@@ -67,20 +67,20 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
 }
 
 // provision a user assigned identify for this silo
-resource orchestratorUAI 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: orchestratorUAIName
   location: region
   tags: tags
 }
 
 // provision a compute cluster, and assign the user assigned identity to it
-resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-01-preview' = {
+resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-01-preview' = {
   name: '${machineLearningName}/${computeName}'
   location: region
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${orchestratorUAI.name}': {}
+      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}
     }
   }
   properties: {
@@ -100,17 +100,17 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
 
 // assign the role orch compute should have with orch storage
 resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in orchToOrchRoleDefinitionIds: {
-  scope: storageAccount
-  name: guid(storageAccount.id, roleId, orchestratorUAI.name)
+  scope: storage
+  name: guid(storage.id, roleId, uai.name)
   properties: {
     roleDefinitionId: roleId
-    principalId: orchestratorUAI.properties.principalId
+    principalId: uai.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }]
 
 // output the orchestrator config for next actions (permission model)
-output uaiPrincipalId string = orchestratorUAI.properties.principalId
-output storage string = storageAccount.name
-output compute string = orchestratorCompute.name
+output uaiPrincipalId string = uai.properties.principalId
+output storage string = storage.name
+output compute string = compute.name
 output region string = region
