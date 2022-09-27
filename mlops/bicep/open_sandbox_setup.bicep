@@ -49,46 +49,55 @@ param tags object = {
 }
 
 module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
-  name: guid(subscription().subscriptionId, 'role_storage_read_write')
+  name: guid(subscription().subscriptionId, 'role_storage_read_write', demoBaseName)
   scope: subscription()
 }
 
-// Create Azure Machine Learning workspace for orchestration
+// Create Azure Machine Learning workspace
 // with an orchestration compute
-module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' = {
-  name: '${demoBaseName}-deployorchestrator-${orchestratorRegion}'
+module workspace './modules/resources/open_azureml_workspace.bicep' = {
+  name: '${demoBaseName}-deployaml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
     location: orchestratorRegion
     tags: tags
+  }
+}
 
-    orchestratorComputeName: 'cpu-cluster-orchestrator'
-    orchestratorComputeSKU: computeSKU
+// Create an orchestrator compute+storage pair and attach to workspace
+module orchestrator './modules/orchestrators/open_orchestrator_uai.bicep' = {
+  name: '${demoBaseName}-deployorchestrator-${orchestratorRegion}'
+  scope: resourceGroup()
+  params: {
+    machineLearningName: workspace.outputs.workspace
+    region: orchestratorRegion
+    tags: tags
 
-    // RBAC role of orch compute -> orch storage
-    orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    computeName: 'cpu-cluster-orchestrator'
+    computeSKU: computeSKU
+    computeNodes: 4
   }
 }
 
 var siloCount = length(siloRegions)
 
 // Create all vanilla silos using a provided bicep module
-module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in range(0, siloCount): {
+module silos './modules/silos/open_internal_blob_uai.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-deploysilo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
-    workspaceName: 'aml-${demoBaseName}'
+    siloName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+    machineLearningName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
 
-    computeClusterName: 'cpu-silo${i}-${siloRegions[i]}'
-    siloComputeSKU: computeSKU
-    siloDatastoreName: 'datastore_silo${i}_${siloRegions[i]}'
+    computeName: 'cpu-silo${i}-${siloRegions[i]}'
+    computeSKU: computeSKU
+    datastoreName: 'datastore_silo${i}_${siloRegions[i]}'
 
     // reference of the orchestrator to set permissions
-    orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
+    orchestratorStorageAccountName: orchestrator.outputs.storage
 
     // RBAC role of silo compute -> silo storage
      // Storage Blob Data Contributor (read,write,delete)
@@ -100,6 +109,6 @@ module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in ra
   }
   // scope: resourceGroup
   dependsOn: [
-    orchestratorDeployment
+    orchestrator
   ]
 }]
