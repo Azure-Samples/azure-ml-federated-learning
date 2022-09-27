@@ -45,12 +45,23 @@ param datastoreName string = 'datatore_${replace('${siloName}', '-', '_')}'
 @description('Specifies the name of the User Assigned Identity to provision.')
 param uaiName string = 'uai-${siloName}'
 
-@description('Which RBAC role to use for silo compute -> silo storage (default R/W).')
-param siloToSiloRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+@description('Which RBAC roles to use for silo compute -> silo storage (default R/W).')
+param siloToSiloRoleDefinitionIds array = [
+  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+  // Storage Blob Data Contributor (read,write,delete)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  // Storage Account Key Operator Service Role (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+]
 
-@description('Which RBAC role to use for silo compute -> orchestrator storage (default R/W).')
-param siloToOrchRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
-
+@description('Which RBAC roles to use for silo compute -> orchestrator storage (default R/W).')
+param siloToOrchRoleDefinitionIds array = [
+  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+  // Storage Blob Data Contributor (read,write,delete)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  // Storage Account Key Operator Service Role (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+]
 
 
 // deploy a storage account for the silo
@@ -147,30 +158,30 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-
 }
 
 // role of silo compute -> silo storage
-resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(siloToSiloRoleDefinitionId)) {
+resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
   scope: storage
-  name: guid(storage.name, siloToSiloRoleDefinitionId, uai.name)
+  name: guid(storage.name, roleId, storage.name)
   properties: {
-    roleDefinitionId: siloToSiloRoleDefinitionId
+    roleDefinitionId: roleId
     principalId: uai.properties.principalId
     principalType: 'ServicePrincipal'
   }
-}
+}]
 
 // role of silo compute -> orchestrator storage (for r/w model weights)
 resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
   name: orchestratorStorageAccountName
   scope: resourceGroup()
 }
-resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(siloToOrchRoleDefinitionId)) {
+resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
   scope: orchestratorStorageAccount
-  name: guid(orchestratorStorageAccount.name, siloToOrchRoleDefinitionId, uai.name)
+  name: guid(orchestratorStorageAccount.name, roleId, uai.name)
   properties: {
-    roleDefinitionId: siloToOrchRoleDefinitionId
+    roleDefinitionId: roleId
     principalId: uai.properties.principalId
     principalType: 'ServicePrincipal'
   }
-}
+}]
 
 // output the orchestrator config for next actions (permission model)
 output uaiPrincipalId string = uai.properties.principalId
