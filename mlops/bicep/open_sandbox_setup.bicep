@@ -87,14 +87,14 @@ module silos './modules/silos/open_internal_blob_uai.bicep' = [for i in range(0,
   name: '${demoBaseName}-deploysilo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
-    workspaceName: 'aml-${demoBaseName}'
+    siloName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+    machineLearningName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
 
-    computeClusterName: 'cpu-silo${i}-${siloRegions[i]}'
-    siloComputeSKU: computeSKU
-    siloDatastoreName: 'datastore_silo${i}_${siloRegions[i]}'
+    computeName: 'cpu-silo${i}-${siloRegions[i]}'
+    computeSKU: computeSKU
+    datastoreName: 'datastore_silo${i}_${siloRegions[i]}'
 
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestrator.outputs.storage

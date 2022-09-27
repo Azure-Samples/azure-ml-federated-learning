@@ -8,7 +8,7 @@
 targetScope = 'resourceGroup'
 
 // required parameters
-@description('Name of AzureML workspace to attach orchestrator to')
+@description('Name of AzureML workspace to attach orchestrator to.')
 param machineLearningName string
 
 @description('Specifies the location of the orchestrator resources.')

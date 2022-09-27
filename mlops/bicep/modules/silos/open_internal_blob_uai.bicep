@@ -11,31 +11,39 @@
 targetScope = 'resourceGroup'
 
 // required parameters
-@description('Specifies the base name for creating resources.')
-param siloBaseName string
-
-@description('Specifies the name of the orchestrator AzureML workspace.')
-param workspaceName string
+@description('Name of AzureML workspace to attach silo to.')
+param machineLearningName string
 
 @description('Specifies the region of the silo (for storage + compute).')
 param region string
+
+@description('Tags to curate the resources in Azure.')
+param tags object = {}
 
 @description('Specifies the name of the orchestrator storage account.')
 param orchestratorStorageAccountName string // needed to set permissions towards orchestrator storage
 
 // optional parameters
+@description('Specifies the base name for creating resources.')
+param siloName string = 'silo-${region}'
+
 @description('Specifies the name of the storage account to provision.')
-param storageAccountName string = 'st${replace('${siloBaseName}', '-', '')}'
+param storageAccountName string = 'st${replace('${siloName}', '-', '')}'
 
 @description('Specifies the name of the compute cluster to provision.')
-param computeClusterName string = 'cpu-cluster-${siloBaseName}'
-param siloComputeSKU string = 'Standard_DS3_v2'
+param computeName string = 'cpu-cluster-${siloName}'
+
+@description('VM size for the default compute cluster')
+param computeSKU string = 'Standard_DS3_v2'
+
+@description('VM nodes for the default compute cluster')
+param computeNodes int = 4
 
 @description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
-param siloDatastoreName string = 'datatore_${replace('${siloBaseName}', '-', '_')}'
+param datastoreName string = 'datatore_${replace('${siloName}', '-', '_')}'
 
 @description('Specifies the name of the User Assigned Identity to provision.')
-param siloUAIName string = 'uai-${siloBaseName}'
+param uaiName string = 'uai-${siloName}'
 
 @description('Which RBAC role to use for silo compute -> silo storage (default R/W).')
 param siloToSiloRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
@@ -43,12 +51,10 @@ param siloToSiloRoleDefinitionId string = '/subscriptions/${subscription().subsc
 @description('Which RBAC role to use for silo compute -> orchestrator storage (default R/W).')
 param siloToOrchRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
 
-@description('Tags to curate the resources in Azure.')
-param tags object = {}
 
 
 // deploy a storage account for the silo
-resource siloStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
+resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   name: storageAccountName
   location: region
   tags: tags
@@ -74,8 +80,8 @@ resource siloStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
 
 // create a "private" container in the storage account
 // this one will be readable only by silo compute
-resource siloStoragePrivateContainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
-  name: '${siloStorageAccount.name}/default/siloprivate'
+resource privatecontainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
+  name: '${storage.name}/default/siloprivate'
   properties: {
     metadata: {}
     publicAccess: 'None'
@@ -83,8 +89,8 @@ resource siloStoragePrivateContainer 'Microsoft.Storage/storageAccounts/blobServ
 }
 
 // attach as a datastore in AzureML
-resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
-  name: '${workspaceName}/${siloDatastoreName}'
+resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
+  name: '${machineLearningName}/${datastoreName}'
   properties: {
     credentials: {
       credentialsType: 'None'
@@ -94,7 +100,7 @@ resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspac
     properties: {}
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
-    accountName: siloStorageAccount.name
+    accountName: storage.name
     containerName: 'siloprivate'
     // endpoint: 'string'
     // protocol: 'string'
@@ -103,36 +109,36 @@ resource siloAzureMLPrivateDatastore 'Microsoft.MachineLearningServices/workspac
     subscriptionId: subscription().subscriptionId
   }
   dependsOn: [
-    siloStoragePrivateContainer
+    privatecontainer
   ]
 }
 
 
 // provision a user assigned identify for this silo
-resource siloUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
-  name: siloUAIName
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: uaiName
   location: region
   tags: tags
 }
 
 // provision a compute cluster for the silo and assigned the silo UAI to it
-resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-01-preview' = {
-  name: '${workspaceName}/${computeClusterName}'
+resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-01-preview' = {
+  name: '${machineLearningName}/${computeName}'
   location: region
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: {
-      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${siloUserAssignedIdentity.name}': {}
+      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}
     }
   }
   properties: {
     computeType: 'AmlCompute'
     properties: {
-      vmSize: siloComputeSKU
+      vmSize: computeSKU
       subnet: json('null')
       osType: 'Linux'
       scaleSettings: {
-        maxNodeCount: 4
+        maxNodeCount: computeNodes
         minNodeCount: 0
         nodeIdleTimeBeforeScaleDown: 'PT300S' // 5 minutes
       }
@@ -142,11 +148,11 @@ resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/comput
 
 // role of silo compute -> silo storage
 resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(siloToSiloRoleDefinitionId)) {
-  scope: siloStorageAccount
-  name: guid(siloStorageAccount.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+  scope: storage
+  name: guid(storage.name, siloToSiloRoleDefinitionId, uai.name)
   properties: {
     roleDefinitionId: siloToSiloRoleDefinitionId
-    principalId: siloUserAssignedIdentity.properties.principalId
+    principalId: uai.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -158,18 +164,18 @@ resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-0
 }
 resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(siloToOrchRoleDefinitionId)) {
   scope: orchestratorStorageAccount
-  name: guid(orchestratorStorageAccount.name, siloToOrchRoleDefinitionId, siloUserAssignedIdentity.name)
+  name: guid(orchestratorStorageAccount.name, siloToOrchRoleDefinitionId, uai.name)
   properties: {
     roleDefinitionId: siloToOrchRoleDefinitionId
-    principalId: siloUserAssignedIdentity.properties.principalId
+    principalId: uai.properties.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
 // output the orchestrator config for next actions (permission model)
-output uaiPrincipalId string = siloUserAssignedIdentity.properties.principalId
-output storage string = siloStorageAccount.name
-output container string = siloStoragePrivateContainer.name
-output compute string = siloAzureMLCompute.name
-output datastore string = siloAzureMLPrivateDatastore.name
+output uaiPrincipalId string = uai.properties.principalId
+output storage string = storage.name
+output container string = privatecontainer.name
+output compute string = compute.name
+output datastore string = datastore.name
 output region string = region
