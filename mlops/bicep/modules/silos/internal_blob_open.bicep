@@ -37,12 +37,23 @@ param siloDatastoreName string = 'datatore_${replace('${siloBaseName}', '-', '_'
 @description('Specifies the name of the User Assigned Identity to provision.')
 param siloUAIName string = 'uai-${siloBaseName}'
 
-@description('Which RBAC role to use for silo compute -> silo storage (default R/W).')
-param siloToSiloRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+@description('Which RBAC roles to use for silo compute -> silo storage (default R/W).')
+param siloToSiloRoleDefinitionIds array = [
+  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+  // Storage Blob Data Contributor (read,write,delete)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  // Storage Account Key Operator Service Role (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+]
 
-@description('Which RBAC role to use for silo compute -> orchestrator storage (default R/W).')
-param siloToOrchRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
-
+@description('Which RBAC roles to use for silo compute -> orchestrator storage (default R/W).')
+param siloToOrchRoleDefinitionIds array = [
+  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+  // Storage Blob Data Contributor (read,write,delete)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  // Storage Account Key Operator Service Role (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+]
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
@@ -141,30 +152,30 @@ resource siloAzureMLCompute 'Microsoft.MachineLearningServices/workspaces/comput
 }
 
 // role of silo compute -> silo storage
-resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(siloToSiloRoleDefinitionId)) {
+resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
   scope: siloStorageAccount
-  name: guid(siloStorageAccount.name, siloToSiloRoleDefinitionId, siloUserAssignedIdentity.name)
+  name: guid(siloStorageAccount.name, roleId, siloUserAssignedIdentity.name)
   properties: {
-    roleDefinitionId: siloToSiloRoleDefinitionId
+    roleDefinitionId: roleId
     principalId: siloUserAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
-}
+}]
 
 // role of silo compute -> orchestrator storage (for r/w model weights)
 resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
   name: orchestratorStorageAccountName
   scope: resourceGroup()
 }
-resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(siloToOrchRoleDefinitionId)) {
+resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
   scope: orchestratorStorageAccount
-  name: guid(orchestratorStorageAccount.name, siloToOrchRoleDefinitionId, siloUserAssignedIdentity.name)
+  name: guid(orchestratorStorageAccount.name, roleId, siloUserAssignedIdentity.name)
   properties: {
-    roleDefinitionId: siloToOrchRoleDefinitionId
+    roleDefinitionId: roleId
     principalId: siloUserAssignedIdentity.properties.principalId
     principalType: 'ServicePrincipal'
   }
-}
+}]
 
 // output the orchestrator config for next actions (permission model)
 output uaiPrincipalId string = siloUserAssignedIdentity.properties.principalId

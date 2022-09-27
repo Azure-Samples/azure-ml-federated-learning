@@ -66,8 +66,8 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' 
     orchestratorComputeName: 'cpu-cluster-orchestrator'
     orchestratorComputeSKU: computeSKU
 
-    // RBAC role of orch compute -> orch storage
-    // orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    // RBAC roles of orch compute -> orch storage
+    // orchToOrchRoleDefinitionIds: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
 }
 
@@ -90,13 +90,11 @@ module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in ra
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
 
-    // RBAC role of silo compute -> silo storage
-     // Storage Blob Data Contributor (read,write,delete)
-    // siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    // RBAC roles of silo compute -> silo storage
+    // siloToSiloRoleDefinitionIds: [ storageReadWriteRoleDeployment.outputs.roleDefinitionId ]
 
-    // RBAC role of silo compute -> orch storage (to r/w model weights)
-    // Storage Blob Data Contributor (read,write,delete)
-    // siloToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    // RBAC roles of silo compute -> orch storage (to r/w model weights)
+    // siloToOrchRoleDefinitionIds: [ storageReadWriteRoleDeployment.outputs.roleDefinitionId ]
   }
   // scope: resourceGroup
   dependsOn: [

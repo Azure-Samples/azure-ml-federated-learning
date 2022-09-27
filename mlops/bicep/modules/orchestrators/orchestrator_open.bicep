@@ -49,7 +49,13 @@ param orchestratorComputeSKU string = 'Standard_DS3_v2'
 param orchestratorUAIName string = '${machineLearningName}-orchestrator-uai'
 
 @description('Role definition ID for the compute towards the internal storage')
-param orchToOrchRoleDefinitionId string = '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe' // Storage Blob Data Contributor (read,write,delete)
+param orchToOrchRoleDefinitionIds array = [
+  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+  // Storage Blob Data Contributor (read,write,delete)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  // Storage Account Key Operator Service Role (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+]
 
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
@@ -170,15 +176,15 @@ resource orchestratorCompute 'Microsoft.MachineLearningServices/workspaces/compu
 }
 
 // assign the role orch compute should have with orch storage
-resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in orchToOrchRoleDefinitionIds: {
   scope: storageAccount
-  name: guid(storageAccount.id, orchToOrchRoleDefinitionId, orchestratorUAI.name)
+  name: guid(storageAccount.id, roleId, orchestratorUAI.name)
   properties: {
-    roleDefinitionId: orchToOrchRoleDefinitionId
+    roleDefinitionId: roleId
     principalId: orchestratorUAI.properties.principalId
     principalType: 'ServicePrincipal'
   }
-}
+}]
 
 // output the orchestrator config for next actions (permission model)
 output uaiPrincipalId string = orchestratorUAI.properties.principalId
