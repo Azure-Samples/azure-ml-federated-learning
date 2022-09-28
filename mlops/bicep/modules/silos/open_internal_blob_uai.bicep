@@ -70,7 +70,7 @@ param siloToOrchRoleDefinitionIds array = [
 
 // deploy a storage account for the silo
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: storageAccountName
+  name: substring(storageAccountName, 0, min(length(storageAccountName),24))
   location: region
   tags: tags
   sku: {
@@ -134,6 +134,9 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
   name: uaiName
   location: region
   tags: tags
+  dependsOn: [
+    storage // ensure the storage exists BEFORE we do UAI role assignments
+  ]
 }
 
 // provision a compute cluster for the silo and assigned the silo UAI to it
@@ -159,12 +162,15 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-
       }
     }
   }
+  dependsOn: [
+    storage // ensure the storage exists BEFORE we do UAI role assignments
+  ]
 }
 
 // role of silo compute -> silo storage
 resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
   scope: storage
-  name: guid(storage.name, roleId, uai.name)
+  name: guid(siloName, region, storage.name, roleId, uai.name)
   properties: {
     roleDefinitionId: roleId
     principalId: uai.properties.principalId
@@ -179,7 +185,7 @@ resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-0
 }
 resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToOrchRoleDefinitionIds: {
   scope: orchestratorStorageAccount
-  name: guid(orchestratorStorageAccount.name, roleId, uai.name)
+  name: guid(siloName, region, orchestratorStorageAccount.name, roleId, uai.name)
   properties: {
     roleDefinitionId: roleId
     principalId: uai.properties.principalId

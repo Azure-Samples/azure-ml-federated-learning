@@ -48,7 +48,7 @@ param orchToOrchRoleDefinitionIds array = [
 
 // deploy a storage account for the orchestrator
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: storageAccountName
+  name: substring(storageAccountName, 0, min(length(storageAccountName),24))
   location: region
   tags: tags
   sku: {
@@ -74,7 +74,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
 // create a "private" container in the storage account
 // this one will be readable only by silo compute
 resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
-  name: '${storageAccountName}/default/orchestratorprivate'
+  name: '${storage.name}/default/orchestratorprivate'
   properties: {
     metadata: {}
     publicAccess: 'None'
@@ -96,7 +96,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
     properties: {}
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
-    accountName: storageAccountName
+    accountName: storage.name
     containerName: 'orchestratorprivate'
     // endpoint: 'string'
     // protocol: 'string'
@@ -144,7 +144,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-
 // assign the role orch compute should have with orch storage
 resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in orchToOrchRoleDefinitionIds: {
   scope: storage
-  name: guid(storage.id, roleId, uai.name)
+  name: guid(machineLearningName, region, storage.id, roleId, uai.name)
   properties: {
     roleDefinitionId: roleId
     principalId: uai.properties.principalId
@@ -157,3 +157,6 @@ output uaiPrincipalId string = uai.properties.principalId
 output storage string = storage.name
 output compute string = compute.name
 output region string = region
+
+
+// /subscriptions/48bbc269-ce89-4f6f-9a12-c6f91fcb772d/resourceGroups/jfomhover-fldev2-rg/providers/Microsoft.Resources/deployments/fljfo11-deploy-silo-0-westus/operations/EDEAA1BE8DA78C59
