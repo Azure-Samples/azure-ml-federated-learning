@@ -73,6 +73,9 @@ module orchestrator './modules/orchestrators/open_orchestrator_uai.bicep' = {
     computeSKU: computeSKU
     computeNodes: 4
   }
+  dependsOn: [
+    workspace
+  ]
 }
 
 var siloCount = length(siloRegions)
@@ -94,8 +97,8 @@ module silos './modules/silos/open_internal_blob_uai.bicep' = [for i in range(0,
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestrator.outputs.storage
   }
-  // scope: resourceGroup
   dependsOn: [
     orchestrator
+    workspace
   ]
 }]

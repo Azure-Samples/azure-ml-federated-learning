@@ -163,6 +163,9 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-
       }
     }
   }
+  dependsOn: [
+    storage // ensure the storage exists BEFORE we do UAI role assignments
+  ]
 }
 
 // role of silo compute -> silo storage
