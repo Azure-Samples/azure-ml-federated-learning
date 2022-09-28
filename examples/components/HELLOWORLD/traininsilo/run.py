@@ -30,7 +30,7 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-    parser.add_argument("--round", type=str, required=False, help="Iteration name")
+    parser.add_argument("--iteration_name", type=str, required=False, help="Iteration name")
 
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
