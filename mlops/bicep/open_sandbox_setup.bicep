@@ -35,13 +35,9 @@ param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
-  // let's play with all continents!
   'westus'
   'francecentral'
   'brazilsouth'
-  'eastasia'
-  'southafricanorth'
-  'australiaeast'
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
@@ -93,7 +89,7 @@ module silos './modules/silos/open_internal_blob_uai.bicep' = [for i in range(0,
   name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloName: '${demoBaseName}-silo${i}' // avoid size limit on storage account name
+    siloName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
     machineLearningName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags

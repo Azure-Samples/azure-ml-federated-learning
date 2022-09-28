@@ -28,7 +28,7 @@ param orchestratorStorageAccountName string // needed to set permissions towards
 param siloName string = 'silo-${region}'
 
 @description('Specifies the name of the storage account to provision.')
-param storageAccountName string = substring('st${replace('${siloName}', '-', '')}', 0, 24)
+param storageAccountName string = 'st${replace('${siloName}', '-', '')}'
 
 @description('Specifies the name of the compute cluster to provision.')
 param computeName string = 'cpu-cluster-${siloName}'
@@ -71,7 +71,7 @@ param siloToOrchRoleDefinitionIds array = [
 
 // deploy a storage account for the silo
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: storageAccountName
+  name: substring(storageAccountName, 0, 24)
   location: region
   tags: tags
   sku: {
@@ -171,7 +171,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-
 // role of silo compute -> silo storage
 resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
   scope: storage
-  name: guid(storage.name, roleId, uai.name)
+  name: guid(siloName, region, storage.name, roleId, uai.name)
   properties: {
     roleDefinitionId: roleId
     principalId: uai.properties.principalId
@@ -186,7 +186,7 @@ resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-0
 }
 resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToOrchRoleDefinitionIds: {
   scope: orchestratorStorageAccount
-  name: guid(orchestratorStorageAccount.name, roleId, uai.name)
+  name: guid(siloName, region, orchestratorStorageAccount.name, roleId, uai.name)
   properties: {
     roleDefinitionId: roleId
     principalId: uai.properties.principalId
