@@ -1,0 +1,253 @@
+// Provision a basic Internal Silo with UAI for permissions management
+//
+// Given an AzureML workspace, and a specific region, this BICEP script will provision:
+// - a new blob storage account in the given region
+// - create 1 containers in this storage for private silo data
+// - 1 AzureML compute cluster in that same region, attached to the AzureML workspace
+// - 2 AzureML datastores for each of the private/shared containers
+// - a User Assigned Identity
+
+// resource group must be specified as scope in az cli or module call
+targetScope = 'resourceGroup'
+
+// required parameters
+@description('Name of AzureML workspace to attach silo to.')
+param machineLearningName string
+
+@description('Specifies the region of the silo (for storage + compute).')
+param region string
+
+@description('Tags to curate the resources in Azure.')
+param tags object = {}
+
+@description('Specifies the name of the orchestrator storage account.')
+param orchestratorStorageAccountName string // needed to set permissions towards orchestrator storage
+
+// optional parameters
+@description('Specifies the base name for creating resources.')
+param siloName string = 'silo-${region}'
+
+@description('Specifies the name of the storage account to provision.')
+param storageAccountName string = 'st${replace('${siloName}', '-', '')}'
+
+@description('Specifies the name of the compute cluster to provision.')
+param computeName string = 'cpu-cluster-${siloName}'
+
+@description('VM size for the default compute cluster')
+param computeSKU string = 'Standard_DS3_v2'
+
+@description('VM nodes for the default compute cluster')
+param computeNodes int = 4
+
+@description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
+param datastoreName string = 'datatore_${replace('${siloName}', '-', '_')}'
+
+@description('Specifies the name of the User Assigned Identity to provision.')
+param uaiName string = 'uai-${siloName}'
+
+@description('Name of the Network Security Group resource')
+param nsgResourceName string = 'nsg-${siloName}'
+
+@description('Name of the vNET resource')
+param vnetResourceName string = 'vnet-${siloName}'
+
+@description('Virtual network address prefix')
+param vnetAddressPrefix string = '10.0.0.0/16'
+
+@description('Training subnet address prefix')
+param trainingSubnetPrefix string = '10.0.0.0/24'
+
+@description('Which RBAC roles to use for silo compute -> silo storage (default R/W).')
+param siloToSiloRoleDefinitionIds array = [
+  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+  // Storage Blob Data Contributor (read,write,delete)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  // Storage Account Key Operator Service Role (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+  // Reader and Data Access (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349'
+]
+
+@description('Which RBAC roles to use for silo compute -> orchestrator storage (default R/W).')
+param siloToOrchRoleDefinitionIds array = [
+  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
+  // Storage Blob Data Contributor (read,write,delete)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+  // Storage Account Key Operator Service Role (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+  // Reader and Data Access (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349'
+]
+
+// Virtual network and network security group
+module nsg '../networking/nsg.bicep' = { 
+  name: '${nsgResourceName}-deployment'
+  params: {
+    location: region
+    nsgName: nsgResourceName
+    tags: tags
+  }
+}
+
+module vnet '../networking/vnet.bicep' = { 
+  name: '${vnetResourceName}-deployment'
+  params: {
+    location: region
+    virtualNetworkName: vnetResourceName
+    networkSecurityGroupId: nsg.outputs.id
+    vnetAddressPrefix: vnetAddressPrefix
+    trainingSubnetPrefix: trainingSubnetPrefix
+    // scoringSubnetPrefix: scoringSubnetPrefix
+    tags: tags
+  }
+}
+
+// deploy a storage account for the silo
+module storageDeployment '../resources/storage_behind_vnet.bicep' = {
+  name: '${storageAccountName}-deployment'
+  params: {
+    location: region
+    storageName: storageAccountName
+    storageSKU: 'Standard_LRS'
+    subnetId: '${vnet.outputs.id}/subnets/snet-training'
+    virtualNetworkId: vnet.outputs.id
+    tags: tags
+  }
+}
+
+// create a "private" container in the storage account
+// this one will be readable only by silo compute
+resource privatecontainer 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
+  name: '${storageAccountName}/default/siloprivate'
+  properties: {
+    metadata: {}
+    publicAccess: 'None'
+  }
+  dependsOn: [
+    storageDeployment
+  ]
+}
+
+// attach as a datastore in AzureML
+resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
+  name: '${machineLearningName}/${datastoreName}'
+  properties: {
+    credentials: {
+      credentialsType: 'None'
+      // For remaining properties, see DatastoreCredentials objects
+    }
+    description: 'Silo private storage in region ${region}'
+    properties: {}
+    datastoreType: 'AzureBlob'
+    // For remaining properties, see DatastoreProperties objects
+    accountName: storageAccountName
+    containerName: 'siloprivate'
+    // endpoint: 'string'
+    // protocol: 'string'
+    resourceGroup: resourceGroup().name
+    // serviceDataAccessAuthIdentity: 'string'
+    subscriptionId: subscription().subscriptionId
+  }
+  dependsOn: [
+    privatecontainer
+  ]
+}
+
+
+// provision a user assigned identify for this silo
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: uaiName
+  location: region
+  tags: tags
+  dependsOn: [
+    storageDeployment
+  ]
+}
+
+// module machineLearningPrivateEndpoint '../networking/aml_ple.bicep' = {
+//   name: 'aml-ple-${siloBaseName}-deployment'
+//   scope: resourceGroup()
+//   params: {
+//     location: region
+//     tags: tags
+//     virtualNetworkId: vnet.outputs.id
+//     workspaceArmId: '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.MachineLearning/${machineLearningName}'
+//     subnetId: '${vnet.outputs.id}/subnets/snet-training'
+//     machineLearningPleName: 'ple-${machineLearningName}-${siloBaseName}-mlw'
+//   }
+// }
+
+
+
+// provision a compute cluster for the silo and assigned the silo UAI to it
+resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-01-preview' = {
+  name: '${machineLearningName}/${computeName}'
+  location: region
+  identity: {
+    type: 'UserAssigned'
+    userAssignedIdentities: {
+      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}
+    }
+  }
+  properties: {
+    computeType: 'AmlCompute'
+    description: 'Silo cluster with R/W access to the silo storage'
+    properties: {
+      vmPriority: 'Dedicated'      
+      vmSize: computeSKU
+      enableNodePublicIp: true
+      isolatedNetwork: false
+      osType: 'Linux'
+      remoteLoginPortPublicAccess: 'Disabled'
+      scaleSettings: {
+        maxNodeCount: computeNodes
+        minNodeCount: 0
+        nodeIdleTimeBeforeScaleDown: 'PT300S' // 5 minutes
+      }
+      subnet: {
+        id: '${vnet.outputs.id}/subnets/snet-training'
+      }
+    }
+  }
+  dependsOn: [
+    storageDeployment
+  ]
+}
+
+// role of silo compute -> silo storage
+resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
+  name: storageAccountName
+  scope: resourceGroup()
+}
+resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
+  scope: storage
+  name: guid(storage.name, roleId, uai.name)
+  properties: {
+    roleDefinitionId: roleId
+    principalId: uai.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}]
+
+// role of silo compute -> orchestrator storage (for r/w model weights)
+resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
+  name: orchestratorStorageAccountName
+  scope: resourceGroup()
+}
+resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToOrchRoleDefinitionIds: {
+  scope: orchestratorStorageAccount
+  name: guid(orchestratorStorageAccount.name, roleId, uai.name)
+  properties: {
+    roleDefinitionId: roleId
+    principalId: uai.properties.principalId
+    principalType: 'ServicePrincipal'
+  }
+}]
+
+// output the orchestrator config for next actions (permission model)
+output uaiPrincipalId string = uai.properties.principalId
+output storage string = storageAccountName
+output container string = privatecontainer.name
+output compute string = compute.name
+output datastore string = datastore.name
+output region string = region
