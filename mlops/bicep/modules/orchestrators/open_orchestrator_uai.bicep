@@ -18,7 +18,7 @@ param region string = resourceGroup().location
 param tags object = {}
 
 @description('Name of the storage account resource to create for the orchestrator')
-param storageAccountName string = replace('st-${machineLearningName}-orch','-','') // replace because only alphanumeric characters are supported
+param storageAccountName string = substring(replace('st-${machineLearningName}-orch','-',''), 0, 24) // replace because only alphanumeric characters are supported
 
 @description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
 param datastoreName string = 'datastore_orchestrator'

@@ -28,7 +28,7 @@ param orchestratorStorageAccountName string // needed to set permissions towards
 param siloName string = 'silo-${region}'
 
 @description('Specifies the name of the storage account to provision.')
-param storageAccountName string = 'st${replace('${siloName}', '-', '')}'
+param storageAccountName string = substring('st${replace('${siloName}', '-', '')}', 0, 24)
 
 @description('Specifies the name of the compute cluster to provision.')
 param computeName string = 'cpu-cluster-${siloName}'

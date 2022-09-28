@@ -34,7 +34,15 @@ param demoBaseName string = 'fldemo'
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
-param siloRegions array = ['westus', 'westus2', 'eastus2']
+param siloRegions array = [
+  // let's play with all continents!
+  'westus'
+  'francecentral'
+  'brazilsouth'
+  'eastasia'
+  'southafricanorth'
+  'australiaeast'
+]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
@@ -51,7 +59,7 @@ param tags object = {
 // Create Azure Machine Learning workspace for orchestration
 // with an orchestration compute
 module workspace './modules/resources/open_azureml_workspace.bicep' = {
-  name: '${demoBaseName}-deployaml-${orchestratorRegion}'
+  name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
@@ -62,7 +70,7 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 
 // Create an orchestrator compute+storage pair and attach to workspace
 module orchestrator './modules/orchestrators/open_orchestrator_uai.bicep' = {
-  name: '${demoBaseName}-deployorchestrator-${orchestratorRegion}'
+  name: '${demoBaseName}-deploy-orchestrator-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
@@ -82,10 +90,10 @@ var siloCount = length(siloRegions)
 
 // Create all vanilla silos using a provided bicep module
 module silos './modules/silos/open_internal_blob_uai.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploysilo-${i}-${siloRegions[i]}'
+  name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+    siloName: '${demoBaseName}-silo${i}' // avoid size limit on storage account name
     machineLearningName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
