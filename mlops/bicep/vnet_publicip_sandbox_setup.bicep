@@ -34,7 +34,11 @@ param demoBaseName string = 'fldemo'
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
-param siloRegions array = ['westus', 'westus2', 'eastus2']
+param siloRegions array = [
+  'westus'
+  'francecentral'
+  'brazilsouth'
+]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
@@ -48,21 +52,30 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
-// Create custom roles for Federated Learning
-module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
-  name: guid(subscription().subscriptionId, 'role_storage_read_write')
-  scope: subscription()
-}
-
 // Create Azure Machine Learning workspace for orchestration
 // with an orchestration compute
-module orchestratorDeployment './modules/orchestrators/orchestrator_vnet.bicep' = {
-  name: '${demoBaseName}-deployorchestrator-${orchestratorRegion}'
+module workspace './modules/resources/open_azureml_workspace.bicep' = {
+  name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
     location: orchestratorRegion
     tags: tags
+  }
+}
+
+// Create an orchestrator compute+storage pair and attach to workspace
+module orchestrator './modules/orchestrators/vnet_orchestrator_uai.bicep' = {
+  name: '${demoBaseName}-deploy-orchestrator-${orchestratorRegion}'
+  scope: resourceGroup()
+  params: {
+    machineLearningName: workspace.outputs.workspace
+    region: orchestratorRegion
+    tags: tags
+
+    computeName: 'cpu-cluster-orchestrator'
+    computeSKU: computeSKU
+    computeNodes: 4
 
     orchestratorComputeName: 'cpu-cluster-orchestrator'
     orchestratorComputeSKU: computeSKU
@@ -70,29 +83,27 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_vnet.bicep' 
     // networking
     vnetAddressPrefix: '10.0.0.0/24'
     trainingSubnetPrefix: '10.0.0.0/24'
-
-    // permission model
-    orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
   dependsOn: [
-    storageReadWriteRoleDeployment
+    workspace
   ]
 }
 
 var siloCount = length(siloRegions)
 
-module siloDeployments './modules/silos/internal_blob_vnet.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploysilo-${i}-${siloRegions[i]}'
+// Create all silos using a provided bicep module
+module silos './modules/silos/vnet_publicip_blob_uai.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+    siloName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
     machineLearningName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
 
-    computeClusterName: 'cpu-silo${i}-${siloRegions[i]}'
-    siloComputeSKU: computeSKU
-    siloDatastoreName: 'datastore_silo${i}_${siloRegions[i]}'
+    computeName: 'cpu-silo${i}-${siloRegions[i]}'
+    computeSKU: computeSKU
+    datastoreName: 'datastore_silo${i}_${siloRegions[i]}'
 
     // networking
     vnetAddressPrefix: '10.0.${i+1}.0/24'
@@ -100,18 +111,10 @@ module siloDeployments './modules/silos/internal_blob_vnet.bicep' = [for i in ra
     //orchestratorVNet: orchestratorDeployment.outputs.vnetId
 
     // reference of the orchestrator to set permissions
-    orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
-
-    // RBAC role of silo compute -> silo storage
-     // Storage Blob Data Contributor (read,write,delete)
-     siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
-
-     // RBAC role of silo compute -> orch storage (to r/w model weights)
-      // Storage Blob Data Contributor (read,write,delete)
-     siloToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    orchestratorStorageAccountName: orchestrator.outputs.storage
    }
-  // scope: resourceGroup
   dependsOn: [
-    orchestratorDeployment
+    orchestrator
+    workspace
   ]
 }]
