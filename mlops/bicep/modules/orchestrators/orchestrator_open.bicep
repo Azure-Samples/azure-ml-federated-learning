@@ -147,6 +147,9 @@ resource orchestratorUAI 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-
   name: orchestratorUAIName
   location: location
   tags: tags
+  dependsOn: [
+    storageAccount // ensure the storage exists BEFORE we do UAI role assignments
+  ]
 }
 
 // provision a compute cluster, and assign the user assigned identity to it

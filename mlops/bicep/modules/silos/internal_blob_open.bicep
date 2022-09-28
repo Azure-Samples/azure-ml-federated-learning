@@ -129,6 +129,9 @@ resource siloUserAssignedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentit
   name: siloUAIName
   location: region
   tags: tags
+  dependsOn: [
+    siloStorageAccount // ensure the storage exists BEFORE we do UAI role assignments
+  ]
 }
 
 // provision a compute cluster for the silo and assigned the silo UAI to it
@@ -172,7 +175,7 @@ resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-0
   name: orchestratorStorageAccountName
   scope: resourceGroup()
 }
-resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
+resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToOrchRoleDefinitionIds: {
   scope: orchestratorStorageAccount
   name: guid(orchestratorStorageAccount.name, roleId, siloUserAssignedIdentity.name)
   properties: {
