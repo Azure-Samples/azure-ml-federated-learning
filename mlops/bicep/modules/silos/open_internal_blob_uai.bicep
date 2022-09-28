@@ -71,7 +71,7 @@ param siloToOrchRoleDefinitionIds array = [
 
 // deploy a storage account for the silo
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: substring(storageAccountName, 0, 24)
+  name: substring(storageAccountName, 0, min(length(storageAccountName),24))
   location: region
   tags: tags
   sku: {
