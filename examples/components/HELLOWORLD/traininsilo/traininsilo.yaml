@@ -19,10 +19,10 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
-  round:
+  iteration_name:
     type: string
     description: Iteration name
-    default: Default-round
+    default: Default-iteration
     optional: true
   checkpoint:
     type: uri_folder
@@ -35,7 +35,7 @@ inputs:
     optional: true
   epochs:
     type: integer
-    description: total number of local training rounds
+    description: total number of epochs for local training
     default: 3
     optional: true
   batch_size:
@@ -52,6 +52,6 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--round ${{inputs.round}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
+  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_name ${{inputs.iteration_name}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
 
 environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:30
