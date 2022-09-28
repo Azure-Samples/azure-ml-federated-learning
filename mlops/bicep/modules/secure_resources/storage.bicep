@@ -9,10 +9,10 @@ param tags object
 param storageName string
 
 @description('Name of the storage blob private link endpoint')
-param storagePleBlobName string
+param storagePleBlobName string = 'ple-${storageName}-st-blob'
 
 @description('Name of the storage file private link endpoint')
-param storagePleFileName string
+param storagePleFileName string = 'ple-${storageName}-st-file'
 
 @description('Resource ID of the subnet')
 param subnetId string
@@ -32,7 +32,7 @@ param virtualNetworkId string
 ])
 
 @description('Storage SKU')
-param storageSkuName string = 'Standard_LRS'
+param storageSKU string = 'Standard_LRS'
 
 var storageNameCleaned = replace(storageName, '-', '')
 
@@ -45,7 +45,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   location: location
   tags: tags
   sku: {
-    name: storageSkuName
+    name: storageSKU
   }
   kind: 'StorageV2'
   properties: {
