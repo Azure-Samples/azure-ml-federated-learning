@@ -20,6 +20,9 @@ param tags object = {}
 @description('Name of the storage account resource to create for the orchestrator')
 param storageAccountName string = replace('st-${machineLearningName}-orch','-','') // replace because only alphanumeric characters are supported
 
+@description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
+param datastoreName string = 'datastore_orchestrator'
+
 @description('Name of the default compute cluster for orchestrator')
 param computeName string = 'cpu-cluster-orchestrator'
 
@@ -39,9 +42,11 @@ param orchToOrchRoleDefinitionIds array = [
   '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
   // Storage Account Key Operator Service Role (list keys)
   '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
+  // Reader and Data Access (list keys)
+  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349'
 ]
 
-
+// deploy a storage account for the orchestrator
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   name: storageAccountName
   location: region
@@ -64,6 +69,44 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
     }
     supportsHttpsTrafficOnly: true
   }
+}
+
+// create a "private" container in the storage account
+// this one will be readable only by silo compute
+resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
+  name: '${storageAccountName}/default/orchestratorprivate'
+  properties: {
+    metadata: {}
+    publicAccess: 'None'
+  }
+  dependsOn: [
+    storage
+  ]
+}
+
+// attach as a datastore in AzureML
+resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
+  name: '${machineLearningName}/${datastoreName}'
+  properties: {
+    credentials: {
+      credentialsType: 'None'
+      // For remaining properties, see DatastoreCredentials objects
+    }
+    description: 'Silo private storage in region ${region}'
+    properties: {}
+    datastoreType: 'AzureBlob'
+    // For remaining properties, see DatastoreProperties objects
+    accountName: storageAccountName
+    containerName: 'orchestratorprivate'
+    // endpoint: 'string'
+    // protocol: 'string'
+    resourceGroup: resourceGroup().name
+    // serviceDataAccessAuthIdentity: 'string'
+    subscriptionId: subscription().subscriptionId
+  }
+  dependsOn: [
+    container
+  ]
 }
 
 // provision a user assigned identify for this silo

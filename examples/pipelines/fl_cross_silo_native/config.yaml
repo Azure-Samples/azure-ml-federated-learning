@@ -10,7 +10,7 @@ aml:
 federated_learning:
   orchestrator:
     compute: "cpu-cluster-orchestrator"
-    datastore: "workspaceblobstore"
+    datastore: "datastore_orchestrator"
 
   silos:
     - compute: cpu-silo0-westus
