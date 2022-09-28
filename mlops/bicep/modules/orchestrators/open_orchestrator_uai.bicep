@@ -97,7 +97,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
     accountName: storageAccountName
-    containerName: 'siloprivate'
+    containerName: 'orchestratorprivate'
     // endpoint: 'string'
     // protocol: 'string'
     resourceGroup: resourceGroup().name
