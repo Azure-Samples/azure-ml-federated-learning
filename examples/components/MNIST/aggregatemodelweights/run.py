@@ -37,7 +37,7 @@ def aggregate_model_weights(global_model, client_models):
     This function has aggregation method 'mean'
 
     Args:
-    global_model: aggregated model that is saved at each round
+    global_model: aggregated model that is saved for each iteration
     client_models: list of client models
     """
     global_dict = global_model.state_dict()

@@ -49,7 +49,7 @@ param tags object = {
 }
 
 module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
-  name: guid(subscription().subscriptionId, 'role_storage_read_write')
+  name: guid(subscription().subscriptionId, 'role_storage_read_write', demoBaseName)
   scope: subscription()
 }
 

@@ -45,7 +45,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--example", required=False, choices=["MNIST"], default="MNIST", help="dataset name"
+    "--example",
+    required=False,
+    choices=["MNIST", "HELLOWORLD"],
+    default="MNIST",
+    help="dataset name",
 )
 
 args = parser.parse_args()
@@ -115,21 +119,23 @@ aggregate_component = load_component(
 ########################
 
 
-def custom_fl_data_path(datastore_name, output_name, unique_id="${{name}}", round=None):
+def custom_fl_data_path(
+    datastore_name, output_name, unique_id="${{name}}", iteration_num=None
+):
     """Produces a path to store the data during FL training.
 
     Args:
         datastore_name (str): name of the Azure ML datastore
         output_name (str): a name unique to this output
         unique_id (str): a unique id for the run (default: inject run id with ${{name}})
-        round (str): an round id if relevant
+        iteration_num (str): an iteration number if relevant
 
     Returns:
         data_path (str): direct url to the data path to store the data
     """
     data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/{unique_id}/"
-    if round:
-        data_path += f"round_{round}/"
+    if iteration_num:
+        data_path += f"iteration_{iteration_num}/"
 
     return data_path
 
@@ -211,10 +217,10 @@ def fl_cross_silo_internal_basic():
     ### TRAINING ###
     ################
 
-    running_checkpoint = None  # for round 1, we have no pre-existing checkpoint
+    running_checkpoint = None  # for iteration 1, we have no pre-existing checkpoint
 
-    # now for each round, run training
-    for round in range(1, YAML_CONFIG.training_parameters.num_rounds + 1):
+    # now for each iteration, run training
+    for iteration in range(1, YAML_CONFIG.training_parameters.num_of_iterations + 1):
         # collect all outputs in a dict to be used for aggregation
         silo_weights_outputs = {}
 
@@ -226,7 +232,7 @@ def fl_cross_silo_internal_basic():
                 train_data=silo_preprocessed_train_data[silo_index],
                 # with the test_data from the pre_processing step
                 test_data=silo_preprocessed_test_data[silo_index],
-                # and the checkpoint from previous round (or None if round == 1)
+                # and the checkpoint from previous iteration (or None if iteration == 1)
                 checkpoint=running_checkpoint,
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
@@ -236,8 +242,8 @@ def fl_cross_silo_internal_basic():
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
                 metrics_prefix=silo_config.compute,
-                # Round name
-                round=f"Round-{round}",
+                # Iteration name
+                iteration_name=f"Iteration-{iteration}",
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -253,7 +259,7 @@ def fl_cross_silo_internal_basic():
                     # IMPORTANT: writing the output of training into the orchestrator datastore
                     YAML_CONFIG.federated_learning.orchestrator.datastore,
                     f"model/silo{silo_index}",
-                    round=round,
+                    iteration_num=iteration,
                 ),
             )
 
@@ -269,7 +275,7 @@ def fl_cross_silo_internal_basic():
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
         # add a readable name to the step
-        silo_training_step.name = f"round_{round}_aggregation"
+        aggregate_weights_step.name = f"iteration_{iteration}_aggregation"
 
         # make sure the data is written in the right datastore
         aggregate_weights_step.outputs.aggregated_output = Output(
@@ -279,11 +285,11 @@ def fl_cross_silo_internal_basic():
                 YAML_CONFIG.federated_learning.orchestrator.datastore,
                 "aggregated_output",
                 unique_id=pipeline_identifier,
-                round=round,
+                iteration_num=iteration,
             ),
         )
 
-        # let's keep track of the checkpoint to be used as input for next round
+        # let's keep track of the checkpoint to be used as input for next iteration
         running_checkpoint = aggregate_weights_step.outputs.aggregated_output
 
     return {"final_aggregated_model": running_checkpoint}
