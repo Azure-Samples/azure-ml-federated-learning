@@ -48,11 +48,6 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
-// module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
-//   name: guid(subscription().subscriptionId, 'role_storage_read_write')
-//   scope: subscription()
-// }
-
 // Create Azure Machine Learning workspace for orchestration
 // with an orchestration compute
 module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' = {
@@ -65,9 +60,6 @@ module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' 
 
     orchestratorComputeName: 'cpu-cluster-orchestrator'
     orchestratorComputeSKU: computeSKU
-
-    // RBAC roles of orch compute -> orch storage
-    // orchToOrchRoleDefinitionIds: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
 }
 
@@ -89,12 +81,6 @@ module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in ra
 
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
-
-    // RBAC roles of silo compute -> silo storage
-    // siloToSiloRoleDefinitionIds: [ storageReadWriteRoleDeployment.outputs.roleDefinitionId ]
-
-    // RBAC roles of silo compute -> orch storage (to r/w model weights)
-    // siloToOrchRoleDefinitionIds: [ storageReadWriteRoleDeployment.outputs.roleDefinitionId ]
   }
   // scope: resourceGroup
   dependsOn: [
