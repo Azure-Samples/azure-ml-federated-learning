@@ -1,5 +1,5 @@
 // This BICEP script will fully provision a functional federated learning sandbox
-// based on simple internal silos secured with only UAI.
+// based on simple internal silos secured with only Managed Identities.
 
 // IMPORTANT: This setup is intended only for demo purpose. The data is still accessible
 // by the users when opening the storage accounts, and data exfiltration is easy.
@@ -43,6 +43,10 @@ param siloRegions array = [
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
 
+@allowed(['UserAssigned','SystemAssigned'])
+@description('The type of identity to use for the compute clusters.')
+param identityType string = 'UserAssigned'
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -65,7 +69,7 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 }
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/orchestrators/open_orchestrator_uai.bicep' = {
+module orchestrator './modules/orchestrators/open_orchestrator_blob.bicep' = {
   name: '${demoBaseName}-deploy-orchestrator-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
@@ -76,6 +80,8 @@ module orchestrator './modules/orchestrators/open_orchestrator_uai.bicep' = {
     computeName: 'cpu-cluster-orchestrator'
     computeSKU: computeSKU
     computeNodes: 4
+
+    identityType: identityType
   }
   dependsOn: [
     workspace
@@ -85,7 +91,7 @@ module orchestrator './modules/orchestrators/open_orchestrator_uai.bicep' = {
 var siloCount = length(siloRegions)
 
 // Create all vanilla silos using a provided bicep module
-module silos './modules/silos/open_internal_blob_uai.bicep' = [for i in range(0, siloCount): {
+module silos './modules/silos/open_internal_blob.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
@@ -97,6 +103,8 @@ module silos './modules/silos/open_internal_blob_uai.bicep' = [for i in range(0,
     computeName: 'cpu-silo${i}-${siloRegions[i]}'
     computeSKU: computeSKU
     datastoreName: 'datastore_silo${i}_${siloRegions[i]}'
+
+    identityType: identityType
 
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestrator.outputs.storage
