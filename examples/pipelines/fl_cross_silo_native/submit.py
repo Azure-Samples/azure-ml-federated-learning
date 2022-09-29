@@ -195,12 +195,12 @@ def fl_cross_silo_internal_basic():
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
-            mode="upload",
+            mode="mount",
             path=custom_fl_data_path(silo_config.datastore, "train_data"),
         )
         silo_pre_processing_step.outputs.processed_test_data = Output(
             type=AssetTypes.URI_FOLDER,
-            mode="upload",
+            mode="mount",
             path=custom_fl_data_path(silo_config.datastore, "test_data"),
         )
 
@@ -253,7 +253,7 @@ def fl_cross_silo_internal_basic():
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
-                type=AssetTypes.CUSTOM_MODEL,
+                type=AssetTypes.URI_FOLDER,
                 mode="mount",
                 path=custom_fl_data_path(
                     # IMPORTANT: writing the output of training into the orchestrator datastore
@@ -279,7 +279,7 @@ def fl_cross_silo_internal_basic():
 
         # make sure the data is written in the right datastore
         aggregate_weights_step.outputs.aggregated_output = Output(
-            type=AssetTypes.CUSTOM_MODEL,
+            type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
                 YAML_CONFIG.federated_learning.orchestrator.datastore,

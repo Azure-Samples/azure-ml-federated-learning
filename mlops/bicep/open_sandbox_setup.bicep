@@ -1,5 +1,5 @@
 // This BICEP script will fully provision a functional federated learning sandbox
-// based on simple internal silos secured with only UAI.
+// based on simple internal silos secured with only Managed Identities.
 
 // IMPORTANT: This setup is intended only for demo purpose. The data is still accessible
 // by the users when opening the storage accounts, and data exfiltration is easy.
@@ -19,8 +19,8 @@
 // > az login
 // > az account set --name <subscription name>
 // > az group create --name <resource group name> --location <region>
-// > az deployment group create --template-file .\mlops\bicep\vanilla_demo_setup.bicep \
-//                              --resource-group <resource group name \
+// > az deployment group create --template-file .\mlops\bicep\open_sandbox_setup.bicep \
+//                              --resource-group <resource group name>
 //                              --parameters demoBaseName="fldemo"
 
 targetScope = 'resourceGroup'
@@ -34,10 +34,21 @@ param demoBaseName string = 'fldemo'
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
-param siloRegions array = ['westus', 'westus2', 'eastus2']
+param siloRegions array = [
+  'westus'
+  'francecentral'
+  'brazilsouth'
+]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
+
+@description('The number of nodes used for creating compute clusters in orchestrator.')
+param computeNodes int = 4
+
+@allowed(['UserAssigned','SystemAssigned'])
+@description('The type of identity to use for the compute clusters.')
+param identityType string = 'UserAssigned'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {
@@ -48,58 +59,60 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
-module storageReadWriteRoleDeployment './modules/roles/role_storage_read_write.bicep' = {
-  name: guid(subscription().subscriptionId, 'role_storage_read_write', demoBaseName)
-  scope: subscription()
-}
-
 // Create Azure Machine Learning workspace for orchestration
-// with an orchestration compute
-module orchestratorDeployment './modules/orchestrators/orchestrator_open.bicep' = {
-  name: '${demoBaseName}-deployorchestrator-${orchestratorRegion}'
+module workspace './modules/resources/open_azureml_workspace.bicep' = {
+  name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
     location: orchestratorRegion
     tags: tags
-
-    orchestratorComputeName: 'cpu-cluster-orchestrator'
-    orchestratorComputeSKU: computeSKU
-
-    // RBAC role of orch compute -> orch storage
-    orchToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
   }
+}
+
+// Create an orchestrator compute+storage pair and attach to workspace
+module orchestrator './modules/orchestrators/open_orchestrator_blob.bicep' = {
+  name: '${demoBaseName}-deploy-orchestrator-${orchestratorRegion}'
+  scope: resourceGroup()
+  params: {
+    machineLearningName: workspace.outputs.workspace
+    region: orchestratorRegion
+    tags: tags
+
+    computeName: 'cpu-cluster-orchestrator'
+    computeSKU: computeSKU
+    computeNodes: computeNodes
+
+    identityType: identityType
+  }
+  dependsOn: [
+    workspace
+  ]
 }
 
 var siloCount = length(siloRegions)
 
 // Create all vanilla silos using a provided bicep module
-module siloDeployments './modules/silos/internal_blob_open.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploysilo-${i}-${siloRegions[i]}'
+module silos './modules/silos/open_internal_blob.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
-    workspaceName: 'aml-${demoBaseName}'
+    siloName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+    machineLearningName: 'aml-${demoBaseName}'
     region: siloRegions[i]
     tags: tags
 
-    computeClusterName: 'cpu-silo${i}-${siloRegions[i]}'
-    siloComputeSKU: computeSKU
-    siloDatastoreName: 'datastore_silo${i}_${siloRegions[i]}'
+    computeName: 'cpu-silo${i}-${siloRegions[i]}'
+    computeSKU: computeSKU
+    datastoreName: 'datastore_silo${i}_${siloRegions[i]}'
+
+    identityType: identityType
 
     // reference of the orchestrator to set permissions
-    orchestratorStorageAccountName: orchestratorDeployment.outputs.storage
-
-    // RBAC role of silo compute -> silo storage
-     // Storage Blob Data Contributor (read,write,delete)
-    siloToSiloRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
-
-    // RBAC role of silo compute -> orch storage (to r/w model weights)
-     // Storage Blob Data Contributor (read,write,delete)
-    siloToOrchRoleDefinitionId: storageReadWriteRoleDeployment.outputs.roleDefinitionId
+    orchestratorStorageAccountName: orchestrator.outputs.storage
   }
-  // scope: resourceGroup
   dependsOn: [
-    orchestratorDeployment
+    orchestrator
+    workspace
   ]
 }]
