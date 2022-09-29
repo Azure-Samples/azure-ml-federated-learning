@@ -58,7 +58,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   location: region
   tags: tags
   sku: {
-    name: 'Standard_RAGRS'
+    name: 'Standard_LRS'
   }
   kind: 'StorageV2'
   properties: {
