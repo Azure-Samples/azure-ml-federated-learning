@@ -32,6 +32,9 @@ param computeSKU string = 'Standard_DS3_v2'
 @description('VM nodes for the default compute cluster')
 param computeNodes int = 4
 
+@allowed(['UserAssigned','SystemAssigned'])
+param identityType string = 'UserAssigned'
+
 @description('Name of the UAI for the default compute cluster')
 param orchestratorUAIName string = 'uai-${machineLearningName}-orchestrator'
 
@@ -92,7 +95,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
       credentialsType: 'None'
       // For remaining properties, see DatastoreCredentials objects
     }
-    description: 'Silo private storage in region ${region}'
+    description: 'Private storage in region ${region}'
     properties: {}
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
@@ -110,21 +113,26 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
 }
 
 // provision a user assigned identify for this silo
-resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
   name: orchestratorUAIName
   location: region
   tags: tags
+  dependsOn: [
+    storage // ensure the storage exists BEFORE we do UAI role assignments
+  ]
 }
+
+var identityPrincipalId = identityType == 'UserAssigned' ? uai.properties.principalId : compute.identity.principalId
+var identityName = identityType == 'UserAssigned' ? uai.name : compute.name
+var userAssignedIdentities = identityType == 'SystemAssigned' ? null : {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
 
 // provision a compute cluster, and assign the user assigned identity to it
 resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-01-preview' = {
   name: '${machineLearningName}/${computeName}'
   location: region
   identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}
-    }
+    type: identityType
+    userAssignedIdentities: userAssignedIdentities
   }
   properties: {
     computeType: 'AmlCompute'
@@ -139,24 +147,24 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-
       }
     }
   }
+  dependsOn: [
+    storage // ensure the storage exists BEFORE we do UAI role assignments
+  ]
 }
 
 // assign the role orch compute should have with orch storage
 resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in orchToOrchRoleDefinitionIds: {
   scope: storage
-  name: guid(machineLearningName, region, storage.id, roleId, uai.name)
+  name: guid(machineLearningName, region, storage.id, roleId, identityName)
   properties: {
     roleDefinitionId: roleId
-    principalId: uai.properties.principalId
+    principalId: identityPrincipalId
     principalType: 'ServicePrincipal'
   }
 }]
 
 // output the orchestrator config for next actions (permission model)
-output uaiPrincipalId string = uai.properties.principalId
+output identity string = identityPrincipalId
 output storage string = storage.name
 output compute string = compute.name
 output region string = region
-
-
-// /subscriptions/48bbc269-ce89-4f6f-9a12-c6f91fcb772d/resourceGroups/jfomhover-fldev2-rg/providers/Microsoft.Resources/deployments/fljfo11-deploy-silo-0-westus/operations/EDEAA1BE8DA78C59
