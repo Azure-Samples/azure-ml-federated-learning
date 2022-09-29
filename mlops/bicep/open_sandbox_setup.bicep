@@ -19,7 +19,7 @@
 // > az login
 // > az account set --name <subscription name>
 // > az group create --name <resource group name> --location <region>
-// > az deployment group create --template-file .\mlops\bicep\vanilla_demo_setup.bicep \
+// > az deployment group create --template-file .\mlops\bicep\open_sandbox_setup.bicep \
 //                              --resource-group <resource group name \
 //                              --parameters demoBaseName="fldemo"
 
