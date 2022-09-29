@@ -9,21 +9,21 @@ is_deterministic: true
 
 inputs:
   input_silo_1:
-    type: custom_model
+    type: uri_folder
     description: input from silo 1 (e.g., model weights, or gradient updates)
     optional: false
   input_silo_2:
-    type: custom_model
+    type: uri_folder
     description: input from silo 2 (e.g., model weights, or gradient updates)
     optional: true
   input_silo_3:
-    type: custom_model
+    type: uri_folder
     description: input from silo 3 (e.g., model weights, or gradient updates)
     optional: true
 
 outputs:
   aggregated_output:
-    type: custom_model
+    type: uri_folder
     description: the aggregated model or gradiants, residing in the orchestrator compute.
 
 code: .

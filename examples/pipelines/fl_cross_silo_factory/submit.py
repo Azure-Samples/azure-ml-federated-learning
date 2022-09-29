@@ -66,6 +66,12 @@ parser.add_argument(
     action="store_true",
     help="actually submits the experiment to AzureML",
 )
+parser.add_argument(
+    "--ignore_validation",
+    default=False,
+    action="store_true",
+    help="bypass soft validation warnings and submit the experiment",
+)
 
 parser.add_argument(
     "--example", required=False, choices=["MNIST"], default="MNIST", help="dataset name"
@@ -302,7 +308,10 @@ builder.set_default_affinity_map()
 
 # run affinity map validation
 builder.soft_validate(
-    pipeline_job, raise_exception=False  # set to False if you know what you're doing
+    pipeline_job,
+    raise_exception=not (
+        args.ignore_validation
+    ),  # set to False if you know what you're doing
 )
 
 # 5. Submit to Azure ML

@@ -122,7 +122,7 @@ class FederatedLearningPipelineFactory:
         # make sure every output data is written in the right datastore
         for key in pipeline_step.outputs:
             _output = getattr(pipeline_step.outputs, key)
-            if _output.type == AssetTypes.CUSTOM_MODEL:
+            if _output.type == AssetTypes.CUSTOM_MODEL or key.startswith("model"):
                 setattr(
                     pipeline_step.outputs,
                     key,
@@ -522,7 +522,7 @@ class FederatedLearningPipelineFactory:
                     job.outputs[output_key].type,
                 ):
                     soft_validation_report.append(
-                        f"In job {job_key}, output={output_key} of type={job.inputs[output_key].type} is located on datastore={datastore} which should not have WRITE access by compute={compute}"
+                        f"In job {job_key}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={compute}"
                     )
 
         # when looping through all jobs is done
@@ -533,9 +533,22 @@ class FederatedLearningPipelineFactory:
                 "Soft validation could not validate pipeline job due to the following issues:\n",
             )
 
-            soft_validation_report.append("\nAccording to the affinity_map:")
+            soft_validation_report.append(
+                "\nAccording to the affinity_map rules below:\n"
+            )
+            soft_validation_report.append(
+                "CLUSTER\tDATASTORE\tOPERATION\tDATATYPE\tAFFINITY"
+            )
             for key in self.affinity_map:
-                soft_validation_report.append(f" -- {key}=>{self.affinity_map[key]}")
+                soft_validation_report.append(
+                    "{c}\t{d}\t{t}\t{o}\t{a}".format(
+                        c=key[0],
+                        d=key[1],
+                        t=key[3],
+                        o=key[2],
+                        a="ALLOW" if self.affinity_map[key] else "DENY",
+                    )
+                )
 
             if raise_exception:
                 raise Exception("\n".join(soft_validation_report))
