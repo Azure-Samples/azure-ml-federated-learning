@@ -39,7 +39,7 @@ param computeNodes int = 4
 param identityType string = 'UserAssigned'
 
 @description('Name of the Assigned Identity for the default compute cluster')
-param orchestratorUAIName string = 'xai-${machineLearningName}-orchestrator'
+param orchestratorXAIName string = 'xai-${machineLearningName}-orchestrator'
 
 @description('Role definition IDs for the compute towards the internal storage')
 param orchToOrchRoleDefinitionIds array = [
@@ -117,7 +117,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
 
 // provision a user assigned identify for this silo
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
-  name: orchestratorUAIName
+  name: orchestratorXAIName
   location: region
   tags: tags
   dependsOn: [
