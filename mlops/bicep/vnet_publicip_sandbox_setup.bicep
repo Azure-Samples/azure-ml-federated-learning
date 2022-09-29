@@ -1,12 +1,7 @@
 // This BICEP script will fully provision a functional federated learning sandbox
-// based on simple internal silos secured with only UAI.
-
-// IMPORTANT: This setup is intended only for demo purpose. The data is still accessible
-// by the users when opening the storage accounts, and data exfiltration is easy.
-
-// For a given set of regions, it will provision:
-// - an AzureML workspace and compute cluster for orchestration
-// - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 UAI)
+// based on internal silos secured using a vnet and subnet to secure
+// the communication between compute and storage, plus managed identity
+// for permissions management.
 
 // The demo permission model is represented by the following matrix:
 // |               | orch.compute | siloA.compute | siloB.compute |
@@ -19,7 +14,7 @@
 // > az login
 // > az account set --name <subscription name>
 // > az group create --name <resource group name> --location <region>
-// > az deployment group create --template-file .\mlops\bicep\vanilla_demo_setup.bicep \
+// > az deployment group create --template-file .\mlops\bicep\vnet_publicip_sandbox_setup.bicep \
 //                              --resource-group <resource group name \
 //                              --parameters demoBaseName="fldemo"
 
@@ -43,6 +38,10 @@ param siloRegions array = [
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
 
+@allowed(['UserAssigned','SystemAssigned'])
+@description('The type of identity to use for the compute clusters.')
+param identityType string = 'UserAssigned'
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -65,7 +64,7 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 }
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/orchestrators/vnet_orchestrator_uai.bicep' = {
+module orchestrator './modules/orchestrators/vnet_orchestrator_blob.bicep' = {
   name: '${demoBaseName}-deploy-orchestrator-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
@@ -77,8 +76,7 @@ module orchestrator './modules/orchestrators/vnet_orchestrator_uai.bicep' = {
     computeSKU: computeSKU
     computeNodes: 4
 
-    orchestratorComputeName: 'cpu-cluster-orchestrator'
-    orchestratorComputeSKU: computeSKU
+    identityType: identityType
 
     // networking
     vnetAddressPrefix: '10.0.0.0/24'
@@ -92,7 +90,7 @@ module orchestrator './modules/orchestrators/vnet_orchestrator_uai.bicep' = {
 var siloCount = length(siloRegions)
 
 // Create all silos using a provided bicep module
-module silos './modules/silos/vnet_publicip_blob_uai.bicep' = [for i in range(0, siloCount): {
+module silos './modules/silos/vnet_internal_blob.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
@@ -105,10 +103,11 @@ module silos './modules/silos/vnet_publicip_blob_uai.bicep' = [for i in range(0,
     computeSKU: computeSKU
     datastoreName: 'datastore_silo${i}_${siloRegions[i]}'
 
+    identityType: identityType
+
     // networking
     vnetAddressPrefix: '10.0.${i+1}.0/24'
     trainingSubnetPrefix: '10.0.${i+1}.0/24'
-    //orchestratorVNet: orchestratorDeployment.outputs.vnetId
 
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestrator.outputs.storage
