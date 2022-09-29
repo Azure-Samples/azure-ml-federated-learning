@@ -42,9 +42,6 @@ param computeNodes int = 4
 @description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
 param datastoreName string = 'datatore_${replace('${siloName}', '-', '_')}'
 
-@description('Specifies the name of the User Assigned Identity to provision.')
-param uaiName string = 'uai-${siloName}'
-
 @description('Which RBAC roles to use for silo compute -> silo storage (default R/W).')
 param siloToSiloRoleDefinitionIds array = [
   // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
@@ -130,25 +127,12 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
 }
 
 
-// provision a user assigned identify for this silo
-resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
-  name: uaiName
-  location: region
-  tags: tags
-  dependsOn: [
-    storage // ensure the storage exists BEFORE we do UAI role assignments
-  ]
-}
-
 // provision a compute cluster for the silo and assigned the silo UAI to it
 resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-01-preview' = {
   name: '${machineLearningName}/${computeName}'
   location: region
   identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: {
-      '/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}
-    }
+    type: 'SystemAssigned'
   }
   properties: {
     computeType: 'AmlCompute'
@@ -171,10 +155,10 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2020-09-
 // role of silo compute -> silo storage
 resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToSiloRoleDefinitionIds: {
   scope: storage
-  name: guid(siloName, region, storage.name, roleId, uai.name)
+  name: guid(siloName, region, storage.name, roleId, compute.name)
   properties: {
     roleDefinitionId: roleId
-    principalId: uai.properties.principalId
+    principalId: compute.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }]
@@ -186,16 +170,16 @@ resource orchestratorStorageAccount 'Microsoft.Storage/storageAccounts@2021-06-0
 }
 resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in siloToOrchRoleDefinitionIds: {
   scope: orchestratorStorageAccount
-  name: guid(siloName, region, orchestratorStorageAccount.name, roleId, uai.name)
+  name: guid(siloName, region, orchestratorStorageAccount.name, roleId, compute.name)
   properties: {
     roleDefinitionId: roleId
-    principalId: uai.properties.principalId
+    principalId: compute.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }]
 
 // output the orchestrator config for next actions (permission model)
-output uaiPrincipalId string = uai.properties.principalId
+output identity string = compute.identity.principalId
 output storage string = storage.name
 output container string = container.name
 output compute string = compute.name
