@@ -6,7 +6,7 @@
 
 // For a given set of regions, it will provision:
 // - an AzureML workspace and compute cluster for orchestration
-// - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 UAI)
+// - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 Managed Identity)
 
 // The demo permission model is represented by the following matrix:
 // |               | orch.compute | siloA.compute | siloB.compute |
@@ -20,7 +20,7 @@
 // > az account set --name <subscription name>
 // > az group create --name <resource group name> --location <region>
 // > az deployment group create --template-file .\mlops\bicep\open_sandbox_setup.bicep \
-//                              --resource-group <resource group name \
+//                              --resource-group <resource group name>
 //                              --parameters demoBaseName="fldemo"
 
 targetScope = 'resourceGroup'
@@ -60,7 +60,6 @@ param tags object = {
 }
 
 // Create Azure Machine Learning workspace for orchestration
-// with an orchestration compute
 module workspace './modules/resources/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
   scope: resourceGroup()
