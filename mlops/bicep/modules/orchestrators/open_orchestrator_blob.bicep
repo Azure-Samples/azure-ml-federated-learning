@@ -164,11 +164,6 @@ resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
     principalId: identityPrincipalId
     principalType: 'ServicePrincipal'
   }
-  dependsOn: [
-    uai
-    compute
-    storage
-  ]
 }]
 
 // output the orchestrator config for next actions (permission model)
