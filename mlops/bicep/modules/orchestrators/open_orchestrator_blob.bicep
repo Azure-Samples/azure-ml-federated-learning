@@ -20,6 +20,9 @@ param tags object = {}
 @description('Name of the storage account resource to create for the orchestrator')
 param storageAccountName string = replace('st-${machineLearningName}-orch','-','') // replace because only alphanumeric characters are supported
 
+@description('Name of the storage account resource to create for the orchestrator - guaranteed to not have any length issue.')
+var truncatedStorageAccountName = substring(storageAccountName, 0, min(length(storageAccountName),24))
+
 @description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
 param datastoreName string = 'datastore_orchestrator'
 
@@ -51,11 +54,11 @@ param orchToOrchRoleDefinitionIds array = [
 
 // deploy a storage account for the orchestrator
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: substring(storageAccountName, 0, min(length(storageAccountName),24))
+  name: truncatedStorageAccountName
   location: region
   tags: tags
   sku: {
-    name: 'Standard_RAGRS'
+    name: 'Standard_LRS'
   }
   kind: 'StorageV2'
   properties: {
