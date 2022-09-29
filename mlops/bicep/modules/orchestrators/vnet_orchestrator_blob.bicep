@@ -34,6 +34,9 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
+@description('Name of the UAI for the default compute cluster')
+param uaiName string = 'uai-${machineLearningName}-orchestrator'
+
 @description('Name of the Network Security Group resource')
 param nsgResourceName string = 'nsg-${machineLearningName}-orchestrator'
 
@@ -49,8 +52,6 @@ param trainingSubnetPrefix string = '10.0.0.0/24'
 @description('Enable compute node public IP')
 param enableNodePublicIp bool = true
 
-@description('Name of the UAI for the default compute cluster')
-param uaiName string = 'uai-${machineLearningName}-orchestrator'
 
 @description('Role definition IDs for the compute towards the internal storage')
 param orchToOrchRoleDefinitionIds array = [
@@ -188,7 +189,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-
 
 // role of silo compute -> silo storage
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
-  name: storageAccountName
+  name: storageAccountCleanName
   scope: resourceGroup()
 }
 // assign the role orch compute should have with orch storage
