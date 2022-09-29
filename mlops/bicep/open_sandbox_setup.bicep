@@ -6,7 +6,7 @@
 
 // For a given set of regions, it will provision:
 // - an AzureML workspace and compute cluster for orchestration
-// - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 Managed Identity)
+// - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 UAI)
 
 // The demo permission model is represented by the following matrix:
 // |               | orch.compute | siloA.compute | siloB.compute |
