@@ -43,6 +43,9 @@ param siloRegions array = [
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
 
+@description('The number of nodes used for creating compute clusters in orchestrator.')
+param computeNodes int = 4
+
 @allowed(['UserAssigned','SystemAssigned'])
 @description('The type of identity to use for the compute clusters.')
 param identityType string = 'UserAssigned'
@@ -57,7 +60,6 @@ param tags object = {
 }
 
 // Create Azure Machine Learning workspace for orchestration
-// with an orchestration compute
 module workspace './modules/resources/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
   scope: resourceGroup()
@@ -79,7 +81,7 @@ module orchestrator './modules/orchestrators/open_orchestrator_blob.bicep' = {
 
     computeName: 'cpu-cluster-orchestrator'
     computeSKU: computeSKU
-    computeNodes: 4
+    computeNodes: computeNodes
 
     identityType: identityType
   }
