@@ -187,6 +187,11 @@ resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
     principalId: identityPrincipalId
     principalType: 'ServicePrincipal'
   }
+  dependsOn: [
+    uai
+    compute
+    storage
+  ]
 }]
 
 // role of silo compute -> orchestrator storage (for r/w model weights)
@@ -202,6 +207,11 @@ resource siloToOrchestratorRoleAssignment 'Microsoft.Authorization/roleAssignmen
     principalId: identityPrincipalId
     principalType: 'ServicePrincipal'
   }
+  dependsOn: [
+    uai
+    compute
+    orchestratorStorageAccount
+  ]
 }]
 
 // output the orchestrator config for next actions (permission model)
