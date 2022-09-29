@@ -2,7 +2,7 @@
 //
 // Given an AzureML workspace, and a specific region, this BICEP script will provision:
 // - a new blob storage account in the given region
-// - create 1 containers in this storage for private silo data
+// - create 1 container in this storage for private silo data
 // - 1 AzureML compute cluster in that same region, attached to the AzureML workspace
 // - 2 AzureML datastores for each of the private/shared containers
 // - a User Assigned Identity
@@ -29,6 +29,9 @@ param siloName string = 'silo-${region}'
 
 @description('Specifies the name of the storage account to provision.')
 param storageAccountName string = 'st${replace('${siloName}', '-', '')}'
+
+@description('Specifies the name of the storage account to provision - guaranteed to not have any length issue.')
+var truncatedStorageAccountName = substring(storageAccountName, 0, min(length(storageAccountName),24))
 
 @description('Specifies the name of the compute cluster to provision.')
 param computeName string = 'cpu-cluster-${siloName}'
@@ -73,7 +76,7 @@ param siloToOrchRoleDefinitionIds array = [
 
 // deploy a storage account for the silo
 resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' = {
-  name: substring(storageAccountName, 0, min(length(storageAccountName),24))
+  name: truncatedStorageAccountName
   location: region
   tags: tags
   sku: {
