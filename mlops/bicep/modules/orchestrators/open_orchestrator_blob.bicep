@@ -38,8 +38,8 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
-@description('Name of the UAI for the default compute cluster')
-param orchestratorUAIName string = 'uai-${machineLearningName}-orchestrator'
+@description('Name of the Assigned Identity for the default compute cluster')
+param orchestratorUAIName string = 'xai-${machineLearningName}-orchestrator'
 
 @description('Role definition IDs for the compute towards the internal storage')
 param orchToOrchRoleDefinitionIds array = [
