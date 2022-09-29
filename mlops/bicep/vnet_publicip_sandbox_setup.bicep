@@ -81,6 +81,7 @@ module orchestrator './modules/orchestrators/vnet_orchestrator_blob.bicep' = {
     // networking
     vnetAddressPrefix: '10.0.0.0/24'
     trainingSubnetPrefix: '10.0.0.0/24'
+    enableNodePublicIp: true
   }
   dependsOn: [
     workspace
@@ -108,6 +109,7 @@ module silos './modules/silos/vnet_internal_blob.bicep' = [for i in range(0, sil
     // networking
     vnetAddressPrefix: '10.0.${i+1}.0/24'
     trainingSubnetPrefix: '10.0.${i+1}.0/24'
+    enableNodePublicIp: true
 
     // reference of the orchestrator to set permissions
     orchestratorStorageAccountName: orchestrator.outputs.storage
@@ -115,5 +117,25 @@ module silos './modules/silos/vnet_internal_blob.bicep' = [for i in range(0, sil
   dependsOn: [
     orchestrator
     workspace
+  ]
+}]
+
+// Create a role assignment for the orchestrator compute to access the silo storage
+module crossgeoOrchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-deploy-crossgeo-endpoint-orch-to-${i}-${siloRegions[i]}'
+  scope: resourceGroup()
+  params: {
+    location: siloRegions[i]
+    tags: tags
+    privateLinkServiceId: orchestrator.outputs.storageServiceId
+    storagePleRootName: 'ple-${orchestrator.outputs.storage}-to-silo${i}${siloRegions[i]}-st-blob'
+    subnetId: silos[i].outputs.subnetId
+    groupIds: [
+      'blob'
+      //'file'
+    ]
+  }
+  dependsOn: [
+    silos[i]
   ]
 }]
