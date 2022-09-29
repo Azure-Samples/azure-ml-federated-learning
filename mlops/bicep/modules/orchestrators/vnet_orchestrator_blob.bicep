@@ -202,7 +202,7 @@ resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
     principalType: 'ServicePrincipal'
   }
   dependsOn: [
-    storage
+    storageDeployment
     compute
   ]
 }]
