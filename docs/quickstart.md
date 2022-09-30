@@ -47,7 +47,9 @@ We will provision:
     az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
     ```
 
-    > NOTE: if someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
+    > Notes:
+      > - If you have _Owner_ role only in a given resource group (as opposed to in the whole subscription), just use that resource group instead of creating a new one.
+      > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
 
 ## Launch the demo experiment
 
