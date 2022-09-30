@@ -1,13 +1,21 @@
-## [project-title] Changelog
+# FL Accelerator Changelog
 
-<a name="x.y.z"></a>
-# x.y.z (yyyy-mm-dd)
+##  September 2022 release
 
-*Features*
-* ...
+We are excited to announce the release of the September iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
 
-*Bug Fixes*
-* ...
+Here are the new features.
+- [Single location](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/release-sdkv2-iteration-02/README.md) for all documentation.
+- Refactored repository - removed redundant directories/files.
+- Auto-provisioning tools now provision a setup with _secured_ internal silos (using Bicep templates), with extra protection to prevent from exfiltrating data. Connect your own storage accounts to this setup, and easily run FL jobs on your own data!
+- Introduction of "factory" code to simplify the creation of FL experiments.
+  - Intuitive path for aggregated model of different iterations at one place. (\<experiment-name\>/\<iteration-num\>/\<model-name\>)
+  - Decouple components and adds soft validation to check right permissions for your assets.
+- Metrics:
+  - All model metrics of different iterations/silos can be seen at the pipeline level.
+  - No more need to aggregate metadata of different iterations/silo yourself, aggregated metrics can also be seen at the pipeline metrics preview tab.
 
-*Breaking Changes*
-* ...
+
+To get started, go [here](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/release-sdkv2-iteration-02/docs/quickstart.md)!
+
+If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
