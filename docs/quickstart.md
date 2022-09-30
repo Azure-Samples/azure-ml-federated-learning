@@ -27,8 +27,8 @@ For this iteration, we are only provisioning a _vanilla_ setup, _i.e._ a setup w
 We will provision:
 - 1 Azure ML workspace
 - 1 CPU cluster and 1 blob storage account for the [orchestrator](./glossary.md)
-- 3 [internal silos](./glossary.md) in 3 different regions (`eastus2`, `westus`, `westus2`) with their respective compute cluster and storage account
-- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict permission access to the silo's storage accounts.
+- 3 [internal silos](./glossary.md) in 3 different regions (`westus`, `francecentral`, `brazilsouth`) with their respective compute cluster and storage account
+- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict access to the silo's storage accounts.
 
 1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
 
