@@ -10,10 +10,11 @@ and data exfiltration is easy.
 
 ## Prerequisites
 
-To enjoy this quickstart, you will need:
-- [ ] to have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purpose,
-- [ ] to have permissions to create resources, set permissions, and create identities in this subscription,
-- [ ] to [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
+To enjoy this quickstart, you will need to:
+- have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
+- have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
+  - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
+- [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
 ## Deploy demo resources in Azure
 
