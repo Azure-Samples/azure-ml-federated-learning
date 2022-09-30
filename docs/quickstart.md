@@ -18,11 +18,11 @@ To enjoy this quickstart, you will need to:
 
 ## Deploy demo resources in Azure
 
-In this section, we will use a [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) script to automatically provision a minimal set of resources for an FL sandbox demo.
+In this section, we will use [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) scripts to automatically provision a minimal set of resources for an FL sandbox demo.
 
 This will help you provision a Federated Learning setup with [_internal silos_](./glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
 
-For this iteration, we are only provisioning a _vanilla_ setup, _i.e._ a setup with no security or governance features, where the silos are NOT locked down. We will add these features in future iterations. In the mean time, you should NOT be uploading sensitive data to this setup. However, you CAN use this setup for refining your training pipelines and algorithms. The only elements that will need to change when working on a _real_ secure setup will just be the orchestrator and silos names in a config file - you will be able to re-use all your code as-is.
+In this setup, the communications between the silos and the orchestrator are secure, and the silos will not have any access to the other silos' data.
 
 We will provision:
 - 1 Azure ML workspace
