@@ -250,5 +250,5 @@ output container string = container.name
 output datastore string = datastore.name
 output compute string = compute.name
 output region string = region
-output vnetId string = vnet.outputs.id
+output vnetId string = vnet.outputs.name
 output subnetId string = '${vnet.outputs.id}/subnets/snet-training'

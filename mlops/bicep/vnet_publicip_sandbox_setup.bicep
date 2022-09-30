@@ -147,8 +147,8 @@ module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(
   name: '${demoBaseName}-deploy-vnet-peering-orch-to-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    existingVirtualNetworkName1: silos[i].outputs.vnetId
-    existingVirtualNetworkName2: orchestrator.outputs.vnetId
+    existingVirtualNetworkName1: silos[i].outputs.vnetName
+    existingVirtualNetworkName2: orchestrator.outputs.vnetName
     existingVirtualNetworkName2ResourceGroupName: resourceGroup().name
   }
   dependsOn: [
