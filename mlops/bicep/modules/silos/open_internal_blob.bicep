@@ -7,6 +7,15 @@
 // - 2 AzureML datastores for each of the private/shared containers
 // - a User Assigned Identity
 
+// Usage (sh):
+// > az login
+// > az account set --name <subscription name>
+// > az deployment group create --template-file ./mlops/bicep/modules/silos/open_internal_blob.bicep \
+//                              --resource-group <existing resource group name>
+//                              --parameters machineLearningName=<existing AzureML workspace name> \
+//                                           region=<silo location> \
+//                                           orchestratorStorageAccountName = <name of existing orchestrator storage account> \
+
 // resource group must be specified as scope in az cli or module call
 targetScope = 'resourceGroup'
 
