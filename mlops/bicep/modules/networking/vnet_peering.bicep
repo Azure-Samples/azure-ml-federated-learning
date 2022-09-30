@@ -25,4 +25,17 @@ resource _vnet_peering 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings
   }
 }
 
+resource _vnet_peering_back 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2021-02-01' = {
+  name: '${existingVirtualNetworkName2}/peering-to-${existingVirtualNetworkName1}'
+  properties: {
+    allowVirtualNetworkAccess: true
+    allowForwardedTraffic: false
+    allowGatewayTransit: false
+    useRemoteGateways: false
+    remoteVirtualNetwork: {
+      id: resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks', existingVirtualNetworkName1)
+    }
+  }
+}
+
 output id string = _vnet_peering.id

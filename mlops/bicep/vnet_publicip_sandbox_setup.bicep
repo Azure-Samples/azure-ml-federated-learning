@@ -42,6 +42,9 @@ param computeSKU string = 'Standard_DS13_v2'
 @description('The type of identity to use for the compute clusters.')
 param identityType string = 'UserAssigned'
 
+@description('Apply vNet peering silos->orchestrator')
+param applyVNetPeering bool = false
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -136,6 +139,20 @@ module crossgeoOrchToSiloPrivateEndpoints './modules/networking/private_endpoint
     ]
   }
   dependsOn: [
+    silos[i]
+  ]
+}]
+
+module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(0, siloCount): if(applyVNetPeering) {
+  name: '${demoBaseName}-deploy-vnet-peering-orch-to-${i}-${siloRegions[i]}'
+  scope: resourceGroup()
+  params: {
+    existingVirtualNetworkName1: silos[i].outputs.vnetId
+    existingVirtualNetworkName2: orchestrator.outputs.vnetId
+    existingVirtualNetworkName2ResourceGroupName: resourceGroup().name
+  }
+  dependsOn: [
+    orchestrator
     silos[i]
   ]
 }]
