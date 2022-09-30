@@ -7,13 +7,13 @@ We are excited to announce the release of the September iteration of our [FL Acc
 Here are the new features.
 - [Single location](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/release-sdkv2-iteration-02/README.md) for all documentation.
 - Refactored repository - removed redundant directories/files.
-- Auto-provisioning tools now provision a setup with _secured_ internal silos (using Bicep templates), with extra protection to prevent from exfiltrating data. Connect your own storage accounts to this setup, and easily run FL jobs on your own data!
+- Auto-provisioning tools now provision a setup with _secured_ internal silos (using Bicep templates), with extra VNet protection to prevent from exfiltrating data during an FL job. Connect your own storage accounts to this setup, and easily run FL jobs on your own data!
+- Easy navigation using Azure Storage Explorer to discover models of various iterations, here is a more intuitive path (\<experiment-name\>/\<iteration-num\>/\<model-name\>)
 - Introduction of "factory" code to simplify the creation of FL experiments.
-  - Intuitive path for aggregated model of different iterations at one place. (\<experiment-name\>/\<iteration-num\>/\<model-name\>)
-  - Decouple components and adds soft validation to check right permissions for your assets.
+  - Decoupled components for more readability.
+  - Soft validation to check the correct permissions of your assets.
 - Metrics:
-  - All model metrics of different iterations/silos can be seen at the pipeline level.
-  - No more need to aggregate metadata of different iterations/silo yourself, aggregated metrics can also be seen at the pipeline metrics preview tab.
+  - The combined losses and model performances of several silos can now be seen at the pipeline level.
 
 
 To get started, go [here](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/release-sdkv2-iteration-02/docs/quickstart.md)!
