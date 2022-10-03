@@ -189,12 +189,12 @@ def preprocess_pipeline():
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
-            mode="upload",
+            mode="mount",
             path=custom_fl_data_path(silo_config.datastore, "train_data"),
         )
         silo_pre_processing_step.outputs.processed_test_data = Output(
             type=AssetTypes.URI_FOLDER,
-            mode="upload",
+            mode="mount",
             path=custom_fl_data_path(silo_config.datastore, "test_data"),
         )
 

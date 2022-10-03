@@ -10,25 +10,25 @@ and data exfiltration is easy.
 
 ## Prerequisites
 
-To enjoy this quickstart, you will need:
-- [ ] to have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purpose,
-- [ ] to have permissions to create resources, set permissions, and create identities in this subscription,
-- [ ] to [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
+To enjoy this quickstart, you will need to:
+- have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
+- have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
+  - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
+- [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
 ## Deploy demo resources in Azure
 
-In this section, we will use a [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) script to automatically provision a minimal set of resources for an FL sandbox demo.
+In this section, we will use [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) scripts to automatically provision a minimal set of resources for an FL sandbox demo.
 
 This will help you provision a Federated Learning setup with [_internal silos_](./glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
 
-For this iteration, we are only provisioning a _vanilla_ setup, _i.e._ a setup with no security or governance features, where the silos are NOT locked down. We will add these features in future iterations. In the mean time, you should NOT be uploading sensitive data to this setup. However, you CAN use this setup for refining your training pipelines and algorithms. The only elements that will need to change when working on a _real_ secure setup will just be the orchestrator and silos names in a config file - you will be able to re-use all your code as-is.
+In this setup, the communications between the silos and the orchestrator are secure, and the silos will not have any access to the other silos' data.
 
 We will provision:
 - 1 Azure ML workspace
 - 1 CPU cluster and 1 blob storage account for the [orchestrator](./glossary.md)
-- 3 [internal silos](./glossary.md) in 3 different regions (`eastus2`, `westus`, `westus2`) with their respective compute cluster and storage account
-- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict permission access to the silo's storage accounts.
-- 1 custom RBAC role at the subscription level to configure permissions between compute and storage via UAI.
+- 3 [internal silos](./glossary.md) in 3 different regions (`westus`, `francecentral`, `brazilsouth`) with their respective compute cluster and storage account
+- 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict access to the silo's storage accounts.
 
 1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
 
@@ -47,7 +47,10 @@ We will provision:
     az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
     ```
 
-    > NOTE: if someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
+    > Notes:
+      > - If you have _Owner_ role only in a given resource group (as opposed to in the whole subscription), just use that resource group instead of creating a new one.
+      > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
+      > - The `./mlops/bicep/open_sandbox_setup.bicep` bicep script is a _one-off_ script that you will need to run just once. If you want to add a silo to an already existing setup, just run the `./mlops/bicep/modules/silos/open_internal_blob.bicep` script on its own, following the usage instructions in the docstring. This script can be called repeatedly to add more silos.
 
 ## Launch the demo experiment
 
