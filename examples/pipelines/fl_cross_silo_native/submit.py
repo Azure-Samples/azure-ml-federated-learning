@@ -157,13 +157,17 @@ def getUniqueIdentifier(length=8):
 
 pipeline_identifier = getUniqueIdentifier()
 
-@pipeline(description="Preprocess component")
-def preprocess_pipeline():
-    # silo_preprocessed_train_data = (
-    #     []
-    # )  # list of preprocessed train datasets for each silo
-    # silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
-    component_output = {}
+@pipeline(description="Training and aggregation pipeline")
+def subgraph_component(iteration, running_checkpoint: Input):
+
+    ######################
+    ### PRE-PROCESSING ###
+    ######################
+
+    # once per silo, we're running a pre-processing step
+    
+    silo_weights_outputs = {}
+    # for each silo, run a distinct training with its own inputs and outputs
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # run the pre-processing component once
         silo_pre_processing_step = preprocessing_component(
@@ -197,33 +201,17 @@ def preprocess_pipeline():
             mode="mount",
             path=custom_fl_data_path(silo_config.datastore, "test_data"),
         )
+        
+        ################
+        ### TRAINING ###
+        ################
 
-        component_output[f'processed_train_data_silo_{silo_index}'] = silo_pre_processing_step.outputs.processed_train_data
-        component_output[f'processed_test_data_silo_{silo_index}'] = silo_pre_processing_step.outputs.processed_test_data
-        # # store a handle to the train data for this silo
-        # silo_preprocessed_train_data.append(
-        #     silo_pre_processing_step.outputs.processed_train_data
-        # )
-        # # store a handle to the test data for this silo
-        # silo_preprocessed_test_data.append(
-        #     silo_pre_processing_step.outputs.processed_test_data
-        # )
-    return component_output
-
-@pipeline(description="Training and aggregation pipeline")
-def training_and_aggregation_pipeline(processed_train_data_silo_0, processed_test_data_silo_0, running_checkpoint, iteration):
-    silo_weights_outputs = {}
-    # for each silo, run a distinct training with its own inputs and outputs
-    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # we're using training component here
         silo_training_step = training_component(
             # with the train_data from the pre_processing step
-            # train_data=getattr(preprocess_output, f'processed_train_data_silo_{silo_index}'),
-            # # with the test_data from the pre_processing step
-            # test_data=getattr(preprocess_output, f'processed_test_data_silo_{silo_index}'),
-            train_data=processed_train_data_silo_0,
+            train_data=silo_pre_processing_step.outputs.processed_train_data,
             # with the test_data from the pre_processing step
-            test_data=processed_test_data_silo_0,
+            test_data=silo_pre_processing_step.outputs.processed_test_data,
             # and the checkpoint from previous iteration (or None if iteration == 1)
             checkpoint=running_checkpoint,
             # Learning rate for local training
@@ -286,28 +274,19 @@ def training_and_aggregation_pipeline(processed_train_data_silo_0, processed_tes
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_cross_silo_internal_basic():
-    ######################
-    ### PRE-PROCESSING ###
-    ######################
-
-    # once per silo, we're running a pre-processing step
-
-    preprocess_output = preprocess_pipeline()
-    ################
-    ### TRAINING ###
-    ################
-
     running_checkpoint = None  # for iteration 1, we have no pre-existing checkpoint
 
     # now for each iteration, run training
+    # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
     for iteration in range(1, YAML_CONFIG.training_parameters.num_of_iterations + 1):
-        # collect all outputs in a dict to be used for aggregation
-        aggregated_output = training_and_aggregation_pipeline(preprocess_output.outputs.processed_train_data_silo_0, preprocess_output.outputs.processed_test_data_silo_0, running_checkpoint.outputs.aggregated_output if running_checkpoint else None, iteration)
-
+        
+        # call complete pipeline for each iteration
+        subgraph_output = subgraph_component(iteration, running_checkpoint)
+        
         # let's keep track of the checkpoint to be used as input for next iteration
-        running_checkpoint = aggregated_output
+        running_checkpoint = subgraph_output.outputs.aggregated_output
 
-    return {"final_aggregated_model": running_checkpoint.outputs.aggregated_output}
+    return {"final_aggregated_model": running_checkpoint}
 
 
 pipeline_job = fl_cross_silo_internal_basic()
