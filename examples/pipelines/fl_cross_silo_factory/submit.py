@@ -292,7 +292,7 @@ pipeline_job = builder.build_basic_fl_pipeline(
     silo_training,
     orchestrator_aggregation,
     # RESERVED: this kwarg is for building iterations
-    iterations=YAML_CONFIG.training_parameters.num_rounds,
+    iterations=YAML_CONFIG.training_parameters.num_of_iterations,
     # any additional custom kwarg will be sent to silo_training() as is
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
