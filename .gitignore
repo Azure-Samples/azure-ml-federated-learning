@@ -132,4 +132,4 @@ dmypy.json
 config.json
 
 # for ignoring test jobs
-./examples/pipelines/test*
+/examples/pipelines/test*
