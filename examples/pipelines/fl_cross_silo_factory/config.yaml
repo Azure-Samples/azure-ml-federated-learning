@@ -10,11 +10,11 @@ aml:
 federated_learning:
   orchestrator:
     compute: "cpu-cluster-orchestrator"
-    datastore: "datastore_orchestrator"
+    datastore: "workspaceblobstore"
 
   silos:
     - compute: cpu-silo0-westus
-      datastore: datastore_silo0_westus
+      datastore: workspaceblobstore
       # in this demo, we're using public data from a url instead
       training_data:
         type: uri_file
@@ -24,8 +24,8 @@ federated_learning:
         type: uri_file
         mode: 'download'
         path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
-    - compute: cpu-silo1-francecentral
-      datastore: datastore_silo1_francecentral
+    - compute: amlarc-desktop
+      datastore: workspaceblobstore
       # in this demo, we're using public data from a url instead
       training_data:
         type: uri_file
@@ -35,8 +35,8 @@ federated_learning:
         type: uri_file
         mode: 'download'
         path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
-    - compute: cpu-silo2-brazilsouth
-      datastore: datastore_silo2_brazilsouth
+    - compute: amlarc-compute
+      datastore: workspaceblobstore
       # in this demo, we're using public data from a url instead
       training_data:
         type: uri_file
@@ -49,7 +49,7 @@ federated_learning:
 
 # training parameters
 training_parameters:
-  num_of_iterations: 2
+  num_rounds: 2
   epochs: 3
   lr: 0.01
   batch_size: 64
