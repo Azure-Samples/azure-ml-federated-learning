@@ -158,20 +158,17 @@ class FederatedLearningPipelineFactory:
         """
 
         @pipeline(
-            description=f'FL cross-silo basic pipeline and the unique identifier is "{self.unique_identifier}" that can help you to track files in the storage account.',
+            description=f"Subgraph component"
         )
-        def _fl_cross_silo_factory_pipeline():
-            ######################
-            ### PRE-PROCESSING ###
-            ######################
-
-            # once per silo, we're running a pre-processing step
-
+        def subgraph_component(checkpoint: Input = None):
+            # collect all outputs in a dict to be used for aggregation
+            silo_training_outputs = []
             # map of preprocessed outputs
             silo_preprocessed_outputs = {}
-
+            # for each silo, run a distinct training with its own inputs and outputs
             for silo_index, silo_config in enumerate(self.silos):
-                # building the preprocessing as specified by developer
+                #Preprocessing
+
                 preprocessing_step, preprocessing_outputs = silo_preprocessing(
                     **silo_config["custom_input_args"]  # feed kwargs as given as kwargs
                 )
@@ -198,113 +195,120 @@ class FederatedLearningPipelineFactory:
                 # each output is indexed to be fed into training_component as a distinct input
                 silo_preprocessed_outputs[silo_index] = preprocessing_outputs
 
-            ################
-            ### TRAINING ###
-            ################
 
-            running_outputs = {}  # for round 1, we have no pre-existing checkpoint
 
-            # now for each round, run training
-            for round in range(1, iterations + 1):
-                # collect all outputs in a dict to be used for aggregation
-                silo_training_outputs = []
-
-                # for each silo, run a distinct training with its own inputs and outputs
-                for silo_index, silo_config in enumerate(self.silos):
-                    # building the training steps as specified by developer
-                    training_step, training_outputs = silo_training(
-                        **silo_preprocessed_outputs[
-                            silo_index
-                        ],  # feed kwargs as produced by silo_preprocessing()
-                        **running_outputs,  # feed optional running kwargs as produced by aggregate_component()
-                        **training_kwargs,  # # providing training params
-                    )
-
-                    # TODO: verify _step is an actual step
-
-                    # verify the outputs from the developer code
-                    assert isinstance(
-                        training_outputs, dict
-                    ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
-                    for key in training_outputs.keys():
-                        assert isinstance(
-                            training_outputs[key], PipelineOutputBase
-                        ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
-
-                    # make sure the compute corresponds to the silo
-                    # make sure the data is written in the right datastore
-                    self.anchor_step_in_silo(
-                        training_step,
-                        compute=silo_config["compute"],
-                        output_datastore=silo_config["datastore"],
-                        model_output_datastore=self.orchestrator["datastore"],
-                    )
-
-                    # each output is indexed to be fed into aggregate_component as a distinct input
-                    silo_training_outputs.append(training_outputs)
-
-                # a couple of basic tests before aggregating
-                # do we even have outputs?
-                assert (
-                    len(silo_training_outputs) > 0
-                ), "The list of silo outputs is empty, did you define a list of silos in config.yaml:federated_learning.silos section?"
-                # do we have enough?
-                assert len(silo_training_outputs) == len(
-                    self.silos
-                ), "The list of silo outputs has length that doesn't match length of config.yaml:federated_learning.silos section."
-
-                # does every output have the same keys?
-                reference_keys = set(silo_training_outputs[0].keys())
-                for _index, _output in enumerate(silo_training_outputs):
-                    if not (reference_keys == set(_output.keys())):
-                        raise Exception(
-                            f"""The output returned by silo at index {_index} has keys {set(_output.keys())} that differ from keys of silo 0 ({reference_keys}).
-                            Please make sure your silo_training() function returns a consistent set of keys for every silo."""
-                        )
-
-                # pivot the outputs from index->key to key->index
-                aggregation_kwargs_inputs = dict(
-                    [
-                        (
-                            key,  # for every key in the outputs
-                            [
-                                # create a list of all silos outputs
-                                _outputs[key]
-                                for _outputs in silo_training_outputs
-                            ],
-                        )
-                        for key in reference_keys
-                    ]
-                )
-
-                # aggregate all silo models into one
-                aggregation_step, aggregation_outputs = orchestrator_aggregation(
-                    **aggregation_kwargs_inputs
+                # building the training steps as specified by developer
+                training_step, training_outputs = silo_training(
+                    **silo_preprocessed_outputs[
+                        silo_index
+                    ],  # feed kwargs as produced by silo_preprocessing()
+                    running_checkpoint= checkpoint,  # feed optional running kwargs as produced by aggregate_component()
+                    **training_kwargs,  # # providing training params
                 )
 
                 # TODO: verify _step is an actual step
 
                 # verify the outputs from the developer code
                 assert isinstance(
-                    aggregation_outputs, dict
-                ), f"your orchestrator_aggregation() function should return a (step,outputs) tuple with outputs a dictionary (current type a {type(aggregation_outputs)})"
-                for key in aggregation_outputs.keys():
+                    training_outputs, dict
+                ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
+                for key in training_outputs.keys():
                     assert isinstance(
-                        aggregation_outputs[key], PipelineOutputBase
-                    ), f"orchestrator_aggregation() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(aggregation_outputs[key])})."
+                        training_outputs[key], PipelineOutputBase
+                    ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
 
-                # this is done in the orchestrator compute/datastore
+                # make sure the compute corresponds to the silo
+                # make sure the data is written in the right datastore
                 self.anchor_step_in_silo(
-                    aggregation_step,
-                    compute=self.orchestrator["compute"],
-                    output_datastore=self.orchestrator["datastore"],
+                    training_step,
+                    compute=silo_config["compute"],
+                    output_datastore=silo_config["datastore"],
                     model_output_datastore=self.orchestrator["datastore"],
                 )
 
-                # let's keep track of the running outputs (dict) to be used as input for next round
-                running_outputs = aggregation_outputs
+                # each output is indexed to be fed into aggregate_component as a distinct input
+                silo_training_outputs.append(training_outputs)
+
+            # a couple of basic tests before aggregating
+            # do we even have outputs?
+            assert (
+                len(silo_training_outputs) > 0
+            ), "The list of silo outputs is empty, did you define a list of silos in config.yaml:federated_learning.silos section?"
+            # do we have enough?
+            assert len(silo_training_outputs) == len(
+                self.silos
+            ), "The list of silo outputs has length that doesn't match length of config.yaml:federated_learning.silos section."
+
+            # does every output have the same keys?
+            reference_keys = set(silo_training_outputs[0].keys())
+            for _index, _output in enumerate(silo_training_outputs):
+                if not (reference_keys == set(_output.keys())):
+                    raise Exception(
+                        f"""The output returned by silo at index {_index} has keys {set(_output.keys())} that differ from keys of silo 0 ({reference_keys}).
+                        Please make sure your silo_training() function returns a consistent set of keys for every silo."""
+                    )
+
+            # pivot the outputs from index->key to key->index
+            aggregation_kwargs_inputs = dict(
+                [
+                    (
+                        key,  # for every key in the outputs
+                        [
+                            # create a list of all silos outputs
+                            _outputs[key]
+                            for _outputs in silo_training_outputs
+                        ],
+                    )
+                    for key in reference_keys
+                ]
+            )
+
+            # aggregate all silo models into one
+            aggregation_step, aggregation_outputs = orchestrator_aggregation(
+                **aggregation_kwargs_inputs
+            )
+
+            # TODO: verify _step is an actual step
+
+            # verify the outputs from the developer code
+            assert isinstance(
+                aggregation_outputs, dict
+            ), f"your orchestrator_aggregation() function should return a (step,outputs) tuple with outputs a dictionary (current type a {type(aggregation_outputs)})"
+            for key in aggregation_outputs.keys():
+                assert isinstance(
+                    aggregation_outputs[key], PipelineOutputBase
+                ), f"orchestrator_aggregation() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(aggregation_outputs[key])})."
+
+            # this is done in the orchestrator compute/datastore
+            self.anchor_step_in_silo(
+                aggregation_step,
+                compute=self.orchestrator["compute"],
+                output_datastore=self.orchestrator["datastore"],
+                model_output_datastore=self.orchestrator["datastore"],
+            )
+
+            # let's keep track of the running outputs (dict) to be used as input for next round
+            running_outputs = aggregation_outputs
 
             return running_outputs
+
+        @pipeline(
+            description=f'FL cross-silo basic pipeline and the unique identifier is "{self.unique_identifier}" that can help you to track files in the storage account.',
+        )
+        def _fl_cross_silo_factory_pipeline():
+            
+            # running_checkpoint = None  # for round 1, we have no pre-existing checkpoint
+            running_checkpoint = Input(
+                type="uri_folder",
+                mode="mount",
+                path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
+            )
+            # now for each round, run training
+            for round in range(1, iterations + 1):
+                running_outputs = subgraph_component(running_checkpoint)
+
+                running_checkpoint = running_outputs.outputs.running_checkpoint
+            return {"final_running_checkpoint": running_checkpoint}
 
         return _fl_cross_silo_factory_pipeline()
 
