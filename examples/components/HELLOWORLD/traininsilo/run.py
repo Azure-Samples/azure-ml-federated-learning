@@ -41,7 +41,7 @@ def get_arg_parser(parser=None):
         "--epochs",
         type=int,
         required=False,
-        help="Total number of rounds for local training",
+        help="Total number of iterations for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
     return parser
