@@ -156,7 +156,7 @@ pipeline_identifier = getUniqueIdentifier()
 
 
 @pipeline(
-    description=f'FL cross-silo basic pipeline using on-prem silos and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
+    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_cross_silo_internal_basic():
     ######################
