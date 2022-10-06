@@ -23,8 +23,7 @@ from azure.ai.ml import load_component
 # to handle yaml config easily
 from omegaconf import OmegaConf
 
-#subgraph
-import os 
+# subgraph
 os.environ["AZURE_ML_CLI_PRIVATE_FEATURES_ENABLED"] = "true"
 
 ############################
@@ -157,15 +156,19 @@ def getUniqueIdentifier(length=8):
 
 pipeline_identifier = getUniqueIdentifier()
 
-@pipeline(description="Training and aggregation pipeline")
-def subgraph_component(iteration, running_checkpoint: Input):
+
+@pipeline(
+    name="Federated Learning Subgraph",
+    description="Pipeline including preprocessing, training and aggregation components",
+)
+def subgraph_component(running_checkpoint: Input, iteration):
 
     ######################
     ### PRE-PROCESSING ###
     ######################
 
     # once per silo, we're running a pre-processing step
-    
+
     silo_weights_outputs = {}
     # for each silo, run a distinct training with its own inputs and outputs
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
@@ -201,7 +204,7 @@ def subgraph_component(iteration, running_checkpoint: Input):
             mode="mount",
             path=custom_fl_data_path(silo_config.datastore, "test_data"),
         )
-        
+
         ################
         ### TRAINING ###
         ################
@@ -222,8 +225,8 @@ def subgraph_component(iteration, running_checkpoint: Input):
             batch_size=YAML_CONFIG.training_parameters.batch_size,
             # Silo name/identifier
             metrics_prefix=silo_config.compute,
-            # Iteration name
-            iteration_name=f"Iteration-{iteration}",
+            # Iteration number
+            iteration_num=iteration,
         )
         # add a readable name to the step
         silo_training_step.name = f"silo_{silo_index}_training"
@@ -251,11 +254,9 @@ def subgraph_component(iteration, running_checkpoint: Input):
     # aggregate all silo models into one
     aggregate_weights_step = aggregate_component(**silo_weights_outputs)
     # this is done in the orchestrator compute
-    aggregate_weights_step.compute = (
-        YAML_CONFIG.federated_learning.orchestrator.compute
-    )
+    aggregate_weights_step.compute = YAML_CONFIG.federated_learning.orchestrator.compute
     # add a readable name to the step
-    aggregate_weights_step.name = f"iteration_0_aggregation"
+    aggregate_weights_step.name = f"weights_aggregation"
 
     # make sure the data is written in the right datastore
     aggregate_weights_step.outputs.aggregated_output = Output(
@@ -270,21 +271,27 @@ def subgraph_component(iteration, running_checkpoint: Input):
     )
     return {"aggregated_output": aggregate_weights_step.outputs.aggregated_output}
 
+
 @pipeline(
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_cross_silo_internal_basic():
-    running_checkpoint = None  # for iteration 1, we have no pre-existing checkpoint
+
+    # workaround as a subgraph pipeline does not support optional inputs
+    running_checkpoint = Input(
+        type="uri_folder",
+        path="https://azureopendatastorage.blob.core.windows.net/mnist/path/to/model",
+    )
 
     # now for each iteration, run training
     # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
     for iteration in range(1, YAML_CONFIG.training_parameters.num_of_iterations + 1):
-        
-        # call complete pipeline for each iteration
-        subgraph_output = subgraph_component(iteration, running_checkpoint)
-        
+
+        # call pipeline for each iteration
+        output_iteration = subgraph_component(running_checkpoint, iteration)
+
         # let's keep track of the checkpoint to be used as input for next iteration
-        running_checkpoint = subgraph_output.outputs.aggregated_output
+        running_checkpoint = output_iteration.outputs.aggregated_output
 
     return {"final_aggregated_model": running_checkpoint}
 

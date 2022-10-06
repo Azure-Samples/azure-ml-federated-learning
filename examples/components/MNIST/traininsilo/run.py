@@ -22,7 +22,7 @@ class MnistTrainer:
         epochs=1,
         batch_size=64,
         experiment_name="default-experiment",
-        iteration_name="default-iteration",
+        iteration_num=1,
     ):
         """MNIST Trainer trains RESNET18 model on the MNIST dataset.
 
@@ -31,7 +31,9 @@ class MnistTrainer:
             test_data_dir(str, optional): Testing data directory path
             lr (float, optional): Learning rate. Defaults to 0.01
             epochs (int, optional): Epochs. Defaults to 1
-            batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            batch_size (int, optional): DataLoader batch size. Defaults to 64
+            experiment_name (str, optional): Experiment name. Default is default-experiment
+            iteration_num (int, optional): Iteration number. Defaults to 1
 
         Attributes:
             model_: RESNET18 model
@@ -48,7 +50,7 @@ class MnistTrainer:
         self._epochs = epochs
         self._batch_size = batch_size
         self._experiment_name = experiment_name
-        self._iteration_name = iteration_name
+        self._iteration_num = iteration_num
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -131,7 +133,7 @@ class MnistTrainer:
         else:
             client.log_metric(
                 run_id=run_id,
-                key=f"{self._iteration_name}/{self._experiment_name}/{key}",
+                key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
                 value=value,
             )
 
@@ -142,7 +144,7 @@ class MnistTrainer:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
 
-        if checkpoint:
+        if self._iteration_num != 1 and checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
@@ -282,7 +284,7 @@ def get_arg_parser(parser=None):
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
     parser.add_argument(
-        "--iteration_name", type=str, required=False, help="Iteration name"
+        "--iteration_num", type=int, required=False, help="Iteration number"
     )
 
     parser.add_argument(
@@ -312,7 +314,7 @@ def run(args):
         lr=args.lr,
         epochs=args.epochs,
         experiment_name=args.metrics_prefix,
-        iteration_name=args.iteration_name,
+        iteration_num=args.iteration_num,
     )
     trainer.execute(args.checkpoint)
 
