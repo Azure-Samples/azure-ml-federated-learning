@@ -65,7 +65,7 @@ class FederatedLearningPipelineFactory:
         )
 
     def custom_fl_data_output(
-        self, datastore_name, output_name, unique_id="${{name}}", round=None
+        self, datastore_name, output_name, unique_id="${{name}}", iteration_num=None
     ):
         """Returns an Output pointing to a path to store the data during FL training.
 
@@ -73,14 +73,14 @@ class FederatedLearningPipelineFactory:
             datastore_name (str): name of the Azure ML datastore
             output_name (str): a name unique to this output
             unique_id (str): a unique id for the run (default: inject run id with ${{name}})
-            round (str): an round id if relevant
+            iteration_num (str): an iteration number if relevant
 
         Returns:
             data_path (str): direct url to the data path to store the data
         """
         data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/{unique_id}/"
-        if round:
-            data_path += f"round_{round}/"
+        if iteration_num:
+            data_path += f"iteration_{iteration_num}/"
 
         return Output(type=AssetTypes.URI_FOLDER, mode="mount", path=data_path)
 
