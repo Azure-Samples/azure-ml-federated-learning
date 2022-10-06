@@ -47,7 +47,7 @@ import itertools
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
 
-import os 
+# subgraphs
 os.environ["AZURE_ML_CLI_PRIVATE_FEATURES_ENABLED"] = "true"
 
 ###############################
@@ -182,6 +182,8 @@ def silo_training(
     lr: int = 0.01,  # custom param given to factory build_basic_fl_pipeline()
     batch_size: int = 64,  # custom param given to factory build_basic_fl_pipeline()
     epochs: int = 1,  # custom param given to factory build_basic_fl_pipeline()
+    metrics_prefix: str = "default-prefix",  # prefix to be used for mlflow metrics
+    iteration_num: int = 1,  # Iteration number
 ):
     """Create steps for running FL training in the silo.
 
@@ -211,6 +213,10 @@ def silo_training(
         epochs=epochs,
         # Dataloader batch size
         batch_size=batch_size,
+        # Silo name/identifier
+        metrics_prefix=metrics_prefix,
+        # iteration number
+        iteration_num=iteration_num,
     )
 
     return silo_training_step, {
@@ -247,7 +253,7 @@ def orchestrator_aggregation(weights=[]):
 
     return aggregate_weights_step, {
         # IMPORTANT: use a key that is consistent with kwargs of silo_training()
-        "running_checkpoint": aggregate_weights_step.outputs.aggregated_output
+        "aggregated_output": aggregate_weights_step.outputs.aggregated_output
     }
 
 

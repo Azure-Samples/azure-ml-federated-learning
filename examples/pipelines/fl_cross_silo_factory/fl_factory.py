@@ -158,16 +158,17 @@ class FederatedLearningPipelineFactory:
         """
 
         @pipeline(
-            description=f"Subgraph component"
+            name="Federated Learning Subgraph",
+            description="Pipeline including preprocessing, training and aggregation components",
         )
-        def subgraph_component(checkpoint: Input = None):
+        def subgraph_component(running_checkpoint: Input, iteration):
             # collect all outputs in a dict to be used for aggregation
             silo_training_outputs = []
             # map of preprocessed outputs
             silo_preprocessed_outputs = {}
             # for each silo, run a distinct training with its own inputs and outputs
             for silo_index, silo_config in enumerate(self.silos):
-                #Preprocessing
+                # Preprocessing
 
                 preprocessing_step, preprocessing_outputs = silo_preprocessing(
                     **silo_config["custom_input_args"]  # feed kwargs as given as kwargs
@@ -195,14 +196,14 @@ class FederatedLearningPipelineFactory:
                 # each output is indexed to be fed into training_component as a distinct input
                 silo_preprocessed_outputs[silo_index] = preprocessing_outputs
 
-
-
                 # building the training steps as specified by developer
                 training_step, training_outputs = silo_training(
                     **silo_preprocessed_outputs[
                         silo_index
                     ],  # feed kwargs as produced by silo_preprocessing()
-                    running_checkpoint= checkpoint,  # feed optional running kwargs as produced by aggregate_component()
+                    running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
+                    iteration_num=iteration,
+                    metrics_prefix=silo_config["compute"],
                     **training_kwargs,  # # providing training params
                 )
 
@@ -296,19 +297,24 @@ class FederatedLearningPipelineFactory:
             description=f'FL cross-silo basic pipeline and the unique identifier is "{self.unique_identifier}" that can help you to track files in the storage account.',
         )
         def _fl_cross_silo_factory_pipeline():
-            
-            # running_checkpoint = None  # for round 1, we have no pre-existing checkpoint
+
+            # workaround as a subgraph pipeline does not support optional inputs
             running_checkpoint = Input(
                 type="uri_folder",
-                mode="mount",
-                path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
+                path="https://azureopendatastorage.blob.core.windows.net/mnist/path/to/model",
             )
-            # now for each round, run training
-            for round in range(1, iterations + 1):
-                running_outputs = subgraph_component(running_checkpoint)
 
-                running_checkpoint = running_outputs.outputs.running_checkpoint
-            return {"final_running_checkpoint": running_checkpoint}
+            # now for each iteration, run training
+            # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
+            for iteration in range(1, iterations + 1):
+
+                # call pipeline for each iteration
+                output_iteration = subgraph_component(running_checkpoint, iteration)
+
+                # let's keep track of the checkpoint to be used as input for next iteration
+                running_checkpoint = output_iteration.outputs.aggregated_output
+
+            return {"final_aggregated_model": running_checkpoint}
 
         return _fl_cross_silo_factory_pipeline()
 
