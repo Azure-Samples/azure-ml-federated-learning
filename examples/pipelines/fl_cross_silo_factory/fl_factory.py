@@ -65,7 +65,7 @@ class FederatedLearningPipelineFactory:
         )
 
     def custom_fl_data_output(
-        self, datastore_name, output_name, unique_id="${{name}}", round=None
+        self, datastore_name, output_name, unique_id="${{name}}", iteration_num=None
     ):
         """Returns an Output pointing to a path to store the data during FL training.
 
@@ -73,14 +73,14 @@ class FederatedLearningPipelineFactory:
             datastore_name (str): name of the Azure ML datastore
             output_name (str): a name unique to this output
             unique_id (str): a unique id for the run (default: inject run id with ${{name}})
-            round (str): an round id if relevant
+            iteration_num (str): an iteration number if relevant
 
         Returns:
             data_path (str): direct url to the data path to store the data
         """
         data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/{unique_id}/"
-        if round:
-            data_path += f"round_{round}/"
+        if iteration_num:
+            data_path += f"iteration_{iteration_num}/"
 
         return Output(type=AssetTypes.URI_FOLDER, mode="mount", path=data_path)
 
@@ -202,10 +202,10 @@ class FederatedLearningPipelineFactory:
             ### TRAINING ###
             ################
 
-            running_outputs = {}  # for round 1, we have no pre-existing checkpoint
+            running_outputs = {}  # for iteration 1, we have no pre-existing checkpoint
 
-            # now for each round, run training
-            for round in range(1, iterations + 1):
+            # now for each iteration, run training
+            for iteration in range(1, iterations + 1):
                 # collect all outputs in a dict to be used for aggregation
                 silo_training_outputs = []
 
@@ -301,7 +301,7 @@ class FederatedLearningPipelineFactory:
                     model_output_datastore=self.orchestrator["datastore"],
                 )
 
-                # let's keep track of the running outputs (dict) to be used as input for next round
+                # let's keep track of the running outputs (dict) to be used as input for next iteration
                 running_outputs = aggregation_outputs
 
             return running_outputs

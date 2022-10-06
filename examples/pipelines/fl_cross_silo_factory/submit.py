@@ -200,7 +200,7 @@ def silo_training(
         train_data=train_data,
         # with the test_data from the pre_processing step
         test_data=test_data,
-        # and the checkpoint from previous round (or None if round == 1)
+        # and the checkpoint from previous iteration (or None if iteration == 1)
         checkpoint=running_checkpoint,
         # Learning rate for local training
         lr=lr,
@@ -292,7 +292,7 @@ pipeline_job = builder.build_basic_fl_pipeline(
     silo_training,
     orchestrator_aggregation,
     # RESERVED: this kwarg is for building iterations
-    iterations=YAML_CONFIG.training_parameters.num_rounds,
+    iterations=YAML_CONFIG.training_parameters.num_of_iterations,
     # any additional custom kwarg will be sent to silo_training() as is
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
