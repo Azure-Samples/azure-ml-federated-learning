@@ -1,4 +1,4 @@
-// Creates a virtual network
+// Creates a virtual network with service endpoint for Storage
 
 targetScope = 'resourceGroup'
 
@@ -47,6 +47,11 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-01-01' = {
           networkSecurityGroup: {
             id: networkSecurityGroupId
           }
+          serviceEndpoints: [
+            {
+              service: 'Microsoft.Storage'
+            }
+          ]
         }
       }
       // { 
