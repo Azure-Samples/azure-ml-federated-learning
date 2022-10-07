@@ -1,4 +1,4 @@
-// This BICEP script will provision an orchestrator compute+storage pair
+// This BICEP script will provision a compute+storage pair
 // in a given AzureML workspace, using a vnet and subnet to secure
 // the communication between compute and storage, plus managed identity
 // for permissions management.
@@ -7,23 +7,29 @@
 targetScope = 'resourceGroup'
 
 // required parameters
-@description('Name of AzureML workspace to attach orchestrator to.')
+@description('Name of AzureML workspace to attach compute+storage to.')
 param machineLearningName string
 
-@description('Specifies the location of the orchestrator resources.')
+@description('Specifies the location of the pair resources.')
 param region string = resourceGroup().location
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
-@description('Name of the storage account resource to create for the orchestrator')
-param storageAccountName string = replace('st-${machineLearningName}-orch','-','') // replace because only alphanumeric characters are supported
+@description('Base name used for creating all pair resources.')
+param pairBaseName string
 
-@description('Specifies the name of the datastore for attaching the storage to the AzureML workspace.')
-param datastoreName string = 'datastore_orchestrator'
+@description('Name of the storage account resource to create for the pair')
+param storageAccountName string = replace('st${pairBaseName}','-','') // replace because only alphanumeric characters are supported
 
-@description('Name of the default compute cluster for orchestrator')
-param computeName string = 'cpu-cluster-orchestrator'
+@description('Name of the storage container resource to create for the pair')
+param storageContainerName string = 'private'
+
+@description('Name of the datastore for attaching the storage to the AzureML workspace.')
+param datastoreName string = replace('datastore_${pairBaseName}','-','_')
+
+@description('Name of the default compute cluster for the pair')
+param computeName string = 'cpu-cluster-${pairBaseName}'
 
 @description('VM size for the default compute cluster')
 param computeSKU string = 'Standard_DS3_v2'
@@ -34,20 +40,23 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
-@description('Name of the UAI for the default compute cluster')
-param uaiName string = 'uai-${machineLearningName}-orchestrator'
+@description('Name of the UAI for the pair compute cluster')
+param uaiName string = 'uai-${pairBaseName}'
 
 @description('Name of the Network Security Group resource')
-param nsgResourceName string = 'nsg-${machineLearningName}-orchestrator'
+param nsgResourceName string = 'nsg-${pairBaseName}'
 
 @description('Name of the vNET resource')
-param vnetResourceName string = 'vnet-${machineLearningName}-orchestrator'
+param vnetResourceName string = 'vnet-${pairBaseName}'
 
 @description('Virtual network address prefix')
 param vnetAddressPrefix string = '10.0.0.0/16'
 
-@description('Training subnet address prefix')
-param trainingSubnetPrefix string = '10.0.0.0/24'
+@description('Subnet address prefix')
+param subnetPrefix string = '10.0.0.0/24'
+
+@description('Subnet name')
+param subnetName string = 'snet-training'
 
 @description('Enable compute node public IP')
 param enableNodePublicIp bool = true
@@ -70,8 +79,8 @@ module vnet '../networking/vnet.bicep' = {
     virtualNetworkName: vnetResourceName
     networkSecurityGroupId: nsg.outputs.id
     vnetAddressPrefix: vnetAddressPrefix
-    trainingSubnetPrefix: trainingSubnetPrefix
-    // scoringSubnetPrefix: scoringSubnetPrefix
+    subnetPrefix: subnetPrefix
+    subnetName: subnetName
     tags: tags
   }
 }
@@ -85,7 +94,7 @@ module storageDeployment '../secure_resources/storage.bicep' = {
     location: region
     storageName: storageAccountCleanName
     storageSKU: 'Standard_LRS'
-    subnetId: '${vnet.outputs.id}/subnets/snet-training'
+    subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
     virtualNetworkId: vnet.outputs.id
     tags: tags
   }
@@ -94,7 +103,7 @@ module storageDeployment '../secure_resources/storage.bicep' = {
 // create a "private" container in the storage account
 // this one will be readable only by silo compute
 resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
-  name: '${storageAccountCleanName}/default/orchestratorprivate'
+  name: '${storageAccountCleanName}/default/${storageContainerName}'
   properties: {
     metadata: {}
     publicAccess: 'None'
@@ -117,7 +126,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
     accountName: storageAccountCleanName
-    containerName: 'orchestratorprivate'
+    containerName: storageContainerName
     // endpoint: 'string'
     // protocol: 'string'
     resourceGroup: resourceGroup().name
@@ -166,7 +175,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-05-
         nodeIdleTimeBeforeScaleDown: 'PT300S' // 5 minutes
       }
       subnet: {
-        id: '${vnet.outputs.id}/subnets/snet-training'
+        id: '${vnet.outputs.id}/subnets/${subnetName}'
       }
     }
   }
@@ -175,8 +184,8 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-05-
   ]
 }
 
-// output the orchestrator config for next actions (permission model)
-output identity string = identityPrincipalId
+// output the pair config for next actions (permission model)
+output identityPrincipalId string = identityPrincipalId
 output storage string = storageAccountCleanName
 output storageServiceId string = storageDeployment.outputs.storageId
 output container string = container.name
@@ -185,4 +194,4 @@ output compute string = compute.name
 output region string = region
 output vnetName string = vnet.outputs.name
 output vnetId string = vnet.outputs.id
-output subnetId string = '${vnet.outputs.id}/subnets/snet-training'
+output subnetId string = '${vnet.outputs.id}/subnets/${subnetName}'

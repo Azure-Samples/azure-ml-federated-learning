@@ -18,7 +18,11 @@ param networkSecurityGroupId string
 param vnetAddressPrefix string = '192.168.0.0/16'
 
 @description('Training subnet address prefix')
-param trainingSubnetPrefix string = '192.168.0.0/24'
+param subnetPrefix string = '192.168.0.0/24'
+
+@description('Subnet name')
+param subnetName string = 'snet-training'
+
 
 // @description('Scoring subnet address prefix')
 // param scoringSubnetPrefix string = '192.168.1.0/24'
@@ -35,9 +39,9 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-01-01' = {
     }
     subnets: [
       { 
-        name: 'snet-training'
+        name: subnetName
         properties: {
-          addressPrefix: trainingSubnetPrefix
+          addressPrefix: subnetPrefix
           privateEndpointNetworkPolicies: 'Disabled'
           privateLinkServiceNetworkPolicies: 'Disabled'
           networkSecurityGroup: {
