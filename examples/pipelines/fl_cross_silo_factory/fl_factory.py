@@ -157,6 +157,8 @@ class FederatedLearningPipelineFactory:
             **training_kwargs: any of those will be passed to the training step as-is
         """
 
+        orchestrator_datastore = self.orchestrator.get("datastore")
+
         @pipeline(
             name="Federated Learning Subgraph",
             description="Pipeline including preprocessing, training and aggregation components",
@@ -301,7 +303,8 @@ class FederatedLearningPipelineFactory:
             # workaround as a subgraph pipeline does not support optional inputs
             running_checkpoint = Input(
                 type="uri_folder",
-                path="https://azureopendatastorage.blob.core.windows.net/mnist/path/to/model",
+                mode="mount",
+                path=f"azureml://datastores/{orchestrator_datastore}/paths/",
             )
 
             # now for each iteration, run training
