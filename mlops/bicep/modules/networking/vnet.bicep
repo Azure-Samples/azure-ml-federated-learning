@@ -47,6 +47,8 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-01-01' = {
           networkSecurityGroup: {
             id: networkSecurityGroupId
           }
+          // IMPORTANT: if you don't add this, you will not be able to add the storage
+          // to your subnet and will get an internal error
           serviceEndpoints: [
             {
               service: 'Microsoft.Storage'
