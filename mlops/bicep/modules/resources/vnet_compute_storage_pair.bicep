@@ -40,7 +40,7 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
-@description('Name of the UAI for the pair compute cluster')
+@description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
 param uaiName string = 'uai-${pairBaseName}'
 
 @description('Name of the Network Security Group resource')
@@ -186,7 +186,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-05-
 
 // output the pair config for next actions (permission model)
 output identityPrincipalId string = identityPrincipalId
-output storage string = storageAccountCleanName
+output storageName string = storageAccountCleanName
 output storageServiceId string = storageDeployment.outputs.storageId
 output container string = container.name
 output datastore string = datastore.name

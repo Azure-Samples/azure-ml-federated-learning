@@ -2,7 +2,7 @@
 // towards a given storage account
 
 @description('Full path to storage')
-param storageAccountServiceId string
+param storageAccountName string
 
 @description('PrincipalId of the managed identity')
 param identityPrincipalId string
@@ -19,7 +19,7 @@ param computeToStorageRoles array = [
 ]
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' existing = {
-  name: storageAccountServiceId
+  name: storageAccountName
 }
 
 resource roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in computeToStorageRoles: {

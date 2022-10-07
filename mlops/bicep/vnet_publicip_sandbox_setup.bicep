@@ -67,7 +67,7 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 
 // Create an orchestrator compute+storage pair and attach to workspace
 module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
-  name: '${demoBaseName}-deploy-orchestrator-${orchestratorRegion}'
+  name: '${demoBaseName}-deploy-orchestrator'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
@@ -98,7 +98,7 @@ module orchestratorPermission './modules/permissions/msi_storage_rw.bicep' = {
   name: '${demoBaseName}-deploy-orchestrator-permission-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
-    storageAccountServiceId: orchestrator.outputs.storageServiceId
+    storageAccountName: orchestrator.outputs.storageName
     identityPrincipalId: orchestrator.outputs.identityPrincipalId
   }
   dependsOn: [
@@ -132,7 +132,6 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
     enableNodePublicIp: true
   }
   dependsOn: [
-    orchestrator
     workspace
   ]
 }]
@@ -142,7 +141,7 @@ module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for
   name: '${demoBaseName}-deploy-silo${i}-permission-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    storageAccountServiceId: silos[i].outputs.storageServiceId
+    storageAccountName: silos[i].outputs.storageName
     identityPrincipalId: silos[i].outputs.identityPrincipalId
   }
   dependsOn: [
