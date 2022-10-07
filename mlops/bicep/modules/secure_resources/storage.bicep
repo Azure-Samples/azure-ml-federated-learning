@@ -80,12 +80,12 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
       // Sets the resource access rules
       resourceAccessRules: [
         {
-          id: resourceId('Microsoft.Storage/storageAccounts/blobServices', storageNameCleaned, 'default')
-          type: 'Microsoft.Storage/storageAccounts/blobServices/containers'
+          resourceId: resourceId('Microsoft.Storage/storageAccounts/blobServices', storageNameCleaned, 'default')
+          tenantId: tenant().tenantId
         }
         {
-          id: resourceId('Microsoft.Storage/storageAccounts/fileServices', storageNameCleaned, 'default')
-          type: 'Microsoft.Storage/storageAccounts/fileServices/shares'
+          resourceId: resourceId('Microsoft.Storage/storageAccounts/fileServices', storageNameCleaned, 'default')
+          tenantId: tenant().tenantId
         }
       ]
 
@@ -94,13 +94,12 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
         {
           id: subnetId
           action: 'Allow'
-          state: 'Succeeded'
         }
       ]
     }
 
     // Allow or disallow public network access to Storage Account.
-    publicNetworkAccess: 'Disabled'
+    publicNetworkAccess: 'Enabled'
   
     // 	Maintains information about the network routing choice opted by the user for data transfer
     routingPreference: {
@@ -108,7 +107,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
       routingChoice: 'MicrosoftRouting'
 
       // A boolean flag which indicates whether internet routing storage endpoints are to be published
-      publishInternetEndpoints: false
+      // publishInternetEndpoints: false
 
       // A boolean flag which indicates whether microsoft routing storage endpoints are to be published
       publishMicrosoftEndpoints: true
