@@ -187,6 +187,10 @@ resource siloToSiloRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-
     principalId: identityPrincipalId
     principalType: 'ServicePrincipal'
   }
+  dependsOn: [
+    compute
+    storage
+  ]
 }]
 
 // role of silo compute -> orchestrator storage (for r/w model weights)

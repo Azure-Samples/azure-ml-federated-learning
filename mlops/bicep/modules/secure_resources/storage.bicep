@@ -40,7 +40,7 @@ var blobPrivateDnsZoneName = 'privatelink.blob.${storageNameCleaned}.${environme
 
 var filePrivateDnsZoneName = 'privatelink.file.${storageNameCleaned}.${environment().suffixes.storage}'
 
-resource storage 'Microsoft.Storage/storageAccounts@2021-04-01' = {
+resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: storageNameCleaned
   location: location
   tags: tags
@@ -205,4 +205,16 @@ resource filePrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNe
   }
 }
 
+// output storage references
 output storageId string = storage.id
+output storageName string = storage.name
+
+// output everything else
+output storagePrivateEndpointBlobId string = storagePrivateEndpointBlob.id
+output storagePrivateEndpointBlobName string = storagePrivateEndpointBlob.name
+output storagePrivateEndpointFileId string = storagePrivateEndpointFile.id
+output storagePrivateEndpointFileName string = storagePrivateEndpointFile.name
+output blobPrivateDnsZoneId string = blobPrivateDnsZone.id
+output blobPrivateDnsZoneName string = blobPrivateDnsZone.name
+output filePrivateDnsZoneId string = filePrivateDnsZone.id
+output filePrivateDnsZoneName string = filePrivateDnsZone.name

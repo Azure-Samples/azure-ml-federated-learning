@@ -53,17 +53,6 @@ param trainingSubnetPrefix string = '10.0.0.0/24'
 param enableNodePublicIp bool = true
 
 
-@description('Role definition IDs for the compute towards the internal storage')
-param orchToOrchRoleDefinitionIds array = [
-  // see https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles
-  // Storage Blob Data Contributor (read,write,delete)
-  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe'
-  // Storage Account Key Operator Service Role (list keys)
-  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12'
-  // Reader and Data Access (list keys)
-  '/subscriptions/${subscription().subscriptionId}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349'
-]
-
 // Virtual network and network security group
 module nsg '../networking/nsg.bicep' = { 
   name: '${nsgResourceName}-deployment'
@@ -151,11 +140,10 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
 }
 
 var identityPrincipalId = identityType == 'UserAssigned' ? uai.properties.principalId : compute.identity.principalId
-var identityName = identityType == 'UserAssigned' ? uai.name : compute.name
 var userAssignedIdentities = identityType == 'SystemAssigned' ? null : {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
 
 // provision a compute cluster, and assign the user assigned identity to it
-resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-01-preview' = {
+resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-05-01' = {
   name: '${machineLearningName}/${computeName}'
   location: region
   identity: {
@@ -187,30 +175,10 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-
   ]
 }
 
-// role of silo compute -> silo storage
-resource storage 'Microsoft.Storage/storageAccounts@2021-06-01' existing = {
-  name: storageAccountCleanName
-  scope: resourceGroup()
-}
-// assign the role orch compute should have with orch storage
-resource orchToOrchRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for roleId in orchToOrchRoleDefinitionIds: {
-  scope: storage
-  name: guid(machineLearningName, region, storage.id, roleId, identityName)
-  properties: {
-    roleDefinitionId: roleId
-    principalId: identityPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    storageDeployment
-    compute
-  ]
-}]
-
 // output the orchestrator config for next actions (permission model)
 output identity string = identityPrincipalId
-output storage string = storage.name
-output storageServiceId string = storage.id
+output storage string = storageAccountCleanName
+output storageServiceId string = storageDeployment.outputs.storageId
 output container string = container.name
 output datastore string = datastore.name
 output compute string = compute.name
