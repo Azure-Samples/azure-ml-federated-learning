@@ -115,7 +115,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
   ]
 }
 
-// provision a user assigned identify for this silo
+// provision a user assigned identify for the orchestrator
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
   name: orchestratorUAIName
   location: region
