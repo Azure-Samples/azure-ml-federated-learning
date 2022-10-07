@@ -25,6 +25,9 @@ targetScope = 'resourceGroup'
 param demoBaseName string = 'fldemo'
 
 // below parameters are optionals and have default values
+@allowed(['UserAssigned','SystemAssigned'])
+param identityType string = 'UserAssigned'
+
 @description('Location of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
@@ -37,10 +40,6 @@ param siloRegions array = [
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
-
-@allowed(['UserAssigned','SystemAssigned'])
-@description('The type of identity to use for the compute clusters.')
-param identityType string = 'UserAssigned'
 
 @description('Apply vNet peering silos->orchestrator')
 param applyVNetPeering bool = false
@@ -67,7 +66,7 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 }
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/orchestrators/vnet_orchestrator_blob.bicep' = {
+module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
   name: '${demoBaseName}-deploy-orchestrator-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
@@ -75,15 +74,18 @@ module orchestrator './modules/orchestrators/vnet_orchestrator_blob.bicep' = {
     region: orchestratorRegion
     tags: tags
 
-    computeName: 'cpu-cluster-orchestrator'
+    pairBaseName: '${demoBaseName}-orch'
+
+    computeName: 'cpu-orch' // let's not use demo base name in cluster name
     computeSKU: computeSKU
     computeNodes: 4
 
+    // identity for permissions model
     identityType: identityType
 
     // networking
     vnetAddressPrefix: '10.0.0.0/24'
-    trainingSubnetPrefix: '10.0.0.0/24'
+    subnetPrefix: '10.0.0.0/24'
     enableNodePublicIp: true
   }
   dependsOn: [
@@ -91,68 +93,93 @@ module orchestrator './modules/orchestrators/vnet_orchestrator_blob.bicep' = {
   ]
 }
 
+// set R/W permissions for orchestrator UAI towards orchestrator storage
+module orchestratorPermission './modules/permissions/msi_storage_rw.bicep' = {
+  name: '${demoBaseName}-deploy-orchestrator-permission-${orchestratorRegion}'
+  scope: resourceGroup()
+  params: {
+    storageAccountServiceId: orchestrator.outputs.storageServiceId
+    identityPrincipalId: orchestrator.outputs.identityPrincipalId
+  }
+  dependsOn: [
+    orchestrator
+  ]
+}
+
 var siloCount = length(siloRegions)
 
 // Create all silos using a provided bicep module
-module silos './modules/silos/vnet_internal_blob.bicep' = [for i in range(0, siloCount): {
+module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    siloName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
-    machineLearningName: 'aml-${demoBaseName}'
+    machineLearningName: workspace.outputs.workspace
     region: siloRegions[i]
     tags: tags
 
-    computeName: 'cpu-silo${i}-${siloRegions[i]}'
+    pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+
+    computeName: 'cpu-silo${i}-${siloRegions[i]}' // let's not use demo base name
     computeSKU: computeSKU
-    datastoreName: 'datastore_silo${i}_${siloRegions[i]}'
+    computeNodes: 4
+    datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
 
     identityType: identityType
 
     // networking
     vnetAddressPrefix: '10.0.${i+1}.0/24'
-    trainingSubnetPrefix: '10.0.${i+1}.0/24'
+    subnetPrefix: '10.0.${i+1}.0/24'
     enableNodePublicIp: true
-
-    // reference of the orchestrator to set permissions
-    orchestratorStorageAccountName: orchestrator.outputs.storage
-   }
+  }
   dependsOn: [
     orchestrator
     workspace
   ]
 }]
 
-// Create a role assignment for the orchestrator compute to access the silo storage
-module crossgeoOrchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-crossgeo-endpoint-orch-to-${i}-${siloRegions[i]}'
+// set R/W permissions for silo identity towards silo storage
+module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-deploy-silo${i}-permission-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
-    location: siloRegions[i]
-    tags: tags
-    privateLinkServiceId: orchestrator.outputs.storageServiceId
-    storagePleRootName: 'ple-${orchestrator.outputs.storage}-to-silo${i}${siloRegions[i]}-st-blob'
-    subnetId: silos[i].outputs.subnetId
-    groupIds: [
-      'blob'
-      //'file'
-    ]
+    storageAccountServiceId: silos[i].outputs.storageServiceId
+    identityPrincipalId: silos[i].outputs.identityPrincipalId
   }
   dependsOn: [
-    silos[i]
+    silos
   ]
 }]
 
-module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(0, siloCount): if(applyVNetPeering) {
-  name: '${demoBaseName}-deploy-vnet-peering-orch-to-${i}-${siloRegions[i]}'
-  scope: resourceGroup()
-  params: {
-    existingVirtualNetworkName1: silos[i].outputs.vnetName
-    existingVirtualNetworkName2: orchestrator.outputs.vnetName
-    existingVirtualNetworkName2ResourceGroupName: resourceGroup().name
-  }
-  dependsOn: [
-    orchestrator
-    silos[i]
-  ]
-}]
+// // Create a role assignment for the orchestrator compute to access the silo storage
+// module crossgeoOrchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): {
+//   name: '${demoBaseName}-deploy-crossgeo-endpoint-orch-to-${i}-${siloRegions[i]}'
+//   scope: resourceGroup()
+//   params: {
+//     location: siloRegions[i]
+//     tags: tags
+//     privateLinkServiceId: orchestrator.outputs.storageServiceId
+//     storagePleRootName: 'ple-${orchestrator.outputs.storage}-to-silo${i}${siloRegions[i]}-st-blob'
+//     subnetId: silos[i].outputs.subnetId
+//     groupIds: [
+//       'blob'
+//       //'file'
+//     ]
+//   }
+//   dependsOn: [
+//     silos[i]
+//   ]
+// }]
+
+// module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(0, siloCount): if(applyVNetPeering) {
+//   name: '${demoBaseName}-deploy-vnet-peering-orch-to-${i}-${siloRegions[i]}'
+//   scope: resourceGroup()
+//   params: {
+//     existingVirtualNetworkName1: silos[i].outputs.vnetName
+//     existingVirtualNetworkName2: orchestrator.outputs.vnetName
+//     existingVirtualNetworkName2ResourceGroupName: resourceGroup().name
+//   }
+//   dependsOn: [
+//     orchestrator
+//     silos[i]
+//   ]
+// }]
