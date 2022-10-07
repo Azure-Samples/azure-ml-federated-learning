@@ -281,8 +281,9 @@ def fl_cross_silo_internal_basic():
     running_checkpoint = Input(
         type="uri_folder",
         mode="mount",
-        path=f"azureml://datastores/{YAML_CONFIG.federated_learning.orchestrator.datastore}/paths/")
-    
+        path=f"azureml://datastores/{YAML_CONFIG.federated_learning.orchestrator.datastore}/paths/",
+    )
+
     # now for each iteration, run training
     # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
     for iteration in range(1, YAML_CONFIG.training_parameters.num_of_iterations + 1):
