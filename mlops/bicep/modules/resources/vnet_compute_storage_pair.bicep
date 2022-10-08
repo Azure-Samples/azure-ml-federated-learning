@@ -172,7 +172,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
     disableLocalAuth: true
 
     properties: {
-      vmPriority: 'Dedicated'      
+      vmPriority: 'Dedicated'
       vmSize: computeSKU
       osType: 'Linux'
 
@@ -198,7 +198,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
     }
   }
   dependsOn: [
-    storageDeployment  // ensure the storage exists BEFORE we do UAI role assignments
+    storageDeployment // ensure the storage exists BEFORE we do UAI role assignments
   ]
 }
 

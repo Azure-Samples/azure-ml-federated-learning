@@ -44,6 +44,7 @@ param computeSKU string = 'Standard_DS13_v2'
 @description('Apply vNet peering silos->orchestrator')
 param applyVNetPeering bool = false
 
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -53,8 +54,7 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
-// Create Azure Machine Learning workspace for orchestration
-// with an orchestration compute
+// Create Azure Machine Learning workspace
 module workspace './modules/resources/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
   scope: resourceGroup()
@@ -142,10 +142,23 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
 
 // set R/W permissions for silo identity towards silo storage
 module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo${i}-permission-${siloRegions[i]}'
+  name: '${demoBaseName}-deploy-silo${i}-permission'
   scope: resourceGroup()
   params: {
     storageAccountName: silos[i].outputs.storageName
+    identityPrincipalId: silos[i].outputs.identityPrincipalId
+  }
+  dependsOn: [
+    silos
+  ]
+}]
+
+// set R/W permissions for silo identity towards orchestrator storage
+module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-deploy-silo${i}-to-orch-permission'
+  scope: resourceGroup()
+  params: {
+    storageAccountName: orchestrator.outputs.storageName
     identityPrincipalId: silos[i].outputs.identityPrincipalId
   }
   dependsOn: [
