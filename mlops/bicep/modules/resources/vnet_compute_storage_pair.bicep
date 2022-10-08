@@ -161,7 +161,7 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' exi
 resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-01' = {
   name: computeName
   parent: workspace
-  location: workspaceRegion
+  location: machineLearningRegion
   identity: {
     type: identityType
     userAssignedIdentities: userAssignedIdentities
