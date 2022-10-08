@@ -80,7 +80,7 @@ module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
 
     pairBaseName: '${demoBaseName}-orch'
 
-    computeName: 'cpu-orch' // let's not use demo base name in cluster name
+    computeName: 'cpu-orchestrator' // let's not use demo base name in cluster name
     computeSKU: computeSKU
     computeNodes: 4
     datastoreName: 'datastore_orchestrator' // let's not use demo base name
