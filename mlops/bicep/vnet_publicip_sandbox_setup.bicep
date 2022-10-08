@@ -71,6 +71,8 @@ module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
+    machineLearningRegion: orchestratorRegion
+
     region: orchestratorRegion
     tags: tags
 
@@ -115,6 +117,7 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
+    machineLearningRegion: orchestratorRegion
     region: siloRegions[i]
     tags: tags
 

@@ -10,6 +10,9 @@ targetScope = 'resourceGroup'
 @description('Name of AzureML workspace to attach compute+storage to.')
 param machineLearningName string
 
+@description('The region of the machine learning workspace')
+param machineLearningRegion string
+
 @description('Specifies the location of the pair resources.')
 param region string = resourceGroup().location
 
@@ -21,6 +24,7 @@ param pairBaseName string
 
 @description('Name of the storage account resource to create for the pair')
 param storageAccountName string = replace('st${pairBaseName}','-','') // replace because only alphanumeric characters are supported
+var storageAccountCleanName = substring(storageAccountName, 0, min(length(storageAccountName),24))
 
 @description('Name of the storage container resource to create for the pair')
 param storageContainerName string = 'private'
@@ -85,9 +89,7 @@ module vnet '../networking/vnet.bicep' = {
   }
 }
 
-var storageAccountCleanName = substring(storageAccountName, 0, min(length(storageAccountName),24))
-
-// deploy a storage account for the silo
+// deploy a storage account for the pair
 module storageDeployment '../secure_resources/storage.bicep' = {
   name: '${storageAccountCleanName}-deployment'
   params: {
@@ -151,32 +153,48 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
 var identityPrincipalId = identityType == 'UserAssigned' ? uai.properties.principalId : compute.identity.principalId
 var userAssignedIdentities = identityType == 'SystemAssigned' ? null : {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
 
+resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' existing = {
+  name: machineLearningName
+}
+
 // provision a compute cluster, and assign the user assigned identity to it
-resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2022-05-01' = {
-  name: '${machineLearningName}/${computeName}'
-  location: region
+resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-01' = {
+  name: computeName
+  parent: workspace
+  location: workspaceRegion
   identity: {
     type: identityType
     userAssignedIdentities: userAssignedIdentities
   }
   properties: {
     computeType: 'AmlCompute'
-    description: 'Silo cluster with R/W access to the silo storage'
+    computeLocation: region
+    disableLocalAuth: true
+
     properties: {
       vmPriority: 'Dedicated'      
       vmSize: computeSKU
-      enableNodePublicIp: enableNodePublicIp
-      isolatedNetwork: false
       osType: 'Linux'
-      remoteLoginPortPublicAccess: 'Disabled'
+
+      // how many nodes to provision
       scaleSettings: {
         maxNodeCount: computeNodes
         minNodeCount: 0
         nodeIdleTimeBeforeScaleDown: 'PT300S' // 5 minutes
       }
+
+      // networking
+      enableNodePublicIp: enableNodePublicIp
+      isolatedNetwork: false
+      remoteLoginPortPublicAccess: 'Disabled'
+
+      // includes compute in the vnet/subnet
       subnet: {
         id: '${vnet.outputs.id}/subnets/${subnetName}'
       }
+
+      // ???
+      // propertyBag: any()
     }
   }
   dependsOn: [
