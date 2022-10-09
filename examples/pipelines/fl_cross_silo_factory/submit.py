@@ -28,6 +28,7 @@ import argparse
 import random
 import string
 import datetime
+import webbrowser
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
@@ -74,7 +75,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--example", required=False, choices=["MNIST"], default="MNIST", help="dataset name"
+    "--example",
+    required=False,
+    choices=["MNIST", "HELLOWORLD"],
+    default="MNIST",
+    help="dataset name",
 )
 
 args = parser.parse_args()
@@ -325,5 +330,7 @@ if args.submit:
 
     print("The url to see your live job running is returned by the sdk:")
     print(pipeline_job.services["Studio"].endpoint)
+
+    webbrowser.open(pipeline_job.services["Studio"].endpoint)
 else:
     print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
