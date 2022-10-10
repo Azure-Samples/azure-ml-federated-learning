@@ -34,4 +34,4 @@ jobs:
       run: python examples/pipelines/fl_cross_silo_native/submit.py
 
     - name: Submit HelloWorld fl_cross_silo_native pipeline
-      run: python submit.py --subscription_id ${{ secrets.SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP }} --workspace_name ${{ secrets.AML_WORKSPACE_NAME }} --example HELLOWORLD --submit
+      run: python examples/pipelines/fl_cross_silo_native/submit.py --subscription_id ${{ secrets.SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP }} --workspace_name ${{ secrets.AML_WORKSPACE_NAME }} --example HELLOWORLD --submit
