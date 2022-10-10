@@ -161,7 +161,7 @@ pipeline_identifier = getUniqueIdentifier()
     name="Federated Learning Subgraph",
     description="Pipeline including preprocessing, training and aggregation components",
 )
-def subgraph_component(running_checkpoint: Input, iteration):
+def subgraph_component(running_checkpoint: Input(optional=True), iteration):
 
     ######################
     ### PRE-PROCESSING ###
@@ -277,12 +277,7 @@ def subgraph_component(running_checkpoint: Input, iteration):
 )
 def fl_cross_silo_internal_basic():
 
-    # workaround as a subgraph pipeline does not support optional inputs
-    running_checkpoint = Input(
-        type="uri_folder",
-        mode="mount",
-        path=f"azureml://datastores/{YAML_CONFIG.federated_learning.orchestrator.datastore}/paths/",
-    )
+    running_checkpoint = None
 
     # now for each iteration, run training
     # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
