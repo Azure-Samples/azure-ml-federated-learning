@@ -47,7 +47,7 @@ We will provision:
     > Notes:
     > - If you have _Owner_ role only in a given resource group (as opposed to in the whole subscription), just use that resource group instead of creating a new one.
 
-4. Run the bicep deployment script in a resource group you own:
+3. Run the bicep deployment script in a resource group you own:
 
     ```
     # deploy the demo resources in your resource group
