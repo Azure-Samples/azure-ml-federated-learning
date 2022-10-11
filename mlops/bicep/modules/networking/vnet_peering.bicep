@@ -4,36 +4,39 @@
 targetScope = 'resourceGroup'
 
 @description('Set the local VNet name')
-param existingVirtualNetworkName1 string
+param existingVirtualNetworkNameSource string
 
 @description('Set the remote VNet name')
-param existingVirtualNetworkName2 string
+param existingVirtualNetworkNameTarget string
 
 @description('Sets the remote VNet Resource group')
-param existingVirtualNetworkName2ResourceGroupName string = resourceGroup().name
+param existingVirtualNetworkNameTargetResourceGroupName string = resourceGroup().name
 
-resource _vnet_peering 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2021-02-01' = {
-  name: '${existingVirtualNetworkName1}/peering-to-${existingVirtualNetworkName2}'
+param useGatewayFromSourceToTarget bool = false
+param allowVirtualNetworkAccess bool = true
+
+resource _vnet_peering 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2022-01-01' = {
+  name: '${existingVirtualNetworkNameSource}/peering-to-${existingVirtualNetworkNameTarget}'
   properties: {
-    allowVirtualNetworkAccess: true
+    allowVirtualNetworkAccess: allowVirtualNetworkAccess
     allowForwardedTraffic: false
     allowGatewayTransit: false
-    useRemoteGateways: false
+    useRemoteGateways: useGatewayFromSourceToTarget
     remoteVirtualNetwork: {
-      id: resourceId(existingVirtualNetworkName2ResourceGroupName, 'Microsoft.Network/virtualNetworks', existingVirtualNetworkName2)
+      id: resourceId(existingVirtualNetworkNameTargetResourceGroupName, 'Microsoft.Network/virtualNetworks', existingVirtualNetworkNameTarget)
     }
   }
 }
 
-resource _vnet_peering_back 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2021-02-01' = {
-  name: '${existingVirtualNetworkName2}/peering-to-${existingVirtualNetworkName1}'
+resource _vnet_peering_back 'Microsoft.Network/virtualNetworks/virtualNetworkPeerings@2022-01-01' = {
+  name: '${existingVirtualNetworkNameTarget}/peering-to-${existingVirtualNetworkNameSource}'
   properties: {
-    allowVirtualNetworkAccess: true
+    allowVirtualNetworkAccess: allowVirtualNetworkAccess
     allowForwardedTraffic: false
-    allowGatewayTransit: false
+    allowGatewayTransit: useGatewayFromSourceToTarget
     useRemoteGateways: false
     remoteVirtualNetwork: {
-      id: resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks', existingVirtualNetworkName1)
+      id: resourceId(resourceGroup().name, 'Microsoft.Network/virtualNetworks', existingVirtualNetworkNameSource)
     }
   }
 }

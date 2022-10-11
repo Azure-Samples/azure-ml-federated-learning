@@ -62,9 +62,15 @@ param subnetPrefix string = '10.0.0.0/24'
 @description('Subnet name')
 param subnetName string = 'snet-training'
 
+@description('Allow other subnets into the storage (need to be in the same region)')
+param allowedSubnetIds array = []
+
 @description('Enable compute node public IP')
 param enableNodePublicIp bool = true
 
+@allowed(['Enabled','vNetOnly','Disabled'])
+@description('Allow or disallow public network access to Storage Account.')
+param storagePublicNetworkAccess string = 'vNetOnly'
 
 // Virtual network and network security group
 module nsg '../networking/nsg.bicep' = { 
@@ -96,8 +102,11 @@ module storageDeployment '../secure_resources/storage.bicep' = {
     location: region
     storageName: storageAccountCleanName
     storageSKU: 'Standard_LRS'
-    subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
-    virtualNetworkId: vnet.outputs.id
+    subnetIds: concat(
+      ['${vnet.outputs.id}/subnets/${subnetName}'],
+      allowedSubnetIds
+    )
+    publicNetworkAccess: storagePublicNetworkAccess
     tags: tags
   }
 }
