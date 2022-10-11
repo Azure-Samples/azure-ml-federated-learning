@@ -37,18 +37,24 @@ We will provision:
     az account set --name <subscription name>
     ```
 
-2. Run the bicep deployment script:
+2. Optional: Create a new resource group for the demo resources. Having a new group would make it easier to delete the resources afterwards.
 
     ```bash
     # create a resource group for the resources
     az group create --name <resource group name> --location <region>
+    ```
 
+    > Notes:
+    > - If you have _Owner_ role only in a given resource group (as opposed to in the whole subscription), just use that resource group instead of creating a new one.
+
+4. Run the bicep deployment script in a resource group you own:
+
+    ```
     # deploy the demo resources in your resource group
     az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
     ```
 
     > Notes:
-      > - If you have _Owner_ role only in a given resource group (as opposed to in the whole subscription), just use that resource group instead of creating a new one.
       > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
       > - The `./mlops/bicep/open_sandbox_setup.bicep` bicep script is a _one-off_ script that you will need to run just once. If you want to add a silo to an already existing setup, just run the `./mlops/bicep/modules/silos/open_internal_blob.bicep` script on its own, following the usage instructions in the docstring. This script can be called repeatedly to add more silos.
 
