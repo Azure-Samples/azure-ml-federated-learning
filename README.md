@@ -27,7 +27,7 @@ If you have any feature requests, technical questions, or find any bugs, please 
 
 For bug reports and feature requests, you are welcome to open an [**issue**](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
 
-### :raising_hand: Contributing
+### :point_up: Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
