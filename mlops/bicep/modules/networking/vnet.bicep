@@ -24,9 +24,6 @@ param subnetPrefix string = '192.168.0.0/24'
 param subnetName string = 'snet-training'
 
 
-// @description('Scoring subnet address prefix')
-// param scoringSubnetPrefix string = '192.168.1.0/24'
-
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-01-01' = {
   name: virtualNetworkName
   location: location
@@ -56,6 +53,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-01-01' = {
           ]
         }
       }
+      // NOTE: keeping this here for now, to use as reference until we figure out the appropriate settings.
       // { 
       //   name: 'snet-scoring'
       //   properties: {

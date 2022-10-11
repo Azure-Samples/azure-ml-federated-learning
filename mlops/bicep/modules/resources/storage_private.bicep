@@ -78,6 +78,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
 
       // Sets the resource access rules
       resourceAccessRules: [
+        // NOTE: keeping this here for now, to use as reference until we figure out the appropriate settings.
         // {
         //   resourceId: resourceId('Microsoft.Storage/storageAccounts/blobServices', storageNameCleaned, 'default')
         //   tenantId: tenant().tenantId
