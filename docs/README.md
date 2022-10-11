@@ -15,7 +15,7 @@
 
 Local privacy regulations impose constraints on the movement of data out of a given region, or out of government agencies. Also, institutions or companies working together to leverage their respective data might require or desire to limit circulation of this data, and impose trust boundaries.
 
-In those contexts, the data cannot be gathered in a central location, as is usual practice for training Machine Learning (ML) models. A technique called Federated Learning (FL) allows for training models in this highly constrained environment. It enables companies and institutions to comply with regulations related to data location and data access while allowing for innovation and personalization.
+In those contexts, the data cannot be gathered in a central location, as is usual practice for training Machine Learning (ML) models. A technique called Federated Learning (FL) allows for training models in this highly constrained environment. It enables companies and institutions to comply with regulations related to data location and data access while allowing for innovation and achieving better quality models.
 
 ### Getting Started
 
