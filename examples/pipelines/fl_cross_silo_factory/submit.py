@@ -28,6 +28,7 @@ import argparse
 import random
 import string
 import datetime
+import webbrowser
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
@@ -74,7 +75,11 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--example", required=False, choices=["MNIST"], default="MNIST", help="dataset name"
+    "--example",
+    required=False,
+    choices=["MNIST", "HELLOWORLD"],
+    default="MNIST",
+    help="dataset name",
 )
 
 args = parser.parse_args()
@@ -200,7 +205,7 @@ def silo_training(
         train_data=train_data,
         # with the test_data from the pre_processing step
         test_data=test_data,
-        # and the checkpoint from previous round (or None if round == 1)
+        # and the checkpoint from previous iteration (or None if iteration == 1)
         checkpoint=running_checkpoint,
         # Learning rate for local training
         lr=lr,
@@ -292,7 +297,7 @@ pipeline_job = builder.build_basic_fl_pipeline(
     silo_training,
     orchestrator_aggregation,
     # RESERVED: this kwarg is for building iterations
-    iterations=YAML_CONFIG.training_parameters.num_rounds,
+    iterations=YAML_CONFIG.training_parameters.num_of_iterations,
     # any additional custom kwarg will be sent to silo_training() as is
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
@@ -325,5 +330,7 @@ if args.submit:
 
     print("The url to see your live job running is returned by the sdk:")
     print(pipeline_job.services["Studio"].endpoint)
+
+    webbrowser.open(pipeline_job.services["Studio"].endpoint)
 else:
     print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
