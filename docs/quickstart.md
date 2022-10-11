@@ -52,6 +52,8 @@ We will provision:
       > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
       > - The `./mlops/bicep/open_sandbox_setup.bicep` bicep script is a _one-off_ script that you will need to run just once. If you want to add a silo to an already existing setup, just run the `./mlops/bicep/modules/silos/open_internal_blob.bicep` script on its own, following the usage instructions in the docstring. This script can be called repeatedly to add more silos.
 
+    > :warning: EXPERIMENTAL :warning: alternatively, you can try provisioning a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. To try it out, use template file `mlops/bicep/vnet_publicip_sandbox_setup.bicep` instead. All the code samples below remains the same. Please check the header of that bicep file to understand its capabilities and limitations.
+
 ## Launch the demo experiment
 
 In this section, we'll use a sample python script to submit a federated learning experiment to Azure ML. The script will need to connect to your newly created Azure ML workspace first.
