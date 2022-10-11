@@ -37,7 +37,7 @@ We will provision:
     az account set --name <subscription name>
     ```
 
-2. Optional: Create a new resource group for the demo resources. Having a new group would make it easier to delete the resources afterwards.
+2. Optional: Create a new resource group for the demo resources. Having a new group would make it easier to delete the resources afterwards (deleting this RG will delete all resources within).
 
     ```bash
     # create a resource group for the resources
