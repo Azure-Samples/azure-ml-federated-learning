@@ -62,8 +62,10 @@ def main(cli_args=None):
 
     print(f"Running script with arguments: {args}")
     test_input(args.input_silo_1)
-    test_input(args.input_silo_2)
-    test_input(args.input_silo_3)
+    if args.input_silo_2:
+        test_input(args.input_silo_2)
+    if args.input_silo_3:
+        test_input(args.input_silo_3)
     test_output(args.aggregated_output)
 
 
