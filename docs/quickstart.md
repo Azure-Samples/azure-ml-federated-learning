@@ -56,7 +56,6 @@ We will provision:
 
     > Notes:
       > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
-      > - The `./mlops/bicep/open_sandbox_setup.bicep` bicep script is a _one-off_ script that you will need to run just once. If you want to add a silo to an already existing setup, just run the `./mlops/bicep/modules/silos/open_internal_blob.bicep` script on its own, following the usage instructions in the docstring. This script can be called repeatedly to add more silos.
 
 ## Launch the demo experiment
 
