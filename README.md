@@ -13,18 +13,21 @@ This repo provides some code samples for running a federated learning pipeline i
 - [Support](#need-support)
 - [Contributing](#contributing)
 
-### Documentation
+### :zap: Getting Started
+
+No time to read? Get directly to the [**quickstart**](./quickstart.md) to provision a demo within minutes in your own subscription.
+
+### :page_facing_up: Documentation
 
 Please find a full documentation of this project [**here**](docs/README.md).
 
-
-### Need Support?
+### :question: Need Support?
 
 If you have any feature requests, technical questions, or find any bugs, please do not hesitate to reach out to us.
 
 For bug reports and feature requests, you are welcome to open an [**issue**](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
 
-### Contributing
+### :raising_hand: Contributing
 
 This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
 
