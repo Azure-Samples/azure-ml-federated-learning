@@ -13,9 +13,9 @@
 
 ### Motivation
 
-Due to privacy regulations and limitations created due to trust boundaries, not all data used for training Machine Learning (ML) models can be gathered in a central location to train a model on all available data (_e.g._, some highly sensitive user data located in the DataProvider embassies). This constraint makes it hard to leverage the data for training models in classic training techniques. 
+Local privacy regulations impose constraints on the movement of data out of a given region, or out of government agencies. Also, institutions or companies working together to leverage their respective data might require or desire to limit circulation of this data, and impose trust boundaries.
 
-An ML technique called Federated Learning (FL) does just that: train the various models locally on the data available in the clients (_a.k.a._ the silos, and in our case _embassies_), then combine the different models on a central server (_a.k.a._ the _orchestrator_) without data ever leaving the embassy. 
+In those contexts, the data cannot be gathered in a central location, as is usual practice for training Machine Learning (ML) models. A technique called Federated Learning (FL) allows for training models in this highly constrained environment. It enables companies and institutions to comply with regulations related to data location and data access while allowing for innovation and achieving better quality models.
 
 ### Getting Started
 
@@ -25,16 +25,18 @@ A step-by-step guide for performing a Federated Learning experiment can be found
 
 ### Why should you consider Federated Learning?
 
-Federated Learning (FL) is a framework where one trains a single ML model on distinct datasets that cannot be gathered in a single central location. This enables companies and institutions to comply with regulations related to data location and data access while allowing for innovation and personalization.
+Let's take the example of a data scientist working in a hospital to classify medical images to detect a specific patient condition. The team at the hospital _already_ has a deep learning model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance by partnering with other hospitals. Federated Learning will enable them to collaborate on the model training while keeping control of the hospital's own data, complying with their local regulations and privacy obligations, while enabling better quality models for the benefit of their patients.
 
-The basic idea of FL is to train a model by aggregating the results of N isolated training jobs, each running on separated computes with restricted access to given data storages. 
+Federated Learning (FL) is a framework where one trains a single ML model on distinct datasets that cannot be gathered in a single central location. The basic idea of FL is to train a model by aggregating the results of N isolated training jobs, each running on separated computes with restricted access to given data storages.
+
+The training is orchestrated between a central server (_a.k.a._ orchestrator) and multiple clients (_a.k.a._ silos or embassies). The actual model training happens locally inside the silos/clients on their respective data, without the data ever leaving their respective trust boundaries. Only the local models are sent back to the central server/orchestrator for aggregation.
 
 When the computes and data are in the cloud, we say they live in silos, and cross-silo federated learning consists in orchestrating the training and aggregation jobs against the cloud provider. The following figure illustrates what a federated learning solution looks like.
 
 <br/><br/>
 <img src="./pics/fl_fig.png" alt="Federated Learning Solution Figure" width="300">
 
-One example of a hospital (i.e., the customer) is described below. The hospital’s task is to classify a medical image into positive or negative of a specific disease. The data scientists at the hospital _already_ have a neural network model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance as more hospitals would like to participate in a federated learning way without their data leaving their clusters. 
+Creating such a graph of jobs can be complex. This repository provides a recipe to help.
 
 ### What this repo as to offer?
 

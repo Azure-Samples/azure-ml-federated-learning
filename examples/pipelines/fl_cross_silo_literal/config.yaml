@@ -9,7 +9,7 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: "cpu-cluster-orchestrator"
+    compute: "cpu-orchestrator"
     datastore: "datastore_orchestrator"
 
   silos:
