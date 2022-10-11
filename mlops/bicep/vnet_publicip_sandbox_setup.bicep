@@ -1,3 +1,5 @@
+// EXPERIMENTAL - please do not take production dependency on this setup
+
 // This BICEP script will fully provision a federated learning sandbox
 // based on internal silos kept eyes-off using a combination of vnets
 // and private service endpoints, to support the communication
