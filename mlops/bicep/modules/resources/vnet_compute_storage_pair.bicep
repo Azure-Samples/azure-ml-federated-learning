@@ -96,7 +96,7 @@ module vnet '../networking/vnet.bicep' = {
 }
 
 // deploy a storage account for the pair
-module storageDeployment '../secure_resources/storage.bicep' = {
+module storageDeployment './storage_private.bicep' = {
   name: '${storageAccountCleanName}-deployment'
   params: {
     location: region
