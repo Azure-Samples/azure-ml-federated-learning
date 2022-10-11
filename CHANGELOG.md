@@ -25,6 +25,6 @@ Here are the new features.
 - Metrics:
   - The combined losses and model performances of several silos can now be seen at the pipeline level.
 
-To get started, go [here](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/docs/quickstart.md)!
+To get started, go [here](./docs/quickstart.md)!
 
 If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
