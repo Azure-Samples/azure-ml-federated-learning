@@ -1,6 +1,0 @@
-$schema: https://azuremlschemas.azureedge.net/latest/azureBlob.schema.json
-name: <Your-Datastore-Name> # add name of your datastore here
-type: azure_blob
-description: <Your-Datastore-Description> # add a description of your datastore here
-account_name: <Your-Storage-Account-Name> # add storage account name here
-container_name: federated-learning # add storage container name here ("federated-learning" is probably a good name so we suggest you keep it)

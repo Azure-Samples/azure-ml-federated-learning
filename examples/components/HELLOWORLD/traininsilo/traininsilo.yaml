@@ -53,6 +53,5 @@ code: .
 
 command: >-
   python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_name ${{inputs.iteration_name}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
-environment: 
-  conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+
+environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:30
