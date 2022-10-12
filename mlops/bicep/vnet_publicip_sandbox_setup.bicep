@@ -1,14 +1,17 @@
-// This BICEP script will fully provision a functional federated learning sandbox
-// based on simple internal silos secured with only Managed Identities.
+// EXPERIMENTAL - please do not take production dependency on this setup
 
-// IMPORTANT: This setup is intended only for demo purpose. The data is still accessible
-// by the users when opening the storage accounts, and data exfiltration is easy.
+// This BICEP script will fully provision a federated learning sandbox
+// based on internal silos kept eyes-off using a combination of vnets
+// and private service endpoints, to support the communication
+// between compute and storage.
 
-// For a given set of regions, it will provision:
-// - an AzureML workspace and compute cluster for orchestration
-// - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 UAI)
+// IMPORTANT:
+// - the orchestrator is considered eyes-on and is
+//   secured with UAIs (no private service endpoints).
+// - the computes still have an open public IP to allow
+//   communication with the AzureML workspace.
 
-// The demo permission model is represented by the following matrix:
+// The permission model is represented by the following matrix:
 // |               | orch.compute | siloA.compute | siloB.compute |
 // |---------------|--------------|---------------|---------------|
 // | orch.storage  |     R/W      |      R/W      |      R/W      |
@@ -19,7 +22,7 @@
 // > az login
 // > az account set --name <subscription name>
 // > az group create --name <resource group name> --location <region>
-// > az deployment group create --template-file .\mlops\bicep\open_sandbox_setup.bicep \
+// > az deployment group create --template-file .\mlops\bicep\vnet_publicip_sandbox_setup.bicep \
 //                              --resource-group <resource group name \
 //                              --parameters demoBaseName="fldemo"
 
@@ -31,9 +34,10 @@ param demoBaseName string = 'fldemo'
 
 // below parameters are optionals and have default values
 @allowed(['UserAssigned','SystemAssigned'])
+@description('Type of identity to use for permissions model')
 param identityType string = 'UserAssigned'
 
-@description('Location of the orchestrator (workspace, central storage and compute).')
+@description('Region of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
@@ -45,6 +49,9 @@ param siloRegions array = [
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DS13_v2'
+
+@description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
+param applyVNetPeering bool = false
 
 
 @description('Tags to curate the resources in Azure.')
@@ -68,7 +75,8 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 }
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
+// This pair will be considered eyes-on
+module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
   name: '${demoBaseName}-deploy-orchestrator'
   scope: resourceGroup()
   params: {
@@ -87,13 +95,27 @@ module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
 
     // identity for permissions model
     identityType: identityType
+
+    // networking
+    vnetAddressPrefix: '10.0.0.0/24'
+    subnetPrefix: '10.0.0.0/24'
+
+    // IMPORTANT: compute still has public ip to let workspace submit job
+    // traffic regulated by NSG
+    enableNodePublicIp: true
+
+    // IMPORTANT: below means all traffic allowed (with permissions via UAI)
+    // alternative is vNetOnly for specific vnets, or Disabled for service endpoints
+    storagePublicNetworkAccess: 'Enabled'
+
+    //allowedSubnetIds: [for i in range(0, siloCount): silos[i].outputs.subnetId]
   }
   dependsOn: [
     workspace
   ]
 }
 
-// set R/W permissions for orchestrator UAI towards orchestrator storage
+// Set R/W permissions for orchestrator UAI towards orchestrator storage
 module orchestratorPermission './modules/permissions/msi_storage_rw.bicep' = {
   name: '${demoBaseName}-deploy-orchestrator-permission-${orchestratorRegion}'
   scope: resourceGroup()
@@ -108,8 +130,9 @@ module orchestratorPermission './modules/permissions/msi_storage_rw.bicep' = {
 
 var siloCount = length(siloRegions)
 
-// Create all silos using a provided bicep module
-module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
+// Create all silos as a compute+storage pair and attach to workspace
+// This pair will be considered eyes-off
+module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
   scope: resourceGroup()
   params: {
@@ -125,14 +148,26 @@ module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in r
     computeNodes: 4
     datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
 
+    // identity for permissions model
     identityType: identityType
+
+    // networking
+    vnetAddressPrefix: '10.0.${i+1}.0/24'
+    subnetPrefix: '10.0.${i+1}.0/24'
+
+    // IMPORTANT: compute still has public ip to let workspace submit job
+    // traffic regulated by NSG
+    enableNodePublicIp: true
+
+    // IMPORTANT: below Disabled means data will be only accessible via private service endpoints
+    storagePublicNetworkAccess: 'Disabled'
   }
   dependsOn: [
     workspace
   ]
 }]
 
-// set R/W permissions for silo identity towards silo storage
+// Set R/W permissions for silo identity towards silo storage
 module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-deploy-silo${i}-permission'
   scope: resourceGroup()
@@ -145,7 +180,37 @@ module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for
   ]
 }]
 
-// set R/W permissions for silo identity towards orchestrator storage
+// Add a private DNS zone for all our private endpoints
+resource siloStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.blob.${environment().suffixes.storage}'
+  location: 'global'
+}
+
+// Create a private service endpoints internal to each silo for their respective storages
+module silosStoragePrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-deploy-internal-endpoint-${i}-${siloRegions[i]}-storage'
+  scope: resourceGroup()
+  params: {
+    location: siloRegions[i]
+    tags: tags
+    privateLinkServiceId: silos[i].outputs.storageServiceId
+    storagePleRootName: 'ple-${silos[i].outputs.storageName}-to-silo${i}${siloRegions[i]}-st-blob'
+    subnetId: silos[i].outputs.subnetId
+    virtualNetworkId: silos[i].outputs.vnetId
+    privateDNSZoneName: siloStoragePrivateDnsZone.name
+    privateDNSZoneId: siloStoragePrivateDnsZone.id
+    groupIds: [
+      'blob'
+      //'file'
+    ]
+  }
+  dependsOn: [
+    silos[i]
+  ]
+}]
+
+
+// Set R/W permissions for silo identity towards (eyes-on) orchestrator storage
 module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-deploy-silo${i}-to-orch-permission'
   scope: resourceGroup()
@@ -155,5 +220,23 @@ module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for
   }
   dependsOn: [
     silos
+  ]
+}]
+
+
+// WARNING: apply vNet peering on top of everything
+// to allow for interconnections between computes
+module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(0, siloCount): if(applyVNetPeering) {
+  name: '${demoBaseName}-deploy-vnet-peering-orch-to-${i}-${siloRegions[i]}'
+  scope: resourceGroup()
+  params: {
+    existingVirtualNetworkNameSource: silos[i].outputs.vnetName
+    existingVirtualNetworkNameTarget: orchestrator.outputs.vnetName
+    existingVirtualNetworkNameTargetResourceGroupName: resourceGroup().name
+    useGatewayFromSourceToTarget: true
+  }
+  dependsOn: [
+    orchestrator
+    silos[i]
   ]
 }]
