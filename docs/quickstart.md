@@ -57,6 +57,8 @@ We will provision:
     > Notes:
       > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
 
+    > :warning: EXPERIMENTAL :warning: alternatively, you can try provisioning a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. To try it out, use template file `mlops/bicep/vnet_publicip_sandbox_setup.bicep` instead. All the code samples below remains the same. Please check the header of that bicep file to understand its capabilities and limitations.
+
 ## Launch the demo experiment
 
 In this section, we'll use a sample python script to submit a federated learning experiment to Azure ML. The script will need to connect to your newly created Azure ML workspace first.
