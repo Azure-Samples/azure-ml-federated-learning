@@ -1,19 +1,39 @@
 # Federated Learning in Azure ML
 
-> :warning: Need to update this README!
+Federated Learning (FL) is a framework where one trains a single ML model on distinct datasets that cannot be gathered in a single central location. This enables companies and institutions to comply with regulations related to data location and data access while allowing for innovation and personalization.
 
-**Disclaimer:** this repo is examples + recipes only, and none of this has SLAs on support or correctness.
+This repo provides some code samples for running a federated learning pipeline in the Azure Machine Learning platform.
 
-Although there is no specific commitment to a timeline yet, Azure ML is working on first-class support for cross-silo federated learning. Cross-silo federated learning allows data scientists to run pipelines against data in multiple isolated silos, with the platform guaranteeing that only approved and policy-compliant jobs transfer "safe" data across silo boundaries. Here a "silo" means an "isolated" collection of storage and compute. And "isolated" means that the platform guarantees:
-- only compute within the silo can "touch" storage within the silo;
-- only data of public or system metadata classification can be moved outside the silo;
-- only "approved" jobs can change the classification of data or move it outside the silo.
+:warning: Running a full federated learning pipeline raises **security questions that you need to address** before using this repository for production purpose. Please consider this repository as a sample only.
 
-Silos are expected to be reliable (i.e., no concerns around network connectivity or uptime). We also assume a hard cap of **≤ 100 silos**.
 
-Current contents:
-- `mlops`: a collection of resources to automatically provision the orchestrator and silos resources.
-- `examples`: simple example of using shrike Federated Learning API + Arc + Kubernetes + Azure ML to submit a Federated Learning experiment.
-- `docs`: generic plan for a company to onboard to Federated Learning through Azure ML.
+## Table of contents
 
-More details, recipes, and examples coming soon!
+- [Getting started](#zap-getting-started)
+- [Documentation](#documentation)
+- [Support](#need-support)
+- [Contributing](#contributing)
+
+### :zap: Getting Started
+
+No time to read? Get directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
+
+### Documentation
+
+Please find a full documentation of this project [**here**](docs/README.md).
+
+### Need Support?
+
+If you have any feature requests, technical questions, or find any bugs, please do not hesitate to reach out to us.
+
+For bug reports and feature requests, you are welcome to open an [**issue**](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
+
+### Contributing
+
+This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+
+To contribute, please start by creating a self-assigned [**issue**](https://github.com/Azure-Samples/azure-ml-federated-learning/issues/new) giving a high-level overview of what you'd like to do. Once any discussion there concludes, follow up with a PR.
+
+Please send an email to aims-team@microsoft.com to request a "contributor" access to this repository, if you have difficulty in creating a branch. When you submit a pull request, a CLA bot will automatically determine whether you need to provide a CLA and decorate the PR appropriately (e.g., status check, comment). Simply follow the instructions provided by the bot. You will only need to do this once across all repos using our CLA.
+
+This project has adopted the Microsoft Open Source Code of Conduct. For more information see the Code of Conduct FAQ or contact opencode@microsoft.com with any additional questions or comments.

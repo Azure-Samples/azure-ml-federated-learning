@@ -34,6 +34,4 @@ command: >-
   $[[--input_silo_2 ${{inputs.input_silo_2}}]]
   $[[--input_silo_3 ${{inputs.input_silo_3}}]]
 
-environment: 
-  conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:30

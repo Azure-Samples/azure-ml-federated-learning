@@ -1,0 +1,55 @@
+# example yaml config
+
+# using this to store references to Azure ML
+aml:
+  subscription_id: "<SUBSCRIPTION_ID>"
+  resource_group_name: "<RESOURCE_GROUP>"
+  workspace_name: "<AML_WORKSPACE_NAME>"
+
+# federated learning parameters
+federated_learning:
+  orchestrator:
+    compute: "cpu-orchestrator"
+    datastore: "datastore_orchestrator"
+
+  silos:
+    - compute: cpu-silo0-westus
+      datastore: datastore_silo0_westus
+      # in this demo, we're using public data from a url instead
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
+    - compute: cpu-silo1-francecentral
+      datastore: datastore_silo1_francecentral
+      # in this demo, we're using public data from a url instead
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
+    - compute: cpu-silo2-brazilsouth
+      datastore: datastore_silo2_brazilsouth
+      # in this demo, we're using public data from a url instead
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
+
+# training parameters
+training_parameters:
+  num_of_iterations: 2
+  epochs: 3
+  lr: 0.01
+  batch_size: 64
