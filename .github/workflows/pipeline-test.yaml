@@ -1,18 +1,13 @@
-name: python
+name: pipeline-test
 
 on:
-  push:
-    branches:
-    - main
-    - gargamit/ci-tests
   pull_request:
     branches:
     - main
-    - release-sdkv2-iteration-02
     - release-sdkv2-iteration-03
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
     steps:
 
@@ -21,11 +16,6 @@ jobs:
     - uses: actions/setup-python@v2.2.1
       with:
         python-version: 3.8
-
-    - run: pip install black
-
-    - run:  black --check .
-      if: github.base_ref
 
     - name: azure login
       uses: azure/login@v1
@@ -36,9 +26,6 @@ jobs:
 
     - name: Intall python dependencies
       run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
-    
-    - name: Validate fl_cross_silo_literal pipeline
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py
 
     - name: Submit HelloWorld fl_cross_silo_literal pipeline
       run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP }} --workspace_name ${{ secrets.AML_WORKSPACE_NAME }} --example HELLOWORLD --submit
