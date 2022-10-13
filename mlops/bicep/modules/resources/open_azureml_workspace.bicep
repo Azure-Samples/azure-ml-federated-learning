@@ -49,7 +49,7 @@ param defaultComputeSKU string = 'Standard_DS3_v2'
 param defaultComputeNodes int = 4
 
 
-resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
+resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: storageAccountName
   location: location
   tags: tags
@@ -73,7 +73,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   }
 }
 
-resource keyVault 'Microsoft.KeyVault/vaults@2021-06-01-preview' = {
+resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
   name: keyVaultName
   location: location
   tags: tags
@@ -98,7 +98,7 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-08-01-preview' = {
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' = {
   sku: {
     name: 'Standard'
   }
@@ -110,7 +110,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-08-01-pr
   }
 }
 
-resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2021-07-01' = {
+resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-05-01' = {
   identity: {
     type: 'SystemAssigned'
   }
@@ -136,7 +136,7 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2021-07-0
 }
 
 // provision a compute cluster, and assign the user assigned identity to it
-resource defaultCompute 'Microsoft.MachineLearningServices/workspaces/computes@2022-06-01-preview' = {
+resource defaultCompute 'Microsoft.MachineLearningServices/workspaces/computes@2022-05-01' = {
   name: '${machineLearningName}/${defaultComputeName}'
   location: location
   identity: {

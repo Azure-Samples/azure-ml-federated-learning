@@ -9,14 +9,18 @@ This repo provides some code samples for running a federated learning pipeline i
 
 ## Table of contents
 
+- [Getting started](#zap-getting-started)
 - [Documentation](#documentation)
 - [Support](#need-support)
 - [Contributing](#contributing)
 
+### :zap: Getting Started
+
+No time to read? Get directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
+
 ### Documentation
 
 Please find a full documentation of this project [**here**](docs/README.md).
-
 
 ### Need Support?
 
