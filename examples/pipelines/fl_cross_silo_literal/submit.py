@@ -113,7 +113,7 @@ except Exception as ex:
             workspace_name=args.workspace_name,
             credential=credential,
         )
-    else:    
+    else:
         ML_CLIENT = MLClient(
             subscription_id=YAML_CONFIG.aml.subscription_id,
             resource_group_name=YAML_CONFIG.aml.resource_group_name,
