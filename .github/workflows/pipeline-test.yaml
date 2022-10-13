@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      content: read
     steps:
 
     - uses: actions/checkout@v2
