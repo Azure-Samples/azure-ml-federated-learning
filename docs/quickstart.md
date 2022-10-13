@@ -18,6 +18,20 @@ To enjoy this quickstart, you will need to:
 
 ## Deploy demo resources in Azure
 
+### Option 1: One click ARM deployment
+
+Click on the buttons below depending on your goal. It will open in Azure Portal a page to deploy the resources in your subscription.
+
+| Button | Description |
+| :-- | :-- |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fjfomhover%2Fazurebuttons%2Fmlops%2Farm%2Fopen_sandbox_setup.json) | Deploy a completely open sandbox to allow you to try things out in an eyes-on environment. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fjfomhover%2Fazurebuttons%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | Experimental - Deploy the sandbox with eyes-off silos behind vNets, service endpoints and UAIs. |
+
+> Notes:
+> - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
+
+### Option 2: Step by step tutorial
+
 In this section, we will use [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) scripts to automatically provision a minimal set of resources for an FL sandbox demo.
 
 This will help you provision a Federated Learning setup with [_internal silos_](./glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
