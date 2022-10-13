@@ -1,5 +1,4 @@
 """Federated Learning Cross-Silo basic pipeline.
-
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
 2) reads the components from a given folder,
@@ -23,8 +22,6 @@ from azure.ai.ml import load_component
 # to handle yaml config easily
 from omegaconf import OmegaConf
 
-# subgraph
-os.environ["AZURE_ML_CLI_PRIVATE_FEATURES_ENABLED"] = "true"
 
 ############################
 ### CONFIGURE THE SCRIPT ###
@@ -125,13 +122,11 @@ def custom_fl_data_path(
     datastore_name, output_name, unique_id="${{name}}", iteration_num=None
 ):
     """Produces a path to store the data during FL training.
-
     Args:
         datastore_name (str): name of the Azure ML datastore
         output_name (str): a name unique to this output
         unique_id (str): a unique id for the run (default: inject run id with ${{name}})
         iteration_num (str): an iteration number if relevant
-
     Returns:
         data_path (str): direct url to the data path to store the data
     """
@@ -144,10 +139,8 @@ def custom_fl_data_path(
 
 def getUniqueIdentifier(length=8):
     """Generates a random string and concatenates it with today's date
-
     Args:
         length (int): length of the random string (default: 8)
-
     """
     str = string.ascii_lowercase
     date = datetime.date.today().strftime("%Y_%m_%d_")
@@ -158,19 +151,20 @@ pipeline_identifier = getUniqueIdentifier()
 
 
 @pipeline(
-    name="Federated Learning Subgraph",
-    description="Pipeline including preprocessing, training and aggregation components",
+    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
-def subgraph_component(running_checkpoint: Input(optional=True), iteration):
-
+def fl_cross_silo_internal_basic():
     ######################
     ### PRE-PROCESSING ###
     ######################
 
     # once per silo, we're running a pre-processing step
 
-    silo_weights_outputs = {}
-    # for each silo, run a distinct training with its own inputs and outputs
+    silo_preprocessed_train_data = (
+        []
+    )  # list of preprocessed train datasets for each silo
+    silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
+
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # run the pre-processing component once
         silo_pre_processing_step = preprocessing_component(
@@ -205,89 +199,93 @@ def subgraph_component(running_checkpoint: Input(optional=True), iteration):
             path=custom_fl_data_path(silo_config.datastore, "test_data"),
         )
 
-        ################
-        ### TRAINING ###
-        ################
+        # store a handle to the train data for this silo
+        silo_preprocessed_train_data.append(
+            silo_pre_processing_step.outputs.processed_train_data
+        )
+        # store a handle to the test data for this silo
+        silo_preprocessed_test_data.append(
+            silo_pre_processing_step.outputs.processed_test_data
+        )
 
-        # we're using training component here
-        silo_training_step = training_component(
-            # with the train_data from the pre_processing step
-            train_data=silo_pre_processing_step.outputs.processed_train_data,
-            # with the test_data from the pre_processing step
-            test_data=silo_pre_processing_step.outputs.processed_test_data,
-            # and the checkpoint from previous iteration (or None if iteration == 1)
-            checkpoint=running_checkpoint,
-            # Learning rate for local training
-            lr=YAML_CONFIG.training_parameters.lr,
-            # Number of epochs
-            epochs=YAML_CONFIG.training_parameters.epochs,
-            # Dataloader batch size
-            batch_size=YAML_CONFIG.training_parameters.batch_size,
-            # Silo name/identifier
-            metrics_prefix=silo_config.compute,
-            # Iteration number
-            iteration_num=iteration,
+    ################
+    ### TRAINING ###
+    ################
+
+    running_checkpoint = None  # for iteration 1, we have no pre-existing checkpoint
+
+    # now for each iteration, run training
+    for iteration in range(1, YAML_CONFIG.training_parameters.num_of_iterations + 1):
+        # collect all outputs in a dict to be used for aggregation
+        silo_weights_outputs = {}
+
+        # for each silo, run a distinct training with its own inputs and outputs
+        for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+            # we're using training component here
+            silo_training_step = training_component(
+                # with the train_data from the pre_processing step
+                train_data=silo_preprocessed_train_data[silo_index],
+                # with the test_data from the pre_processing step
+                test_data=silo_preprocessed_test_data[silo_index],
+                # and the checkpoint from previous iteration (or None if iteration == 1)
+                checkpoint=running_checkpoint,
+                # Learning rate for local training
+                lr=YAML_CONFIG.training_parameters.lr,
+                # Number of epochs
+                epochs=YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                # Iteration name
+                iteration_name=f"Iteration-{iteration}",
+            )
+            # add a readable name to the step
+            silo_training_step.name = f"silo_{silo_index}_training"
+
+            # make sure the compute corresponds to the silo
+            silo_training_step.compute = silo_config.compute
+
+            # make sure the data is written in the right datastore
+            silo_training_step.outputs.model = Output(
+                type=AssetTypes.URI_FOLDER,
+                mode="mount",
+                path=custom_fl_data_path(
+                    # IMPORTANT: writing the output of training into the orchestrator datastore
+                    YAML_CONFIG.federated_learning.orchestrator.datastore,
+                    f"model/silo{silo_index}",
+                    iteration_num=iteration,
+                ),
+            )
+
+            # each output is indexed to be fed into aggregate_component as a distinct input
+            silo_weights_outputs[
+                f"input_silo_{silo_index+1}"
+            ] = silo_training_step.outputs.model
+
+        # aggregate all silo models into one
+        aggregate_weights_step = aggregate_component(**silo_weights_outputs)
+        # this is done in the orchestrator compute
+        aggregate_weights_step.compute = (
+            YAML_CONFIG.federated_learning.orchestrator.compute
         )
         # add a readable name to the step
-        silo_training_step.name = f"silo_{silo_index}_training"
-
-        # make sure the compute corresponds to the silo
-        silo_training_step.compute = silo_config.compute
+        aggregate_weights_step.name = f"iteration_{iteration}_aggregation"
 
         # make sure the data is written in the right datastore
-        silo_training_step.outputs.model = Output(
-            type=AssetTypes.CUSTOM_MODEL,
+        aggregate_weights_step.outputs.aggregated_output = Output(
+            type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
-                # IMPORTANT: writing the output of training into the orchestrator datastore
                 YAML_CONFIG.federated_learning.orchestrator.datastore,
-                f"model/silo{silo_index}",
+                "aggregated_output",
+                unique_id=pipeline_identifier,
                 iteration_num=iteration,
             ),
         )
 
-        # each output is indexed to be fed into aggregate_component as a distinct input
-        silo_weights_outputs[
-            f"input_silo_{silo_index+1}"
-        ] = silo_training_step.outputs.model
-
-    # aggregate all silo models into one
-    aggregate_weights_step = aggregate_component(**silo_weights_outputs)
-    # this is done in the orchestrator compute
-    aggregate_weights_step.compute = YAML_CONFIG.federated_learning.orchestrator.compute
-    # add a readable name to the step
-    aggregate_weights_step.name = f"weights_aggregation"
-
-    # make sure the data is written in the right datastore
-    aggregate_weights_step.outputs.aggregated_output = Output(
-        type=AssetTypes.CUSTOM_MODEL,
-        mode="mount",
-        path=custom_fl_data_path(
-            YAML_CONFIG.federated_learning.orchestrator.datastore,
-            "aggregated_output",
-            unique_id=pipeline_identifier,
-            iteration_num=iteration,
-        ),
-    )
-    return {"aggregated_output": aggregate_weights_step.outputs.aggregated_output}
-
-
-@pipeline(
-    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
-)
-def fl_cross_silo_internal_basic():
-
-    running_checkpoint = None
-
-    # now for each iteration, run training
-    # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
-    for iteration in range(1, YAML_CONFIG.training_parameters.num_of_iterations + 1):
-
-        # call pipeline for each iteration
-        output_iteration = subgraph_component(running_checkpoint, iteration)
-
         # let's keep track of the checkpoint to be used as input for next iteration
-        running_checkpoint = output_iteration.outputs.aggregated_output
+        running_checkpoint = aggregate_weights_step.outputs.aggregated_output
 
     return {"final_aggregated_model": running_checkpoint}
 
