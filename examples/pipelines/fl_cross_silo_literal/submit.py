@@ -1,4 +1,5 @@
 """Federated Learning Cross-Silo basic pipeline.
+
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
 2) reads the components from a given folder,
@@ -122,11 +123,13 @@ def custom_fl_data_path(
     datastore_name, output_name, unique_id="${{name}}", iteration_num=None
 ):
     """Produces a path to store the data during FL training.
+
     Args:
         datastore_name (str): name of the Azure ML datastore
         output_name (str): a name unique to this output
         unique_id (str): a unique id for the run (default: inject run id with ${{name}})
         iteration_num (str): an iteration number if relevant
+
     Returns:
         data_path (str): direct url to the data path to store the data
     """
@@ -139,8 +142,10 @@ def custom_fl_data_path(
 
 def getUniqueIdentifier(length=8):
     """Generates a random string and concatenates it with today's date
+
     Args:
         length (int): length of the random string (default: 8)
+
     """
     str = string.ascii_lowercase
     date = datetime.date.today().strftime("%Y_%m_%d_")
