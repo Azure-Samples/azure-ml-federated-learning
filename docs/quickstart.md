@@ -25,7 +25,7 @@ Click on the buttons below depending on your goal. It will open in Azure Portal 
 | Button | Description |
 | :-- | :-- |
 | [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fjfomhover%2Fazurebuttons%2Fmlops%2Farm%2Fopen_sandbox_setup.json) | Deploy a completely open sandbox to allow you to try things out in an eyes-on environment. |
-| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fjfomhover%2Fazurebuttons%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | Experimental - Deploy the sandbox with eyes-off silos behind vNets, service endpoints and UAIs. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fjfomhover%2Fazurebuttons%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | :warning: Experimental :warning: - Deploy a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. |
 
 > Notes:
 > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
