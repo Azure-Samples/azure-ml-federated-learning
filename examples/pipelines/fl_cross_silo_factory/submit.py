@@ -48,7 +48,9 @@ import itertools
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
 
-# subgraphs
+
+# Note: This code is using subgraphs (a.k.a. pipeline component) which is currently a PrivatePreview feature subject to change.
+# For an FL experience relying only on GA features, please refer to the literal version of the code.
 os.environ["AZURE_ML_CLI_PRIVATE_FEATURES_ENABLED"] = "true"
 
 ###############################
@@ -220,7 +222,7 @@ def silo_training(
         batch_size=batch_size,
         # Silo name/identifier
         metrics_prefix=metrics_prefix,
-        # iteration number
+        # Iteration number
         iteration_num=iteration_num,
     )
 
