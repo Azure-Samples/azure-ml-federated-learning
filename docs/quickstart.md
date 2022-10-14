@@ -4,10 +4,6 @@ In this tutorial, you will:
 * Provision a fully functional environment in your own Azure subscription
 * Run a sample federated learning pipeline in Azure ML
 
-:warning: **IMPORTANT** :warning: This setup is intended only for demo purposes.
-The data is still accessible by the a user of your subscription when opening the storage accounts,
-and data exfiltration is easy.
-
 ## Prerequisites
 
 To enjoy this quickstart, you will need to:
@@ -17,6 +13,20 @@ To enjoy this quickstart, you will need to:
 - [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
 ## Deploy demo resources in Azure
+
+### Option 1: One click ARM deployment
+
+Click on the buttons below depending on your goal. It will open in Azure Portal a page to deploy the resources in your subscription.
+
+| Button | Description |
+| :-- | :-- |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fopen_sandbox_setup.json) | Deploy a completely open sandbox to allow you to try things out in an eyes-on environment. This setup is intended only for demo purposes. The data is still accessible by the users of your subscription when opening the storage accounts, and data exfiltration is possible. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | :warning: Experimental :warning: - Deploy a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. |
+
+> Notes:
+> - If someone already provisioned a demo with the same name in your subscription, change **Demo Base Name** parameter to a unique value.
+
+### Option 2: Step by step tutorial
 
 In this section, we will use [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) scripts to automatically provision a minimal set of resources for an FL sandbox demo.
 
@@ -56,8 +66,8 @@ We will provision:
 
     > Notes:
       > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
-
-    > :warning: EXPERIMENTAL :warning: alternatively, you can try provisioning a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. To try it out, use template file `mlops/bicep/vnet_publicip_sandbox_setup.bicep` instead. All the code samples below remains the same. Please check the header of that bicep file to understand its capabilities and limitations.
+      > - :warning: **IMPORTANT** :warning: This setup is intended only for demo purposes. The data is still accessible by the users of your subscription when opening the storage accounts, and data exfiltration is possible.
+      > - :warning: EXPERIMENTAL :warning: alternatively, you can try provisioning a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. To try it out, use template file `mlops/bicep/vnet_publicip_sandbox_setup.bicep` instead. All the code samples below remains the same. Please check the header of that bicep file to understand its capabilities and limitations.
 
 ## Launch the demo experiment
 
