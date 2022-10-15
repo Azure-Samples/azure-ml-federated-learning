@@ -37,10 +37,10 @@ jobs:
       run: az group create --name ${{ secrets.RESOURCE_GROUP_TMP }} --location westus
 
     - name: Deploy the demo resources in your resource group
-      run: az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group ${{ secrets.RESOURCE_GROUP_TMP }} --parameters demoBaseName="fldemo1015"
+      run: az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group ${{ secrets.RESOURCE_GROUP_TMP }} --parameters demoBaseName=${{ secrets.DEMO_BASE_NAME_TMP }}
 
     - name: Intall python dependencies
       run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
 
     - name: Submit HelloWorld fl_cross_silo_literal pipeline
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name ${{ secrets.AML_WORKSPACE_NAME }} --example HELLOWORLD --submit
+      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name ${{ secrets.AML_WORKSPACE_NAME_TMP }} --example HELLOWORLD --submit
