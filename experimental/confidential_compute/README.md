@@ -37,6 +37,8 @@ To enjoy this quickstart, you will need to:
     az deployment group create --template-file ./bicep/aks_with_confcomp.bicep --resource-group <resource group name> --parameters clusterName="akswithcceus2" region='eastus2'
     ```
 
+    This script will deploy an AKS cluster in your resource group, with a single node pool `confcompool` with confidential compute nodes.
+
 3. Deploy the AzureML extension in this cluster
 
     ```bash
@@ -67,4 +69,10 @@ To enjoy this quickstart, you will need to:
 
     ```bash
     az ml job create --file ./pipelines/test_ip.yaml -w <workspace name> -g <resource group name>
+    ```
+
+2. The job prints all environment variables in `user_logs/std_log.txt`, you should see this:
+
+    ```
+    ENV: NODE_NAME=aks-confcompool-19739343-vmss000000
     ```
