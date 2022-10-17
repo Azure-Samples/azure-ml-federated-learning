@@ -1,0 +1,14 @@
+$schema: https://azuremlschemas.azureedge.net/latest/pipelineJob.schema.json
+type: pipeline
+description: Foo
+
+display_name: testcc
+experiment_name: testcc
+
+jobs:
+  test_ip:
+    type: command
+    code: ../components/testcc/
+    compute: azureml:akswithcceus2
+    command: python run.py
+    environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:30
