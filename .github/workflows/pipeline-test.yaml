@@ -11,7 +11,7 @@ on:
     - examples/pipelines/**
 
 jobs:
-  test:
+  open-sandbox-helloworld-test:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -37,10 +37,46 @@ jobs:
       run: az group create --name ${{ secrets.RESOURCE_GROUP_TMP }} --location westus
 
     - name: Deploy the demo resources in your resource group
-      run: az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group ${{ secrets.RESOURCE_GROUP_TMP }} --parameters demoBaseName=fl-${{ github.run_attempt }}-${{ github.run_id }}
+      run: az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group ${{ secrets.RESOURCE_GROUP_TMP }} --parameters demoBaseName=fl1-${{ github.run_attempt }}-${{ github.run_id }}
 
     - name: Intall python dependencies
       run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
 
     - name: Submit HelloWorld fl_cross_silo_literal pipeline
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl-${{ github.run_attempt }}-${{ github.run_id }} --example HELLOWORLD --submit
+      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl1-${{ github.run_attempt }}-${{ github.run_id }} --example HELLOWORLD --submit
+
+
+  vnet-sandbox-helloworld-test:
+    needs: open-sandbox-helloworld-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-python@v2.2.1
+      with:
+        python-version: 3.8
+
+    - name: azure login
+      uses: azure/login@v1
+      with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+    - name: Delete the resource group created by the provisioning script
+      run: az group delete --name ${{ secrets.RESOURCE_GROUP_TMP }} --yes
+
+    - name: Create a new resource group
+      run: az group create --name ${{ secrets.RESOURCE_GROUP_TMP }} --location westus
+
+    - name: Deploy the demo resources in your resource group
+      run: az deployment group create --template-file ./mlops/bicep/vnet_publicip_sandbox_setup.bicep --resource-group ${{ secrets.RESOURCE_GROUP_TMP }} --parameters demoBaseName=fl2-${{ github.run_attempt }}-${{ github.run_id }}
+
+    - name: Intall python dependencies
+      run: pip install -r examples/pipelines/fl_cross_silo_factory/requirements.txt
+
+    - name: Submit HelloWorld fl_cross_silo_literal pipeline
+      run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name ${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl2-${{ github.run_attempt }}-${{ github.run_id }} --example HELLOWORLD --submit --ignore_validation
