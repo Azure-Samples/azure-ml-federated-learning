@@ -75,7 +75,7 @@ module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
     machineLearningName: workspace.outputs.workspace
     machineLearningRegion: orchestratorRegion
 
-    region: orchestratorRegion
+    pairRegion: orchestratorRegion
     tags: tags
 
     pairBaseName: '${demoBaseName}-orch'
@@ -105,7 +105,7 @@ module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in r
   params: {
     machineLearningName: workspace.outputs.workspace
     machineLearningRegion: orchestratorRegion
-    region: siloRegions[i]
+    pairRegion: siloRegions[i]
     tags: tags
 
     pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'

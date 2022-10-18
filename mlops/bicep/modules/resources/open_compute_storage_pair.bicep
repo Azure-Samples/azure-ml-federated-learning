@@ -15,7 +15,7 @@ param machineLearningName string
 param machineLearningRegion string = resourceGroup().location
 
 @description('Specifies the location of the pair resources.')
-param region string = resourceGroup().location
+param pairRegion string = resourceGroup().location
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -54,7 +54,7 @@ param applyDefaultPermissions bool = true
 // deploy a storage account for the pair
 resource storageDeployment 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   name: storageAccountCleanName
-  location: region
+  location: pairRegion
   tags: tags
   sku: {
     name: 'Standard_LRS'
@@ -97,7 +97,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
       credentialsType: 'None'
       // For remaining properties, see DatastoreCredentials objects
     }
-    description: 'Private storage in region ${region}'
+    description: 'Private storage in region ${pairRegion}'
     properties: {}
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
@@ -117,7 +117,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
 // provision a user assigned identify for this silo
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
   name: uaiName
-  location: region
+  location: pairRegion
   tags: tags
   dependsOn: [
     storageDeployment // ensure the storage exists BEFORE we do UAI role assignments
@@ -142,7 +142,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
   }
   properties: {
     computeType: 'AmlCompute'
-    computeLocation: region
+    computeLocation: pairRegion
     properties: {
       vmPriority: 'Dedicated'
       vmSize: computeSKU
@@ -170,7 +170,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
 
 // Set R/W permissions for orchestrator UAI towards orchestrator storage
 module orchestratorPermission '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
-  name: '${pairBaseName}-${region}-deploy-internal-default-permission'
+  name: '${pairBaseName}-${pairRegion}-deploy-internal-default-permission'
   scope: resourceGroup()
   params: {
     storageAccountName: storageAccountCleanName
@@ -189,4 +189,4 @@ output storageServiceId string = storageDeployment.id
 output container string = container.name
 output datastore string = datastore.name
 output compute string = compute.name
-output region string = region
+output region string = pairRegion
