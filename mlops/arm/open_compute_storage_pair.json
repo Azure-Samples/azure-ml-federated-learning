@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "6176123577929173658"
+      "templateHash": "7939811659764056201"
     }
   },
   "parameters": {
@@ -22,7 +22,7 @@
         "description": "The region of the machine learning workspace"
       }
     },
-    "region": {
+    "pairRegion": {
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
@@ -116,7 +116,7 @@
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2021-06-01",
       "name": "[variables('storageAccountCleanName')]",
-      "location": "[parameters('region')]",
+      "location": "[parameters('pairRegion')]",
       "tags": "[parameters('tags')]",
       "sku": {
         "name": "Standard_LRS"
@@ -157,7 +157,7 @@
         "credentials": {
           "credentialsType": "None"
         },
-        "description": "[format('Private storage in region {0}', parameters('region'))]",
+        "description": "[format('Private storage in region {0}', parameters('pairRegion'))]",
         "properties": {},
         "datastoreType": "AzureBlob",
         "accountName": "[variables('storageAccountCleanName')]",
@@ -174,7 +174,7 @@
       "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
       "apiVersion": "2022-01-31-preview",
       "name": "[parameters('uaiName')]",
-      "location": "[parameters('region')]",
+      "location": "[parameters('pairRegion')]",
       "tags": "[parameters('tags')]",
       "dependsOn": [
         "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]"
@@ -191,7 +191,7 @@
       },
       "properties": {
         "computeType": "AmlCompute",
-        "computeLocation": "[parameters('region')]",
+        "computeLocation": "[parameters('pairRegion')]",
         "properties": {
           "vmPriority": "Dedicated",
           "vmSize": "[parameters('computeSKU')]",
@@ -216,7 +216,7 @@
       "condition": "[parameters('applyDefaultPermissions')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-{1}-deploy-internal-default-permission', parameters('pairBaseName'), parameters('region'))]",
+      "name": "[format('{0}-{1}-deploy-internal-default-permission', parameters('pairBaseName'), parameters('pairRegion'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -318,7 +318,7 @@
     },
     "region": {
       "type": "string",
-      "value": "[parameters('region')]"
+      "value": "[parameters('pairRegion')]"
     }
   }
 }
