@@ -106,20 +106,12 @@ except Exception as ex:
     )
 
     # tries to connect using cli args if provided else using config.yaml
-    if args.subscription_id and args.resource_group_name and args.workspace_name:
-        ML_CLIENT = MLClient(
-            subscription_id=args.subscription_id,
-            resource_group_name=args.resource_group_name,
-            workspace_name=args.workspace_name,
-            credential=credential,
-        )
-    else:
-        ML_CLIENT = MLClient(
-            subscription_id=YAML_CONFIG.aml.subscription_id,
-            resource_group_name=YAML_CONFIG.aml.resource_group_name,
-            workspace_name=YAML_CONFIG.aml.workspace_name,
-            credential=credential,
-        )
+    ML_CLIENT = MLClient(
+        subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
+        resource_group_name=args.resource_group_name or YAML_CONFIG.aml.resource_group_name,
+        workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
+        credential=credential,
+    )
 
 
 ####################################
