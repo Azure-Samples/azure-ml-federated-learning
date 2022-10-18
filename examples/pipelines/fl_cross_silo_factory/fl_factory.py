@@ -27,7 +27,7 @@ from dataclasses import dataclass
 import itertools
 from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
 from azure.ai.ml._ml_exceptions import ValidationException
-
+import json
 
 class FederatedLearningPipelineFactory:
     def __init__(self):
@@ -158,6 +158,69 @@ class FederatedLearningPipelineFactory:
         """
 
         orchestrator_datastore = self.orchestrator.get("datastore")
+        @pipeline(
+            name="Silo Federated Learning Subgraph",
+            description="Pipeline including preprocessing, training and aggregation components",
+        )
+        def silo_subgraph_component(running_checkpoint: Input(optional=True), iteration, silo_config):
+            # Preprocessing
+            silo_config = json.loads(silo_config)
+            preprocessing_step, preprocessing_outputs = silo_preprocessing(
+                **silo_config["custom_input_args"]  # feed kwargs as given as kwargs
+            )
+
+            # TODO: verify _step is an actual step
+
+            # verify the outputs from the developer code
+            assert isinstance(
+                preprocessing_outputs, dict
+            ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
+            for key in preprocessing_outputs.keys():
+                assert isinstance(
+                    preprocessing_outputs[key], PipelineOutputBase
+                ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
+
+            # make sure the compute corresponds to the silo
+            # make sure the data is written in the right datastore
+            self.anchor_step_in_silo(
+                preprocessing_step,
+                compute=silo_config["compute"],
+                output_datastore=silo_config["datastore"],
+            )
+
+            # each output is indexed to be fed into training_component as a distinct input
+            # silo_preprocessed_outputs[silo_index] = preprocessing_outputs
+
+            # building the training steps as specified by developer
+            training_step, training_outputs = silo_training(
+                **preprocessing_outputs,  # feed kwargs as produced by silo_preprocessing()
+                running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
+                iteration_num=iteration,
+                metrics_prefix=silo_config["compute"],
+                **training_kwargs,  # # providing training params
+            )
+
+            # TODO: verify _step is an actual step
+
+            # verify the outputs from the developer code
+            assert isinstance(
+                training_outputs, dict
+            ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
+            for key in training_outputs.keys():
+                assert isinstance(
+                    training_outputs[key], PipelineOutputBase
+                ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
+
+            # make sure the compute corresponds to the silo
+            # make sure the data is written in the right datastore
+            self.anchor_step_in_silo(
+                training_step,
+                compute=silo_config["compute"],
+                output_datastore=silo_config["datastore"],
+                model_output_datastore=self.orchestrator["datastore"],
+            )
+
+            return training_outputs
 
         @pipeline(
             name="Federated Learning Subgraph",
@@ -167,70 +230,15 @@ class FederatedLearningPipelineFactory:
             # collect all outputs in a dict to be used for aggregation
             silo_training_outputs = []
             # map of preprocessed outputs
-            silo_preprocessed_outputs = {}
+            # silo_preprocessed_outputs = {}
             # for each silo, run a distinct training with its own inputs and outputs
             for silo_index, silo_config in enumerate(self.silos):
-                # Preprocessing
-
-                preprocessing_step, preprocessing_outputs = silo_preprocessing(
-                    **silo_config["custom_input_args"]  # feed kwargs as given as kwargs
-                )
-
-                # TODO: verify _step is an actual step
-
-                # verify the outputs from the developer code
-                assert isinstance(
-                    preprocessing_outputs, dict
-                ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
-                for key in preprocessing_outputs.keys():
-                    assert isinstance(
-                        preprocessing_outputs[key], PipelineOutputBase
-                    ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
-
-                # make sure the compute corresponds to the silo
-                # make sure the data is written in the right datastore
-                self.anchor_step_in_silo(
-                    preprocessing_step,
-                    compute=silo_config["compute"],
-                    output_datastore=silo_config["datastore"],
-                )
-
-                # each output is indexed to be fed into training_component as a distinct input
-                silo_preprocessed_outputs[silo_index] = preprocessing_outputs
-
-                # building the training steps as specified by developer
-                training_step, training_outputs = silo_training(
-                    **silo_preprocessed_outputs[
-                        silo_index
-                    ],  # feed kwargs as produced by silo_preprocessing()
-                    running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
-                    iteration_num=iteration,
-                    metrics_prefix=silo_config["compute"],
-                    **training_kwargs,  # # providing training params
-                )
-
-                # TODO: verify _step is an actual step
-
-                # verify the outputs from the developer code
-                assert isinstance(
-                    training_outputs, dict
-                ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
-                for key in training_outputs.keys():
-                    assert isinstance(
-                        training_outputs[key], PipelineOutputBase
-                    ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
-
-                # make sure the compute corresponds to the silo
-                # make sure the data is written in the right datastore
-                self.anchor_step_in_silo(
-                    training_step,
-                    compute=silo_config["compute"],
-                    output_datastore=silo_config["datastore"],
-                    model_output_datastore=self.orchestrator["datastore"],
-                )
-
+                print(silo_config)
+                tmp = json.dumps(silo_config)
+                print(tmp)
+                silo_subgraph_output = silo_subgraph_component(running_checkpoint, iteration, json.dumps(silo_config))
                 # each output is indexed to be fed into aggregate_component as a distinct input
-                silo_training_outputs.append(training_outputs)
+                silo_training_outputs.append(silo_subgraph_output.outputs.weights)
 
             # a couple of basic tests before aggregating
             # do we even have outputs?
