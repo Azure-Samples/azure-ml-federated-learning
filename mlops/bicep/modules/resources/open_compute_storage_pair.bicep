@@ -12,7 +12,7 @@ targetScope = 'resourceGroup'
 param machineLearningName string
 
 @description('The region of the machine learning workspace')
-param machineLearningRegion string
+param machineLearningRegion string = resourceGroup().location
 
 @description('Specifies the location of the pair resources.')
 param region string = resourceGroup().location
