@@ -87,22 +87,12 @@ module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
 
     // identity for permissions model
     identityType: identityType
+
+    // set R/W permissions for orchestrator UAI towards orchestrator storage
+    applyDefaultPermissions: true
   }
   dependsOn: [
     workspace
-  ]
-}
-
-// set R/W permissions for orchestrator UAI towards orchestrator storage
-module orchestratorPermission './modules/permissions/msi_storage_rw.bicep' = {
-  name: '${demoBaseName}-deploy-orchestrator-permission-${orchestratorRegion}'
-  scope: resourceGroup()
-  params: {
-    storageAccountName: orchestrator.outputs.storageName
-    identityPrincipalId: orchestrator.outputs.identityPrincipalId
-  }
-  dependsOn: [
-    orchestrator
   ]
 }
 
@@ -125,23 +115,14 @@ module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in r
     computeNodes: 4
     datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
 
+    // identity for permissions model
     identityType: identityType
+
+    // set R/W permissions for orchestrator UAI towards orchestrator storage
+    applyDefaultPermissions: true
   }
   dependsOn: [
     workspace
-  ]
-}]
-
-// set R/W permissions for silo identity towards silo storage
-module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo${i}-permission'
-  scope: resourceGroup()
-  params: {
-    storageAccountName: silos[i].outputs.storageName
-    identityPrincipalId: silos[i].outputs.identityPrincipalId
-  }
-  dependsOn: [
-    silos
   ]
 }]
 

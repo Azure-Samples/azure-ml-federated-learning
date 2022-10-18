@@ -48,6 +48,9 @@ param identityType string = 'UserAssigned'
 @description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
 param uaiName string = 'uai-${pairBaseName}'
 
+@description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
+param applyDefaultPermissions bool = true
+
 // deploy a storage account for the pair
 resource storageDeployment 'Microsoft.Storage/storageAccounts@2021-06-01' = {
   name: storageAccountCleanName
@@ -162,6 +165,20 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
   }
   dependsOn: [
     storageDeployment // ensure the storage exists BEFORE we do UAI role assignments
+  ]
+}
+
+// Set R/W permissions for orchestrator UAI towards orchestrator storage
+module orchestratorPermission '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
+  name: '${pairBaseName}-${region}-deploy-internal-default-permission'
+  scope: resourceGroup()
+  params: {
+    storageAccountName: storageAccountCleanName
+    identityPrincipalId: identityPrincipalId
+  }
+  dependsOn: [
+    storageDeployment
+    compute
   ]
 }
 
