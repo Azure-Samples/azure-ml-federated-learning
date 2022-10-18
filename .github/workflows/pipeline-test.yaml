@@ -16,28 +16,18 @@ jobs:
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Provision resources
+      uses: ./.github/actions/provision-resources
       with:
-        python-version: 3.8
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
+        demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
 
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
-    - name: Delete the resource group created by the provisioning script
-      run: az group delete --name open-${{ secrets.RESOURCE_GROUP_TMP }} --yes || echo No resource group named open-${{ secrets.RESOURCE_GROUP_TMP }} found.
-
-    - name: Create a new resource group
-      run: az group create --name open-${{ secrets.RESOURCE_GROUP_TMP }} --location westus
-
-    - name: Deploy the demo resources in your resource group
-      run: az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group open-${{ secrets.RESOURCE_GROUP_TMP }} --parameters demoBaseName=fl1${{ github.run_attempt }}${{ github.run_id }}
 
   open-sandbox-literal-helloworld-test:
     needs: open-sandbox-test
@@ -45,25 +35,17 @@ jobs:
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Submit Helloworld example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
       with:
-        python-version: 3.8
-
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
-    - name: Intall python dependencies
-      run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
-
-    - name: Submit HelloWorld fl_cross_silo_literal pipeline
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name open-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl1${{ github.run_attempt }}${{ github.run_id }} --example HELLOWORLD --submit
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
+        example: HELLOWORLD
 
   open-sandbox-literal-mnist-test:
     needs: open-sandbox-literal-helloworld-test
@@ -71,25 +53,17 @@ jobs:
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Submit MNIST example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
       with:
-        python-version: 3.8
-
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Intall python dependencies
-      run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
-
-    - name: Submit MNIST fl_cross_silo_literal pipeline
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name open-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl1${{ github.run_attempt }}${{ github.run_id }} --example MNIST --submit
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
 
   open-sandbox-factory-helloworld-test:
     needs: open-sandbox-test
@@ -110,48 +84,23 @@ jobs:
         workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
         example: HELLOWORLD
 
-    # - uses: actions/setup-python@v2.2.1
-    #   with:
-    #     python-version: 3.8
-
-    # - name: azure login
-    #   uses: azure/login@v1
-    #   with:
-    #       client-id: ${{ secrets.AZURE_CLIENT_ID }}
-    #       tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-    #       subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    # - name: Intall python dependencies
-    #   run: pip install -r examples/pipelines/fl_cross_silo_factory/requirements.txt
-
-    # - name: Submit HelloWorld fl_cross_silo_factory pipeline
-    #   run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name open-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl1${{ github.run_attempt }}${{ github.run_id }} --example HELLOWORLD --submit --ignore_validation
-
   open-sandbox-factory-mnist-test:
     needs: open-sandbox-factory-helloworld-test
     runs-on: ubuntu-latest
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Submit MNIST example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
       with:
-        python-version: 3.8
-
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Intall python dependencies
-      run: pip install -r examples/pipelines/fl_cross_silo_factory/requirements.txt
-
-    - name: Submit MNIST fl_cross_silo_factory pipeline
-      run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name open-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl1${{ github.run_attempt }}${{ github.run_id }} --example MNIST --submit --ignore_validation
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
 
   vnet-sandbox-test:
     runs-on: ubuntu-latest
@@ -161,26 +110,15 @@ jobs:
 
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Provision resources
+      uses: ./.github/actions/provision-resources
       with:
-        python-version: 3.8
-
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
-    - name: Delete the resource group created by the provisioning script
-      run: az group delete --name vnet-${{ secrets.RESOURCE_GROUP_TMP }} --yes || echo No resource group named vnet-${{ secrets.RESOURCE_GROUP_TMP }} found.
-
-    - name: Create a new resource group
-      run: az group create --name vnet-${{ secrets.RESOURCE_GROUP_TMP }} --location westus
-
-    - name: Deploy the demo resources in your resource group
-      run: az deployment group create --template-file ./mlops/bicep/vnet_publicip_sandbox_setup.bicep --resource-group vnet-${{ secrets.RESOURCE_GROUP_TMP }} --parameters demoBaseName=fl2${{ github.run_attempt }}${{ github.run_id }}
-
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        deployment-file-path: ./mlops/bicep/vnet_publicip_sandbox_setup.bicep
+        demo-base-name: fl2${{ github.run_attempt }}${{ github.run_id }}
 
   vnet-sandbox-literal-helloworld-test:
     needs: vnet-sandbox-test
@@ -188,25 +126,17 @@ jobs:
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Submit Helloworld example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
       with:
-        python-version: 3.8
-
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-    
-    - name: Intall python dependencies
-      run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
-
-    - name: Submit HelloWorld fl_cross_silo_literal pipeline
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name vnet-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl2${{ github.run_attempt }}${{ github.run_id }} --example HELLOWORLD --submit
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: HELLOWORLD
 
   vnet-sandbox-literal-mnist-test:
     needs: vnet-sandbox-literal-helloworld-test
@@ -214,25 +144,17 @@ jobs:
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Submit MNIST example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
       with:
-        python-version: 3.8
-
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Intall python dependencies
-      run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
-
-    - name: Submit MNIST fl_cross_silo_literal pipeline
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name vnet-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl2${{ github.run_attempt }}${{ github.run_id }} --example MNIST --submit
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
 
   vnet-sandbox-factory-helloworld-test:
     needs: vnet-sandbox-test
@@ -240,25 +162,18 @@ jobs:
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Submit Helloworld example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
       with:
-        python-version: 3.8
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: HELLOWORLD
 
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Intall python dependencies
-      run: pip install -r examples/pipelines/fl_cross_silo_factory/requirements.txt
-
-    - name: Submit HelloWorld fl_cross_silo_factory pipeline
-      run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name vnet-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl2${{ github.run_attempt }}${{ github.run_id }} --example HELLOWORLD --submit --ignore_validation
 
   vnet-sandbox-factory-mnist-test:
     needs: vnet-sandbox-factory-helloworld-test
@@ -266,23 +181,14 @@ jobs:
     permissions:
       id-token: write
     steps:
-
     - uses: actions/checkout@v2
 
-    - uses: actions/setup-python@v2.2.1
+    - name: Submit MNIST example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
       with:
-        python-version: 3.8
-
-    - name: azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Intall python dependencies
-      run: pip install -r examples/pipelines/fl_cross_silo_factory/requirements.txt
-
-    - name: Submit MNIST fl_cross_silo_factory pipeline
-      run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ secrets.AZURE_SUBSCRIPTION_ID }} --resource_group_name vnet-${{ secrets.RESOURCE_GROUP_TMP }} --workspace_name aml-fl2${{ github.run_attempt }}${{ github.run_id }} --example MNIST --submit --ignore_validation
-
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
