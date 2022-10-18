@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "13576527065743074853"
+      "templateHash": "6176123577929173658"
     }
   },
   "parameters": {
@@ -17,6 +17,7 @@
     },
     "machineLearningRegion": {
       "type": "string",
+      "defaultValue": "[resourceGroup().location]",
       "metadata": {
         "description": "The region of the machine learning workspace"
       }
