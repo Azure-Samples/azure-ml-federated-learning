@@ -35,10 +35,13 @@ runs:
           subscription-id: ${{ inputs.subscription-id }}
 
     - name: Delete the resource group created by the provisioning script
+      shell: bash
       run: az group delete --name ${{ inputs.resource-group }} --yes || echo No resource group named ${{ inputs.resource-group }} is found.
 
     - name: Create a new resource group
+      shell: bash
       run: az group create --name ${{ inputs.resource-group }} --location ${{ inputs.region }}
 
     - name: Deploy the demo resources in your resource group
+      shell: bash
       run: az deployment group create --template-file ${{ inputs.deployment-file-path }} --resource-group ${{ inputs.resource-group }} --parameters demoBaseName=${{ inputs.demo-base-name }}
