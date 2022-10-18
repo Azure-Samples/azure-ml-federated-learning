@@ -79,7 +79,7 @@ In this section, we'll use a sample python script to submit a federated learning
     python -m pip install -r ./examples/pipelines/fl_cross_silo_literal/requirements.txt
     ```
 
-2. To connect to your newly created Azure ML workspace, we'll need to create a `config.json` file at the root of this repo. Follow the instructions on how to get this from the [Azure ML documentation](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace).
+2. To connect to your newly created Azure ML workspace, you can provide the following values as CLI arguments or can create a `config.json` file at the root of this repo. Follow the instructions on how to get this from the [Azure ML documentation](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace).
 
     ```json
     {
@@ -95,6 +95,10 @@ In this section, we'll use a sample python script to submit a federated learning
 
     ```bash
     python ./examples/pipelines/fl_cross_silo_literal/submit.py --example MNIST --submit
+    ```
+    or
+    ```bash
+    python ./examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id <subscription_id> --resource_group <resource_group> --workspace_name <workspace_name> --example MNIST --submit
     ```
 
 The script will submit the experiment to Azure ML. **It should open a direct link to the experiment** in the Azure ML UI.
