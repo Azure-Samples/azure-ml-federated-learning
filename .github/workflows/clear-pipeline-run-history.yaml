@@ -1,12 +1,14 @@
 name: Delete run history
 on:
   schedule:
-  - cron: "*/2 * * * *"
+    - cron: "*/5 * * * *"
 
 jobs:
   delete-history:
     runs-on: ubuntu-latest
     steps:
+    - uses: actions/checkout@v2
+    
     - name: Azure login
       uses: azure/login@v1
       with:
