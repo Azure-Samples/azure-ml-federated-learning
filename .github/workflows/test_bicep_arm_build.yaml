@@ -29,7 +29,7 @@ jobs:
     - name: Azure CLI script
       uses: azure/CLI@v1
       with:
-        azcliversion: 2.30.0
+        azcliversion: 2.41.0
         inlineScript: |
           $sourcefile = "mlops/bicep/${{matrix.bicep_checks}}.bicep"
           $targetfile = "mlops/arm/${{matrix.bicep_checks}}.json"
