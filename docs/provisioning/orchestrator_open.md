@@ -7,7 +7,7 @@
 To run these deployment options, you first need:
 - an existing Azure ML workspace (see [cookbook](README.md))
 
-## Create a compute and storage pair for the silo
+## Create a compute and storage pair for the orchestrator
 
 > Note: both orchestrator and [silo](./silo_open.md) can be deployed using the same arm/bicep script, changing **Pair Base Name** accordingly.
 
