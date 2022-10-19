@@ -35,6 +35,13 @@ runs:
           tenant-id: ${{ inputs.tenant-id }}
           subscription-id: ${{ inputs.subscription-id }}
 
+    - name: Install azure ml latest extension
+      shell: bash
+      run: |
+        az extension remove -n azure-cli-ml
+        az extension remove -n ml
+        az extension add -n ml -y
+
     - name: Install python dependencies
       shell: bash
       run: pip install -r examples/pipelines/fl_cross_silo_factory/requirements.txt
