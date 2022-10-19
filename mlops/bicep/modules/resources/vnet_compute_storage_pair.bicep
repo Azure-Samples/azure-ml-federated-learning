@@ -73,14 +73,14 @@ param enableNodePublicIp bool = true
 param storagePublicNetworkAccess string = 'vNetOnly'
 
 @description('Name of the private DNS zone for storage in this resource group')
-param privateDnsZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
+param privateStorageDnsZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
 @description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
 param applyDefaultPermissions bool = true
 
 // Virtual network and network security group
 module nsg '../networking/nsg.bicep' = { 
-  name: '${nsgResourceName}-deployment'
+  name: '${nsgResourceName}-nsg-deploy'
   params: {
     location: pairRegion
     nsgName: nsgResourceName
@@ -89,7 +89,7 @@ module nsg '../networking/nsg.bicep' = {
 }
 
 module vnet '../networking/vnet.bicep' = { 
-  name: '${vnetResourceName}-deployment'
+  name: '${vnetResourceName}-vnet-deploy'
   params: {
     location: pairRegion
     virtualNetworkName: vnetResourceName
@@ -102,13 +102,13 @@ module vnet '../networking/vnet.bicep' = {
 }
 
 // Look for existing private DNS zone for all our private endpoints
-resource pairPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
-  name: privateDnsZoneName
+resource privateStorageDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: privateStorageDnsZoneName
 }
 
 // deploy a storage account for the pair
 module storageDeployment './storage_private.bicep' = {
-  name: '${storageAccountCleanName}-deployment'
+  name: '${storageAccountCleanName}-deploy'
   params: {
     location: pairRegion
     storageName: storageAccountCleanName
@@ -124,7 +124,7 @@ module storageDeployment './storage_private.bicep' = {
 
 // Create a private service endpoints internal to each silo for their respective storages
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = {
-  name: '${pairBaseName}-deploy-private-endpoint-to-internalstorage'
+  name: '${pairBaseName}-private-endpoint-to-instorage'
   scope: resourceGroup()
   params: {
     location: pairRegion
@@ -133,8 +133,8 @@ module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = {
     storagePleRootName: 'ple-${storageAccountCleanName}-to-${pairBaseName}-st-blob'
     subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
     virtualNetworkId: vnet.outputs.id
-    privateDNSZoneName: pairPrivateDnsZone.name
-    privateDNSZoneId: pairPrivateDnsZone.id
+    privateDNSZoneName: privateStorageDnsZone.name
+    privateDNSZoneId: privateStorageDnsZone.id
     groupIds: [
       'blob'
       //'file'
@@ -247,7 +247,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
 
 // Set R/W permissions for orchestrator UAI towards orchestrator storage
 module pairDefaultRWPermissions '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
-  name: '${pairBaseName}-${pairRegion}-deploy-internal-default-permission'
+  name: '${pairBaseName}-internal-rw-perms'
   scope: resourceGroup()
   params: {
     storageAccountName: storageAccountCleanName

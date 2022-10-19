@@ -65,7 +65,7 @@ param tags object = {
 
 // Create Azure Machine Learning workspace
 module workspace './modules/resources/open_azureml_workspace.bicep' = {
-  name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
+  name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
@@ -82,7 +82,7 @@ resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = 
 // Create an orchestrator compute+storage pair and attach to workspace
 // This pair will be considered eyes-on
 module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
-  name: '${demoBaseName}-deploy-orchestrator'
+  name: '${demoBaseName}-vnetpair-orchestrator'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
@@ -129,7 +129,7 @@ var siloCount = length(siloRegions)
 // Create all silos as a compute+storage pair and attach to workspace
 // This pair will be considered eyes-off
 module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
+  name: '${demoBaseName}-vnetpair-silo-${i}'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
@@ -170,7 +170,7 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
 
 // Set R/W permissions for silo identity towards (eyes-on) orchestrator storage
 module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo${i}-to-orch-permission'
+  name: '${demoBaseName}-rw-perms-silo${i}-to-orch'
   scope: resourceGroup()
   params: {
     storageAccountName: orchestrator.outputs.storageName
@@ -185,7 +185,7 @@ module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for
 // WARNING: apply vNet peering on top of everything
 // to allow for interconnections between computes
 module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(0, siloCount): if(applyVNetPeering) {
-  name: '${demoBaseName}-deploy-vnet-peering-orch-to-${i}-${siloRegions[i]}'
+  name: '${demoBaseName}-vnetpeering-orch-to-silo${i}'
   scope: resourceGroup()
   params: {
     existingVirtualNetworkNameSource: silos[i].outputs.vnetName
