@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "17296538317469700043"
+      "templateHash": "1466924609460585529"
     }
   },
   "parameters": {
@@ -150,7 +150,7 @@
     },
     "storagePublicNetworkAccess": {
       "type": "string",
-      "defaultValue": "vNetOnly",
+      "defaultValue": "Disabled",
       "metadata": {
         "description": "Allow or disallow public network access to Storage Account."
       },
@@ -160,11 +160,11 @@
         "Disabled"
       ]
     },
-    "privateDnsZoneName": {
+    "privateStorageDnsZoneName": {
       "type": "string",
       "defaultValue": "[format('privatelink.blob.{0}', environment().suffixes.storage)]",
       "metadata": {
-        "description": "Name of the private DNS zone for storage in this resource group"
+        "description": "Name of the existing private DNS zone for storage in this resource group"
       }
     },
     "applyDefaultPermissions": {
@@ -189,7 +189,7 @@
         "publicAccess": "None"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', variables('storageAccountCleanName')))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy', variables('storageAccountCleanName')))]"
       ]
     },
     {
@@ -220,7 +220,7 @@
       "location": "[parameters('pairRegion')]",
       "tags": "[parameters('tags')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', variables('storageAccountCleanName')))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy', variables('storageAccountCleanName')))]"
       ]
     },
     {
@@ -249,20 +249,20 @@
           "isolatedNetwork": false,
           "remoteLoginPortPublicAccess": "Disabled",
           "subnet": {
-            "id": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
+            "id": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
           }
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', variables('storageAccountCleanName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy', variables('storageAccountCleanName')))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deployment', parameters('nsgResourceName'))]",
+      "name": "[format('{0}-nsg-deploy', parameters('nsgResourceName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -451,7 +451,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deployment', parameters('vnetResourceName'))]",
+      "name": "[format('{0}-vnet-deploy', parameters('vnetResourceName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -465,7 +465,7 @@
             "value": "[parameters('vnetResourceName')]"
           },
           "networkSecurityGroupId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgResourceName')))).outputs.id.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-nsg-deploy', parameters('nsgResourceName')))).outputs.id.value]"
           },
           "vnetAddressPrefix": {
             "value": "[parameters('vnetAddressPrefix')]"
@@ -586,13 +586,13 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgResourceName')))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-nsg-deploy', parameters('nsgResourceName')))]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deployment', variables('storageAccountCleanName'))]",
+      "name": "[format('{0}-deploy', variables('storageAccountCleanName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -609,7 +609,7 @@
             "value": "Standard_LRS"
           },
           "subnetIds": {
-            "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))), parameters('allowedSubnetIds'))]"
+            "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))), parameters('allowedSubnetIds'))]"
           },
           "publicNetworkAccess": {
             "value": "[parameters('storagePublicNetworkAccess')]"
@@ -774,13 +774,14 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))]"
       ]
     },
     {
+      "condition": "[equals(parameters('storagePublicNetworkAccess'), 'Disabled')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deploy-private-endpoint-to-internalstorage', parameters('pairBaseName'))]",
+      "name": "[format('{0}-private-endpoint-to-instorage', parameters('pairBaseName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -794,22 +795,22 @@
             "value": "[parameters('tags')]"
           },
           "privateLinkServiceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', variables('storageAccountCleanName')))).outputs.storageId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy', variables('storageAccountCleanName')))).outputs.storageId.value]"
           },
           "storagePleRootName": {
             "value": "[format('ple-{0}-to-{1}-st-blob', variables('storageAccountCleanName'), parameters('pairBaseName'))]"
           },
           "subnetId": {
-            "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
+            "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
           },
           "virtualNetworkId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))).outputs.id.value]"
           },
           "privateDNSZoneName": {
-            "value": "[parameters('privateDnsZoneName')]"
+            "value": "[parameters('privateStorageDnsZoneName')]"
           },
           "privateDNSZoneId": {
-            "value": "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDnsZoneName'))]"
+            "value": "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateStorageDnsZoneName'))]"
           },
           "groupIds": {
             "value": [
@@ -965,15 +966,15 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', variables('storageAccountCleanName')))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy', variables('storageAccountCleanName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))]"
       ]
     },
     {
       "condition": "[parameters('applyDefaultPermissions')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-{1}-deploy-internal-default-permission', parameters('pairBaseName'), parameters('pairRegion'))]",
+      "name": "[format('{0}-internal-rw-perms', parameters('pairBaseName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -994,7 +995,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "15993831950689019004"
+              "templateHash": "17992859547784854732"
             }
           },
           "parameters": {
@@ -1013,9 +1014,9 @@
             "computeToStorageRoles": {
               "type": "array",
               "defaultValue": [
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349', subscription().subscriptionId)]"
+                "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                "81a9662b-bebf-436f-a333-f67b29880f12",
+                "c12c1c16-33a1-487b-954d-41c89c60f349"
               ],
               "metadata": {
                 "description": "Role definition IDs for the compute towards the internal storage"
@@ -1033,7 +1034,7 @@
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
               "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
               "properties": {
-                "roleDefinitionId": "[parameters('computeToStorageRoles')[copyIndex()]]",
+                "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, parameters('computeToStorageRoles')[copyIndex()])]",
                 "principalId": "[parameters('identityPrincipalId')]",
                 "principalType": "ServicePrincipal"
               }
@@ -1043,7 +1044,7 @@
       },
       "dependsOn": [
         "[resourceId('Microsoft.MachineLearningServices/workspaces/computes', parameters('machineLearningName'), parameters('computeName'))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', variables('storageAccountCleanName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy', variables('storageAccountCleanName')))]",
         "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]"
       ]
     }
@@ -1059,7 +1060,7 @@
     },
     "storageServiceId": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', variables('storageAccountCleanName')))).outputs.storageId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy', variables('storageAccountCleanName')))).outputs.storageId.value]"
     },
     "container": {
       "type": "string",
@@ -1079,15 +1080,15 @@
     },
     "vnetName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.name.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))).outputs.name.value]"
     },
     "vnetId": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))).outputs.id.value]"
     },
     "subnetId": {
       "type": "string",
-      "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
+      "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-deploy', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
     }
   }
 }
