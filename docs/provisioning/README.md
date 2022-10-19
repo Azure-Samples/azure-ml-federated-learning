@@ -1,4 +1,4 @@
-# FL provisioning cookbook
+# AzureML FL provisioning cookbook
 
 This page provides a "pick and choose" guide to provisioning a new FL environment. Each section provides multiple alternatives depending on your setup. Some sections are optional and can be skipped if you already have the required infrastructure in place.
 
@@ -28,7 +28,7 @@ The orchestrator is the central server of the Federated Learning pipeline. It is
 
 | Manual | Description |
 | :-- | :-- |
-| :construction: | Create a sandbox open pair of compute and storage for the orchestrator. |
+| [Tutorial](./open_orchestrator.md) | Create a sandbox open pair of compute and storage for the orchestrator. |
 | :construction: | Create a vnet with a compute, a private DNS zone and private endpoints to a new blob storage (created in the same resource group). |
 
 ## Create internal silos
