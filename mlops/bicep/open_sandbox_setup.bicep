@@ -58,7 +58,7 @@ param tags object = {
 
 // Create Azure Machine Learning workspace
 module workspace './modules/resources/open_azureml_workspace.bicep' = {
-  name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
+  name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
@@ -69,7 +69,7 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 
 // Create an orchestrator compute+storage pair and attach to workspace
 module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
-  name: '${demoBaseName}-deploy-orchestrator'
+  name: '${demoBaseName}-openpair-orchestrator'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
@@ -100,7 +100,7 @@ var siloCount = length(siloRegions)
 
 // Create all silos using a provided bicep module
 module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
+  name: '${demoBaseName}-open-pair-silo-${i}'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
@@ -128,7 +128,7 @@ module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in r
 
 // set R/W permissions for silo identity towards orchestrator storage
 module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo${i}-to-orch-permission'
+  name: '${demoBaseName}-rw-perms-silo${i}-to-orch'
   scope: resourceGroup()
   params: {
     storageAccountName: orchestrator.outputs.storageName
