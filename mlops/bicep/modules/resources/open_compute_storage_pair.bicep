@@ -170,7 +170,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
 
 // Set R/W permissions for orchestrator UAI towards orchestrator storage
 module orchestratorPermission '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
-  name: '${pairBaseName}-${pairRegion}-deploy-internal-default-permission'
+  name: '${pairBaseName}-internal-rw-perms'
   scope: resourceGroup()
   params: {
     storageAccountName: storageAccountCleanName
