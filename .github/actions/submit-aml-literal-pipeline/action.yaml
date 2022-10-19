@@ -41,5 +41,5 @@ runs:
 
     - name: Submit fl_cross_silo_literal pipeline
       shell: bash
-      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group_name ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --example ${{ inputs.example }} --submit
+      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group_name ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --example ${{ inputs.example }} --submit --wait
 

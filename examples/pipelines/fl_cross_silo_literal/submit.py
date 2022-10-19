@@ -349,6 +349,7 @@ if args.submit:
 
         while status not in ["Failed", "Completed", "Canceled"]:
             # check status after every 1 min.
+            print(f"Job current status is {status}")
             time.sleep(60)
             try:
                 status = json.loads(
@@ -362,10 +363,8 @@ if args.submit:
                 )
                 sys.exit(1)
 
+        print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
-            print(f"Job failed with status {status}")
             sys.exit(1)
-        else:
-            print(f"Job finished with status {status}")
 else:
     print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
