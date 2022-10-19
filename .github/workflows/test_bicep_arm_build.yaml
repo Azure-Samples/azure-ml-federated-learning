@@ -1,0 +1,43 @@
+name: python
+
+on:
+  push:
+    branches:
+    - main
+    paths:
+    - '**.bicep'
+  pull_request:
+    branches:
+    - main
+    - release*
+    paths:
+    - '**.bicep'
+
+jobs:
+  bicep_to_arm_diff_check:
+    strategy:
+      matrix:
+        bicep_checks: # list all pairs of files here
+          - source: mlops/bicep/open_sandbox_setup.bicep
+            target: mlops/arm/open_sandbox_setup.json
+
+    runs-on: ubuntu-latest
+    name: "Build bicep into arm and compare"
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Azure CLI script
+      uses: azure/CLI@v1
+      with:
+        azcliversion: 2.30.0
+        inlineScript: |
+          az bicep build --template-file ${{ matrix.bicep_checks.source }} --outfile build/test.json
+
+          if cmp -s  ${{ matrix.bicep_checks.target }} build/test.json; then
+              printf 'Rebuilding bicep "%s" produces exact match with target file "%s"\n' ${{ matrix.bicep_checks.source }} ${{ matrix.bicep_checks.target }}
+          else
+              printf 'Diff between "%s" and "%s":\n' ${{ matrix.bicep_checks.source }} ${{ matrix.bicep_checks.target }}
+              diff ${{ matrix.bicep_checks.target }} build/test.json
+              exit 1
+          fi
