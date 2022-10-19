@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "7939811659764056201"
+      "templateHash": "5101721979681566831"
     }
   },
   "parameters": {
@@ -216,7 +216,7 @@
       "condition": "[parameters('applyDefaultPermissions')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-{1}-deploy-internal-default-permission', parameters('pairBaseName'), parameters('pairRegion'))]",
+      "name": "[format('{0}-internal-rw-perms', parameters('pairBaseName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -237,7 +237,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "15993831950689019004"
+              "templateHash": "17992859547784854732"
             }
           },
           "parameters": {
@@ -256,9 +256,9 @@
             "computeToStorageRoles": {
               "type": "array",
               "defaultValue": [
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349', subscription().subscriptionId)]"
+                "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                "81a9662b-bebf-436f-a333-f67b29880f12",
+                "c12c1c16-33a1-487b-954d-41c89c60f349"
               ],
               "metadata": {
                 "description": "Role definition IDs for the compute towards the internal storage"
@@ -276,7 +276,7 @@
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
               "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
               "properties": {
-                "roleDefinitionId": "[parameters('computeToStorageRoles')[copyIndex()]]",
+                "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, parameters('computeToStorageRoles')[copyIndex()])]",
                 "principalId": "[parameters('identityPrincipalId')]",
                 "principalType": "ServicePrincipal"
               }
