@@ -88,7 +88,7 @@ module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
     machineLearningName: workspace.outputs.workspace
     machineLearningRegion: orchestratorRegion
 
-    region: orchestratorRegion
+    pairRegion: orchestratorRegion
     tags: tags
 
     pairBaseName: '${demoBaseName}-orch'
@@ -100,6 +100,9 @@ module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
 
     // identity for permissions model
     identityType: identityType
+
+    // set R/W permissions for orchestrator UAI towards orchestrator storage
+    applyDefaultPermissions: true
 
     // networking
     vnetAddressPrefix: '10.0.0.0/24'
@@ -120,20 +123,13 @@ module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
   ]
 }
 
-// Set R/W permissions for orchestrator UAI towards orchestrator storage
-module orchestratorPermission './modules/permissions/msi_storage_rw.bicep' = {
-  name: '${demoBaseName}-deploy-orchestrator-permission-${orchestratorRegion}'
-  scope: resourceGroup()
-  params: {
-    storageAccountName: orchestrator.outputs.storageName
-    identityPrincipalId: orchestrator.outputs.identityPrincipalId
-  }
-  dependsOn: [
-    orchestrator
-  ]
-}
-
 var siloCount = length(siloRegions)
+
+// Add a private DNS zone for all our private endpoints
+resource siloStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.blob.${environment().suffixes.storage}'
+  location: 'global'
+}
 
 // Create all silos as a compute+storage pair and attach to workspace
 // This pair will be considered eyes-off
@@ -143,7 +139,7 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
   params: {
     machineLearningName: workspace.outputs.workspace
     machineLearningRegion: orchestratorRegion
-    region: siloRegions[i]
+    pairRegion: siloRegions[i]
     tags: tags
 
     pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
@@ -155,6 +151,9 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
 
     // identity for permissions model
     identityType: identityType
+
+    // set R/W permissions for orchestrator UAI towards orchestrator storage
+    applyDefaultPermissions: true
 
     // networking
     vnetAddressPrefix: '10.0.${i+1}.0/24'
@@ -169,19 +168,6 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
   }
   dependsOn: [
     workspace
-  ]
-}]
-
-// Set R/W permissions for silo identity towards silo storage
-module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo${i}-permission'
-  scope: resourceGroup()
-  params: {
-    storageAccountName: silos[i].outputs.storageName
-    identityPrincipalId: silos[i].outputs.identityPrincipalId
-  }
-  dependsOn: [
-    silos
   ]
 }]
 

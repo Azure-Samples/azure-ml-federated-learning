@@ -11,10 +11,10 @@ targetScope = 'resourceGroup'
 param machineLearningName string
 
 @description('The region of the machine learning workspace')
-param machineLearningRegion string
+param machineLearningRegion string = resourceGroup().location
 
 @description('Specifies the location of the pair resources.')
-param region string = resourceGroup().location
+param pairRegion string = resourceGroup().location
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -75,11 +75,14 @@ param storagePublicNetworkAccess string = 'vNetOnly'
 @description('Name of the private DNS zone for storage in this resource group')
 param privateDnsZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
+@description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
+param applyDefaultPermissions bool = true
+
 // Virtual network and network security group
 module nsg '../networking/nsg.bicep' = { 
   name: '${nsgResourceName}-deployment'
   params: {
-    location: region
+    location: pairRegion
     nsgName: nsgResourceName
     tags: tags
   }
@@ -88,7 +91,7 @@ module nsg '../networking/nsg.bicep' = {
 module vnet '../networking/vnet.bicep' = { 
   name: '${vnetResourceName}-deployment'
   params: {
-    location: region
+    location: pairRegion
     virtualNetworkName: vnetResourceName
     networkSecurityGroupId: nsg.outputs.id
     vnetAddressPrefix: vnetAddressPrefix
@@ -107,7 +110,7 @@ resource pairPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' exist
 module storageDeployment './storage_private.bicep' = {
   name: '${storageAccountCleanName}-deployment'
   params: {
-    location: region
+    location: pairRegion
     storageName: storageAccountCleanName
     storageSKU: 'Standard_LRS'
     subnetIds: concat(
@@ -121,10 +124,10 @@ module storageDeployment './storage_private.bicep' = {
 
 // Create a private service endpoints internal to each silo for their respective storages
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = {
-  name: '${pairBaseName}-private-endpoint-to-storage'
+  name: '${pairBaseName}-deploy-private-endpoint-to-internalstorage'
   scope: resourceGroup()
   params: {
-    location: region
+    location: pairRegion
     tags: tags
     privateLinkServiceId: storageDeployment.outputs.storageId
     storagePleRootName: 'ple-${storageAccountCleanName}-to-${pairBaseName}-st-blob'
@@ -163,7 +166,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
       credentialsType: 'None'
       // For remaining properties, see DatastoreCredentials objects
     }
-    description: 'Private storage in region ${region}'
+    description: 'Private storage in region ${pairRegion}'
     properties: {}
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
@@ -183,7 +186,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
 // provision a user assigned identify for this silo
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
   name: uaiName
-  location: region
+  location: pairRegion
   tags: tags
   dependsOn: [
     storageDeployment // ensure the storage exists BEFORE we do UAI role assignments
@@ -208,7 +211,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
   }
   properties: {
     computeType: 'AmlCompute'
-    computeLocation: region
+    computeLocation: pairRegion
     disableLocalAuth: true
 
     properties: {
@@ -242,6 +245,20 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
   ]
 }
 
+// Set R/W permissions for orchestrator UAI towards orchestrator storage
+module pairDefaultRWPermissions '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
+  name: '${pairBaseName}-${pairRegion}-deploy-internal-default-permission'
+  scope: resourceGroup()
+  params: {
+    storageAccountName: storageAccountCleanName
+    identityPrincipalId: identityPrincipalId
+  }
+  dependsOn: [
+    storageDeployment
+    compute
+  ]
+}
+
 // output the pair config for next actions (permission model)
 output identityPrincipalId string = identityPrincipalId
 output storageName string = storageAccountCleanName
@@ -249,7 +266,7 @@ output storageServiceId string = storageDeployment.outputs.storageId
 output container string = container.name
 output datastore string = datastore.name
 output compute string = compute.name
-output region string = region
+output region string = pairRegion
 output vnetName string = vnet.outputs.name
 output vnetId string = vnet.outputs.id
 output subnetId string = '${vnet.outputs.id}/subnets/${subnetName}'
