@@ -1,7 +1,7 @@
 name: Delete run history
 on:
   schedule:
-  - cron: "40 * * * *"
+  - cron: "*/2 * * * *"
 
 jobs:
   delete-history:
