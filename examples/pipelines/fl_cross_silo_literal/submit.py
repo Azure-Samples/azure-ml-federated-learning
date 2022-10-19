@@ -350,12 +350,12 @@ if args.submit:
             # check status after every 1 min.
             print(f"Job current status is {status}")
             time.sleep(60)
+            cmd_output = os.popen(
+                f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
+            ).read()
+            print(cmd_output)
             try:
-                status = json.loads(
-                    os.popen(
-                        f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
-                    ).read()
-                ).get("status")
+                status = json.loads(cmd_output.strip()).get("status")
             except json.decoder.JSONDecodeError as e:
                 print(
                     f"Error occurred while checking the status of the pipeline job: {e}"

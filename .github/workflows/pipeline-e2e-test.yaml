@@ -1,4 +1,4 @@
-name: pipeline-test
+name: End-to-end-pipeline-test
 
 on:
   pull_request:
