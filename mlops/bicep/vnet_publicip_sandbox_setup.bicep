@@ -120,16 +120,11 @@ module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
   }
   dependsOn: [
     workspace
+    storagePrivateDnsZone
   ]
 }
 
 var siloCount = length(siloRegions)
-
-// Add a private DNS zone for all our private endpoints
-resource siloStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.blob.${environment().suffixes.storage}'
-  location: 'global'
-}
 
 // Create all silos as a compute+storage pair and attach to workspace
 // This pair will be considered eyes-off
@@ -168,6 +163,7 @@ module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in r
   }
   dependsOn: [
     workspace
+    storagePrivateDnsZone
   ]
 }]
 
