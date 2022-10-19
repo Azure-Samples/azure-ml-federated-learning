@@ -17,9 +17,8 @@ jobs:
   bicep_to_arm_diff_check:
     strategy:
       matrix:
-        bicep_checks: # list all pairs of files here
-          - source: mlops/bicep/open_sandbox_setup.bicep
-            target: mlops/arm/open_sandbox_setup.json
+        bicep_checks: # list all pairs of files here as relpath to mlops/bicep/
+          - open_sandbox_setup
 
     runs-on: ubuntu-latest
     name: "Build bicep into arm and compare"
@@ -32,12 +31,15 @@ jobs:
       with:
         azcliversion: 2.30.0
         inlineScript: |
-          az bicep build --template-file ${{ matrix.bicep_checks.source }} --outfile build/test.json
+          $sourcefile = "mlops/bicep/${{matrix.bicep_checks}}.bicep"
+          $targetfile = "mlops/arm/${{matrix.bicep_checks}}.json"
 
-          if cmp -s  ${{ matrix.bicep_checks.target }} build/test.json; then
-              printf 'Rebuilding bicep "%s" produces exact match with target file "%s"\n' ${{ matrix.bicep_checks.source }} ${{ matrix.bicep_checks.target }}
+          az bicep build --template-file $sourcefile --outfile build/test.json
+  
+          if cmp -s build/test.json $targetfile; then
+              printf 'Rebuilding bicep "%s" produces exact match with target file "%s"\n' $sourcefile $targetfile
           else
-              printf 'Diff between "%s" and "%s":\n' ${{ matrix.bicep_checks.source }} ${{ matrix.bicep_checks.target }}
-              diff ${{ matrix.bicep_checks.target }} build/test.json
+              printf 'Diff between "%s" and "%s":\n' $sourcefile $targetfile
+              diff $targetfile build/test.json
               exit 1
           fi
