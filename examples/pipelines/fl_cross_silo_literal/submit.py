@@ -12,6 +12,9 @@ import random
 import string
 import datetime
 import webbrowser
+import time
+import json
+import sys
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
@@ -70,6 +73,13 @@ parser.add_argument(
     type=str,
     required=False,
     help="Workspace name",
+)
+
+parser.add_argument(
+    "--wait",
+    default=False,
+    action="store_true",
+    help="Wait for the pipeline to complete",
 )
 
 args = parser.parse_args()
@@ -339,6 +349,30 @@ if args.submit:
     print(pipeline_job.services["Studio"].endpoint)
 
     webbrowser.open(pipeline_job.services["Studio"].endpoint)
+
+    if args.wait:
+        job_name = pipeline_job.name
+        status = pipeline_job.status
+
+        while status not in ["Failed", "Completed", "Canceled"]:
+            # check status after every 1 min.
+            time.sleep(60)
+            try:
+                status = json.loads(
+                    os.popen(
+                        f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
+                    ).read()
+                ).get("status")
+            except json.decoder.JSONDecodeError as e:
+                print(
+                    f"Error occurred while checking the status of the pipeline job: {e}"
+                )
+                sys.exit(1)
+
+        if status in ["Failed", "Canceled"]:
+            print(f"Job failed with status {status}")
+            sys.exit(1)
+        else:
+            print(f"Job finished with status {status}")
 else:
     print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
-# test CI/CD pipeline
