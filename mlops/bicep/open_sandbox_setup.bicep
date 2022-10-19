@@ -33,7 +33,7 @@ param demoBaseName string = 'fldemo'
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
-@description('Location of the orchestrator (workspace, central storage and compute).')
+@description('Region of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
