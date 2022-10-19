@@ -1,4 +1,4 @@
-name: python
+name: bicep_arm_diff
 
 on:
   push:
