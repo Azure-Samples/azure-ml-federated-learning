@@ -70,9 +70,9 @@ param enableNodePublicIp bool = true
 
 @allowed(['Enabled','vNetOnly','Disabled'])
 @description('Allow or disallow public network access to Storage Account.')
-param storagePublicNetworkAccess string = 'vNetOnly'
+param storagePublicNetworkAccess string = 'Disabled'
 
-@description('Name of the private DNS zone for storage in this resource group')
+@description('Name of the existing private DNS zone for storage in this resource group')
 param privateStorageDnsZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
 @description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
