@@ -140,8 +140,7 @@ except Exception as ex:
     # tries to connect using cli args if provided else using config.yaml
     ML_CLIENT = MLClient(
         subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
-        resource_group_name=args.resource_group
-        or YAML_CONFIG.aml.resource_group_name,
+        resource_group_name=args.resource_group or YAML_CONFIG.aml.resource_group_name,
         workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
         credential=credential,
     )
@@ -383,10 +382,10 @@ if args.submit:
                     f"Error occurred while checking the status of the pipeline job: {e}"
                 )
                 sys.exit(1)
-        
+
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
-            
+
 else:
     print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
