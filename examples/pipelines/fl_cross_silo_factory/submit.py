@@ -82,6 +82,27 @@ parser.add_argument(
     help="dataset name",
 )
 
+parser.add_argument(
+    "--subscription_id",
+    type=str,
+    required=False,
+    help="Subscription ID",
+)
+parser.add_argument(
+    "--resource_group",
+    type=str,
+    required=False,
+    help="Resource group name",
+)
+
+parser.add_argument(
+    "--workspace_name",
+    type=str,
+    required=False,
+    help="Workspace name",
+)
+
+
 args = parser.parse_args()
 
 # load the config from a local yaml file
@@ -107,11 +128,12 @@ except Exception as ex:
         "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
     )
 
-    # tries to connect using provided references in config.yaml
+    # tries to connect using cli args if provided else using config.yaml
     ML_CLIENT = MLClient(
-        subscription_id=YAML_CONFIG.aml.subscription_id,
-        resource_group_name=YAML_CONFIG.aml.resource_group_name,
-        workspace_name=YAML_CONFIG.aml.workspace_name,
+        subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
+        resource_group_name=args.resource_group
+        or YAML_CONFIG.aml.resource_group_name,
+        workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
         credential=credential,
     )
 
