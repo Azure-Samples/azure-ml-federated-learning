@@ -1,6 +1,6 @@
 # Create an open sandbox orchestrator
 
-:important: This should be used for development purpose only.
+:warning: This should be used for **development purpose only**.
 
 ## Prerequisites
 

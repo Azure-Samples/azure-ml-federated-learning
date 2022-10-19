@@ -1,6 +1,6 @@
 # Create an open sandbox silo
 
-:important: This should be used for development purpose only.
+:warning: This should be used for **development purpose only**.
 
 ## Prerequisites
 
@@ -29,8 +29,20 @@ To run these deployment options, you first need:
 In the resource group of your AzureML workspace, use the following command with parameters corresponding to your setup:
 
 ```bash
-az deployment group create --template-file ./mlops/bicep/modules/resources/open_compute_storage_pair.bicep --resource-group <resource group name> --parameters demoBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus"
+az deployment group create --template-file ./mlops/bicep/modules/resources/open_compute_storage_pair.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus"
 ```
 
 ## Set permissions for the silo's compute to R/W from/to the orchestrator
 
+1. Navigate the Azure portal to find your resource group.
+
+2. Look for a resource of type **Managed Identity** in the region of the silo named like `uai-<pairBaseName>`. It should have been created by the instructions above.
+
+3. Open this identity and click on **Azure role assignments**. You should see the list of assignments for this identity.
+
+    It should contain 3 roles towards the storage account of the silo itself:
+    - **Storage Blob Data Contributor**
+    - **Reader and Data Access**
+    - **Storage Account Key Operator Service Role**
+
+4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
