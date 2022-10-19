@@ -123,7 +123,7 @@ module storageDeployment './storage_private.bicep' = {
 }
 
 // Create a private service endpoints internal to each silo for their respective storages
-module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = {
+module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
   name: '${pairBaseName}-private-endpoint-to-instorage'
   scope: resourceGroup()
   params: {
