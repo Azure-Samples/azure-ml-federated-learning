@@ -74,6 +74,11 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
   }
 }
 
+resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.blob.${environment().suffixes.storage}'
+  location: 'global'
+}
+
 // Create an orchestrator compute+storage pair and attach to workspace
 // This pair will be considered eyes-on
 module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
@@ -177,35 +182,6 @@ module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for
   }
   dependsOn: [
     silos
-  ]
-}]
-
-// Add a private DNS zone for all our private endpoints
-resource siloStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.blob.${environment().suffixes.storage}'
-  location: 'global'
-}
-
-// Create a private service endpoints internal to each silo for their respective storages
-module silosStoragePrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-internal-endpoint-${i}-${siloRegions[i]}-storage'
-  scope: resourceGroup()
-  params: {
-    location: siloRegions[i]
-    tags: tags
-    privateLinkServiceId: silos[i].outputs.storageServiceId
-    storagePleRootName: 'ple-${silos[i].outputs.storageName}-to-silo${i}${siloRegions[i]}-st-blob'
-    subnetId: silos[i].outputs.subnetId
-    virtualNetworkId: silos[i].outputs.vnetId
-    privateDNSZoneName: siloStoragePrivateDnsZone.name
-    privateDNSZoneId: siloStoragePrivateDnsZone.id
-    groupIds: [
-      'blob'
-      //'file'
-    ]
-  }
-  dependsOn: [
-    silos[i]
   ]
 }]
 

@@ -72,6 +72,9 @@ param enableNodePublicIp bool = true
 @description('Allow or disallow public network access to Storage Account.')
 param storagePublicNetworkAccess string = 'vNetOnly'
 
+@description('Name of the private DNS zone for storage in this resource group')
+param privateDnsZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
+
 // Virtual network and network security group
 module nsg '../networking/nsg.bicep' = { 
   name: '${nsgResourceName}-deployment'
@@ -95,6 +98,11 @@ module vnet '../networking/vnet.bicep' = {
   }
 }
 
+// Look for existing private DNS zone for all our private endpoints
+resource pairPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: privateDnsZoneName
+}
+
 // deploy a storage account for the pair
 module storageDeployment './storage_private.bicep' = {
   name: '${storageAccountCleanName}-deployment'
@@ -109,6 +117,29 @@ module storageDeployment './storage_private.bicep' = {
     publicNetworkAccess: storagePublicNetworkAccess
     tags: tags
   }
+}
+
+// Create a private service endpoints internal to each silo for their respective storages
+module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = {
+  name: '${pairBaseName}-private-endpoint-to-storage'
+  scope: resourceGroup()
+  params: {
+    location: region
+    tags: tags
+    privateLinkServiceId: storageDeployment.outputs.storageId
+    storagePleRootName: 'ple-${storageAccountCleanName}-to-${pairBaseName}-st-blob'
+    subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
+    virtualNetworkId: vnet.outputs.id
+    privateDNSZoneName: pairPrivateDnsZone.name
+    privateDNSZoneId: pairPrivateDnsZone.id
+    groupIds: [
+      'blob'
+      //'file'
+    ]
+  }
+  dependsOn: [
+    storageDeployment
+  ]
 }
 
 // create a "private" container in the storage account
