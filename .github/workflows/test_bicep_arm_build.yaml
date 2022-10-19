@@ -5,13 +5,13 @@ on:
     branches:
     - main
     paths:
-    - '**.bicep'
+    - mlops/bicep/
   pull_request:
     branches:
     - main
-    - release*
+    - release**
     paths:
-    - '**.bicep'
+    - mlops/bicep/
 
 jobs:
   bicep_to_arm_diff_check:
