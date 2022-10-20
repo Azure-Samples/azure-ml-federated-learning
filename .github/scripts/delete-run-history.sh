@@ -15,7 +15,8 @@ for item in $job_name_with_created_date; do
     num_of_days=$((($(date +%s) - $(date -d $item +%s)) / (60 * 60 * 24) ))
     echo Job name: $job_name, Number of days: $num_of_days
     
-    if [[ $num_of_days -gt 0 ]]; then
+    # Archive jobs that are older than 60 days
+    if [[ $num_of_days -gt 60 ]]; then
         az ml job archive -g $1 -w $2 -n $job_name
     else
         echo "Number of days are less than 60."
