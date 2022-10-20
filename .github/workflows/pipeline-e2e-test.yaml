@@ -27,7 +27,13 @@ jobs:
     #     resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
     #     deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
     #     demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
-    
+    - name: Install azure ml latest extension
+      shell: bash
+      run: |
+        az extension remove -n azure-cli-ml || echo "azure-cli-ml extension is not installed."
+        az extension remove -n ml || echo "ml extension is not installed."
+        az extension add -n ml -y
+        
     - name: Delete run history
       shell: bash
       run: ./.github/scripts/delete-run-history.sh ${{ secrets.RESOURCE_GROUP }} ${{ secrets.AML_WORKSPACE_NAME }}
