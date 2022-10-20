@@ -5,6 +5,7 @@ echo $job_name_with_created_date
 job_name=""
 i=1 
 for item in $job_name_with_created_date; do
+    item=`sed -e 's/^"//' -e 's/"$//' <<< "$item"`
     if [[ $i%2 -eq 1 ]]; then
         job_name=$item
         i=$((i+1))
