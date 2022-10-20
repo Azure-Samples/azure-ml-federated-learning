@@ -27,6 +27,10 @@ jobs:
         resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
         deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
         demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
+    
+    - name: Delete run history
+      shell: bash
+      run: ./.github/scripts/delete-run-history.sh ${{ secrets.RESOURCE_GROUP }} ${{ secrets.AML_WORKSPACE_NAME }}
 
 
   open-sandbox-literal-helloworld-test:

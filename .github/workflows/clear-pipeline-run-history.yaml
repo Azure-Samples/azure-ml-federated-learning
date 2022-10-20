@@ -1,7 +1,7 @@
 name: Delete run history
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "0 0 * * *"
 
 jobs:
   delete-history:
@@ -18,4 +18,4 @@ jobs:
     
     - name: Delete run history
       shell: bash
-      run: ./.github/scripts/delete-run-history.sh
+      run: ./.github/scripts/delete-run-history.sh ${{ secrets.RESOURCE_GROUP }} ${{ secrets.AML_WORKSPACE_NAME }}
