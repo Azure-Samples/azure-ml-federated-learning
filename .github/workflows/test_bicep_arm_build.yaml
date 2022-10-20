@@ -29,8 +29,8 @@ jobs:
     - name: Build bicep into arm and diff
       shell: bash
       run: |
-        $sourcefile = "mlops/bicep/${{matrix.bicep_checks}}.bicep"
-        $targetfile = "mlops/arm/${{matrix.bicep_checks}}.json"
+        sourcefile="mlops/bicep/${{matrix.bicep_checks}}.bicep"
+        targetfile="mlops/arm/${{matrix.bicep_checks}}.json"
 
         az bicep build --template-file $sourcefile --outfile build/test.json
 
