@@ -34,10 +34,10 @@ jobs:
 
         az bicep build --file $sourcefile --outfile ./test.json
 
-        if cmp -s build/test.json $targetfile; then
+        if cmp -s ./test.json $targetfile; then
             printf 'Rebuilding bicep "%s" produces exact match with target file "%s"\n' $sourcefile $targetfile
         else
             printf 'Diff between "%s" and "%s":\n' $sourcefile $targetfile
-            diff $targetfile build/test.json
+            diff $targetfile ./test.json
             exit 1
         fi
