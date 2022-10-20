@@ -32,7 +32,7 @@ jobs:
         sourcefile="mlops/bicep/${{matrix.bicep_checks}}.bicep"
         targetfile="mlops/arm/${{matrix.bicep_checks}}.json"
 
-        az bicep build --template-file $sourcefile --outfile build/test.json
+        az bicep build --file $sourcefile --outfile build/test.json
 
         if cmp -s build/test.json $targetfile; then
             printf 'Rebuilding bicep "%s" produces exact match with target file "%s"\n' $sourcefile $targetfile
