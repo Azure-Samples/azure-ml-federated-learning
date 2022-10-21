@@ -58,6 +58,11 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   }
   kind: 'StorageV2'
   properties: {
+    // Allow or disallow public access to all blobs or containers in the storage account.
+    // 'false' means you cannot make a container public
+    // 'true' doesn't mean everything becomes public, just that you can intentionally create a public container
+    allowBlobPublicAccess: false
+
     encryption: {
       services: {
         blob: {
