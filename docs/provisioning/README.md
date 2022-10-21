@@ -12,10 +12,17 @@ To enjoy these quickstart, you will need to:
   - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
 - [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
-
 ## Create an Azure ML Workspace
 
-Creating an Azure ML workspace is the starting point to create your full Federated Learning environment. Below are two options you could use, drawing from the existing documentation.
+Creating an Azure ML workspace is the starting point to create your full Federated Learning environment. Your workspace will be the one portal to:
+
+- connect all your resources (computes, datastores),
+- coordinate the jobs between the orchestrator (aggregation) and the silos (processing, training),
+- run your experiments at scale,
+- collect and analyze your experiment results, register your model candidates,
+- deploy your models for production.
+
+Below are two options you could use, drawing from the existing documentation. We invite you to check the existing Azure ML documentation for more options.
 
 | Tutorial | Description |
 | :-- | :-- |
@@ -33,7 +40,7 @@ The orchestrator is the central server of the Federated Learning pipeline. It is
 
 ## Create internal silos
 
-These tutorials will let you create silos as a pair of compute and storage, optionally behinv a vnet with private endpoints. Use the button for convenience, but check the manual for more details.
+These tutorials will let you create silos as a pair of compute and storage, optionally behind a vnet with private endpoints. Use the button for convenience, but check the manual for more details.
 
 | Manual | Description |
 | :-- | :-- |

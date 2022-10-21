@@ -5,7 +5,7 @@
 ## Prerequisites
 
 To run these deployment options, you first need:
-- an existing Azure ML workspace (see [cookbook](README.md))
+- an existing Azure ML workspace (see [cookbook](README.md#create-an-azure-ml-workspace))
 
 ## Create a compute and storage pair for the orchestrator
 
