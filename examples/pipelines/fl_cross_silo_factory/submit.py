@@ -258,7 +258,7 @@ def silo_training(
 
     return silo_training_step, {
         # IMPORTANT: use a key that is consistent with kwargs of orchestrator_aggregation()
-        "weights": silo_training_step.outputs.model
+        "model": silo_training_step.outputs.model
     }
 
 

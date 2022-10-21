@@ -158,69 +158,6 @@ class FederatedLearningPipelineFactory:
         """
 
         orchestrator_datastore = self.orchestrator.get("datastore")
-        @pipeline(
-            name="Silo Federated Learning Subgraph",
-            description="Pipeline including preprocessing, training and aggregation components",
-        )
-        def silo_subgraph_component(running_checkpoint: Input(optional=True), iteration, silo_config):
-            # Preprocessing
-            silo_config = json.loads(silo_config)
-            preprocessing_step, preprocessing_outputs = silo_preprocessing(
-                **silo_config["custom_input_args"]  # feed kwargs as given as kwargs
-            )
-
-            # TODO: verify _step is an actual step
-
-            # verify the outputs from the developer code
-            assert isinstance(
-                preprocessing_outputs, dict
-            ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
-            for key in preprocessing_outputs.keys():
-                assert isinstance(
-                    preprocessing_outputs[key], PipelineOutputBase
-                ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
-
-            # make sure the compute corresponds to the silo
-            # make sure the data is written in the right datastore
-            self.anchor_step_in_silo(
-                preprocessing_step,
-                compute=silo_config["compute"],
-                output_datastore=silo_config["datastore"],
-            )
-
-            # each output is indexed to be fed into training_component as a distinct input
-            # silo_preprocessed_outputs[silo_index] = preprocessing_outputs
-
-            # building the training steps as specified by developer
-            training_step, training_outputs = silo_training(
-                **preprocessing_outputs,  # feed kwargs as produced by silo_preprocessing()
-                running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
-                iteration_num=iteration,
-                metrics_prefix=silo_config["compute"],
-                **training_kwargs,  # # providing training params
-            )
-
-            # TODO: verify _step is an actual step
-
-            # verify the outputs from the developer code
-            assert isinstance(
-                training_outputs, dict
-            ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
-            for key in training_outputs.keys():
-                assert isinstance(
-                    training_outputs[key], PipelineOutputBase
-                ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
-
-            # make sure the compute corresponds to the silo
-            # make sure the data is written in the right datastore
-            self.anchor_step_in_silo(
-                training_step,
-                compute=silo_config["compute"],
-                output_datastore=silo_config["datastore"],
-                model_output_datastore=self.orchestrator["datastore"],
-            )
-
-            return training_outputs
 
         @pipeline(
             name="Federated Learning Subgraph",
@@ -233,12 +170,72 @@ class FederatedLearningPipelineFactory:
             # silo_preprocessed_outputs = {}
             # for each silo, run a distinct training with its own inputs and outputs
             for silo_index, silo_config in enumerate(self.silos):
-                print(silo_config)
-                tmp = json.dumps(silo_config)
-                print(tmp)
-                silo_subgraph_output = silo_subgraph_component(running_checkpoint, iteration, json.dumps(silo_config))
+
+                @pipeline(
+                    name="Silo Federated Learning Subgraph",
+                    description="Pipeline including preprocessing, training and aggregation components",
+                )
+                def silo_subgraph_component(running_checkpoint: Input(optional=True), iteration):
+                    # Preprocessing
+                    preprocessing_step, preprocessing_outputs = silo_preprocessing(
+                        **silo_config["custom_input_args"]  # feed kwargs as given as kwargs
+                    )
+
+                    # TODO: verify _step is an actual step
+
+                    # verify the outputs from the developer code
+                    assert isinstance(
+                        preprocessing_outputs, dict
+                    ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
+                    for key in preprocessing_outputs.keys():
+                        assert isinstance(
+                            preprocessing_outputs[key], PipelineOutputBase
+                        ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
+
+                    # make sure the compute corresponds to the silo
+                    # make sure the data is written in the right datastore
+                    self.anchor_step_in_silo(
+                        preprocessing_step,
+                        compute=silo_config["compute"],
+                        output_datastore=silo_config["datastore"],
+                    )
+
+                    # each output is indexed to be fed into training_component as a distinct input
+                    # silo_preprocessed_outputs[silo_index] = preprocessing_outputs
+
+                    # building the training steps as specified by developer
+                    training_step, training_outputs = silo_training(
+                        **preprocessing_outputs,  # feed kwargs as produced by silo_preprocessing()
+                        running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
+                        iteration_num=iteration,
+                        metrics_prefix=silo_config["compute"],
+                        **training_kwargs,  # # providing training params
+                    )
+
+                    # TODO: verify _step is an actual step
+
+                    # verify the outputs from the developer code
+                    assert isinstance(
+                        training_outputs, dict
+                    ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
+                    for key in training_outputs.keys():
+                        assert isinstance(
+                            training_outputs[key], PipelineOutputBase
+                        ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
+
+                    # make sure the compute corresponds to the silo
+                    # make sure the data is written in the right datastore
+                    self.anchor_step_in_silo(
+                        training_step,
+                        compute=silo_config["compute"],
+                        output_datastore=silo_config["datastore"],
+                        model_output_datastore=self.orchestrator["datastore"],
+                    )
+
+                    return training_outputs
+                silo_subgraph_output = silo_subgraph_component(running_checkpoint, iteration)
                 # each output is indexed to be fed into aggregate_component as a distinct input
-                silo_training_outputs.append(silo_subgraph_output.outputs.weights)
+                silo_training_outputs.append(silo_subgraph_output.outputs.model)
 
             # a couple of basic tests before aggregating
             # do we even have outputs?
@@ -250,33 +247,33 @@ class FederatedLearningPipelineFactory:
                 self.silos
             ), "The list of silo outputs has length that doesn't match length of config.yaml:federated_learning.silos section."
 
-            # does every output have the same keys?
-            reference_keys = set(silo_training_outputs[0].keys())
-            for _index, _output in enumerate(silo_training_outputs):
-                if not (reference_keys == set(_output.keys())):
-                    raise Exception(
-                        f"""The output returned by silo at index {_index} has keys {set(_output.keys())} that differ from keys of silo 0 ({reference_keys}).
-                        Please make sure your silo_training() function returns a consistent set of keys for every silo."""
-                    )
+            # #does every output have the same keys?
+            # reference_keys = set(silo_training_outputs[0].keys())
+            # for _index, _output in enumerate(silo_training_outputs):
+            #     if not (reference_keys == set(_output.keys())):
+            #         raise Exception(
+            #             f"""The output returned by silo at index {_index} has keys {set(_output.keys())} that differ from keys of silo 0 ({reference_keys}).
+            #             Please make sure your silo_training() function returns a consistent set of keys for every silo."""
+            #         )
 
-            # pivot the outputs from index->key to key->index
-            aggregation_kwargs_inputs = dict(
-                [
-                    (
-                        key,  # for every key in the outputs
-                        [
-                            # create a list of all silos outputs
-                            _outputs[key]
-                            for _outputs in silo_training_outputs
-                        ],
-                    )
-                    for key in reference_keys
-                ]
-            )
+            # # pivot the outputs from index->key to key->index
+            # aggregation_kwargs_inputs = dict(
+            #     [
+            #         (
+            #             key,  # for every key in the outputs
+            #             [
+            #                 # create a list of all silos outputs
+            #                 _outputs[key]
+            #                 for _outputs in silo_training_outputs
+            #             ],
+            #         )
+            #         for key in reference_keys
+            #     ]
+            # )
 
             # aggregate all silo models into one
             aggregation_step, aggregation_outputs = orchestrator_aggregation(
-                **aggregation_kwargs_inputs
+                silo_training_outputs
             )
 
             # TODO: verify _step is an actual step
