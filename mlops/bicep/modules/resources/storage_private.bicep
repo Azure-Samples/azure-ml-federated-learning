@@ -51,6 +51,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     accessTier: 'Hot'
 
     // Allow or disallow public access to all blobs or containers in the storage account.
+    // 'false' means you cannot make a container public
+    // 'true' doesn't mean everything becomes public, just that you can intentionally create a public container
     allowBlobPublicAccess: false
 
     // Allow or disallow cross AAD tenant object replication.
