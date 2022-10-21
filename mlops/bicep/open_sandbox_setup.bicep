@@ -45,7 +45,7 @@ param siloRegions array = [
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param computeSKU string = 'Standard_DS13_v2'
+param computeSKU string = 'Standard_DS3_v2'
 
 
 @description('Tags to curate the resources in Azure.')
