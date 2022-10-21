@@ -1,19 +1,17 @@
-name: python
+name: Pipeline-validation
 
 on:
   push:
     branches:
-    - main
+    - "*"
   pull_request:
     branches:
-    - main
-    - release-sdkv2-iteration-02
+    - "*"
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-
     - uses: actions/checkout@v2
 
     - uses: actions/setup-python@v2.2.1
@@ -24,7 +22,7 @@ jobs:
 
     - run:  black --check .
       if: github.base_ref
-    
+
     - name: Intall python dependencies
       run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
     

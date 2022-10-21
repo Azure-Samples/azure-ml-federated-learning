@@ -29,6 +29,9 @@ import random
 import string
 import datetime
 import webbrowser
+import time
+import json
+import sys
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
@@ -102,6 +105,12 @@ parser.add_argument(
     help="Workspace name",
 )
 
+parser.add_argument(
+    "--wait",
+    default=False,
+    action="store_true",
+    help="Wait for the pipeline to complete",
+)
 
 args = parser.parse_args()
 
@@ -131,8 +140,7 @@ except Exception as ex:
     # tries to connect using cli args if provided else using config.yaml
     ML_CLIENT = MLClient(
         subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
-        resource_group_name=args.resource_group
-        or YAML_CONFIG.aml.resource_group_name,
+        resource_group_name=args.resource_group or YAML_CONFIG.aml.resource_group_name,
         workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
         credential=credential,
     )
@@ -354,5 +362,30 @@ if args.submit:
     print(pipeline_job.services["Studio"].endpoint)
 
     webbrowser.open(pipeline_job.services["Studio"].endpoint)
+
+    if args.wait:
+        job_name = pipeline_job.name
+        status = pipeline_job.status
+
+        while status not in ["Failed", "Completed", "Canceled"]:
+            # check status after every 1 min.
+            print(f"Job current status is {status}")
+            time.sleep(60)
+            cmd_output = os.popen(
+                f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
+            ).read()
+            print(cmd_output)
+            try:
+                status = json.loads(cmd_output.strip()).get("status")
+            except json.decoder.JSONDecodeError as e:
+                print(
+                    f"Error occurred while checking the status of the pipeline job: {e}"
+                )
+                sys.exit(1)
+
+        print(f"Job finished with status {status}")
+        if status in ["Failed", "Canceled"]:
+            sys.exit(1)
+
 else:
     print("The pipeline was NOT submitted, use --submit to send it to AzureML.")

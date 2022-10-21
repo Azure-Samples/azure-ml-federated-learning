@@ -1,0 +1,52 @@
+name: Submit example literal pipeline
+description: Submit example literal pipeline in AML
+inputs:
+  client-id:
+    description: Client ID of the service principal
+    required: true
+  tenant-id:
+    description: Tenant ID of the service principal
+    required: true
+  subscription-id:
+    description: Subscription to use for resources
+    required: true
+  resource-group:
+    description: Resource group of the AML workspace
+    required: true
+  workspace-name:
+    description: Workspace name
+    required: true
+  example:
+    description: Example pipline to run
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Setup python
+      uses: actions/setup-python@v2.2.1
+      with:
+        python-version: 3.8
+
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+          client-id: ${{ inputs.client-id }}
+          tenant-id: ${{ inputs.tenant-id }}
+          subscription-id: ${{ inputs.subscription-id }}
+
+    - name: Install azure ml latest extension
+      shell: bash
+      run: |
+        az extension remove -n azure-cli-ml || echo "azure-cli-ml extension is not installed."
+        az extension remove -n ml || echo "ml extension is not installed."
+        az extension add -n ml -y
+
+    - name: Install python dependencies
+      shell: bash
+      run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
+
+    - name: Submit fl_cross_silo_literal pipeline
+      shell: bash
+      run: python examples/pipelines/fl_cross_silo_literal/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --example ${{ inputs.example }} --submit --wait
+

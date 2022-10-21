@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "1362945507667147812"
+      "templateHash": "13326874132314861778"
     }
   },
   "parameters": {
@@ -19,6 +19,9 @@
     "identityType": {
       "type": "string",
       "defaultValue": "UserAssigned",
+      "metadata": {
+        "description": "Type of identity to use for permissions model"
+      },
       "allowedValues": [
         "UserAssigned",
         "SystemAssigned"
@@ -28,7 +31,7 @@
       "type": "string",
       "defaultValue": "[resourceGroup().location]",
       "metadata": {
-        "description": "Location of the orchestrator (workspace, central storage and compute)."
+        "description": "Region of the orchestrator (workspace, central storage and compute)."
       }
     },
     "siloRegions": {
@@ -70,7 +73,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deploy-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))]",
+      "name": "[format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -332,7 +335,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deploy-orchestrator', parameters('demoBaseName'))]",
+      "name": "[format('{0}-openpair-orchestrator', parameters('demoBaseName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -340,12 +343,12 @@
         "mode": "Incremental",
         "parameters": {
           "machineLearningName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspace.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspace.value]"
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
           },
-          "region": {
+          "pairRegion": {
             "value": "[parameters('orchestratorRegion')]"
           },
           "tags": {
@@ -368,6 +371,9 @@
           },
           "identityType": {
             "value": "[parameters('identityType')]"
+          },
+          "applyDefaultPermissions": {
+            "value": true
           }
         },
         "template": {
@@ -377,7 +383,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "15473417400972976343"
+              "templateHash": "5101721979681566831"
             }
           },
           "parameters": {
@@ -389,11 +395,12 @@
             },
             "machineLearningRegion": {
               "type": "string",
+              "defaultValue": "[resourceGroup().location]",
               "metadata": {
                 "description": "The region of the machine learning workspace"
               }
             },
-            "region": {
+            "pairRegion": {
               "type": "string",
               "defaultValue": "[resourceGroup().location]",
               "metadata": {
@@ -469,6 +476,13 @@
               "metadata": {
                 "description": "Name of the UAI for the pair compute cluster (if identityType==UserAssigned)"
               }
+            },
+            "applyDefaultPermissions": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Allow compute cluster to access storage account with R/W permissions (using UAI)"
+              }
             }
           },
           "variables": {
@@ -480,7 +494,7 @@
               "type": "Microsoft.Storage/storageAccounts",
               "apiVersion": "2021-06-01",
               "name": "[variables('storageAccountCleanName')]",
-              "location": "[parameters('region')]",
+              "location": "[parameters('pairRegion')]",
               "tags": "[parameters('tags')]",
               "sku": {
                 "name": "Standard_LRS"
@@ -521,7 +535,7 @@
                 "credentials": {
                   "credentialsType": "None"
                 },
-                "description": "[format('Private storage in region {0}', parameters('region'))]",
+                "description": "[format('Private storage in region {0}', parameters('pairRegion'))]",
                 "properties": {},
                 "datastoreType": "AzureBlob",
                 "accountName": "[variables('storageAccountCleanName')]",
@@ -538,7 +552,7 @@
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2022-01-31-preview",
               "name": "[parameters('uaiName')]",
-              "location": "[parameters('region')]",
+              "location": "[parameters('pairRegion')]",
               "tags": "[parameters('tags')]",
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]"
@@ -555,7 +569,7 @@
               },
               "properties": {
                 "computeType": "AmlCompute",
-                "computeLocation": "[parameters('region')]",
+                "computeLocation": "[parameters('pairRegion')]",
                 "properties": {
                   "vmPriority": "Dedicated",
                   "vmSize": "[parameters('computeSKU')]",
@@ -572,6 +586,84 @@
                 }
               },
               "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('applyDefaultPermissions')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('{0}-internal-rw-perms', parameters('pairBaseName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "storageAccountName": {
+                    "value": "[variables('storageAccountCleanName')]"
+                  },
+                  "identityPrincipalId": {
+                    "value": "[if(equals(parameters('identityType'), 'UserAssigned'), reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName')), '2022-01-31-preview').principalId, reference(resourceId('Microsoft.MachineLearningServices/workspaces/computes', parameters('machineLearningName'), parameters('computeName')), '2021-07-01', 'full').identity.principalId)]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.11.1.770",
+                      "templateHash": "17992859547784854732"
+                    }
+                  },
+                  "parameters": {
+                    "storageAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Full path to storage"
+                      }
+                    },
+                    "identityPrincipalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "PrincipalId of the managed identity"
+                      }
+                    },
+                    "computeToStorageRoles": {
+                      "type": "array",
+                      "defaultValue": [
+                        "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                        "81a9662b-bebf-436f-a333-f67b29880f12",
+                        "c12c1c16-33a1-487b-954d-41c89c60f349"
+                      ],
+                      "metadata": {
+                        "description": "Role definition IDs for the compute towards the internal storage"
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "copy": {
+                        "name": "roleAssignments",
+                        "count": "[length(parameters('computeToStorageRoles'))]"
+                      },
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+                      "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, parameters('computeToStorageRoles')[copyIndex()])]",
+                        "principalId": "[parameters('identityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces/computes', parameters('machineLearningName'), parameters('computeName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]",
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]"
               ]
@@ -604,88 +696,13 @@
             },
             "region": {
               "type": "string",
-              "value": "[parameters('region')]"
+              "value": "[parameters('pairRegion')]"
             }
           }
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))]"
-      ]
-    },
-    {
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deploy-orchestrator-permission-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-orchestrator', parameters('demoBaseName')))).outputs.storageName.value]"
-          },
-          "identityPrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-orchestrator', parameters('demoBaseName')))).outputs.identityPrincipalId.value]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "15993831950689019004"
-            }
-          },
-          "parameters": {
-            "storageAccountName": {
-              "type": "string",
-              "metadata": {
-                "description": "Full path to storage"
-              }
-            },
-            "identityPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "PrincipalId of the managed identity"
-              }
-            },
-            "computeToStorageRoles": {
-              "type": "array",
-              "defaultValue": [
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349', subscription().subscriptionId)]"
-              ],
-              "metadata": {
-                "description": "Role definition IDs for the compute towards the internal storage"
-              }
-            }
-          },
-          "resources": [
-            {
-              "copy": {
-                "name": "roleAssignments",
-                "count": "[length(parameters('computeToStorageRoles'))]"
-              },
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
-              "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
-              "properties": {
-                "roleDefinitionId": "[parameters('computeToStorageRoles')[copyIndex()]]",
-                "principalId": "[parameters('identityPrincipalId')]",
-                "principalType": "ServicePrincipal"
-              }
-            }
-          ]
-        }
-      },
-      "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy-orchestrator', parameters('demoBaseName')))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))]"
       ]
     },
     {
@@ -695,7 +712,7 @@
       },
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deploy-silo-{1}-{2}', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()], parameters('siloRegions')[range(0, variables('siloCount'))[copyIndex()]])]",
+      "name": "[format('{0}-openpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -703,12 +720,12 @@
         "mode": "Incremental",
         "parameters": {
           "machineLearningName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspace.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspace.value]"
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
           },
-          "region": {
+          "pairRegion": {
             "value": "[parameters('siloRegions')[range(0, variables('siloCount'))[copyIndex()]]]"
           },
           "tags": {
@@ -731,6 +748,9 @@
           },
           "identityType": {
             "value": "[parameters('identityType')]"
+          },
+          "applyDefaultPermissions": {
+            "value": true
           }
         },
         "template": {
@@ -740,7 +760,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "15473417400972976343"
+              "templateHash": "5101721979681566831"
             }
           },
           "parameters": {
@@ -752,11 +772,12 @@
             },
             "machineLearningRegion": {
               "type": "string",
+              "defaultValue": "[resourceGroup().location]",
               "metadata": {
                 "description": "The region of the machine learning workspace"
               }
             },
-            "region": {
+            "pairRegion": {
               "type": "string",
               "defaultValue": "[resourceGroup().location]",
               "metadata": {
@@ -832,6 +853,13 @@
               "metadata": {
                 "description": "Name of the UAI for the pair compute cluster (if identityType==UserAssigned)"
               }
+            },
+            "applyDefaultPermissions": {
+              "type": "bool",
+              "defaultValue": true,
+              "metadata": {
+                "description": "Allow compute cluster to access storage account with R/W permissions (using UAI)"
+              }
             }
           },
           "variables": {
@@ -843,7 +871,7 @@
               "type": "Microsoft.Storage/storageAccounts",
               "apiVersion": "2021-06-01",
               "name": "[variables('storageAccountCleanName')]",
-              "location": "[parameters('region')]",
+              "location": "[parameters('pairRegion')]",
               "tags": "[parameters('tags')]",
               "sku": {
                 "name": "Standard_LRS"
@@ -884,7 +912,7 @@
                 "credentials": {
                   "credentialsType": "None"
                 },
-                "description": "[format('Private storage in region {0}', parameters('region'))]",
+                "description": "[format('Private storage in region {0}', parameters('pairRegion'))]",
                 "properties": {},
                 "datastoreType": "AzureBlob",
                 "accountName": "[variables('storageAccountCleanName')]",
@@ -901,7 +929,7 @@
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2022-01-31-preview",
               "name": "[parameters('uaiName')]",
-              "location": "[parameters('region')]",
+              "location": "[parameters('pairRegion')]",
               "tags": "[parameters('tags')]",
               "dependsOn": [
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]"
@@ -918,7 +946,7 @@
               },
               "properties": {
                 "computeType": "AmlCompute",
-                "computeLocation": "[parameters('region')]",
+                "computeLocation": "[parameters('pairRegion')]",
                 "properties": {
                   "vmPriority": "Dedicated",
                   "vmSize": "[parameters('computeSKU')]",
@@ -935,6 +963,84 @@
                 }
               },
               "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('applyDefaultPermissions')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('{0}-internal-rw-perms', parameters('pairBaseName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "storageAccountName": {
+                    "value": "[variables('storageAccountCleanName')]"
+                  },
+                  "identityPrincipalId": {
+                    "value": "[if(equals(parameters('identityType'), 'UserAssigned'), reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName')), '2022-01-31-preview').principalId, reference(resourceId('Microsoft.MachineLearningServices/workspaces/computes', parameters('machineLearningName'), parameters('computeName')), '2021-07-01', 'full').identity.principalId)]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.11.1.770",
+                      "templateHash": "17992859547784854732"
+                    }
+                  },
+                  "parameters": {
+                    "storageAccountName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Full path to storage"
+                      }
+                    },
+                    "identityPrincipalId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "PrincipalId of the managed identity"
+                      }
+                    },
+                    "computeToStorageRoles": {
+                      "type": "array",
+                      "defaultValue": [
+                        "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                        "81a9662b-bebf-436f-a333-f67b29880f12",
+                        "c12c1c16-33a1-487b-954d-41c89c60f349"
+                      ],
+                      "metadata": {
+                        "description": "Role definition IDs for the compute towards the internal storage"
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "copy": {
+                        "name": "roleAssignments",
+                        "count": "[length(parameters('computeToStorageRoles'))]"
+                      },
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
+                      "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+                      "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, parameters('computeToStorageRoles')[copyIndex()])]",
+                        "principalId": "[parameters('identityPrincipalId')]",
+                        "principalType": "ServicePrincipal"
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.MachineLearningServices/workspaces/computes', parameters('machineLearningName'), parameters('computeName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]",
                 "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]"
               ]
@@ -967,92 +1073,13 @@
             },
             "region": {
               "type": "string",
-              "value": "[parameters('region')]"
+              "value": "[parameters('pairRegion')]"
             }
           }
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))]"
-      ]
-    },
-    {
-      "copy": {
-        "name": "siloToSiloPermissions",
-        "count": "[length(range(0, variables('siloCount')))]"
-      },
-      "type": "Microsoft.Resources/deployments",
-      "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deploy-silo{1}-permission', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
-      "properties": {
-        "expressionEvaluationOptions": {
-          "scope": "inner"
-        },
-        "mode": "Incremental",
-        "parameters": {
-          "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-silo-{1}-{2}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]], parameters('siloRegions')[range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]]))).outputs.storageName.value]"
-          },
-          "identityPrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-silo-{1}-{2}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]], parameters('siloRegions')[range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]]))).outputs.identityPrincipalId.value]"
-          }
-        },
-        "template": {
-          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
-          "contentVersion": "1.0.0.0",
-          "metadata": {
-            "_generator": {
-              "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "15993831950689019004"
-            }
-          },
-          "parameters": {
-            "storageAccountName": {
-              "type": "string",
-              "metadata": {
-                "description": "Full path to storage"
-              }
-            },
-            "identityPrincipalId": {
-              "type": "string",
-              "metadata": {
-                "description": "PrincipalId of the managed identity"
-              }
-            },
-            "computeToStorageRoles": {
-              "type": "array",
-              "defaultValue": [
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349', subscription().subscriptionId)]"
-              ],
-              "metadata": {
-                "description": "Role definition IDs for the compute towards the internal storage"
-              }
-            }
-          },
-          "resources": [
-            {
-              "copy": {
-                "name": "roleAssignments",
-                "count": "[length(parameters('computeToStorageRoles'))]"
-              },
-              "type": "Microsoft.Authorization/roleAssignments",
-              "apiVersion": "2022-04-01",
-              "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
-              "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
-              "properties": {
-                "roleDefinitionId": "[parameters('computeToStorageRoles')[copyIndex()]]",
-                "principalId": "[parameters('identityPrincipalId')]",
-                "principalType": "ServicePrincipal"
-              }
-            }
-          ]
-        }
-      },
-      "dependsOn": [
-        "silos"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))]"
       ]
     },
     {
@@ -1062,7 +1089,7 @@
       },
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-deploy-silo{1}-to-orch-permission', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
+      "name": "[format('{0}-rw-perms-silo{1}-to-orch', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -1070,10 +1097,10 @@
         "mode": "Incremental",
         "parameters": {
           "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-orchestrator', parameters('demoBaseName')))).outputs.storageName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-openpair-orchestrator', parameters('demoBaseName')))).outputs.storageName.value]"
           },
           "identityPrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deploy-silo-{1}-{2}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]], parameters('siloRegions')[range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]]))).outputs.identityPrincipalId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-openpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))).outputs.identityPrincipalId.value]"
           }
         },
         "template": {
@@ -1083,7 +1110,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "15993831950689019004"
+              "templateHash": "17992859547784854732"
             }
           },
           "parameters": {
@@ -1102,9 +1129,9 @@
             "computeToStorageRoles": {
               "type": "array",
               "defaultValue": [
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/ba92f5b4-2d11-453d-a403-e96b0029c9fe', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/81a9662b-bebf-436f-a333-f67b29880f12', subscription().subscriptionId)]",
-                "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/c12c1c16-33a1-487b-954d-41c89c60f349', subscription().subscriptionId)]"
+                "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                "81a9662b-bebf-436f-a333-f67b29880f12",
+                "c12c1c16-33a1-487b-954d-41c89c60f349"
               ],
               "metadata": {
                 "description": "Role definition IDs for the compute towards the internal storage"
@@ -1122,7 +1149,7 @@
               "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
               "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
               "properties": {
-                "roleDefinitionId": "[parameters('computeToStorageRoles')[copyIndex()]]",
+                "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, parameters('computeToStorageRoles')[copyIndex()])]",
                 "principalId": "[parameters('identityPrincipalId')]",
                 "principalType": "ServicePrincipal"
               }
@@ -1131,7 +1158,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-deploy-orchestrator', parameters('demoBaseName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-openpair-orchestrator', parameters('demoBaseName')))]",
         "silos"
       ]
     }

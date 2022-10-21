@@ -48,7 +48,7 @@ param siloRegions array = [
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param computeSKU string = 'Standard_DS13_v2'
+param computeSKU string = 'Standard_DS3_v2'
 
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = false
