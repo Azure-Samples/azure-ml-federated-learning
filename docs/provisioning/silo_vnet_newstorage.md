@@ -26,7 +26,7 @@ To run these deployment options, you first need:
 
 In this tutorial, we're provisioning the resources according to the following schema. In this design, the silo is located in a region that is distinct from the Azure ML workspace and the orchestrator storage account.
 
-If any of that design doesn't fit your requirements, feel free to check out the bicep provisioning scripts and adapt them to your needs. Also please give us feedback by filing an issue in this repo.
+If any of that design doesn't fit your requirements, feel free to check out the bicep provisioning script [`vnet_compute_storage_pair.bicep`](/mlops/bicep/modules/resources/vnet_compute_storage_pair.bicep) and adapt it to your needs. Also please give us feedback by filing an issue in this repo.
 
 ![](../pics/vnet_silo_provisioning.png)
 
@@ -49,7 +49,7 @@ In addition, the compute can interact with the orchestrator storage account, thr
 
 ### Option 1: one click deployment
 
-1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fjfomhover%2Fprovioningscenarios%2Fmlops%2Farm%2Fopen_compute_storage_pair.json)
+1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_compute_storage_pair.json)
 
 2. Adjust parameters, in particular:
 
