@@ -31,9 +31,10 @@ param demoBaseName string = 'fldemo'
 
 // below parameters are optionals and have default values
 @allowed(['UserAssigned','SystemAssigned'])
+@description('Type of identity to use for permissions model')
 param identityType string = 'UserAssigned'
 
-@description('Location of the orchestrator (workspace, central storage and compute).')
+@description('Region of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
@@ -100,7 +101,7 @@ var siloCount = length(siloRegions)
 
 // Create all silos using a provided bicep module
 module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-open-pair-silo-${i}'
+  name: '${demoBaseName}-openpair-silo-${i}'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspace
