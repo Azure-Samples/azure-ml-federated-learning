@@ -36,7 +36,7 @@ param computeUaiName string = 'uai-${computeName}'
 param tags object = {}
 
 
-// provision a user assigned identify for this silo
+// provision a user assigned identify for this compute
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (computeIdentityType == 'UserAssigned') {
   name: computeUaiName
   location: computeRegion
