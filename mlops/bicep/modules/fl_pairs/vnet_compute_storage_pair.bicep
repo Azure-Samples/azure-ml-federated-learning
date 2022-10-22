@@ -128,7 +128,7 @@ resource privateStorageDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' ex
   name: privateStorageDnsZoneName
 }
 
-// Create a private service endpoints internal to each silo for their respective storages
+// Create a private service endpoints internal to each pair for their respective storages
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
   name: '${pairBaseName}-private-endpoint-to-instorage'
   scope: resourceGroup()

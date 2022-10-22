@@ -17,7 +17,7 @@ param machineLearningRegion string = resourceGroup().location
 @description('Name of the compute cluster to create')
 param computeName string
 
-@description('Specifies the location of the pair resources.')
+@description('Specifies the location of the compute resources.')
 param computeRegion string
 
 @description('VM size for the default compute cluster')
@@ -36,7 +36,7 @@ param computeUaiName string = 'uai-${computeName}'
 param tags object = {}
 
 
-// provision a user assigned identify for this silo
+// provision a user assigned identify for this compute
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (computeIdentityType == 'UserAssigned') {
   name: computeUaiName
   location: computeRegion

@@ -29,10 +29,10 @@ param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 @description('Name of the default compute cluster for the pair')
 param computeName string = 'compute-${pairBaseName}'
 
-@description('VM size for the default compute cluster')
+@description('VM size for the compute cluster')
 param computeSKU string = 'Standard_DS3_v2'
 
-@description('VM nodes for the default compute cluster')
+@description('VM nodes for the compute cluster')
 param computeNodes int = 4
 
 @allowed(['UserAssigned','SystemAssigned'])
