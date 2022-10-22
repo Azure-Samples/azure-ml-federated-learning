@@ -1,6 +1,9 @@
 // Creates a storage account, private endpoints and DNS zones
-@description('Azure region of the deployment')
-param location string
+@description('Name of AzureML workspace to attach compute+storage to.')
+param machineLearningName string
+
+@description('The region of the machine learning workspace')
+param machineLearningRegion string = resourceGroup().location
 
 @description('Tags to add to the resources')
 param tags object
@@ -8,8 +11,17 @@ param tags object
 @description('Name of the storage account')
 param storageName string
 
+@description('Azure region of the storage to create')
+param storageRegion string
+
+@description('Name of the storage container resource to create for the pair')
+param containerName string = 'private'
+
+@description('Name of the datastore for attaching the storage to the AzureML workspace.')
+param datastoreName string = replace('datastore_${storageName}','-','_')
+
 @description('Resource ID of the subnets allowed into this storage')
-param subnetIds array
+param subnetIds array = []
 
 @allowed(['Enabled','vNetOnly','Disabled'])
 @description('Allow or disallow public network access to Storage Account.')
@@ -41,7 +53,7 @@ var storagepublicNetworkAccess = publicNetworkAccess == 'Disabled' ? 'Disabled' 
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: storageNameCleaned
-  location: location
+  location: storageRegion
   tags: tags
   sku: {
     name: storageSKU
@@ -166,6 +178,46 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   }
 }
 
+// create a "private" container in the storage account
+// this one will be readable only by silo compute
+resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
+  name: '${storageName}/default/${containerName}'
+  properties: {
+    metadata: {}
+    publicAccess: 'None'
+  }
+  dependsOn: [
+    storage
+  ]
+}
+
+// attach as a datastore in AzureML
+resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
+  name: '${machineLearningName}/${datastoreName}'
+  properties: {
+    credentials: {
+      credentialsType: 'None'
+      // For remaining properties, see DatastoreCredentials objects
+    }
+    description: 'Private storage in region ${storageRegion}'
+    properties: {}
+    datastoreType: 'AzureBlob'
+    // For remaining properties, see DatastoreProperties objects
+    accountName: storageNameCleaned
+    containerName: containerName
+    // endpoint: 'string'
+    // protocol: 'string'
+    resourceGroup: resourceGroup().name
+    // serviceDataAccessAuthIdentity: 'string'
+    subscriptionId: subscription().subscriptionId
+  }
+  dependsOn: [
+    container
+  ]
+}
+
 // output storage references
 output storageId string = storage.id
 output storageName string = storage.name
+output containerName string = container.name
+output datastoreName string = datastore.name

@@ -64,7 +64,7 @@ param tags object = {
 }
 
 // Create Azure Machine Learning workspace
-module workspace './modules/resources/open_azureml_workspace.bicep' = {
+module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
@@ -81,7 +81,7 @@ resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = 
 
 // Create an orchestrator compute+storage pair and attach to workspace
 // This pair will be considered eyes-on
-module orchestrator './modules/resources/vnet_compute_storage_pair.bicep' = {
+module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
   name: '${demoBaseName}-vnetpair-orchestrator'
   scope: resourceGroup()
   params: {
@@ -128,7 +128,7 @@ var siloCount = length(siloRegions)
 
 // Create all silos as a compute+storage pair and attach to workspace
 // This pair will be considered eyes-off
-module silos './modules/resources/vnet_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
+module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-vnetpair-silo-${i}'
   scope: resourceGroup()
   params: {
