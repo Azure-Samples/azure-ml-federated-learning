@@ -17,7 +17,7 @@ param machineLearningRegion string = resourceGroup().location
 @description('Name of the compute cluster to create')
 param computeName string
 
-@description('Specifies the location of the pair resources.')
+@description('Specifies the location of the compute resources.')
 param computeRegion string
 
 @description('VM size for the default compute cluster')
