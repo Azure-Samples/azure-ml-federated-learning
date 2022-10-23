@@ -76,7 +76,7 @@ param tags object = {}
 
 // create new Azure ML compute
 module computeDeployment '../computes/vnet_new_aml_compute.bicep' = {
-  name: '${pairBaseName}-vnet-new-aml-compute'
+  name: '${pairBaseName}-vnet-aml-compute'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
@@ -106,7 +106,7 @@ module computeDeployment '../computes/vnet_new_aml_compute.bicep' = {
 
 // create new blob storage and datastore
 module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
-  name: '${pairBaseName}-vnet-new-blob-storage-datastore'
+  name: '${pairBaseName}-vnet-storage'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
@@ -116,7 +116,7 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
     datastoreName: datastoreName
     publicNetworkAccess: storagePublicNetworkAccess
     subnetIds: concat(
-      ['${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.vnetName}'],
+      ['${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'],
       allowedSubnetIds
     )
     tags: tags
@@ -130,7 +130,7 @@ resource privateStorageDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' ex
 
 // Create a private service endpoints internal to each pair for their respective storages
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
-  name: '${pairBaseName}-private-endpoint-to-instorage'
+  name: '${pairBaseName}-endpoint-to-instorage'
   scope: resourceGroup()
   params: {
     location: pairRegion

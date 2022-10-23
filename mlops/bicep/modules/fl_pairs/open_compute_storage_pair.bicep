@@ -49,7 +49,7 @@ param tags object = {}
 
 // create new blob storage and datastore
 module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
-  name: '${pairBaseName}-open-new-blob-storage-datastore'
+  name: '${pairBaseName}-open-storage'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
@@ -64,7 +64,7 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
 
 // create new Azure ML compute
 module computeDeployment '../computes/open_new_aml_compute.bicep' = {
-  name: '${pairBaseName}-open-new-aml-compute'
+  name: '${pairBaseName}-open-aml-compute'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName

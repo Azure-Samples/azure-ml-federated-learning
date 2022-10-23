@@ -182,7 +182,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
 // create a "private" container in the storage account
 // this one will be readable only by silo compute
 resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@2022-05-01' = {
-  name: '${storageName}/default/${containerName}'
+  name: '${storage.name}/default/${containerName}'
   properties: {
     metadata: {}
     publicAccess: 'None'
@@ -204,7 +204,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
     properties: {}
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
-    accountName: storageAccountCleanName
+    accountName: storage.name
     containerName: containerName
     // endpoint: 'string'
     // protocol: 'string'
