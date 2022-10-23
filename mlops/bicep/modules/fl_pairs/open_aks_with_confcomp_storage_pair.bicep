@@ -4,6 +4,8 @@
 // IMPORTANT: This setup is intended only for demo purpose. The data is still accessible
 // by the users when opening the storage accounts, and data exfiltration is easy.
 
+// NOTE: this can take up to 15 minutes to complete
+
 // resource group must be specified as scope in az cli or module call
 targetScope = 'resourceGroup'
 

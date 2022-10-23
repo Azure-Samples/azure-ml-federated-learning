@@ -3,6 +3,8 @@
 // the communication between compute and storage, plus managed identity
 // for permissions management.
 
+// NOTE: this can take up to 15 minutes to complete
+
 // https://github.com/ssarwa/Bicep/blob/master/modules/Identity/role.bicep
 
 // resource group must be specified as scope in az cli or module call
@@ -17,6 +19,9 @@ param machineLearningRegion string = resourceGroup().location
 
 @description('The name of the Managed Cluster resource.')
 param aksClusterName string
+
+@description('How to name this compute in Azure ML')
+param amlComputeName string = aksClusterName
 
 @description('Specifies the location of the compute resources.')
 param computeRegion string
@@ -43,7 +48,8 @@ param enableNodePublicIp bool = true
 param privateAKS bool = true
 
 @description('Optional DNS prefix to use with hosted Kubernetes API server FQDN.')
-param dnsPrefix string = 'dnsprefix-${aksClusterName}'
+@maxLength(54)
+param dnsPrefix string = replace('dnxprefix-${aksClusterName}', '-', '')
 
 @description('Name of the private DNS zone to create for the AKS')
 param privateAKSDnsZoneName string = '${replace(aksClusterName, '-','')}.privatelink.${computeRegion}.azmk8s.io'
@@ -200,9 +206,13 @@ resource aksPrivateDNSZoneRoles 'Microsoft.Authorization/roleAssignments@2022-04
 
 module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bicep' = {
   name: 'deploy-aml-extension-${aksClusterName}'
+  scope: resourceGroup()
   params: {
     clusterName: aksClusterName
   }
+  dependsOn: [
+    aks
+  ]
 }
 
 resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' existing = {
@@ -211,7 +221,7 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' exi
 
 // attach the AKS cluster to the workspace
 resource aksAzuremlCompute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-01' = {
-  name: aksClusterName
+  name: amlComputeName
   parent: workspace
   location: machineLearningRegion
   identity: {
@@ -223,14 +233,14 @@ resource aksAzuremlCompute 'Microsoft.MachineLearningServices/workspaces/compute
     properties: {
       agentCount: aks.properties.agentPoolProfiles[0].count
       agentVmSize: aks.properties.agentPoolProfiles[0].vmSize
-      aksNetworkingConfiguration: {
-        dnsServiceIP: aks.properties.networkProfile.dnsServiceIP
-        dockerBridgeCidr: aks.properties.networkProfile.dockerBridgeCidr
-        serviceCidr: aks.properties.networkProfile.serviceCidr
-        //subnetId: aks.properties.networkProfile.
-      }
+      // aksNetworkingConfiguration: {
+      //   dnsServiceIP: aks.properties.networkProfile.dnsServiceIP
+      //   dockerBridgeCidr: aks.properties.networkProfile.dockerBridgeCidr
+      //   serviceCidr: aks.properties.networkProfile.serviceCidr
+      //   //subnetId: aks.properties.networkProfile.
+      // }
       clusterFqdn: aks.properties.fqdn
-      clusterPurpose: 'string'
+      clusterPurpose: 'DevTest'
       // loadBalancerSubnet: 'string'
       // loadBalancerType: aks.properties.
       // sslConfiguration: {
