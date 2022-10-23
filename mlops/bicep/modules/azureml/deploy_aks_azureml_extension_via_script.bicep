@@ -62,6 +62,7 @@ param installDcgmExporter bool = false
 
 resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' existing = {
   name: clusterName
+  scope: resourceGroup()
 }
 
 resource existingAdminUAI 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = if(!createNewAdminIdentity) {

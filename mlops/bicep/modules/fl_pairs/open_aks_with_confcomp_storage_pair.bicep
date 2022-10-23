@@ -27,7 +27,7 @@ param storageAccountName string = replace('st${pairBaseName}','-','') // replace
 param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 
 @description('The name of the Managed Cluster resource.')
-param aksClusterName string
+param aksClusterName string = 'aks-${pairBaseName}'
 
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
 @description('VM size for the compute cluster')
@@ -69,6 +69,7 @@ module computeDeployment '../computes/open_new_aks_with_confcomp.bicep' = {
     machineLearningName: machineLearningName
     machineLearningRegion: machineLearningRegion
     aksClusterName: aksClusterName
+    amlComputeName: aksClusterName
     computeRegion: pairRegion
     agentVMSize: computeSKU
     agentCount: computeNodes
