@@ -42,6 +42,7 @@ param publicNetworkAccess string = 'Disabled' // for Disabled, you'd need to cre
 param storageSKU string = 'Standard_LRS'
 
 var storageNameCleaned = replace(storageName, '-', '')
+var storageAccountCleanName = substring(storageNameCleaned, 0, min(length(storageNameCleaned),24))
 
 // settings depending on publicNetworkAccess
 // no need for subnetIds if publicNetworkAccess is Enabled
@@ -52,7 +53,7 @@ var storagedefaultAction = publicNetworkAccess == 'Enabled' ? 'Allow' : 'Deny'
 var storagepublicNetworkAccess = publicNetworkAccess == 'Disabled' ? 'Disabled' : 'Enabled'
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
-  name: storageNameCleaned
+  name: storageAccountCleanName
   location: storageRegion
   tags: tags
   sku: {
@@ -92,11 +93,11 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
       resourceAccessRules: [
         // NOTE: keeping this here for now, to use as reference until we figure out the appropriate settings.
         // {
-        //   resourceId: resourceId('Microsoft.Storage/storageAccounts/blobServices', storageNameCleaned, 'default')
+        //   resourceId: resourceId('Microsoft.Storage/storageAccounts/blobServices', storageAccountCleanName, 'default')
         //   tenantId: tenant().tenantId
         // }
         // {
-        //   resourceId: resourceId('Microsoft.Storage/storageAccounts/fileServices', storageNameCleaned, 'default')
+        //   resourceId: resourceId('Microsoft.Storage/storageAccounts/fileServices', storageAccountCleanName, 'default')
         //   tenantId: tenant().tenantId
         // }
       ]
@@ -203,7 +204,7 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
     properties: {}
     datastoreType: 'AzureBlob'
     // For remaining properties, see DatastoreProperties objects
-    accountName: storageNameCleaned
+    accountName: storageAccountCleanName
     containerName: containerName
     // endpoint: 'string'
     // protocol: 'string'

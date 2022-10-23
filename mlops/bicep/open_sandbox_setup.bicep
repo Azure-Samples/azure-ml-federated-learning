@@ -58,7 +58,7 @@ param tags object = {
 }
 
 // Create Azure Machine Learning workspace
-module workspace './modules/resources/open_azureml_workspace.bicep' = {
+module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
@@ -69,7 +69,7 @@ module workspace './modules/resources/open_azureml_workspace.bicep' = {
 }
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
+module orchestrator './modules/fl_pairs/open_compute_storage_pair.bicep' = {
   name: '${demoBaseName}-openpair-orchestrator'
   scope: resourceGroup()
   params: {
@@ -100,7 +100,7 @@ module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
 var siloCount = length(siloRegions)
 
 // Create all silos using a provided bicep module
-module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
+module silos './modules/fl_pairs/open_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-openpair-silo-${i}'
   scope: resourceGroup()
   params: {
