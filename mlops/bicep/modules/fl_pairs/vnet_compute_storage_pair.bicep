@@ -116,7 +116,7 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
     datastoreName: datastoreName
     publicNetworkAccess: storagePublicNetworkAccess
     subnetIds: concat(
-      ['${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.vnetName}'],
+      ['${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'],
       allowedSubnetIds
     )
     tags: tags
