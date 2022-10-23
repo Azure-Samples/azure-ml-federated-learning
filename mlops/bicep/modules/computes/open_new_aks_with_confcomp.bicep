@@ -26,7 +26,8 @@ param amlComputeName string = aksClusterName
 param computeRegion string
 
 @description('Optional DNS prefix to use with hosted Kubernetes API server FQDN.')
-param dnsPrefix string = '${aksClusterName}-${resourceGroup().name}-${uniqueString(aksClusterName, resourceGroup().id)}'
+@maxLength(54)
+param dnsPrefix string = replace('dnxprefix-${aksClusterName}', '-', '')
 
 @description('The number of nodes for the cluster pool.')
 @minValue(1)
