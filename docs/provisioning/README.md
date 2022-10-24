@@ -45,7 +45,7 @@ These tutorials will let you create silos as a pair of compute and storage, opti
 | Manual | Description |
 | :-- | :-- |
 | [Tutorial](./silo_open.md) | Create a simple, open pair of compute and storage for the silos in a given region (for sandbox/dev use only). |
-| :construction: | Create a vnet with a compute and private endpoints to a **new** blob storage created in the same resource group. |
+| [Tutorial](./silo_vnet_newstorage.md) | Create a vnet with a compute and private endpoints to a **new** blob storage created in the same resource group. |
 | :construction: | Create a vnet with a compute and private endpoint to an **existing** blob storage, in the **same tenant**. |
 | :construction: | Create a vnet with a compute and private endpoint to an **existing** blob storage, in a **different tenant**. |
 | :construction: | Create a vnet with an AKS cluster using **confidential computes** and private endpoint to an **existing** blob storage. |
