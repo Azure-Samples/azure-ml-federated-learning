@@ -16,6 +16,9 @@ inputs:
   deployment-file-path:
     description: File path of the deployment
     required: true
+  deployment-name:
+    description: Name for the azure deployment (unique)
+    required: true
   demo-base-name:
     description: Demo base name (it should be unique)
     required: true
@@ -44,4 +47,4 @@ runs:
 
     - name: Deploy the demo resources in your resource group
       shell: bash
-      run: az deployment group create --template-file ${{ inputs.deployment-file-path }} --resource-group ${{ inputs.resource-group }} --parameters demoBaseName=${{ inputs.demo-base-name }}
+      run: az deployment group create --template-file ${{ inputs.deployment-file-path }} --resource-group ${{ inputs.resource-group }} --parameters demoBaseName=${{ inputs.demo-base-name }} --name ${{ inputs.deployment-name }}
