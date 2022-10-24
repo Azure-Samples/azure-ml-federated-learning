@@ -43,7 +43,7 @@ The provisioning script will:
 
 In this scenario, the silo's blob storage account's networking settings are such that **public network access is disabled** (`publicNetworkAccess:false`). The compute can access it thanks to the private endpoint, and the UAI being given R/W permissions to the storage.
 
-> :point_up: **Why is it relevant?** According to docs on []():  
+> :point_up: **Why is it relevant?** According to docs on [private endpoints for Azure Storage](https://learn.microsoft.com/en-us/azure/storage/common/storage-private-endpoints):  
 > _You can use private endpoints for your Azure Storage accounts to allow clients on a virtual network (VNet) to securely access data over a Private Link. The private endpoint uses a separate IP address from the VNet address space for each storage account service. **Network traffic between the clients on the VNet and the storage account traverses over the VNet and a private link on the Microsoft backbone network, eliminating exposure from the public internet**._  
 >  
 > _Using private endpoints for your storage account enables you to:_  
