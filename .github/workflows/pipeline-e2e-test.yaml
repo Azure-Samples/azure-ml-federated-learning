@@ -25,6 +25,7 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
         deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
+        deployment-name: open_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
 
 
@@ -117,6 +118,7 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
         deployment-file-path: ./mlops/bicep/vnet_publicip_sandbox_setup.bicep
+        deployment-name: vnet_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl2${{ github.run_attempt }}${{ github.run_id }}
 
   vnet-sandbox-literal-helloworld-test:
