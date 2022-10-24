@@ -27,7 +27,7 @@ param storageAccountName string = replace('st${pairBaseName}','-','') // replace
 param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 
 @description('Name of the default compute cluster for the pair')
-param computeName string = 'compute-${pairBaseName}'
+param computeName string = 'cpu-cluster-${pairBaseName}'
 
 @description('VM size for the compute cluster')
 param computeSKU string = 'Standard_DS3_v2'
