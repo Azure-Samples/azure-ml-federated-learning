@@ -16,6 +16,10 @@ This tutorial applies in the case you want to create a **completely new storage*
 To run these deployment options, you first need:
 - an existing Azure ML workspace (see [cookbook](README.md))
 - an existing private DNS zone for storage, named `privatelink.blob.core.windows.net` (see below)
+- have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
+  - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
+- Optional: [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
+
 
 > **To create a private DNS zone**  
 > If you don't already have one, you will need to manually create a private DNS zone for the storage account and compute of this pair.  
