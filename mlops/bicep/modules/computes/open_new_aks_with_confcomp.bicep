@@ -111,7 +111,7 @@ resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' exi
 }
 
 // attach the AKS cluster to the workspace
-resource aksAzuremlCompute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-01' = {
+resource aksAzuremlCompute 'Microsoft.MachineLearningServices/workspaces/computes@2021-01-01' = {
   name: amlComputeName
   parent: workspace
   location: machineLearningRegion

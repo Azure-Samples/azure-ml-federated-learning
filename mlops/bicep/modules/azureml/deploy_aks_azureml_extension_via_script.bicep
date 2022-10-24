@@ -1,5 +1,6 @@
 // Deploy AzureML extension on Azure Kubernetes Service (AKS) cluster
-// Note: this can take up to 10 minutes.
+
+// NOTE: this can take up to 10 minutes.
 
 // resource group must be specified as scope in az cli or module call
 targetScope='resourceGroup'

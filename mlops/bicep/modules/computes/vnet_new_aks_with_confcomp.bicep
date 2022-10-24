@@ -103,7 +103,7 @@ resource pairAKSPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = 
   location: 'global'
 }
 
-// provision a user assigned identify for this silo
+// provision a user assigned identify for this compute
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
   name: computeUaiName
   location: computeRegion
@@ -203,7 +203,6 @@ resource aksPrivateDNSZoneRoles 'Microsoft.Authorization/roleAssignments@2022-04
   }
 }]
 
-
 module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bicep' = {
   name: 'deploy-aml-extension-${aksClusterName}'
   scope: resourceGroup()
@@ -217,6 +216,7 @@ module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bice
 
 resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' existing = {
   name: machineLearningName
+  scope: resourceGroup()
 }
 
 // attach the AKS cluster to the workspace
