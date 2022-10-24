@@ -20,6 +20,7 @@ To run these deployment options, you first need:
   - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
 - Optional: [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
+
 > **To create a private DNS zone**  
 > If you don't already have one, you will need to manually create a private DNS zone for the storage account and compute of this pair.  
 > To do that, go to the Azure portal, and in the resource group of your AzureML workspace, create a new private DNS zone named `privatelink.blob.core.windows.net`.  
