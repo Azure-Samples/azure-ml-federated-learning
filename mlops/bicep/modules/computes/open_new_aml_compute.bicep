@@ -86,7 +86,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
   }
 }
 
-// output the pair config for next actions (permission model)
+// output the compute config for next actions (permission model)
 output identityPrincipalId string = identityPrincipalId
 output compute string = compute.name
 output region string = computeRegion

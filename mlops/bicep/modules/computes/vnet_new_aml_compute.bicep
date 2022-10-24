@@ -15,7 +15,7 @@ param machineLearningRegion string = resourceGroup().location
 @description('Name of the compute cluster to create')
 param computeName string
 
-@description('Specifies the location of the pair resources.')
+@description('Specifies the location of the compute resources.')
 param computeRegion string
 
 @description('VM size for the default compute cluster')
@@ -130,7 +130,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
   }
 }
 
-// output the pair config for next actions (permission model)
+// output the compute config for next actions (permission model)
 output identityPrincipalId string = identityPrincipalId
 output compute string = compute.name
 output region string = computeRegion
