@@ -32,7 +32,7 @@ To run these deployment options, you first need:
 In the resource group of your AzureML workspace, use the following command with parameters corresponding to your setup:
 
 ```bash
-az deployment group create --template-file ./mlops/bicep/modules/resources/open_compute_storage_pair.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus"
+az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/open_compute_storage_pair.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus"
 ```
 
 ## Set permissions for the silo's compute to R/W from/to the orchestrator
