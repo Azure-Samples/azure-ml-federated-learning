@@ -106,53 +106,25 @@ module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bice
   ]
 }
 
-resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' existing = {
-  name: machineLearningName
-}
-
-// attach the AKS cluster to the workspace
-resource aksAzuremlCompute 'Microsoft.MachineLearningServices/workspaces/computes@2021-01-01' = {
-  name: amlComputeName
-  parent: workspace
-  location: machineLearningRegion
-  identity: {
-    type: 'UserAssigned'
-    userAssignedIdentities: userAssignedIdentities
-  }
-  properties: {
-    computeType: 'AKS'
-    properties: {
-      agentCount: aks.properties.agentPoolProfiles[0].count
-      agentVmSize: aks.properties.agentPoolProfiles[0].vmSize
-      // aksNetworkingConfiguration: {
-      //   dnsServiceIP: aks.properties.networkProfile.dnsServiceIP
-      //   dockerBridgeCidr: aks.properties.networkProfile.dockerBridgeCidr
-      //   serviceCidr: aks.properties.networkProfile.serviceCidr
-      //   //subnetId: aks.properties.networkProfile.
-      // }
-      clusterFqdn: aks.properties.fqdn
-      clusterPurpose: 'DevTest'
-      // loadBalancerSubnet: 'string'
-      // loadBalancerType: aks.properties.
-      // sslConfiguration: {
-      //   cert: 'string'
-      //   cname: 'string'
-      //   key: 'string'
-      //   leafDomainLabel: 'string'
-      //   overwriteExistingDomain: bool
-      //   status: 'string'
-      // }
-    }
+module deployAttachToWorkspace '../azureml/attach_aks_training_to_azureml.bicep' = {
+  name: 'attach-${aksClusterName}-to-aml-${machineLearningName}'
+  scope: resourceGroup()
+  params: {
+    machineLearningName: machineLearningName
+    machineLearningRegion: machineLearningRegion
+    aksResourceId: aks.id
+    aksRegion: aks.location
+    amlComputeName: amlComputeName
+    computeUaiName: computeUaiName
   }
   dependsOn: [
-    aks
     azuremlExtension
   ]
 }
 
 // output the compute config for next actions (permission model)
 output identityPrincipalId string = identityPrincipalId
-output compute string = aksAzuremlCompute.name
+output compute string = amlComputeName
 output region string = computeRegion
 output aksControlPlaneFQDN string = aks.properties.fqdn
 output aksId string = aks.id
