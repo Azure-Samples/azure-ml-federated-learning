@@ -113,7 +113,8 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
   }
 }
 
-module azuremlExtension '../azureml/deploy_aks_azureml_extension.bicep' = {
+//module azuremlExtension '../azureml/deploy_aks_azureml_extension.bicep' = {
+module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bicep' = {
   name: 'deploy-aml-extension-${aksClusterName}'
   scope: resourceGroup()
   params: {

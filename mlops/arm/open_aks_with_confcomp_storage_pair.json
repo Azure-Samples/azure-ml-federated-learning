@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "5204654717066835095"
+      "templateHash": "6799237867959004747"
     }
   },
   "parameters": {
@@ -408,7 +408,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "5015269078393536085"
+              "templateHash": "8149133785144232818"
             }
           },
           "parameters": {
@@ -576,7 +576,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.11.1.770",
-                      "templateHash": "9018943140819910773"
+                      "templateHash": "16152633449067688318"
                     }
                   },
                   "parameters": {
@@ -584,6 +584,20 @@
                       "type": "string",
                       "metadata": {
                         "description": "Name of the AKS cluster in the resource group."
+                      }
+                    },
+                    "clusterAdminUAIName": {
+                      "type": "string",
+                      "defaultValue": "[format('uai-admin-{0}', parameters('clusterName'))]",
+                      "metadata": {
+                        "description": "DeploymentScript needs a UAI with permissions to install extension on AKS."
+                      }
+                    },
+                    "createNewAdminIdentity": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Create or reuse an existing UAI (see clusterAdminUAIName)."
                       }
                     },
                     "extensionDeploymentName": {
@@ -666,39 +680,53 @@
                       }
                     }
                   },
+                  "variables": {
+                    "aksExtensionInstallRoleId": "b24988ac-6180-42a0-ab88-20f7382dd24c"
+                  },
                   "resources": [
                     {
-                      "type": "Microsoft.KubernetesConfiguration/extensions",
-                      "apiVersion": "2022-07-01",
+                      "condition": "[parameters('createNewAdminIdentity')]",
+                      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+                      "apiVersion": "2022-01-31-preview",
+                      "name": "[parameters('clusterAdminUAIName')]",
+                      "location": "[resourceGroup().location]"
+                    },
+                    {
+                      "type": "Microsoft.Authorization/roleAssignments",
+                      "apiVersion": "2022-04-01",
                       "scope": "[format('Microsoft.ContainerService/managedClusters/{0}', parameters('clusterName'))]",
+                      "name": "[guid(resourceGroup().id, resourceId('Microsoft.ContainerService/managedClusters', parameters('clusterName')), variables('aksExtensionInstallRoleId'))]",
+                      "properties": {
+                        "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('aksExtensionInstallRoleId'))]",
+                        "principalId": "[if(parameters('createNewAdminIdentity'), reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clusterAdminUAIName')), '2022-01-31-preview').principalId, reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clusterAdminUAIName')), '2022-01-31-preview').principalId)]",
+                        "principalType": "ServicePrincipal"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clusterAdminUAIName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Resources/deploymentScripts",
+                      "apiVersion": "2020-10-01",
                       "name": "[format('deploy-aks-azureml-extensions-to-{0}', parameters('clusterName'))]",
+                      "location": "[resourceGroup().location]",
+                      "kind": "AzureCLI",
                       "identity": {
-                        "type": "SystemAssigned"
+                        "type": "UserAssigned",
+                        "userAssignedIdentities": {
+                          "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{2}', subscription().subscriptionId, resourceGroup().name, parameters('clusterAdminUAIName'))]": {}
+                        }
                       },
                       "properties": {
-                        "aksAssignedIdentity": {
-                          "type": "UserAssigned"
-                        },
-                        "configurationSettings": {
-                          "extensionDeploymentName": "[parameters('extensionDeploymentName')]",
-                          "enableTraining": "[format('{0}', parameters('enableTraining'))]",
-                          "enableInference": "[format('{0}', parameters('enableInference'))]",
-                          "inferenceRouterServiceType": "[parameters('inferenceRouterServiceType')]",
-                          "allowInsecureConnections": "[format('{0}', parameters('allowInsecureConnections'))]",
-                          "internalLoadBalancerProvider": "[parameters('internalLoadBalancerProvider')]",
-                          "inferenceLoadBalancerHA": "[format('{0}', parameters('inferenceLoadBalancerHA'))]",
-                          "installNvidiaDevicePlugin": "[format('{0}', parameters('installNvidiaDevicePlugin'))]",
-                          "installPromOp": "[format('{0}', parameters('installPromOp'))]",
-                          "installVolcano": "[format('{0}', parameters('installVolcano'))]",
-                          "installDcgmExporter": "[format('{0}', parameters('installDcgmExporter'))]"
-                        },
-                        "extensionType": "Microsoft.AzureML.Kubernetes",
-                        "scope": {
-                          "cluster": {
-                            "releaseNamespace": "azureml"
-                          }
-                        }
-                      }
+                        "azCliVersion": "2.40.0",
+                        "cleanupPreference": "OnSuccess",
+                        "retentionInterval": "P1D",
+                        "scriptContent": "[format('az extension add --name k8s-extension; az k8s-extension create --name {0} --extension-type Microsoft.AzureML.Kubernetes --config enableTraining={1} enableInference={2} inferenceRouterServiceType={3} allowInsecureConnections={4} internalLoadBalancerProvider={5} inferenceLoadBalancerHA={6} installNvidiaDevicePlugin={7} installPromOp={8} installVolcano={9} installDcgmExporter={10} --cluster-type managedClusters --cluster-name {11} --scope cluster --resource-group {12}', parameters('extensionDeploymentName'), parameters('enableTraining'), parameters('enableInference'), parameters('inferenceRouterServiceType'), parameters('allowInsecureConnections'), parameters('internalLoadBalancerProvider'), parameters('inferenceLoadBalancerHA'), parameters('installNvidiaDevicePlugin'), parameters('installPromOp'), parameters('installVolcano'), parameters('installDcgmExporter'), parameters('clusterName'), resourceGroup().name)]",
+                        "timeout": "P1D"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('clusterAdminUAIName'))]"
+                      ]
                     }
                   ]
                 }
