@@ -1,0 +1,955 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.11.1.770",
+      "templateHash": "5204654717066835095"
+    }
+  },
+  "parameters": {
+    "machineLearningName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of AzureML workspace to attach compute+storage to."
+      }
+    },
+    "machineLearningRegion": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The region of the machine learning workspace"
+      }
+    },
+    "pairRegion": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "Specifies the location of the pair resources."
+      }
+    },
+    "pairBaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "Base name used for creating all pair resources."
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "[replace(format('st{0}', parameters('pairBaseName')), '-', '')]",
+      "metadata": {
+        "description": "Name of the storage account resource to create for the pair"
+      }
+    },
+    "datastoreName": {
+      "type": "string",
+      "defaultValue": "[replace(format('datastore_{0}', parameters('pairBaseName')), '-', '_')]",
+      "metadata": {
+        "description": "Name of the datastore for attaching the storage to the AzureML workspace."
+      }
+    },
+    "aksClusterName": {
+      "type": "string",
+      "defaultValue": "[format('aks-{0}', parameters('pairBaseName'))]",
+      "metadata": {
+        "description": "The name of the Managed Cluster resource."
+      }
+    },
+    "computeSKU": {
+      "type": "string",
+      "defaultValue": "Standard_DC4ds_v3",
+      "allowedValues": [
+        "Standard_DC1ds_v3",
+        "Standard_DC2ds_v3",
+        "Standard_DC4ds_v3",
+        "Standard_DC8ds_v3",
+        "Standard_DC16ds_v3",
+        "Standard_DC24ds_v3",
+        "Standard_DC32ds_v3",
+        "Standard_DC48ds_v3"
+      ],
+      "metadata": {
+        "description": "VM size for the compute cluster."
+      }
+    },
+    "computeNodes": {
+      "type": "int",
+      "defaultValue": 4,
+      "maxValue": 50,
+      "minValue": 1,
+      "metadata": {
+        "description": "VM nodes for the compute cluster"
+      }
+    },
+    "uaiName": {
+      "type": "string",
+      "defaultValue": "[format('uai-{0}', parameters('aksClusterName'))]",
+      "metadata": {
+        "description": "Name of the UAI for the pair compute cluster"
+      }
+    },
+    "applyDefaultPermissions": {
+      "type": "bool",
+      "defaultValue": true,
+      "metadata": {
+        "description": "Allow compute cluster to access storage account with R/W permissions (using UAI)"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to curate the resources in Azure."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "[format('{0}-open-storage', parameters('pairBaseName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "machineLearningName": {
+            "value": "[parameters('machineLearningName')]"
+          },
+          "machineLearningRegion": {
+            "value": "[parameters('machineLearningRegion')]"
+          },
+          "storageName": {
+            "value": "[parameters('storageAccountName')]"
+          },
+          "storageRegion": {
+            "value": "[parameters('pairRegion')]"
+          },
+          "datastoreName": {
+            "value": "[parameters('datastoreName')]"
+          },
+          "publicNetworkAccess": {
+            "value": "Enabled"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.11.1.770",
+              "templateHash": "6611935237026140155"
+            }
+          },
+          "parameters": {
+            "machineLearningName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of AzureML workspace to attach compute+storage to."
+              }
+            },
+            "machineLearningRegion": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "The region of the machine learning workspace"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "metadata": {
+                "description": "Tags to add to the resources"
+              }
+            },
+            "storageName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the storage account"
+              }
+            },
+            "storageRegion": {
+              "type": "string",
+              "metadata": {
+                "description": "Azure region of the storage to create"
+              }
+            },
+            "containerName": {
+              "type": "string",
+              "defaultValue": "private",
+              "metadata": {
+                "description": "Name of the storage container resource to create for the pair"
+              }
+            },
+            "datastoreName": {
+              "type": "string",
+              "defaultValue": "[replace(format('datastore_{0}', parameters('storageName')), '-', '_')]",
+              "metadata": {
+                "description": "Name of the datastore for attaching the storage to the AzureML workspace."
+              }
+            },
+            "subnetIds": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Resource ID of the subnets allowed into this storage"
+              }
+            },
+            "publicNetworkAccess": {
+              "type": "string",
+              "defaultValue": "Disabled",
+              "metadata": {
+                "description": "Allow or disallow public network access to Storage Account."
+              },
+              "allowedValues": [
+                "Enabled",
+                "vNetOnly",
+                "Disabled"
+              ]
+            },
+            "storageSKU": {
+              "type": "string",
+              "defaultValue": "Standard_LRS",
+              "metadata": {
+                "description": "Storage SKU"
+              },
+              "allowedValues": [
+                "Standard_LRS",
+                "Standard_ZRS",
+                "Standard_GRS",
+                "Standard_GZRS",
+                "Standard_RAGRS",
+                "Standard_RAGZRS",
+                "Premium_LRS",
+                "Premium_ZRS"
+              ]
+            }
+          },
+          "variables": {
+            "storageNameCleaned": "[replace(parameters('storageName'), '-', '')]",
+            "storageAccountCleanName": "[substring(variables('storageNameCleaned'), 0, min(length(variables('storageNameCleaned')), 24))]",
+            "storageAllowedSubnetIds": "[if(equals(parameters('publicNetworkAccess'), 'Enabled'), createArray(), parameters('subnetIds'))]",
+            "storagedefaultAction": "[if(equals(parameters('publicNetworkAccess'), 'Enabled'), 'Allow', 'Deny')]",
+            "storagepublicNetworkAccess": "[if(equals(parameters('publicNetworkAccess'), 'Disabled'), 'Disabled', 'Enabled')]"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.Storage/storageAccounts",
+              "apiVersion": "2022-05-01",
+              "name": "[variables('storageAccountCleanName')]",
+              "location": "[parameters('storageRegion')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "[parameters('storageSKU')]"
+              },
+              "kind": "StorageV2",
+              "properties": {
+                "accessTier": "Hot",
+                "allowBlobPublicAccess": false,
+                "allowCrossTenantReplication": false,
+                "allowedCopyScope": "PrivateLink",
+                "allowSharedKeyAccess": true,
+                "networkAcls": {
+                  "copy": [
+                    {
+                      "name": "virtualNetworkRules",
+                      "count": "[length(variables('storageAllowedSubnetIds'))]",
+                      "input": {
+                        "id": "[variables('storageAllowedSubnetIds')[copyIndex('virtualNetworkRules')]]",
+                        "action": "Allow"
+                      }
+                    }
+                  ],
+                  "bypass": "AzureServices",
+                  "defaultAction": "[variables('storagedefaultAction')]",
+                  "resourceAccessRules": []
+                },
+                "publicNetworkAccess": "[variables('storagepublicNetworkAccess')]",
+                "routingPreference": {
+                  "routingChoice": "MicrosoftRouting",
+                  "publishMicrosoftEndpoints": true
+                },
+                "encryption": {
+                  "keySource": "Microsoft.Storage",
+                  "requireInfrastructureEncryption": false,
+                  "services": {
+                    "blob": {
+                      "enabled": true,
+                      "keyType": "Account"
+                    },
+                    "file": {
+                      "enabled": true,
+                      "keyType": "Account"
+                    },
+                    "queue": {
+                      "enabled": true,
+                      "keyType": "Service"
+                    },
+                    "table": {
+                      "enabled": true,
+                      "keyType": "Service"
+                    }
+                  }
+                },
+                "isHnsEnabled": false,
+                "isNfsV3Enabled": false,
+                "isLocalUserEnabled": false,
+                "isSftpEnabled": false,
+                "keyPolicy": {
+                  "keyExpirationPeriodInDays": 7
+                },
+                "largeFileSharesState": "Disabled",
+                "minimumTlsVersion": "TLS1_2",
+                "supportsHttpsTrafficOnly": true
+              }
+            },
+            {
+              "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
+              "apiVersion": "2022-05-01",
+              "name": "[format('{0}/default/{1}', variables('storageAccountCleanName'), parameters('containerName'))]",
+              "properties": {
+                "metadata": {},
+                "publicAccess": "None"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.MachineLearningServices/workspaces/datastores",
+              "apiVersion": "2022-06-01-preview",
+              "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('datastoreName'))]",
+              "properties": {
+                "credentials": {
+                  "credentialsType": "None"
+                },
+                "description": "[format('Private storage in region {0}', parameters('storageRegion'))]",
+                "properties": {},
+                "datastoreType": "AzureBlob",
+                "accountName": "[variables('storageAccountCleanName')]",
+                "containerName": "[parameters('containerName')]",
+                "resourceGroup": "[resourceGroup().name]",
+                "subscriptionId": "[subscription().subscriptionId]"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts/blobServices/containers', split(format('{0}/default/{1}', variables('storageAccountCleanName'), parameters('containerName')), '/')[0], split(format('{0}/default/{1}', variables('storageAccountCleanName'), parameters('containerName')), '/')[1], split(format('{0}/default/{1}', variables('storageAccountCleanName'), parameters('containerName')), '/')[2])]",
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "storageId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountCleanName'))]"
+            },
+            "storageName": {
+              "type": "string",
+              "value": "[variables('storageAccountCleanName')]"
+            },
+            "containerName": {
+              "type": "string",
+              "value": "[format('{0}/default/{1}', variables('storageAccountCleanName'), parameters('containerName'))]"
+            },
+            "datastoreName": {
+              "type": "string",
+              "value": "[format('{0}/{1}', parameters('machineLearningName'), parameters('datastoreName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "[format('{0}-open-aks-confcomp', parameters('pairBaseName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "machineLearningName": {
+            "value": "[parameters('machineLearningName')]"
+          },
+          "machineLearningRegion": {
+            "value": "[parameters('machineLearningRegion')]"
+          },
+          "aksClusterName": {
+            "value": "[parameters('aksClusterName')]"
+          },
+          "amlComputeName": {
+            "value": "[parameters('aksClusterName')]"
+          },
+          "computeRegion": {
+            "value": "[parameters('pairRegion')]"
+          },
+          "agentVMSize": {
+            "value": "[parameters('computeSKU')]"
+          },
+          "agentCount": {
+            "value": "[parameters('computeNodes')]"
+          },
+          "computeUaiName": {
+            "value": "[parameters('uaiName')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.11.1.770",
+              "templateHash": "5015269078393536085"
+            }
+          },
+          "parameters": {
+            "machineLearningName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of AzureML workspace to attach compute+storage to."
+              }
+            },
+            "machineLearningRegion": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "The region of the machine learning workspace"
+              }
+            },
+            "aksClusterName": {
+              "type": "string",
+              "metadata": {
+                "description": "The name of the Managed Cluster resource."
+              }
+            },
+            "amlComputeName": {
+              "type": "string",
+              "defaultValue": "[parameters('aksClusterName')]",
+              "metadata": {
+                "description": "How to name this compute in Azure ML"
+              }
+            },
+            "computeRegion": {
+              "type": "string",
+              "metadata": {
+                "description": "Specifies the location of the compute resources."
+              }
+            },
+            "dnsPrefix": {
+              "type": "string",
+              "defaultValue": "[replace(format('dnxprefix-{0}', parameters('aksClusterName')), '-', '')]",
+              "maxLength": 54,
+              "metadata": {
+                "description": "Optional DNS prefix to use with hosted Kubernetes API server FQDN."
+              }
+            },
+            "agentCount": {
+              "type": "int",
+              "defaultValue": 4,
+              "maxValue": 50,
+              "minValue": 1,
+              "metadata": {
+                "description": "The number of nodes for the cluster pool."
+              }
+            },
+            "agentVMSize": {
+              "type": "string",
+              "defaultValue": "Standard_DC4ds_v3",
+              "allowedValues": [
+                "Standard_DC1ds_v3",
+                "Standard_DC2ds_v3",
+                "Standard_DC4ds_v3",
+                "Standard_DC8ds_v3",
+                "Standard_DC16ds_v3",
+                "Standard_DC24ds_v3",
+                "Standard_DC32ds_v3",
+                "Standard_DC48ds_v3"
+              ],
+              "metadata": {
+                "description": "The size of the Virtual Machine."
+              }
+            },
+            "osDiskSizeGB": {
+              "type": "int",
+              "defaultValue": 0,
+              "maxValue": 1023,
+              "minValue": 0,
+              "metadata": {
+                "description": "Disk size (in GB) to provision for each of the agent pool nodes. This value ranges from 0 to 1023. Specifying 0 will apply the default disk size for that agentVMSize."
+              }
+            },
+            "computeUaiName": {
+              "type": "string",
+              "defaultValue": "[format('uai-{0}', parameters('aksClusterName'))]",
+              "metadata": {
+                "description": "Name of the UAI for the compute cluster."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to curate the resources in Azure."
+              }
+            }
+          },
+          "variables": {
+            "userAssignedIdentities": {
+              "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{2}', subscription().subscriptionId, resourceGroup().name, parameters('computeUaiName'))]": {}
+            }
+          },
+          "resources": [
+            {
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2022-01-31-preview",
+              "name": "[parameters('computeUaiName')]",
+              "location": "[parameters('computeRegion')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "type": "Microsoft.ContainerService/managedClusters",
+              "apiVersion": "2022-05-02-preview",
+              "name": "[parameters('aksClusterName')]",
+              "location": "[parameters('computeRegion')]",
+              "identity": {
+                "type": "UserAssigned",
+                "userAssignedIdentities": "[variables('userAssignedIdentities')]"
+              },
+              "properties": {
+                "dnsPrefix": "[parameters('dnsPrefix')]",
+                "addonProfiles": {
+                  "ACCSGXDevicePlugin": {
+                    "enabled": true,
+                    "config": {
+                      "ACCSGXQuoteHelperEnabled": "false"
+                    }
+                  }
+                },
+                "agentPoolProfiles": [
+                  {
+                    "name": "confcompool",
+                    "count": "[parameters('agentCount')]",
+                    "vmSize": "[parameters('agentVMSize')]",
+                    "osType": "Linux",
+                    "mode": "System",
+                    "osDiskSizeGB": "[parameters('osDiskSizeGB')]"
+                  }
+                ],
+                "apiServerAccessProfile": {
+                  "authorizedIPRanges": [],
+                  "enablePrivateCluster": false,
+                  "enablePrivateClusterPublicFQDN": false,
+                  "enableVnetIntegration": false
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('deploy-aml-extension-{0}', parameters('aksClusterName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "clusterName": {
+                    "value": "[parameters('aksClusterName')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.11.1.770",
+                      "templateHash": "9018943140819910773"
+                    }
+                  },
+                  "parameters": {
+                    "clusterName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the AKS cluster in the resource group."
+                      }
+                    },
+                    "extensionDeploymentName": {
+                      "type": "string",
+                      "defaultValue": "azmlext"
+                    },
+                    "enableTraining": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Must be set to True for AzureML extension deployment with Machine Learning model training and batch scoring support."
+                      }
+                    },
+                    "enableInference": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Must be set to True for AzureML extension deployment with Machine Learning inference support."
+                      }
+                    },
+                    "inferenceRouterServiceType": {
+                      "type": "string",
+                      "defaultValue": "loadBalancer",
+                      "allowedValues": [
+                        "loadBalancer",
+                        "nodePort",
+                        "clusterIP"
+                      ],
+                      "metadata": {
+                        "description": "Required if enableInference=True."
+                      }
+                    },
+                    "allowInsecureConnections": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "Can be set to True to use inference HTTP endpoints for development or test purposes."
+                      }
+                    },
+                    "internalLoadBalancerProvider": {
+                      "type": "string",
+                      "defaultValue": "azure",
+                      "metadata": {
+                        "description": "Set to azure to allow the inference router using internal load balancer. This config is only applicable for Azure Kubernetes Service(AKS) cluster now."
+                      }
+                    },
+                    "inferenceLoadBalancerHA": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "To ensure high availability of azureml-fe routing service (for clusters with 3 nodes or more)."
+                      }
+                    },
+                    "installNvidiaDevicePlugin": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "To enable ML workloads on NVIDIA GPU hardware."
+                      }
+                    },
+                    "installPromOp": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "AzureML extension needs prometheus operator to manage prometheus. Set to False to reuse the existing prometheus operator."
+                      }
+                    },
+                    "installVolcano": {
+                      "type": "bool",
+                      "defaultValue": true,
+                      "metadata": {
+                        "description": "AzureML extension needs volcano scheduler to schedule the job. Set to False to reuse existing volcano scheduler."
+                      }
+                    },
+                    "installDcgmExporter": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "Dcgm-exporter can expose GPU metrics for AzureML workloads, which can be monitored in Azure portal. Set installDcgmExporter to True to install dcgm-exporter."
+                      }
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.KubernetesConfiguration/extensions",
+                      "apiVersion": "2022-07-01",
+                      "scope": "[format('Microsoft.ContainerService/managedClusters/{0}', parameters('clusterName'))]",
+                      "name": "[format('deploy-aks-azureml-extensions-to-{0}', parameters('clusterName'))]",
+                      "identity": {
+                        "type": "SystemAssigned"
+                      },
+                      "properties": {
+                        "aksAssignedIdentity": {
+                          "type": "UserAssigned"
+                        },
+                        "configurationSettings": {
+                          "extensionDeploymentName": "[parameters('extensionDeploymentName')]",
+                          "enableTraining": "[format('{0}', parameters('enableTraining'))]",
+                          "enableInference": "[format('{0}', parameters('enableInference'))]",
+                          "inferenceRouterServiceType": "[parameters('inferenceRouterServiceType')]",
+                          "allowInsecureConnections": "[format('{0}', parameters('allowInsecureConnections'))]",
+                          "internalLoadBalancerProvider": "[parameters('internalLoadBalancerProvider')]",
+                          "inferenceLoadBalancerHA": "[format('{0}', parameters('inferenceLoadBalancerHA'))]",
+                          "installNvidiaDevicePlugin": "[format('{0}', parameters('installNvidiaDevicePlugin'))]",
+                          "installPromOp": "[format('{0}', parameters('installPromOp'))]",
+                          "installVolcano": "[format('{0}', parameters('installVolcano'))]",
+                          "installDcgmExporter": "[format('{0}', parameters('installDcgmExporter'))]"
+                        },
+                        "extensionType": "Microsoft.AzureML.Kubernetes",
+                        "scope": {
+                          "cluster": {
+                            "releaseNamespace": "azureml"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('attach-{0}-to-aml-{1}', parameters('aksClusterName'), parameters('machineLearningName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "machineLearningName": {
+                    "value": "[parameters('machineLearningName')]"
+                  },
+                  "machineLearningRegion": {
+                    "value": "[parameters('machineLearningRegion')]"
+                  },
+                  "aksResourceId": {
+                    "value": "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
+                  },
+                  "aksRegion": {
+                    "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName')), '2022-05-02-preview', 'full').location]"
+                  },
+                  "amlComputeName": {
+                    "value": "[parameters('amlComputeName')]"
+                  },
+                  "computeUaiName": {
+                    "value": "[parameters('computeUaiName')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.11.1.770",
+                      "templateHash": "3788879703163585225"
+                    }
+                  },
+                  "parameters": {
+                    "machineLearningName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of AzureML workspace to attach compute+storage to."
+                      }
+                    },
+                    "machineLearningRegion": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
+                      "metadata": {
+                        "description": "The region of the machine learning workspace"
+                      }
+                    },
+                    "aksResourceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Resource ID of the AKS cluster."
+                      }
+                    },
+                    "aksRegion": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Region of the AKS cluster."
+                      }
+                    },
+                    "amlComputeName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "How to name this compute in Azure ML"
+                      }
+                    },
+                    "computeUaiName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the existing UAI for the compute cluster."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "userAssignedIdentities": {
+                      "[format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{2}', subscription().subscriptionId, resourceGroup().name, parameters('computeUaiName'))]": {}
+                    }
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.MachineLearningServices/workspaces/computes",
+                      "apiVersion": "2021-01-01",
+                      "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('amlComputeName'))]",
+                      "location": "[parameters('machineLearningRegion')]",
+                      "identity": {
+                        "type": "UserAssigned",
+                        "userAssignedIdentities": "[variables('userAssignedIdentities')]"
+                      },
+                      "properties": {
+                        "computeType": "Kubernetes",
+                        "computeLocation": "[parameters('aksRegion')]",
+                        "resourceId": "[parameters('aksResourceId')]",
+                        "description": "AKS cluster attached to AzureML workspace",
+                        "properties": {}
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "identityPrincipalId": {
+                      "type": "string",
+                      "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName')), '2022-01-31-preview').principalId]"
+                    },
+                    "compute": {
+                      "type": "string",
+                      "value": "[parameters('amlComputeName')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]",
+                "[resourceId('Microsoft.Resources/deployments', format('deploy-aml-extension-{0}', parameters('aksClusterName')))]"
+              ]
+            }
+          ],
+          "outputs": {
+            "identityPrincipalId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))).principalId]"
+            },
+            "compute": {
+              "type": "string",
+              "value": "[parameters('amlComputeName')]"
+            },
+            "region": {
+              "type": "string",
+              "value": "[parameters('computeRegion')]"
+            },
+            "aksControlPlaneFQDN": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))).fqdn]"
+            },
+            "aksId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
+            }
+          }
+        }
+      }
+    },
+    {
+      "condition": "[parameters('applyDefaultPermissions')]",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "[format('{0}-internal-rw-perms', parameters('pairBaseName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "storageAccountName": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+          },
+          "identityPrincipalId": {
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.11.1.770",
+              "templateHash": "17992859547784854732"
+            }
+          },
+          "parameters": {
+            "storageAccountName": {
+              "type": "string",
+              "metadata": {
+                "description": "Full path to storage"
+              }
+            },
+            "identityPrincipalId": {
+              "type": "string",
+              "metadata": {
+                "description": "PrincipalId of the managed identity"
+              }
+            },
+            "computeToStorageRoles": {
+              "type": "array",
+              "defaultValue": [
+                "ba92f5b4-2d11-453d-a403-e96b0029c9fe",
+                "81a9662b-bebf-436f-a333-f67b29880f12",
+                "c12c1c16-33a1-487b-954d-41c89c60f349"
+              ],
+              "metadata": {
+                "description": "Role definition IDs for the compute towards the internal storage"
+              }
+            }
+          },
+          "resources": [
+            {
+              "copy": {
+                "name": "roleAssignments",
+                "count": "[length(parameters('computeToStorageRoles'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.Storage/storageAccounts/{0}', parameters('storageAccountName'))]",
+              "name": "[guid(resourceGroup().id, resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName')), parameters('identityPrincipalId'), parameters('computeToStorageRoles')[copyIndex()])]",
+              "properties": {
+                "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, parameters('computeToStorageRoles')[copyIndex()])]",
+                "principalId": "[parameters('identityPrincipalId')]",
+                "principalType": "ServicePrincipal"
+              }
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "identityPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+    },
+    "storageName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+    },
+    "storageServiceId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageId.value]"
+    },
+    "computeName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName')))).outputs.compute.value]"
+    },
+    "region": {
+      "type": "string",
+      "value": "[parameters('pairRegion')]"
+    }
+  }
+}
