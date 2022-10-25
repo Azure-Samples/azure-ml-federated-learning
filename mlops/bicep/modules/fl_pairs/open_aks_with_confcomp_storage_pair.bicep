@@ -32,7 +32,17 @@ param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 param aksClusterName string = 'aks-${pairBaseName}'
 
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
-@description('VM size for the compute cluster')
+@description('VM size for the compute cluster.')
+@allowed([
+  'Standard_DC1ds_v3'
+  'Standard_DC2ds_v3'
+  'Standard_DC4ds_v3'
+  'Standard_DC8ds_v3'
+  'Standard_DC16ds_v3'
+  'Standard_DC24ds_v3'
+  'Standard_DC32ds_v3'
+  'Standard_DC48ds_v3'
+])
 param computeSKU string = 'Standard_DC4ds_v3'
 
 @description('VM nodes for the compute cluster')

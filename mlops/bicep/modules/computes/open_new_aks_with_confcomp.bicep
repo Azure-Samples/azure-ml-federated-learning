@@ -36,6 +36,16 @@ param agentCount int = 4
 
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
 @description('The size of the Virtual Machine.')
+@allowed([
+  'Standard_DC1ds_v3'
+  'Standard_DC2ds_v3'
+  'Standard_DC4ds_v3'
+  'Standard_DC8ds_v3'
+  'Standard_DC16ds_v3'
+  'Standard_DC24ds_v3'
+  'Standard_DC32ds_v3'
+  'Standard_DC48ds_v3'
+])
 param agentVMSize string = 'Standard_DC4ds_v3'
 
 @description('Disk size (in GB) to provision for each of the agent pool nodes. This value ranges from 0 to 1023. Specifying 0 will apply the default disk size for that agentVMSize.')
@@ -69,6 +79,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
   }
   properties: {
     dnsPrefix: dnsPrefix
+    //fqdnSubdomain: 'foo'
     addonProfiles: {
       // enable the provisioning of confidential computes nodes
       ACCSGXDevicePlugin: {
@@ -92,10 +103,17 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
         osDiskSizeGB: osDiskSizeGB
       }
     ]
+    apiServerAccessProfile: {
+      // IMPORTANT: use this for demo only, it is not a private AKS cluster
+      authorizedIPRanges: []
+      enablePrivateCluster: false
+      enablePrivateClusterPublicFQDN: false
+      enableVnetIntegration: false
+    }
   }
 }
 
-module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bicep' = {
+module azuremlExtension '../azureml/deploy_aks_azureml_extension.bicep' = {
   name: 'deploy-aml-extension-${aksClusterName}'
   scope: resourceGroup()
   params: {
