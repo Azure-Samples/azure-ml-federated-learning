@@ -13,11 +13,15 @@ runs:
   steps:
     - name: Build bicep into arm
       shell: bash
-      run: az bicep build --file ${{ inputs.source-file-path }} | jq -S . > source.json
+      run: |
+        az bicep build --file ${{ inputs.source-file-path }} | jq -S . > source.json
+        cat source.json
 
     - name: Refactor ARM template file
       shell: bash
-      run: jq -S . ${{ inputs.target-file-path }} > target.json
+      run: |
+        jq -S . ${{ inputs.target-file-path }} > target.json
+        cat target.json
 
 
     - name: Source and Target file diff
@@ -26,7 +30,7 @@ runs:
         if cmp -s ./source.json ./target.json; then
             printf 'Rebuilding bicep "%s" produces exact match with target file "%s"\n' ${{ inputs.source-file-path }} ${{ inputs.target-file-path }}
         else
-            printf 'Diff between "%s" and "%s":\n' ${{ inputs.source-file-path }} ${{ inputs.target-file-path }}
+            printf 'Diff between "%s" build and "%s":\n' ${{ inputs.source-file-path }} ${{ inputs.target-file-path }}
             diff source.json target.json
             exit 1
         fi  
