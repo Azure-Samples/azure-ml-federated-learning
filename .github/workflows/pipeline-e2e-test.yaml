@@ -10,6 +10,35 @@ on:
     - examples/pipelines/**
 
 jobs:
+  arm-template-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Test open sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/open_sandbox_setup.bicep"
+        target-file-path: "mlops/arm/open_sandbox_setup.json"
+
+    - name: Test vnet publicip sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/vnet_publicip_sandbox_setup.bicep"
+        target-file-path: "mlops/arm/vnet_publicip_sandbox_setup.json"
+
+    - name: Test open compute storage pair ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/fl_pairs/open_compute_storage_pair.bicep"
+        target-file-path: "mlops/arm/open_compute_storage_pair.json"
+
+    - name: Test vnet compute storage pair ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/fl_pairs/vnet_compute_storage_pair.bicep"
+        target-file-path: "mlops/arm/vnet_compute_storage_pair.json"
+
   open-sandbox-test:
     runs-on: ubuntu-latest
     permissions:
