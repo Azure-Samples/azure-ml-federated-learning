@@ -13,15 +13,11 @@ runs:
   steps:
     - name: Build bicep into arm
       shell: bash
-      run: |
-        az bicep build --file ${{ inputs.source-file-path }} --stdout | jq -S . > source.json
-        cat source.json
+      run: az bicep build --file ${{ inputs.source-file-path }} --stdout | jq -S . > source.json
 
     - name: Refactor ARM template file
       shell: bash
-      run: |
-        jq -S . ${{ inputs.target-file-path }} > target.json
-        cat target.json
+      run: jq -S . ${{ inputs.target-file-path }} > target.json
 
 
     - name: Source and Target file diff
