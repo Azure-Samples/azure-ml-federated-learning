@@ -4,9 +4,6 @@ on:
   pull_request:
     branches:
     - release**
-  push:
-    branches:
-    - release**
 
 jobs:
   paths-filter:
@@ -43,7 +40,7 @@ jobs:
   open-sandbox-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ needs.paths-filter.outputs.provisioning-modules == 'true' }} or ${{ needs.paths-filter.outputs.open-sandbox == 'true' }}
+    if: ${{ (needs.paths-filter.outputs.provisioning-modules == 'true') || (needs.paths-filter.outputs.open-sandbox == 'true') }}
     permissions:
       id-token: write
     steps:
@@ -57,12 +54,13 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
         deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
+        deployment-name: open_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
 
   vnet-sandbox-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ needs.paths-filter.outputs.provisioning-modules == 'true' }} or ${{ needs.paths-filter.outputs.vnet-sandbox == 'true' }}
+    if: ${{ (needs.paths-filter.outputs.provisioning-modules == 'true') || (needs.paths-filter.outputs.vnet-sandbox == 'true') }}
     permissions:
       id-token: write
     steps:
@@ -77,12 +75,13 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
         deployment-file-path: ./mlops/bicep/vnet_publicip_sandbox_setup.bicep
+        deployment-name: vnet_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl2${{ github.run_attempt }}${{ github.run_id }}
 
   literal-helloworld-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ needs.paths-filter.outputs.components-helloworld == 'true' }} or ${{ needs.paths-filter.outputs.literal == 'true' }}
+    if: ${{ (needs.paths-filter.outputs.components-helloworld == 'true') || (needs.paths-filter.outputs.literal == 'true') }}
     permissions:
       id-token: write
     steps:
@@ -101,7 +100,7 @@ jobs:
   factory-helloworld-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ needs.paths-filter.outputs.components-helloworld == 'true' }} or ${{ needs.paths-filter.outputs.factory == 'true' }}    
+    if: ${{ (needs.paths-filter.outputs.components-helloworld == 'true') || (needs.paths-filter.outputs.factory == 'true') }}    
     permissions:
       id-token: write
     steps:
