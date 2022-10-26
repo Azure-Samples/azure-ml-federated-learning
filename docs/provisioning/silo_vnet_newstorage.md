@@ -52,7 +52,7 @@ In this scenario, the silo's blob storage account's networking settings are such
 
 In addition, the compute can interact with the orchestrator storage account, through public network, the UAI being also given R/W permissions to the orchestrator storage.
 
-## Create a compute and storage pair for the orchestrator
+## Create a compute and storage pair for the silo
 
 > Note: both orchestrator and [silo](./silo_vnet.md) can be deployed using the same arm/bicep script, changing **Pair Base Name** and `storagePublicNetworkAccess` accordingly.
 
