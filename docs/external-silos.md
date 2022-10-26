@@ -52,7 +52,7 @@ Detailed instructions for this phase, including steps for verification or for sl
       ```bash
       az provider show -n Microsoft.Kubernetes -o table
       az provider show -n Microsoft.KubernetesConfiguration -o table
-      z provider show -n Microsoft.ExtendedLocation -o table
+      az provider show -n Microsoft.ExtendedLocation -o table
       ```
     - Once registered, you should see the `RegistrationState` state for these namespaces change to `Registered`.
 2. Create a `<connected-cluster-resource-group>` resource group for the connected clusters. **This step should be performed by the FL Admin.** Several connected clusters pointing to different k8s clusters can be added to this group - no need to create a separate group for each silo. The location of this group <connected-cluster-resource-group-location> is not critical, but should preferably be the same as that of the orchestrator workspace.
@@ -86,7 +86,7 @@ az k8s-extension show --name <extension-name> --cluster-type connectedClusters -
 In the response, look for `"name"` and `"provisioningState": "Succeeded"`. Note that it might show `"provisioningState": "Pending"` for the first few minutes.
 
 
-### D. Attach the k8s cluster to the orchestrator workspace
+### D. Attach the Arc cluster to the orchestrator workspace
 Detailed instructions for this phase, including steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-attach-kubernetes-to-workspace?tabs=cli)). Here is a summary, which should be all you need.
 
 **This step should be run by the FL Admin.** The `ml` Azure CLI extension (_a.k.a._ Azure ML CLI v2) will be required. It can be installed _via_ `az extension add --name ml`. See [over there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-cli?tabs=public) for more details on installation.
