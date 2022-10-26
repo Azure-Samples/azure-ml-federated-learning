@@ -40,7 +40,7 @@ It is important in this case that you set the following on your existing storage
 
 ### Option 1: one click deployment
 
-1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_compute_storage_pair.json)
+1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_compute_existing_storage.json)
 
 2. Adjust parameters, in particular:
 
@@ -55,7 +55,7 @@ It is important in this case that you set the following on your existing storage
 In the resource group of your AzureML workspace, use the following command with parameters corresponding to your setup:
 
 ```bash
-az deployment group create --template-file ./mlops/bicep/modules/resources/vnet_compute_storage_pair.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus" subnetPrefix="10.0.1.0/24"
+az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_compute_existing_storage.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus" subnetPrefix="10.0.1.0/24"
 ```
 
 ## Set required permissions
