@@ -14,7 +14,7 @@ runs:
     - name: Build bicep into arm
       shell: bash
       run: |
-        az bicep build --file ${{ inputs.source-file-path }} | jq -S . > source.json
+        az bicep build --file ${{ inputs.source-file-path }} --stdout | jq -S . > source.json
         cat source.json
 
     - name: Refactor ARM template file
