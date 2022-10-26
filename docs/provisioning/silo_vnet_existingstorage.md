@@ -1,12 +1,14 @@
 # Create a silo with compute behind a vnet accessing your existing storage account
 
-This tutorial applies in the case you want to create a compute to process data from an existing storage account located in the same tenant (different subscription or resource group).
+This tutorial applies in the case you want to create a compute to process data from an existing storage account located **in the same tenant** (different subscription or resource group).
+
+Typically, this would happen when using internal silos corresponding to various regions, with storages not managed by a single entity but scattered accross multiple subscriptions in a single company.
 
 ## Table of contents
 
 - [Prerequisites](#prerequisites)
 - [Important: understand the design](#important-understand-the-design)
-- [Create a compute and storage pair for the silo](#need-support)
+- [Create a compute pair for the silo, attach storage as datastore](#create-a-compute-pair-for-the-silo-attach-storage-as-datastore)
   - [Option 1: one click deployment](#option-1-one-click-deployment)
   - [Option 2: using az cli](#option-2-using-az-cli)
 - [Set required permissions](#set-required-permissions)
@@ -22,7 +24,7 @@ To run these deployment options, you first need:
 
 
 > **To create a private DNS zone**  
-> If you don't already have one, you will need to manually create a private DNS zone for the storage account and compute of this pair.  
+> If you don't already have one, you will need to [manually create a private DNS zone](https://learn.microsoft.com/en-us/azure/dns/private-dns-privatednszone) for the storage account and compute of this pair.  
 > To do that, go to the Azure portal, and in the resource group of your AzureML workspace, create a new private DNS zone named `privatelink.blob.core.windows.net`.  
 > You only need one unique zone for all the pairs you create (both orchestrator and silos). All private DNS entries will be written in that single zone.
 
@@ -31,8 +33,9 @@ To run these deployment options, you first need:
 The design we used for this tutorial is identical to [a silo provisioned with a new storage](./silo_vnet_newstorage.md#important-understand-the-design). What is different in this case is that we do not provision the storage, so we rely on the previously configured storage account.
 
 It is important in this case that you set the following on your existing storage account:
-- make sure the storage account is in the same tenant as the AzureML workspace
-
+- make sure the storage account is **in the same tenant** as the AzureML workspace
+- in the networking settings of the storage, it is recommended to set **Public network access** to "Disabled" (access will be allowed only via a private endpoint)
+- create a container in this storage account for your fl data
 
 ## Create a compute pair for the silo, attach storage as datastore
 
@@ -47,22 +50,28 @@ It is important in this case that you set the following on your existing storage
     - Region: this will be set by Azure to the region of your resource group.
     - Machine Learning Name: need to match the name of the AzureML workspace in the resource group.
     - Machine Learning Region: the region in which the AzureML workspace was deployed (default: same as resource group).
-    - Pair Region: the region where the compute and storage will be deployed (default: same as resource group).
+    - Pair Region: the region where the compute and storage will be deployed (default: same as resource group), make sure this matches with the location of your storage account.
     - Pair Base Name: a unique name for the **silo**, example `silo1-westus`. This will be used to create all other resources (storage name, compute name, etc.).
+    - Existing Storage Account Name: name of the storage account to attach to this silo.
+    - Existing Storage Account Resource Group: name of the resource group in which the storage is provisioned.
+    - Existing Storage Account Subscription Id: id of the subscription in which the storage is provisioned.
+    - Existing Storage Container Name: name of container where the data will be located.
+
 
 ### Option 2: using az cli
 
 In the resource group of your AzureML workspace, use the following command with parameters corresponding to your setup:
 
 ```bash
-az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_compute_existing_storage.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus" subnetPrefix="10.0.1.0/24"
+az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_compute_existing_storage.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus" subnetPrefix="10.0.1.0/24" existingStorageAccountName="..." existingStorageAccountResourceGroup="..." existingStorageAccountSubscriptionId="..."
 ```
+
+Make sure `pairRegion` matches with the region of your storage account.
 
 ## Set required permissions
 
-### 1. Internally between the silo's compute and the silo's existing storage account
+### 1. Between the silo's compute and the silo's existing storage account
 
-In the 
 1. Navigate the Azure portal to find your resource group.
 
 2. Look for a resource of type **Managed Identity** in the region of the silo named like `uai-<pairBaseName>`. It should have been created by the instructions above.
@@ -77,7 +86,7 @@ In the
 4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
 
 
-### 2. Externally between the silo's compute to R/W from/to the orchestrator storage
+### 2. Between the silo's compute to R/W from/to the orchestrator storage
 
 1. Navigate the Azure portal to find your resource group.
 

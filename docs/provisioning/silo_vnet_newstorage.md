@@ -22,7 +22,7 @@ To run these deployment options, you first need:
 
 
 > **To create a private DNS zone**  
-> If you don't already have one, you will need to manually create a private DNS zone for the storage account and compute of this pair.  
+> If you don't already have one, you will need to [manually create a private DNS zone](https://learn.microsoft.com/en-us/azure/dns/private-dns-privatednszone) for the storage account and compute of this pair.  
 > To do that, go to the Azure portal, and in the resource group of your AzureML workspace, create a new private DNS zone named `privatelink.blob.core.windows.net`.  
 > You only need one unique zone for all the pairs you create (both orchestrator and silos). All private DNS entries will be written in that single zone.
 
