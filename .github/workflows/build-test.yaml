@@ -49,11 +49,11 @@ jobs:
     - name: Test open compute storage pair ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
       with:
-        source-file-path: "mlops/bicep/fl_pairs/open_compute_storage_pair.bicep"
+        source-file-path: "mlops/bicep/modules/fl_pairs/open_compute_storage_pair.bicep"
         target-file-path: "mlops/arm/open_compute_storage_pair.json"
 
     - name: Test vnet compute storage pair ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
       with:
-        source-file-path: "mlops/bicep/fl_pairs/vnet_compute_storage_pair.bicep"
+        source-file-path: "mlops/bicep/modules/fl_pairs/vnet_compute_storage_pair.bicep"
         target-file-path: "mlops/arm/vnet_compute_storage_pair.json"
