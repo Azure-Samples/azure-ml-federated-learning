@@ -21,7 +21,7 @@ param containerName string = 'private'
 param datastoreName string = replace('datastore_${storageAccountName}','-','_')
 
 @description('Tags to add to the resources')
-param tags object
+param tags object = {}
 
 var storageId = '/subscriptions/${storageAccountSubscriptionId}/resourceGroups/${storageAccountResourceGroup}/providers/Microsoft.Storage/storageAccounts/${storageAccountName}'
 
@@ -31,18 +31,14 @@ resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022
   properties: {
     credentials: {
       credentialsType: 'None'
-      // For remaining properties, see DatastoreCredentials objects
     }
     description: 'Private storage in region ${storageRegion}'
     properties: {}
     datastoreType: 'AzureBlob'
-    // For remaining properties, see DatastoreProperties objects
+
     accountName: storageAccountName
     containerName: containerName
-    // endpoint: 'string'
-    // protocol: 'string'
     resourceGroup: storageAccountResourceGroup
-    // serviceDataAccessAuthIdentity: 'string'
     subscriptionId: storageAccountSubscriptionId
     tags: tags
   }
