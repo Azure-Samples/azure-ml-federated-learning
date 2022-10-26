@@ -1,0 +1,32 @@
+name: Bicep to ARM template diff
+description: Bicep build to ARM template diff 
+inputs:
+  source-file-path:
+    description: Bicep script path
+    required: true
+  target-file-path:
+    description: Arm template file path
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Build bicep into arm
+      shell: bash
+      run: az bicep build --file ${{ inputs.source-file-path }} --stdout | jq -S . > source.json
+
+    - name: Refactor ARM template file
+      shell: bash
+      run: jq -S . ${{ inputs.target-file-path }} > target.json
+
+
+    - name: Source and Target file diff
+      shell: bash
+      run: |
+        if cmp -s ./source.json ./target.json; then
+            printf 'Rebuilding bicep "%s" produces exact match with target file "%s"\n' ${{ inputs.source-file-path }} ${{ inputs.target-file-path }}
+        else
+            printf 'Diff between "%s" build and "%s":\n' ${{ inputs.source-file-path }} ${{ inputs.target-file-path }}
+            diff source.json target.json
+            exit 1
+        fi  
