@@ -1,0 +1,195 @@
+name: End-to-end-pipeline-test
+
+on:
+  pull_request:
+    branches:
+    - main
+    paths:
+    - mlops/**
+    - examples/components/**
+    - examples/pipelines/**
+
+jobs:
+  open-sandbox-test:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Provision resources
+      uses: ./.github/actions/provision-resources
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
+        deployment-name: open_sandbox_${{ github.run_attempt }}${{ github.run_id }}
+        demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
+
+
+  open-sandbox-literal-helloworld-test:
+    needs: open-sandbox-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit Helloworld example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
+        example: HELLOWORLD
+
+  open-sandbox-literal-mnist-test:
+    needs: open-sandbox-literal-helloworld-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit MNIST example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
+
+  open-sandbox-factory-helloworld-test:
+    needs: open-sandbox-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Submit Helloworld example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
+        example: HELLOWORLD
+
+  open-sandbox-factory-mnist-test:
+    needs: open-sandbox-factory-helloworld-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit MNIST example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
+
+  vnet-sandbox-test:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Provision resources
+      uses: ./.github/actions/provision-resources
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        deployment-file-path: ./mlops/bicep/vnet_publicip_sandbox_setup.bicep
+        deployment-name: vnet_sandbox_${{ github.run_attempt }}${{ github.run_id }}
+        demo-base-name: fl2${{ github.run_attempt }}${{ github.run_id }}
+
+  vnet-sandbox-literal-helloworld-test:
+    needs: vnet-sandbox-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit Helloworld example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: HELLOWORLD
+
+  vnet-sandbox-literal-mnist-test:
+    needs: vnet-sandbox-literal-helloworld-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit MNIST example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
+
+  vnet-sandbox-factory-helloworld-test:
+    needs: vnet-sandbox-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit Helloworld example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: HELLOWORLD
+
+
+  vnet-sandbox-factory-mnist-test:
+    needs: vnet-sandbox-factory-helloworld-test
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit MNIST example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: MNIST
