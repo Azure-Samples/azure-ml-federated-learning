@@ -28,7 +28,7 @@ We refer to those types of silos as _external_ silos. The goal of this document 
 ### A. Create the orchestrator workspace
 **FL Admin** creates the orchestrator workspace with no silos (see the value of the `siloRegions` parameter below). FL Admin needs Owner permissions in `<workspace-resource-group>`, since Role Assignments will be created.
 ```bash 
-az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group <workspace-resource-group> --parameters demoBaseName="fldemo" siloRegions=[]
+az deployment group create --template-file ./mlops/bicep/modules/azureml/open_azureml_workspace.bicep --resource-group <workspace-resource-group> --parameters machineLearningName="aml-fldemo"
 ```
 The orchestrator workspace will be named `aml-fldemo` (the value of the `demoBaseName` parameter, appended to "`aml-`").
 ### B. Connect the existing cluster to Azure Arc
