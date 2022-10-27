@@ -39,6 +39,18 @@ jobs:
         source-file-path: "mlops/bicep/modules/fl_pairs/vnet_compute_storage_pair.bicep"
         target-file-path: "mlops/arm/vnet_compute_storage_pair.json"
 
+    - name: Test vnet compute pair with existing storage ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/modules/fl_pairs/vnet_compute_existing_storage.bicep"
+        target-file-path: "mlops/arm/vnet_compute_existing_storage.json"
+
+    - name: Test open aks confcomp storage pair ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/modules/fl_pairs/open_aks_with_confcomp_storage_pair.bicep"
+        target-file-path: "mlops/arm/open_aks_with_confcomp_storage_pair.json"
+
   open-sandbox-test:
     runs-on: ubuntu-latest
     permissions:
