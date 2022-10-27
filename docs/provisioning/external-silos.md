@@ -25,12 +25,19 @@ We refer to those types of silos as _external_ silos. The goal of this document 
 
 ## Procedure
 
-### A. Create the orchestrator workspace
-**FL Admin** creates the orchestrator workspace with no silos (see the value of the `siloRegions` parameter below). FL Admin needs Owner permissions in `<workspace-resource-group>`, since Role Assignments will be created.
+### A. Create the Azure ML workspace and the orchestrator
+
+> This is all explained in the first sections of the [cookbook](./README.md) but repeated here for convenience and to clarify that it needs to be done by the **FL Admin**.
+
+**FL Admin** first creates an open Azure ML workspace named `aml-fldemo`. FL Admin will need Owner permissions in `<workspace-resource-group>`, since Role Assignments will need to be created.
 ```bash 
 az deployment group create --template-file ./mlops/bicep/modules/azureml/open_azureml_workspace.bicep --resource-group <workspace-resource-group> --parameters machineLearningName="aml-fldemo"
 ```
-The orchestrator workspace will be named `aml-fldemo` (the value of the `demoBaseName` parameter, appended to "`aml-`").
+After that, **FL Admin** creates
+```bash
+az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/open_compute_storage_pair.bicep --resource-group <workspace-resource-group> --parameters pairBaseName="orch" machineLearningName="aml-fldemo"
+```
+
 ### B. Connect the existing cluster to Azure Arc
 Detailed instructions for this phase, including steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/azure-arc/kubernetes/quickstart-connect-cluster?tabs=azure-cli). Here is a summary, which should be all you need.
 
@@ -60,7 +67,7 @@ Detailed instructions for this phase, including steps for verification or for sl
       ```bash
       az group create --name <connected-cluster-resource-group> --location <connected-cluster-resource-group-location>
       ```
-3. Connect an existing k8s cluster to Azure Arc by creating an Azure Arc-enabled Kubernetes resource named `<Azure-Arc-enabled-k8s-resource-name>`. **This step should be performed by the Silo Admin, since it requires access to the k8s cluster (via the kube config file).** 
+3. Connect an existing k8s cluster to Azure Arc by creating an Azure Arc-enabled Kubernetes resource named `<Azure-Arc-enabled-k8s-resource-name>`. **This step should be performed by the Silo Admin, since it requires access to the k8s cluster (via the kube config file) It also requires Contributor role (at least) in the resource group created in the previous step.** 
     - Enter the following command.
       ```bash
       az connectedk8s connect --name <Azure-Arc-enabled-k8s-resource-name> --resource-group <connected-cluster-resource-group>
@@ -83,7 +90,7 @@ The deployment can be verified by the following.
 az k8s-extension show --name <extension-name> --cluster-type connectedClusters --cluster-name <Azure-Arc-enabled-k8s-resource-name> --resource-group <connected-cluster-resource-group>
 ```
 
-In the response, look for `"name"` and `"provisioningState": "Succeeded"`. Note that it might show `"provisioningState": "Pending"` for the first few minutes.
+In the response, look for `"name"` and `"provisioningState": "Succeeded"`. Note that this step can take 10-15 minutes it will show `"provisioningState": "Pending"` at first.
 
 
 ### D. Attach the Arc cluster to the orchestrator workspace
