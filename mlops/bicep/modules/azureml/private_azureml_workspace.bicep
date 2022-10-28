@@ -3,8 +3,10 @@
 // Parameters
 @minLength(2)
 @maxLength(10)
-@description('Prefix for all resource names.')
-param prefix string
+@description('Unique base name for all resource names.')
+param baseName string = substring(uniqueString(resourceGroup().id), 0, 4)
+
+param machineLearningName string = 'aml-${baseName}'
 
 @description('Azure region used for the deployment of all resources.')
 param location string = resourceGroup().location
@@ -22,32 +24,27 @@ param trainingSubnetPrefix string = '10.0.1.0/24'
 param scoringSubnetPrefix string = '10.0.2.0/24'
 
 @description('Enable public IP for Azure Machine Learning compute nodes')
-param amlComputePublicIp bool = true
+param amlComputePublicIp bool = false
 
 @description('VM size for the default compute cluster')
 param amlComputeDefaultVmSize string = 'Standard_DS3_v2'
 
-// Variables
-var name = toLower('${prefix}')
-
-// Create a short, unique suffix, that will be unique to each resource group
-var uniqueSuffix = substring(uniqueString(resourceGroup().id), 0, 4)
 
 // Virtual network and network security group
 module nsg '../networking/nsg.bicep' = { 
-  name: 'nsg-${name}-${uniqueSuffix}-deployment'
+  name: 'nsg-${baseName}-deployment'
   params: {
     location: location
     tags: tags 
-    nsgName: 'nsg-${name}-${uniqueSuffix}'
+    nsgName: 'nsg-${baseName}'
   }
 }
 
 module vnet '../networking/vnet.bicep' = { 
-  name: 'vnet-${name}-${uniqueSuffix}-deployment'
+  name: 'vnet-${baseName}-deployment'
   params: {
     location: location
-    virtualNetworkName: 'vnet-${name}-${uniqueSuffix}'
+    virtualNetworkName: 'vnet-${baseName}'
     networkSecurityGroupId: nsg.outputs.id
     vnetAddressPrefix: vnetAddressPrefix
     trainingSubnetPrefix: trainingSubnetPrefix
@@ -60,11 +57,11 @@ module vnet '../networking/vnet.bicep' = {
 
 // Dependent resources for the Azure Machine Learning workspace
 module keyvault '../resources/private_keyvault.bicep' = {
-  name: 'kv-${name}-${uniqueSuffix}-deployment'
+  name: 'kv-${baseName}-deployment'
   params: {
     location: location
-    keyvaultName: 'kv-${name}-${uniqueSuffix}'
-    keyvaultPleName: 'ple-${name}-${uniqueSuffix}-kv'
+    keyvaultName: 'kv-${baseName}'
+    keyvaultPleName: 'ple-${baseName}-kv'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
     tags: tags
@@ -72,12 +69,12 @@ module keyvault '../resources/private_keyvault.bicep' = {
 }
 
 module storage '../resources/private_storage.bicep' = {
-  name: 'st${name}${uniqueSuffix}-deployment'
+  name: 'st${baseName}-deployment'
   params: {
     storageRegion: location
-    storageName: 'st${name}${uniqueSuffix}'
-    storagePleBlobName: 'ple-${name}-${uniqueSuffix}-st-blob'
-    storagePleFileName: 'ple-${name}-${uniqueSuffix}-st-file'
+    storageName: 'st${baseName}'
+    storagePleBlobName: 'ple-${baseName}-st-blob'
+    storagePleFileName: 'ple-${baseName}-st-file'
     storageSKU: 'Standard_LRS'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
@@ -86,11 +83,11 @@ module storage '../resources/private_storage.bicep' = {
 }
 
 module containerRegistry '../resources/private_acr.bicep' = {
-  name: 'cr${name}${uniqueSuffix}-deployment'
+  name: 'cr${baseName}-deployment'
   params: {
     location: location
-    containerRegistryName: 'cr${name}${uniqueSuffix}'
-    containerRegistryPleName: 'ple-${name}-${uniqueSuffix}-cr'
+    containerRegistryName: 'cr${baseName}'
+    containerRegistryPleName: 'ple-${baseName}-cr'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
     tags: tags
@@ -98,16 +95,16 @@ module containerRegistry '../resources/private_acr.bicep' = {
 }
 
 module applicationInsights '../resources/private_appinsights.bicep' = {
-  name: 'appi-${name}-${uniqueSuffix}-deployment'
+  name: 'appi-${baseName}-deployment'
   params: {
     location: location
-    applicationInsightsName: 'appi-${name}-${uniqueSuffix}'
+    applicationInsightsName: 'appi-${baseName}'
     tags: tags
   }
 }
 
 resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-05-01' = {
-  name: 'aml-${name}-${uniqueSuffix}'
+  name: machineLearningName
   location: location
   tags: tags
   identity: {
@@ -139,7 +136,7 @@ module machineLearningPrivateEndpoint './private_azureml_networking.bicep' = {
     virtualNetworkId: vnet.outputs.id
     workspaceArmId: machineLearning.id
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
-    machineLearningPleName: 'ple-${name}-${uniqueSuffix}-aml'
+    machineLearningPleName: 'ple-${baseName}-aml'
   }
 }
 
@@ -172,4 +169,8 @@ resource machineLearningDefaultCluster 'Microsoft.MachineLearningServices/worksp
       }
     }
   }
+  dependsOn: [
+    // to use enableNodePublicIp:Disabled, private endpoint is required
+    machineLearningPrivateEndpoint
+  ]
 }
