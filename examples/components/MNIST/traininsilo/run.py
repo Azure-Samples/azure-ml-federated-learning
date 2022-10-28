@@ -144,7 +144,7 @@ class MnistTrainer:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
 
-        if self._iteration_num != 1 and checkpoint:
+        if checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
