@@ -2,6 +2,7 @@ import os
 import argparse
 import logging
 import sys
+import json
 
 from torchvision import transforms
 from torchvision.utils import save_image
@@ -9,6 +10,7 @@ from torch.utils.data import Dataset
 import torch
 import pandas as pd
 import mlflow
+import mltable
 
 
 def get_arg_parser(parser=None):
@@ -128,11 +130,41 @@ def preprocess_data(
     # Mlflow logging
     log_metadata(X_train, X_test, metrics_prefix)
 
+    JSONL_filecontent = ""
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
         for idx, (data, target) in enumerate(datasets[x]):
             os.makedirs(processed_data_dir + f"/{target}", exist_ok=True)
-            save_image(data, processed_data_dir + f"/{target}/{idx}.jpg")
+
+            output_path = processed_data_dir + f"/{target}/{idx}.jpg"
+            save_image(data, output_path)
+
+            json_line_sample = {
+                "image_url": output_path,
+                "image_details": {"format": None, "width": None, "height": None},
+                "label": str(target),
+            }
+            JSONL_filecontent += json.dumps(json_line_sample)
+            JSONL_filecontent += "\n"
+        
+        JSONL_file = processed_data_dir + f"/{x}_annotations.jsonl"
+        with open(JSONL_file, "w") as f:
+            f.write(JSONL_filecontent)
+        MLTable_filecontent = \
+f"""paths:
+  - file: ./{x}_annotations.jsonl
+transformations:
+  - read_json_lines:
+        encoding: utf8
+        invalid_lines: error
+        include_path_column: false
+  - convert_column_types:
+      - columns: image_url
+        column_type: stream_info"""
+
+        MLTable_file = processed_data_dir + f"/MLTable"
+        with open(MLTable_file, "w") as f:
+            f.write(MLTable_filecontent)
 
 
 def log_metadata(X_train, X_test, metrics_prefix):

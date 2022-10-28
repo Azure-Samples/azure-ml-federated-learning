@@ -22,6 +22,7 @@ from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
+from azure.ai.ml.entities import UserIdentityConfiguration
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
@@ -50,9 +51,24 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=False,
-    choices=["MNIST", "HELLOWORLD"],
+    choices=["MNIST", "HELLOWORLD", "MNIST_STAGING"],
     default="MNIST",
     help="dataset name",
+)
+
+parser.add_argument(
+    "--staging_component_name",
+    required=False,
+    choices=["train_image_classification_model"],
+    default="train_image_classification_model",
+    help="staging component name",
+)
+
+parser.add_argument(
+    "--staging_component_version",
+    required=False,
+    default="0.0.2-previewazureml-staging.1662484049",
+    help="staging component version",
 )
 
 parser.add_argument(
@@ -88,9 +104,14 @@ args = parser.parse_args()
 YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
-COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", args.example
-)
+if args.example == "MNIST_STAGING":
+    COMPONENTS_FOLDER = os.path.join(
+        os.path.dirname(__file__), "..", "..", "components", 'MNIST'
+    )
+else:
+    COMPONENTS_FOLDER = os.path.join(
+        os.path.dirname(__file__), "..", "..", "components", args.example
+    )
 
 
 ###########################
@@ -123,6 +144,18 @@ except Exception as ex:
         credential=credential,
     )
 
+# Client to load azureml-staging components
+ML_CLIENT_STAGING = MLClient(
+    subscription_id=ML_CLIENT.subscription_id, 
+    resource_group_name=ML_CLIENT.resource_group_name,  
+    registry_name="azureml-staging",
+    credential=credential,
+)
+
+STAGING = False
+if args.example.endswith("_STAGING"):
+    STAGING = True
+
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -130,15 +163,18 @@ except Exception as ex:
 
 # Loading the component from their yaml specifications
 preprocessing_component = load_component(
-    path=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
 )
 
-training_component = load_component(
-    path=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
-)
+if args.example == "MNIST_STAGING":
+    training_component = ML_CLIENT_STAGING.components.get(args.staging_component_name, version=args.staging_component_version)
+else:
+    training_component = load_component(
+        path=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+    )
 
 aggregate_component = load_component(
-    path=os.path.join(
+    source=os.path.join(
         COMPONENTS_FOLDER, "aggregatemodelweights", "aggregatemodelweights.yaml"
     )
 )
@@ -256,42 +292,72 @@ def fl_cross_silo_internal_basic():
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
-            # we're using training component here
-            silo_training_step = training_component(
-                # with the train_data from the pre_processing step
-                train_data=silo_preprocessed_train_data[silo_index],
-                # with the test_data from the pre_processing step
-                test_data=silo_preprocessed_test_data[silo_index],
-                # and the checkpoint from previous iteration (or None if iteration == 1)
-                checkpoint=running_checkpoint,
-                # Learning rate for local training
-                lr=YAML_CONFIG.training_parameters.lr,
-                # Number of epochs
-                epochs=YAML_CONFIG.training_parameters.epochs,
-                # Dataloader batch size
-                batch_size=YAML_CONFIG.training_parameters.batch_size,
-                # Silo name/identifier
-                metrics_prefix=silo_config.compute,
-                # Iteration name
-                iteration_name=f"Iteration-{iteration}",
-            )
+            if STAGING:
+                # we're using training component here
+                silo_training_step = training_component(
+                    # with the train_data from the pre_processing step
+                    training_data=silo_preprocessed_train_data[silo_index],
+                    # with the test_data from the pre_processing step
+                    validation_data=silo_preprocessed_test_data[silo_index],
+                    # Learning rate for local training
+                    learning_rate=YAML_CONFIG.training_parameters.lr,
+                    # Number of epochs
+                    number_of_epochs=YAML_CONFIG.training_parameters.epochs,
+                    # Dataloader batch size
+                    training_batch_size=YAML_CONFIG.training_parameters.batch_size,
+                    model_name='mobilenetv2'
+                )
+
+                # make sure the data is written in the right datastore
+                silo_training_step.outputs.model = Output(
+                    type=AssetTypes.MLFLOW_MODEL,
+                    mode="mount",
+                    path=custom_fl_data_path(
+                        # IMPORTANT: writing the output of training into the orchestrator datastore
+                        YAML_CONFIG.federated_learning.orchestrator.datastore,
+                        f"model/silo{silo_index}",
+                        iteration_num=iteration,
+                    ),
+                )
+            else:
+                # we're using training component here
+                silo_training_step = training_component(
+                    # with the train_data from the pre_processing step
+                    train_data=silo_preprocessed_train_data[silo_index],
+                    # with the test_data from the pre_processing step
+                    test_data=silo_preprocessed_test_data[silo_index],
+                    # and the checkpoint from previous iteration (or None if iteration == 1)
+                    checkpoint=running_checkpoint,
+                    # Learning rate for local training
+                    lr=YAML_CONFIG.training_parameters.lr,
+                    # Number of epochs
+                    epochs=YAML_CONFIG.training_parameters.epochs,
+                    # Dataloader batch size
+                    batch_size=YAML_CONFIG.training_parameters.batch_size,
+                    # Silo name/identifier
+                    metrics_prefix=silo_config.compute,
+                    # Iteration name
+                    iteration_name=f"Iteration-{iteration}",
+                )
+
+                # make sure the data is written in the right datastore
+                silo_training_step.outputs.model = Output(
+                    type=AssetTypes.URI_FOLDER,
+                    mode="mount",
+                    path=custom_fl_data_path(
+                        # IMPORTANT: writing the output of training into the orchestrator datastore
+                        YAML_CONFIG.federated_learning.orchestrator.datastore,
+                        f"model/silo{silo_index}",
+                        iteration_num=iteration,
+                    ),
+                )
+
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.compute
 
-            # make sure the data is written in the right datastore
-            silo_training_step.outputs.model = Output(
-                type=AssetTypes.URI_FOLDER,
-                mode="mount",
-                path=custom_fl_data_path(
-                    # IMPORTANT: writing the output of training into the orchestrator datastore
-                    YAML_CONFIG.federated_learning.orchestrator.datastore,
-                    f"model/silo{silo_index}",
-                    iteration_num=iteration,
-                ),
-            )
 
             # each output is indexed to be fed into aggregate_component as a distinct input
             silo_weights_outputs[

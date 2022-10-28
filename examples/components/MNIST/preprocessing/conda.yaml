@@ -11,3 +11,4 @@ dependencies:
   - pip:
     - azureml-mlflow
     - pandas
+    - mltable
