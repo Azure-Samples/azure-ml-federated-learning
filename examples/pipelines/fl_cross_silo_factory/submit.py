@@ -25,9 +25,6 @@ To adapt this script to your scenario, you can:
 """
 import os
 import argparse
-import random
-import string
-import datetime
 import webbrowser
 import time
 import json
@@ -35,8 +32,7 @@ import sys
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azure.ai.ml import MLClient, Input, Output
-from azure.ai.ml.constants import AssetTypes
+from azure.ai.ml import MLClient, Input
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
 from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
@@ -44,10 +40,7 @@ from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
 # to handle yaml config easily
 from omegaconf import OmegaConf
 
-from typing import List, Optional, Union
-from typing import Callable, Dict
-from dataclasses import dataclass
-import itertools
+from typing import Dict
 
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
@@ -122,12 +115,15 @@ args = parser.parse_args()
 
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
-training_kwargs = {"lr": YAML_CONFIG.training_parameters.lr,
-                    "batch_size": YAML_CONFIG.training_parameters.batch_size,
-                    "epochs": YAML_CONFIG.training_parameters.epochs}
+
+# dict of training parameters
+training_kwargs = {
+    "lr": YAML_CONFIG.training_parameters.lr,
+    "batch_size": YAML_CONFIG.training_parameters.batch_size,
+    "epochs": YAML_CONFIG.training_parameters.epochs,
+}
 
 # CONNECT TO AZURE ML
-
 try:
     credential = DefaultAzureCredential()
     # Check if given credential can get token successfully.
@@ -192,7 +188,9 @@ aggregate_component = load_component(
 # pieces of your pipeline based on input and output keys.
 
 
-def silo_preprocessing(raw_train_data: Input, raw_test_data: Input) -> Dict[str, Input]:
+def silo_preprocessing(
+    raw_train_data: Input, raw_test_data: Input, metrics_prefix: str
+) -> Dict[str, Input]:
     """Create steps for running FL preprocessing in the silo.
 
     Args:
@@ -207,6 +205,7 @@ def silo_preprocessing(raw_train_data: Input, raw_test_data: Input) -> Dict[str,
     silo_pre_processing_step = preprocessing_component(
         raw_training_data=raw_train_data,
         raw_testing_data=raw_test_data,
+        metrics_prefix=metrics_prefix,
     )
 
     return silo_pre_processing_step, {
@@ -235,6 +234,8 @@ def silo_training(
         lr (int): learning rate for training component
         batch_size (int): batch size for training component
         epochs (int): epochs for training component
+        metrics_prefix (str): Metrics prefix
+        iteration_num (int): Iteration number
 
     Returns:
         PipelineStep: the training step of the FL pipeline
@@ -262,7 +263,7 @@ def silo_training(
 
     return silo_training_step, {
         # IMPORTANT: use a key that is consistent with kwargs of orchestrator_aggregation()
-        "model": silo_training_step.outputs.model
+        "weights": silo_training_step.outputs.model
     }
 
 
@@ -298,70 +299,103 @@ def orchestrator_aggregation(weights=[]):
     }
 
 
-@pipeline(
-    name="Silo Federated Learning Subgraph",
-    description="It includes preprocessing and training components",
-)
-def silo_subgraph(raw_train_data: Input, raw_test_data: Input, running_checkpoint: Input(optional=True), iteration, compute, datastore, model_datastore):
-    # Preprocessing
-    preprocessing_step, preprocessing_outputs = silo_preprocessing(
-        raw_train_data=raw_train_data,
-        raw_test_data=raw_test_data,    
+def silo_subgraph(
+    raw_train_data: Input,
+    raw_test_data: Input,
+    running_checkpoint: Input(optional=True),
+    iteration_num: int,
+    compute: str,
+    datastore: str,
+    model_datastore: str,
+):
+    """Create silo/training subgraph.
+
+    Args:
+        raw_train_data (Input): raw train data
+        raw_test_data (Input): raw test data
+        running_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
+        iteration_num (int): Iteration number
+        compute (str): Silo compute name
+        datastore (str): Silo datastore name
+        model_datastore (str): Model datastore name
+
+    Returns:
+        PipelineStep: the training step of the FL pipeline
+        Dict[str, Input]: a map of the inputs expected as kwargs by orchestrator_aggregation()
+    """
+
+    @pipeline(
+        name="Silo Federated Learning Subgraph",
+        description="It includes preprocessing and training components",
     )
+    def silo_subgraph_component(
+        raw_train_data: Input,
+        raw_test_data: Input,
+        running_checkpoint: Input(optional=True),
+        iteration_num: int,
+    ):
+        # Preprocessing
+        preprocessing_step, preprocessing_outputs = silo_preprocessing(
+            raw_train_data=raw_train_data,
+            raw_test_data=raw_test_data,
+            metrics_prefix=compute,
+        )
 
-    # TODO: verify _step is an actual step
+        # TODO: verify _step is an actual step
 
-    # verify the outputs from the developer code
-    assert isinstance(
-        preprocessing_outputs, dict
-    ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
-    for key in preprocessing_outputs.keys():
+        # verify the outputs from the developer code
         assert isinstance(
-            preprocessing_outputs[key], PipelineOutputBase
-        ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
+            preprocessing_outputs, dict
+        ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
+        for key in preprocessing_outputs.keys():
+            assert isinstance(
+                preprocessing_outputs[key], PipelineOutputBase
+            ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
 
-    # make sure the compute corresponds to the silo
-    # make sure the data is written in the right datastore
-    builder.anchor_step_in_silo(
-        preprocessing_step,
-        compute=compute,
-        output_datastore=datastore,
-    )
+        # make sure the compute corresponds to the silo
+        # make sure the data is written in the right datastore
+        builder.anchor_step_in_silo(
+            preprocessing_step,
+            compute=compute,
+            output_datastore=datastore,
+        )
 
-    # each output is indexed to be fed into training_component as a distinct input
-    # silo_preprocessed_outputs[silo_index] = preprocessing_outputs
+        # building the training steps as specified by developer
+        training_step, training_outputs = silo_training(
+            **preprocessing_outputs,  # feed kwargs as produced by silo_preprocessing()
+            running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
+            iteration_num=iteration_num,
+            metrics_prefix=compute,
+            **training_kwargs,  # providing training params
+        )
 
-    # building the training steps as specified by developer
-    training_step, training_outputs = silo_training(
-        **preprocessing_outputs,  # feed kwargs as produced by silo_preprocessing()
-        running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
-        iteration_num=iteration,
-        metrics_prefix=compute,
-        **training_kwargs,  # providing training params
-    )
+        # TODO: verify _step is an actual step
 
-    # TODO: verify _step is an actual step
-
-    # verify the outputs from the developer code
-    assert isinstance(
-        training_outputs, dict
-    ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
-    for key in training_outputs.keys():
+        # verify the outputs from the developer code
         assert isinstance(
-            training_outputs[key], PipelineOutputBase
-        ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
+            training_outputs, dict
+        ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
+        for key in training_outputs.keys():
+            assert isinstance(
+                training_outputs[key], PipelineOutputBase
+            ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
 
-    # make sure the compute corresponds to the silo
-    # make sure the data is written in the right datastore
-    builder.anchor_step_in_silo(
-        training_step,
-        compute=compute,
-        output_datastore=datastore,
-        model_output_datastore=model_datastore,
+        # make sure the compute corresponds to the silo
+        # make sure the data is written in the right datastore
+        builder.anchor_step_in_silo(
+            training_step,
+            compute=compute,
+            output_datastore=datastore,
+            model_output_datastore=model_datastore,
+        )
+
+        return training_outputs
+
+    silo_subgraph_step = silo_subgraph_component(
+        raw_train_data, raw_test_data, running_checkpoint, iteration_num
     )
 
-    return training_outputs
-
+    return silo_subgraph_step, {"checkpoint": silo_subgraph_step.outputs.weights}
 
 
 #######################

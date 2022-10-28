@@ -7,27 +7,18 @@ This script provides a class to help building Federated Learning pipelines in Az
 We invite you to NOT MODIFY THIS SCRIPT unless you know what you are doing, and you
 are trying to achieve a particular edge case scenario.
 """
-import os
-import argparse
 import random
 import string
 import datetime
 import logging
 
 # Azure ML sdk v2 imports
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azure.ai.ml import MLClient, Input, Output
+from azure.ai.ml import Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
-from azure.ai.ml import load_component
-
-from typing import List, Optional, Union
-from typing import Callable, Dict
-from dataclasses import dataclass
-import itertools
 from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
 from azure.ai.ml._ml_exceptions import ValidationException
-import json
+
 
 class FederatedLearningPipelineFactory:
     def __init__(self):
@@ -140,40 +131,52 @@ class FederatedLearningPipelineFactory:
         return pipeline_step
 
     def build_flexible_fl_pipeline(
-            self,
-            silo_subgraph,
-            orchestrator_aggregation,
-            iterations=1,
-        ):
+        self,
+        silo_subgraph,
+        orchestrator_aggregation,
+        iterations=1,
+    ):
         """Build a typical FL pipeline based on the provided steps.
 
         Args:
-            silo_preprocessing (func): preprocessing step to run in each silo
-            silo_training (func): training step to run in each silo
+            silo_subgraph (func): Silo/Training subgraph step containing components such as pre-processing, training, etc
             orchestrator_aggregation (func): aggregation step to run in the orchestrator
             iterations (int): number of iterations to run (default: 1)
-            **training_kwargs: any of those will be passed to the training step as-is
         """
-
-        orchestrator_datastore = self.orchestrator.get("datastore")
 
         @pipeline(
             name="Federated Learning Subgraph",
             description="Pipeline including preprocessing, training and aggregation components",
         )
-        def subgraph_pipeline(running_checkpoint: Input(optional=True), iteration):
+        def subgraph_pipeline(
+            running_checkpoint: Input(optional=True), iteration_num: int
+        ):
             # collect all outputs in a list to be used for aggregation
             silo_training_outputs = []
             # for each silo, run a distinct training with its own inputs and outputs
             for silo_config in self.silos:
 
-                raw_train_data = silo_config["custom_input_args"].get("raw_train_data")
-                raw_test_data = silo_config["custom_input_args"].get("raw_test_data")
-                compute = silo_config.get("compute")
-                datastore = silo_config.get("datastore")
-                silo_subgraph_output = silo_subgraph(raw_train_data, raw_test_data, running_checkpoint, iteration, compute, datastore, orchestrator_datastore)
+                silo_subgraph_step, silo_subgraph_output = silo_subgraph(
+                    silo_config["custom_input_args"].get("raw_train_data"),
+                    silo_config["custom_input_args"].get("raw_test_data"),
+                    running_checkpoint,
+                    iteration_num,
+                    silo_config.get("compute"),
+                    silo_config.get("datastore"),
+                    self.orchestrator.get("datastore"),
+                )
+
+                # verify the outputs of silo/training subgraph component
+                assert isinstance(
+                    silo_subgraph_output, dict
+                ), f"your silo_subgraph() function should return a step,outputs tuple with outputs a dictionary (currently a {type(silo_subgraph_output)})"
+                for key in silo_subgraph_output.keys():
+                    assert isinstance(
+                        silo_subgraph_output[key], PipelineOutputBase
+                    ), f"silo_subgraph() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(silo_subgraph_output[key])})."
+
                 # each output is indexed to be fed into aggregate_component as a distinct input
-                silo_training_outputs.append(silo_subgraph_output.outputs.model)
+                silo_training_outputs.append(silo_subgraph_output["checkpoint"])
 
             # a couple of basic tests before aggregating
             # do we even have outputs?
@@ -185,7 +188,6 @@ class FederatedLearningPipelineFactory:
                 self.silos
             ), "The list of silo outputs has length that doesn't match length of config.yaml:federated_learning.silos section."
 
-            
             # aggregate all silo models into one
             aggregation_step, aggregation_outputs = orchestrator_aggregation(
                 silo_training_outputs
@@ -224,10 +226,10 @@ class FederatedLearningPipelineFactory:
 
             # now for each iteration, run training
             # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
-            for iteration in range(1, iterations + 1):
+            for iteration_num in range(1, iterations + 1):
 
                 # call pipeline for each iteration
-                output_iteration = subgraph_pipeline(running_checkpoint, iteration)
+                output_iteration = subgraph_pipeline(running_checkpoint, iteration_num)
 
                 # let's keep track of the checkpoint to be used as input for next iteration
                 running_checkpoint = output_iteration.outputs.aggregated_output
