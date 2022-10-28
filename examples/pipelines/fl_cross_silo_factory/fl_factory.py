@@ -155,7 +155,7 @@ class FederatedLearningPipelineFactory:
 
         @pipeline(
             name="Federated Learning Subgraph",
-            description="Pipeline including preprocessing, training and aggregation components",
+            description="Pipeline includes preprocessing, training and aggregation components",
         )
         def subgraph_pipeline(
             running_checkpoint: Input(optional=True), iteration_num: int

@@ -491,7 +491,6 @@ if args.submit:
             cmd_output = os.popen(
                 f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
             ).read()
-            print(cmd_output)
             try:
                 status = json.loads(cmd_output.strip()).get("status")
             except json.decoder.JSONDecodeError as e:
