@@ -60,6 +60,8 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     // Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
     allowSharedKeyAccess: true
 
+    // Allow or disallow public network access to Storage Account.
+    publicNetworkAccess: 'Disabled'
 
     // Network rule set
     networkAcls: {
