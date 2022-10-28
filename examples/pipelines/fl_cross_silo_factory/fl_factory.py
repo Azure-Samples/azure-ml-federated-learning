@@ -7,15 +7,24 @@ This script provides a class to help building Federated Learning pipelines in Az
 We invite you to NOT MODIFY THIS SCRIPT unless you know what you are doing, and you
 are trying to achieve a particular edge case scenario.
 """
+import os
+import argparse
 import random
 import string
 import datetime
 import logging
 
 # Azure ML sdk v2 imports
-from azure.ai.ml import Input, Output
+from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
+from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
+from azure.ai.ml import load_component
+
+from typing import List, Optional, Union
+from typing import Callable, Dict
+from dataclasses import dataclass
+import itertools
 from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
 from azure.ai.ml._ml_exceptions import ValidationException
 

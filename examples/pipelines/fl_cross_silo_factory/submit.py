@@ -25,6 +25,9 @@ To adapt this script to your scenario, you can:
 """
 import os
 import argparse
+import random
+import string
+import datetime
 import webbrowser
 import time
 import json
@@ -32,15 +35,18 @@ import sys
 
 # Azure ML sdk v2 imports
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azure.ai.ml import MLClient, Input
+from azure.ai.ml import MLClient, Input, Output
+from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
-from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
 
-from typing import Dict
+from typing import List, Optional, Union
+from typing import Callable, Dict
+from dataclasses import dataclass
+import itertools
 
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
