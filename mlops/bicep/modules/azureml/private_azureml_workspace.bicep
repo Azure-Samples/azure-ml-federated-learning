@@ -128,7 +128,7 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-05-0
 }
 
 module machineLearningPrivateEndpoint './private_azureml_networking.bicep' = {
-  name: 'machineLearningNetworking'
+  name: 'aml-${baseName}-networking-deployment'
   scope: resourceGroup()
   params: {
     location: location
