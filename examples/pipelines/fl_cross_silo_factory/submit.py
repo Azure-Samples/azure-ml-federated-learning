@@ -456,15 +456,15 @@ pipeline_job = builder.build_flexible_fl_pipeline(
 print(pipeline_job)  # print yaml for visual debugging
 
 # use a default set of rules
-builder.set_default_affinity_map()
+# builder.set_default_affinity_map()
 
-# run affinity map validation
-builder.soft_validate(
-    pipeline_job,
-    raise_exception=not (
-        args.ignore_validation
-    ),  # set to False if you know what you're doing
-)
+# # run affinity map validation
+# builder.soft_validate(
+#     pipeline_job,
+#     raise_exception=not (
+#         args.ignore_validation
+#     ),  # set to False if you know what you're doing
+# )
 
 # 5. Submit to Azure ML
 
