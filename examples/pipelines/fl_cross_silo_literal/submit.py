@@ -272,8 +272,8 @@ def fl_cross_silo_internal_basic():
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
                 metrics_prefix=silo_config.compute,
-                # Iteration name
-                iteration_name=f"Iteration-{iteration}",
+                # Iteration number
+                iteration_num=iteration,
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
