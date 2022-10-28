@@ -39,6 +39,7 @@ from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
+from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
