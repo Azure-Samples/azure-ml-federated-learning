@@ -58,3 +58,9 @@ These tutorials will let you create silos as a pair of compute and storage, opti
 ## Set permission model between orchestrator and silos
 
 :construction:
+
+## Utilities
+
+| Manual | Description |
+| :-- | :-- |
+| [Tutorial](./jumpbox_cc.md) | Provision a virtual machine inside a vnet to operate private resources (ex: azureml workspace), optionally by using Azure Bastion. |
