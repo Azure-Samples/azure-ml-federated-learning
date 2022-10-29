@@ -68,8 +68,12 @@ module vnet '../networking/vnet.bicep' = {
     virtualNetworkName: vnetResourceName
     networkSecurityGroupId: nsg.outputs.id
     vnetAddressPrefix: vnetAddressPrefix
-    subnetPrefix: subnetPrefix
-    subnetName: subnetName
+    subnets: [
+      {
+        name: subnetName
+        addressPrefix: subnetPrefix
+      }
+    ]
     tags: tags
   }
 }

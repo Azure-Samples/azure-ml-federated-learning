@@ -130,7 +130,7 @@ resource privateStorageDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' ex
 
 // Create a private service endpoints internal to each pair for their respective storages
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
-  name: '${pairBaseName}-endpoint-to-instorage'
+  name: '${pairBaseName}-endpoint-to-insilo-storage'
   scope: resourceGroup()
   params: {
     location: pairRegion

@@ -14,21 +14,37 @@ param networkSecurityGroupId string
 @description('Virtual network address prefix')
 param vnetAddressPrefix string = '192.168.0.0/16'
 
-@description('Training subnet address prefix')
-param trainingSubnetPrefix string = '192.168.0.0/24'
+@description('Training subnets names and address prefix')
+param subnets array = [
+  {
+    name: 'snet-training'
+    addressPrefix: '192.168.0.0/24'
+  }
+]
 
-@description('Training subnet name')
-param trainingSubnetName string = 'snet-training'
-
-@description('Scoring subnet address prefix')
-param scoringSubnetPrefix string = '192.168.1.0/24'
-
-@description('Scoring subnet name')
-param scoringSubnetName string = 'snet-scoring'
+@description('List of service endpoints expected on this vnet')
+param serviceEndpoints array = [
+  'Microsoft.KeyVault'
+  'Microsoft.ContainerRegistry'
+  'Microsoft.Storage'
+]
 
 @description('Tags to add to the resources')
 param tags object = {}
 
+var serviceEndpointsDefinition = [for service in serviceEndpoints: { service: service }]
+var subnetsDefinition = [for subnet in subnets: {
+  name: subnet.name
+  properties: {
+    addressPrefix: subnet.addressPrefix
+    privateEndpointNetworkPolicies: 'Disabled'
+    privateLinkServiceNetworkPolicies: 'Disabled'
+    serviceEndpoints: serviceEndpointsDefinition
+    networkSecurityGroup: {
+      id: networkSecurityGroupId
+    }
+  }
+}]
 
 resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-01-01' = {
   name: virtualNetworkName
@@ -40,41 +56,7 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-01-01' = {
         vnetAddressPrefix
       ]
     }
-    subnets: [
-      { 
-        name: trainingSubnetName
-        properties: {
-          addressPrefix: trainingSubnetPrefix
-          privateEndpointNetworkPolicies: 'Disabled'
-          privateLinkServiceNetworkPolicies: 'Disabled'
-          networkSecurityGroup: {
-            id: networkSecurityGroupId
-          }
-        }
-      }
-      { 
-        name: scoringSubnetName
-        properties: {
-          addressPrefix: scoringSubnetPrefix
-          privateEndpointNetworkPolicies: 'Disabled'
-          privateLinkServiceNetworkPolicies: 'Disabled'
-          serviceEndpoints: [
-            {
-              service: 'Microsoft.KeyVault'
-            }
-            {
-              service: 'Microsoft.ContainerRegistry'
-            }
-            {
-              service: 'Microsoft.Storage'
-            }
-          ]
-          networkSecurityGroup: {
-            id: networkSecurityGroupId
-          }
-        }
-      }
-    ]
+    subnets: subnetsDefinition
   }
 }
 

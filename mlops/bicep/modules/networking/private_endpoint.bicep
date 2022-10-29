@@ -55,7 +55,6 @@ resource servicePrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' 
 
 resource privateEndpointDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2020-06-01' = [for groupId in groupIds: {
   name: '${servicePrivateEndpoint.name}/${groupId}-PrivateDnsZoneGroup'
-  //name: '${storagePrivateEndpointBlob.name}/blob-${uniqueString(storage.id)}-PrivateDnsZoneGroup'
   properties:{
     privateDnsZoneConfigs: [
       {

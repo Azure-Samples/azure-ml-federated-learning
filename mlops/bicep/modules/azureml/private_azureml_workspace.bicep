@@ -47,10 +47,16 @@ module vnet '../networking/vnet.bicep' = {
     virtualNetworkName: 'vnet-${baseName}'
     networkSecurityGroupId: nsg.outputs.id
     vnetAddressPrefix: vnetAddressPrefix
-    trainingSubnetPrefix: trainingSubnetPrefix
-    trainingSubnetName: 'snet-training'
-    scoringSubnetPrefix: scoringSubnetPrefix
-    scoringSubnetName: 'snet-scoring'
+    subnets: [
+      {
+        name: 'snet-training'
+        addressPrefix: trainingSubnetPrefix
+      }
+      {
+        name: 'snet-scoring'
+        addressPrefix: scoringSubnetPrefix
+      }
+    ]
     tags: tags
   }
 }
