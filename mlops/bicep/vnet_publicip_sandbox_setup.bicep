@@ -40,6 +40,13 @@ param identityType string = 'UserAssigned'
 @description('Region of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
+@description('Set the orchestrator storage as private, with endpoints into each silo.')
+@allowed([
+  'public'
+  'private'
+])
+param orchestratorAccess string = 'public'
+
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
   'westus'
@@ -69,6 +76,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
+    baseName: substring(uniqueString(resourceGroup().id, demoBaseName), 0, 4)
     location: orchestratorRegion
     tags: tags
   }
@@ -114,7 +122,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
 
     // IMPORTANT: below means all traffic allowed (with permissions via UAI)
     // alternative is vNetOnly for specific vnets, or Disabled for service endpoints
-    storagePublicNetworkAccess: 'Enabled'
+    storagePublicNetworkAccess: orchestratorAccess == 'public' ? 'Enabled' : 'Disabled'
 
     //allowedSubnetIds: [for i in range(0, siloCount): silos[i].outputs.subnetId]
   }
@@ -167,6 +175,31 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   ]
 }]
 
+// Attach orchestrator and silos together with private endpoints and RBAC
+// Create a private service endpoints internal to each pair for their respective storages
+module orchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): if (orchestratorAccess == 'private') {
+  name: '${demoBaseName}-orch-to-silo${i}-endpoint'
+  scope: resourceGroup()
+  params: {
+    location: silos[i].outputs.region
+    tags: tags
+    privateLinkServiceId: orchestrator.outputs.storageServiceId
+    linkVirtualNetwork: false // the link already exists at this point
+    storagePleRootName: 'ple-${orchestrator.outputs.storageName}-to-${demoBaseName}-silo${i}-st-blob'
+    subnetId: silos[i].outputs.subnetId
+    virtualNetworkId: silos[i].outputs.vnetId
+    privateDNSZoneName: storagePrivateDnsZone.name
+    privateDNSZoneId: storagePrivateDnsZone.id
+    groupIds: [
+      'blob'
+      //'file'
+    ]
+  }
+  dependsOn: [
+    orchestrator
+    silos[i]
+  ]
+}]
 
 // Set R/W permissions for silo identity towards (eyes-on) orchestrator storage
 module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
