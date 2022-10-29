@@ -187,3 +187,5 @@ resource machineLearningDefaultCluster 'Microsoft.MachineLearningServices/worksp
     machineLearningPrivateEndpoint
   ]
 }
+
+output workspace string = machineLearning.name
