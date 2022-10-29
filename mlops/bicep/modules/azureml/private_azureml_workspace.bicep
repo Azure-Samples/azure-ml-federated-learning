@@ -23,6 +23,13 @@ param trainingSubnetPrefix string = '10.0.1.0/24'
 @description('Scoring subnet address prefix')
 param scoringSubnetPrefix string = '10.0.2.0/24'
 
+@description('Public access to the Azure ML workspace itself')
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param workspacePublicNetworkAccess string = 'Disabled'
+
 @description('Enable public IP for Azure Machine Learning compute nodes')
 param amlComputePublicIp bool = false
 
@@ -129,7 +136,7 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-05-0
 
     // configuration for workspaces with private link endpoint
     imageBuildCompute: 'default-cluster'
-    publicNetworkAccess: 'Disabled'
+    publicNetworkAccess: workspacePublicNetworkAccess
   }
 }
 
