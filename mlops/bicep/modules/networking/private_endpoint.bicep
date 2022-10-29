@@ -2,9 +2,6 @@
 @description('Azure region of the deployment')
 param location string
 
-@description('Tags to add to the resources')
-param tags object = {}
-
 @description('Service ID')
 param privateLinkServiceId string
 
@@ -25,6 +22,12 @@ param privateDNSZoneId string
 
 @description('Name of the DNS zone groups to add to the private endpoint')
 param groupIds array
+
+@description('Creates the virtual network link or not (use false if it already exists).')
+param linkVirtualNetwork bool = true
+
+@description('Tags to add to the resources')
+param tags object = {}
 
 
 resource servicePrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
@@ -65,7 +68,7 @@ resource privateEndpointDnsZoneGroup 'Microsoft.Network/privateEndpoints/private
   }
 }]
 
-resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [for groupId in groupIds: {
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [for groupId in groupIds: if (linkVirtualNetwork) {
   name: '${privateDNSZoneName}/${uniqueString(subnetId, privateLinkServiceId, groupId)}'
   location: 'global'
   properties: {
