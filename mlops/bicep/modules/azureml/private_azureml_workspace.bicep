@@ -4,7 +4,7 @@
 @minLength(2)
 @maxLength(10)
 @description('Unique base name for all resource names.')
-param baseName string = substring(uniqueString(resourceGroup().id), 0, 4)
+param baseName string
 
 param machineLearningName string = 'aml-${baseName}'
 
