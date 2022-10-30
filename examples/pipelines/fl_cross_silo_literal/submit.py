@@ -15,8 +15,10 @@ import webbrowser
 import time
 import json
 import sys
+import subprocess
 
 # Azure ML sdk v2 imports
+import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
@@ -97,32 +99,35 @@ COMPONENTS_FOLDER = os.path.join(
 ### CONNECT TO AZURE ML ###
 ###########################
 
-try:
-    credential = DefaultAzureCredential()
-    # Check if given credential can get token successfully.
-    credential.get_token("https://management.azure.com/.default")
-except Exception as ex:
-    # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
-    credential = InteractiveBrowserCredential()
+def connect_to_aml():
+    try:
+        credential = DefaultAzureCredential()
+        # Check if given credential can get token successfully.
+        credential.get_token("https://management.azure.com/.default")
+    except Exception as ex:
+        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
+        credential = InteractiveBrowserCredential()
 
-# Get a handle to workspace
-try:
-    # tries to connect using local config.json
-    ML_CLIENT = MLClient.from_config(credential=credential)
+    # Get a handle to workspace
+    try:
+        # tries to connect using local config.json
+        ML_CLIENT = MLClient.from_config(credential=credential)
 
-except Exception as ex:
-    print(
-        "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
-    )
+    except Exception as ex:
+        print(
+            "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
+        )
 
-    # tries to connect using cli args if provided else using config.yaml
-    ML_CLIENT = MLClient(
-        subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
-        resource_group_name=args.resource_group or YAML_CONFIG.aml.resource_group_name,
-        workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
-        credential=credential,
-    )
+        # tries to connect using cli args if provided else using config.yaml
+        ML_CLIENT = MLClient(
+            subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
+            resource_group_name=args.resource_group or YAML_CONFIG.aml.resource_group_name,
+            workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
+            credential=credential,
+        )
+    return ML_CLIENT
 
+ML_CLIENT = connect_to_aml()
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -360,8 +365,13 @@ if args.submit:
             #         f"Error occurred while checking the status of the pipeline job: {e}"
             #     )
             #     sys.exit(1)
-            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
-            status = pipeline_job.status
+            # pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            try:
+                status = pipeline_job.status
+            except (azure.identity._exceptions.CredentialUnavailableError, subprocess.CalledProcessError) as e:
+                print(f"Reconnect tyo AML since the following error occurred: {e}")
+                ML_CLIENT = connect_to_aml()
+                pipeline_job = ML_CLIENT.jobs.get(name=job_name)
 
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:

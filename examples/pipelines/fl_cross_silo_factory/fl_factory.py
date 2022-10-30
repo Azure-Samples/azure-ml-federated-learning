@@ -148,7 +148,7 @@ class FederatedLearningPipelineFactory:
         """Build a typical FL pipeline based on the provided steps.
 
         Args:
-            silo_subgraph (func): Silo/Training subgraph step containing components such as pre-processing, training, etc
+            silo_subgraph (func): Silo/Training subgraph step contains components such as pre-processing, training, etc
             orchestrator_aggregation (func): aggregation step to run in the orchestrator
             iterations (int): number of iterations to run (default: 1)
         """
@@ -227,7 +227,7 @@ class FederatedLearningPipelineFactory:
             return running_outputs
 
         @pipeline(
-            description=f'FL cross-silo basic pipeline and the unique identifier is "{self.unique_identifier}" that can help you to track files in the storage account.',
+            description=f'FL cross-silo factory pipeline and the unique identifier is "{self.unique_identifier}" that can help you to track files in the storage account.',
         )
         def _fl_cross_silo_factory_pipeline():
 
