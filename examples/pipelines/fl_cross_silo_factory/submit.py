@@ -456,15 +456,15 @@ pipeline_job = builder.build_flexible_fl_pipeline(
 print(pipeline_job)  # print yaml for visual debugging
 
 # use a default set of rules
-# builder.set_default_affinity_map()
+builder.set_default_affinity_map()
 
-# # run affinity map validation
-# builder.soft_validate(
-#     pipeline_job,
-#     raise_exception=not (
-#         args.ignore_validation
-#     ),  # set to False if you know what you're doing
-# )
+# run affinity map validation
+builder.soft_validate(
+    pipeline_job,
+    raise_exception=not (
+        args.ignore_validation
+    ),  # set to False if you know what you're doing
+)
 
 # 5. Submit to Azure ML
 
@@ -488,17 +488,18 @@ if args.submit:
             # check status after every 1 min.
             print(f"Job current status is {status}")
             time.sleep(60)
-            cmd_output = os.popen(
-                f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
-            ).read()
-            try:
-                status = json.loads(cmd_output.strip()).get("status")
-            except json.decoder.JSONDecodeError as e:
-                print(
-                    f"Error occurred while checking the status of the pipeline job: {e}"
-                )
-                sys.exit(1)
-
+            # cmd_output = os.popen(
+            #     f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
+            # ).read()
+            # try:
+            #     status = json.loads(cmd_output.strip()).get("status")
+            # except json.decoder.JSONDecodeError as e:
+            #     print(
+            #         f"Error occurred while checking the status of the pipeline job: {e}"
+            #     )
+            #     sys.exit(1)
+            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            status = pipeline_job.status
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
