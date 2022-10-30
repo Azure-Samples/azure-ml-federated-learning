@@ -99,6 +99,7 @@ COMPONENTS_FOLDER = os.path.join(
 ### CONNECT TO AZURE ML ###
 ###########################
 
+
 def connect_to_aml():
     try:
         credential = DefaultAzureCredential()
@@ -121,11 +122,13 @@ def connect_to_aml():
         # tries to connect using cli args if provided else using config.yaml
         ML_CLIENT = MLClient(
             subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
-            resource_group_name=args.resource_group or YAML_CONFIG.aml.resource_group_name,
+            resource_group_name=args.resource_group
+            or YAML_CONFIG.aml.resource_group_name,
             workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
             credential=credential,
         )
     return ML_CLIENT
+
 
 ML_CLIENT = connect_to_aml()
 
@@ -368,7 +371,10 @@ if args.submit:
             # pipeline_job = ML_CLIENT.jobs.get(name=job_name)
             try:
                 status = pipeline_job.status
-            except (azure.identity._exceptions.CredentialUnavailableError, subprocess.CalledProcessError) as e:
+            except (
+                azure.identity._exceptions.CredentialUnavailableError,
+                subprocess.CalledProcessError,
+            ) as e:
                 print(f"Reconnect tyo AML since the following error occurred: {e}")
                 ML_CLIENT = connect_to_aml()
                 pipeline_job = ML_CLIENT.jobs.get(name=job_name)
