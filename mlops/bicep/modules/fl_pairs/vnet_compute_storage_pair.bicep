@@ -40,9 +40,6 @@ param identityType string = 'UserAssigned'
 @description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
 param uaiName string = 'uai-${pairBaseName}'
 
-@description('Name of the existing private DNS zone for storage in this resource group')
-param privateStorageDnsZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
-
 @description('Name of the Network Security Group resource')
 param nsgResourceName string = 'nsg-${pairBaseName}'
 
@@ -54,6 +51,12 @@ param vnetAddressPrefix string = '10.0.0.0/16'
 
 @description('Subnet address prefix')
 param subnetPrefix string = '10.0.0.0/24'
+
+@description('Use a static ip for storage PLE')
+param useStorageStaticIP bool = false
+
+@description('Which static IP to use for storage PLE (if useStorageStaticIP is true)')
+param storagePLEStaticIP string = '10.0.0.50'
 
 @description('Subnet name')
 param subnetName string = 'snet-training'
@@ -70,6 +73,12 @@ param storagePublicNetworkAccess string = 'Disabled'
 
 @description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
 param applyDefaultPermissions bool = true
+
+@description('Name of the private DNS zone for blob')
+param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
+
+@description('Location of the private DNS zone for blob')
+param blobPrivateDNSZoneLocation string = 'global'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -123,11 +132,6 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
   }
 }
 
-// Look for existing private DNS zone for all our private endpoints
-resource privateStorageDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
-  name: privateStorageDnsZoneName
-}
-
 // Create a private service endpoints internal to each pair for their respective storages
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
   name: '${pairBaseName}-endpoint-to-insilo-storage'
@@ -135,16 +139,16 @@ module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (s
   params: {
     location: pairRegion
     tags: tags
-    privateLinkServiceId: storageDeployment.outputs.storageId
-    storagePleRootName: 'ple-${storageDeployment.outputs.storageName}-to-${pairBaseName}-st-blob'
-    subnetId: '${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'
+    resourceServiceId: storageDeployment.outputs.storageId
+    resourceName: storageDeployment.outputs.storageName
+    pleRootName: 'ple-${storageDeployment.outputs.storageName}-to-${pairBaseName}-st-blob'
     virtualNetworkId: computeDeployment.outputs.vnetId
-    privateDNSZoneName: privateStorageDnsZone.name
-    privateDNSZoneId: privateStorageDnsZone.id
-    groupIds: [
-      'blob'
-      //'file'
-    ]
+    subnetId: '${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'
+    useStaticIPAddress: useStorageStaticIP
+    privateIPAddress: storagePLEStaticIP
+    privateDNSZoneName: blobPrivateDNSZoneName
+    privateDNSZoneLocation: blobPrivateDNSZoneLocation
+    groupId: 'blob'
   }
   dependsOn: [
     storageDeployment

@@ -74,7 +74,6 @@ module keyvault '../resources/private_keyvault.bicep' = {
   params: {
     location: location
     keyvaultName: 'kv-${baseName}'
-    keyvaultPleName: 'ple-${baseName}-kv'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
     tags: tags
@@ -86,8 +85,6 @@ module storage '../resources/private_storage.bicep' = {
   params: {
     storageRegion: location
     storageName: 'st${baseName}'
-    storagePleBlobName: 'ple-${baseName}-st-blob'
-    storagePleFileName: 'ple-${baseName}-st-file'
     storageSKU: 'Standard_LRS'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
@@ -100,7 +97,6 @@ module containerRegistry '../resources/private_acr.bicep' = {
   params: {
     location: location
     containerRegistryName: 'cr${baseName}'
-    containerRegistryPleName: 'ple-${baseName}-cr'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
     tags: tags

@@ -8,20 +8,19 @@ param tags object
 @description('Container registry name')
 param containerRegistryName string
 
-@description('Container registry private link endpoint name')
-param containerRegistryPleName string
-
 @description('Resource ID of the subnet')
 param subnetId string
 
 @description('Resource ID of the virtual network')
 param virtualNetworkId string
 
+@description('Name of the private DNS zone')
+param privateDNSZoneName string = 'privatelink${environment().suffixes.acrLoginServer}'
+
+@description('Location of the private DNS zone')
+param privateDNSZoneLocation string = 'global'
+
 var containerRegistryNameCleaned = replace(containerRegistryName, '-', '')
-
-var privateDnsZoneName = 'privatelink${environment().suffixes.acrLoginServer}'
-
-var groupName = 'registry' 
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' = {
   name: containerRegistryNameCleaned
@@ -55,55 +54,19 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' =
   }
 }
 
-resource containerRegistryPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: containerRegistryPleName
-  location: location
-  tags: tags
-  properties: {
-    privateLinkServiceConnections: [
-      {
-        name: containerRegistryPleName
-        properties: {
-          groupIds: [
-            groupName
-          ]
-          privateLinkServiceId: containerRegistry.id
-        }
-      }
-    ]
-    subnet: {
-      id: subnetId
-    }
-  }
-}
-
-resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: privateDnsZoneName
-  location: 'global'
-}
-
-resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-01-01' = {
-  name: '${containerRegistryPrivateEndpoint.name}/${groupName}-PrivateDnsZoneGroup'
-  properties:{
-    privateDnsZoneConfigs: [
-      {
-        name: privateDnsZoneName
-        properties:{
-          privateDnsZoneId: acrPrivateDnsZone.id
-        }
-      }
-    ]
-  }
-}
-
-resource acrPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: '${acrPrivateDnsZone.name}/${uniqueString(containerRegistry.id)}'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetworkId
-    }
+module privateEndpoint '../networking/private_endpoint.bicep' = {
+  name: '${containerRegistry.name}-endpoint-to-vnet'
+  scope: resourceGroup()
+  params: {
+    tags: tags
+    location: location
+    resourceServiceId: containerRegistry.id
+    resourceName: containerRegistry.name
+    virtualNetworkId: virtualNetworkId
+    subnetId: subnetId
+    privateDNSZoneName: privateDNSZoneName
+    privateDNSZoneLocation: privateDNSZoneLocation
+    groupId: 'registry'
   }
 }
 

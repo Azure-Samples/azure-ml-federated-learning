@@ -8,16 +8,17 @@ param tags object = {}
 @description('The name of the Key Vault')
 param keyvaultName string
 
-@description('The name of the Key Vault private link endpoint')
-param keyvaultPleName string
-
 @description('The Subnet ID where the Key Vault Private Link is to be created')
 param subnetId string
 
 @description('The VNet ID where the Key Vault Private Link is to be created')
 param virtualNetworkId string
 
-var privateDnsZoneName = 'privatelink${environment().suffixes.keyvaultDns}'
+@description('Name of the private DNS zone')
+param privateDNSZoneName string = 'privatelink${environment().suffixes.keyvaultDns}'
+
+@description('Location of the private DNS zone')
+param privateDNSZoneLocation string = 'global'
 
 resource keyVault 'Microsoft.KeyVault/vaults@2021-10-01' = {
   name: keyvaultName
@@ -45,55 +46,19 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-10-01' = {
   }
 }
 
-resource keyVaultPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: keyvaultPleName
-  location: location
-  tags: tags
-  properties: {
-    privateLinkServiceConnections: [
-      {
-        name: keyvaultPleName
-        properties: {
-          groupIds: [
-            'vault'
-          ]
-          privateLinkServiceId: keyVault.id
-        }
-      }
-    ]
-    subnet: {
-      id: subnetId
-    }
-  }
-}
-
-resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: privateDnsZoneName
-  location: 'global'
-}
-
-resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-01-01' = {
-  name: '${keyVaultPrivateEndpoint.name}/vault-PrivateDnsZoneGroup'
-  properties:{
-    privateDnsZoneConfigs: [
-      {
-        name: privateDnsZoneName
-        properties:{
-          privateDnsZoneId: keyVaultPrivateDnsZone.id
-        }
-      }
-    ]
-  }
-}
-
-resource keyVaultPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: '${keyVaultPrivateDnsZone.name}/${uniqueString(keyVault.id)}'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetworkId
-    }
+module privateEndpoint '../networking/private_endpoint.bicep' = {
+  name: '${keyVault.name}-endpoint-to-vnet'
+  scope: resourceGroup()
+  params: {
+    tags: tags
+    location: keyVault.location
+    resourceServiceId: keyVault.id
+    resourceName: keyVault.name
+    virtualNetworkId: virtualNetworkId
+    subnetId: subnetId
+    privateDNSZoneName: privateDNSZoneName
+    privateDNSZoneLocation: privateDNSZoneLocation
+    groupId: 'vault'
   }
 }
 

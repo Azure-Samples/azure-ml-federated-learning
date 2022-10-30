@@ -24,11 +24,17 @@ param virtualNetworkId string
 @description('Resource ID of the subnets allowed into this storage')
 param subnetId string
 
-@description('Name of the storage blob private link endpoint')
-param storagePleBlobName string
+@description('Name of the private DNS zone for blob')
+param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
-@description('Name of the storage file private link endpoint')
-param storagePleFileName string
+@description('Location of the private DNS zone for blob')
+param blobPrivateDNSZoneLocation string = 'global'
+
+@description('Name of the private DNS zone for file')
+param filePrivateDNSZoneName string = 'privatelink.file.${environment().suffixes.storage}'
+
+@description('Location of the private DNS zone for file')
+param filePrivateDNSZoneLocation string = 'global'
 
 @description('Tags to add to the resources')
 param tags object = {}
@@ -126,122 +132,37 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   }
 }
 
-var blobPrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
-
-var filePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
-
-resource storagePrivateEndpointBlob 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: storagePleBlobName
-  location: storageRegion
-  tags: tags
-  properties: {
-    privateLinkServiceConnections: [
-      { 
-        name: storagePleBlobName
-        properties: {
-          groupIds: [
-            'blob'
-          ]
-          privateLinkServiceId: storage.id
-          privateLinkServiceConnectionState: {
-            status: 'Approved'
-            description: 'Auto-Approved'
-            actionsRequired: 'None'
-          }
-        }
-      }
-    ]
-    subnet: {
-      id: subnetId
-    }
+module blobPrivateEndpoint '../networking/private_endpoint.bicep' = {
+  name: '${storage.name}-endpoint-to-vnet'
+  scope: resourceGroup()
+  params: {
+    tags: tags
+    location: storage.location
+    resourceServiceId: storage.id
+    resourceName: storage.name
+    virtualNetworkId: virtualNetworkId
+    subnetId: subnetId
+    privateDNSZoneName: blobPrivateDNSZoneName
+    privateDNSZoneLocation: blobPrivateDNSZoneLocation
+    groupId: 'blob'
   }
 }
 
-resource storagePrivateEndpointFile 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: storagePleFileName
-  location: storageRegion
-  tags: tags
-  properties: {
-    privateLinkServiceConnections: [
-      {
-        name: storagePleFileName
-        properties: {
-          groupIds: [
-            'file'
-          ]
-          privateLinkServiceId: storage.id
-          privateLinkServiceConnectionState: {
-            status: 'Approved'
-            description: 'Auto-Approved'
-            actionsRequired: 'None'
-          }
-        }
-      }
-    ]
-    subnet: {
-      id: subnetId
-    }
+module filePrivateEndpoint '../networking/private_endpoint.bicep' = {
+  name: '${storage.name}-endpoint-to-vnet'
+  scope: resourceGroup()
+  params: {
+    tags: tags
+    location: storage.location
+    resourceServiceId: storage.id
+    resourceName: storage.name
+    virtualNetworkId: virtualNetworkId
+    subnetId: subnetId
+    privateDNSZoneName: filePrivateDNSZoneName
+    privateDNSZoneLocation: filePrivateDNSZoneLocation
+    groupId: 'file'
   }
 }
 
-resource blobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: blobPrivateDnsZoneName
-  location: 'global'
-}
-
-resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-01-01' = {
-  name: '${storagePrivateEndpointBlob.name}/blob-PrivateDnsZoneGroup'
-  properties:{
-    privateDnsZoneConfigs: [
-      {
-        name: blobPrivateDnsZoneName
-        properties:{
-          privateDnsZoneId: blobPrivateDnsZone.id
-        }
-      }
-    ]
-  }
-}
-
-resource blobPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: '${blobPrivateDnsZone.name}/${uniqueString(storage.id)}'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetworkId
-    }
-  }
-}
-
-resource filePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: filePrivateDnsZoneName
-  location: 'global'
-}
-
-resource filePrivateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-01-01' = {
-  name: '${storagePrivateEndpointFile.name}/flie-PrivateDnsZoneGroup'
-  properties:{
-    privateDnsZoneConfigs: [
-      {
-        name: filePrivateDnsZoneName
-        properties:{
-          privateDnsZoneId: filePrivateDnsZone.id
-        }
-      }
-    ]
-  }
-}
-
-resource filePrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: '${filePrivateDnsZone.name}/${uniqueString(storage.id)}'
-  location: 'global'
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetworkId
-    }
-  }
-}
 
 output storageId string = storage.id
