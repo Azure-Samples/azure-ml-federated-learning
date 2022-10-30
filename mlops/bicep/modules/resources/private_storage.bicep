@@ -133,7 +133,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
 }
 
 module blobPrivateEndpoint '../networking/private_endpoint.bicep' = {
-  name: '${storage.name}-endpoint-to-vnet'
+  name: '${storage.name}-endpoint-to-vnet-blob'
   scope: resourceGroup()
   params: {
     tags: tags
@@ -149,7 +149,7 @@ module blobPrivateEndpoint '../networking/private_endpoint.bicep' = {
 }
 
 module filePrivateEndpoint '../networking/private_endpoint.bicep' = {
-  name: '${storage.name}-endpoint-to-vnet'
+  name: '${storage.name}-endpoint-to-vnet-file'
   scope: resourceGroup()
   params: {
     tags: tags
