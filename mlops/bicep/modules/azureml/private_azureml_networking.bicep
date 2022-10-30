@@ -17,17 +17,10 @@ param workspaceArmId string
 @description('Tags to add to the resources')
 param tags object
 
-var privateDnsZoneName =  {
-  azureusgovernment: 'privatelink.api.ml.azure.us'
-  azurechinacloud: 'privatelink.api.ml.azure.cn'
-  azurecloud: 'privatelink.api.azureml.ms'
-}
-
-var privateAznbDnsZoneName = {
-    azureusgovernment: 'privatelink.notebooks.usgovcloudapi.net'
-    azurechinacloud: 'privatelink.notebooks.chinacloudapi.cn'
-    azurecloud: 'privatelink.notebooks.azure.net'
-}
+param amlPrivateDnsZoneName string
+param amlPrivateDnsZoneLocation string = 'global'
+param aznbPrivateDnsZoneName string
+param aznbPrivateDnsZoneLocation string = 'global'
 
 resource machineLearningPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
   name: machineLearningPleName
@@ -51,14 +44,14 @@ resource machineLearningPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022
   }
 }
 
-resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: privateDnsZoneName[toLower(environment().name)]
-  location: 'global'
+resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: amlPrivateDnsZoneName
 }
 
 resource amlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: '${amlPrivateDnsZone.name}/${uniqueString(workspaceArmId)}'
-  location: 'global'
+  name: uniqueString(workspaceArmId)
+  parent: amlPrivateDnsZone
+  location: amlPrivateDnsZoneLocation
   properties: {
     registrationEnabled: false
     virtualNetwork: {
@@ -68,14 +61,14 @@ resource amlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNet
 }
 
 // Notebook
-resource notebookPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: privateAznbDnsZoneName[toLower(environment().name)]
-  location: 'global'
+resource notebookPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: aznbPrivateDnsZoneName
 }
 
 resource notebookPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: '${notebookPrivateDnsZone.name}/${uniqueString(workspaceArmId)}'
-  location: 'global'
+  name: uniqueString(workspaceArmId)
+  parent: notebookPrivateDnsZone
+  location: aznbPrivateDnsZoneLocation
   properties: {
     registrationEnabled: false
     virtualNetwork: {
@@ -89,13 +82,13 @@ resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGr
   properties:{
     privateDnsZoneConfigs: [
       {
-        name: privateDnsZoneName[environment().name]
+        name: amlPrivateDnsZone.name
         properties:{
           privateDnsZoneId: amlPrivateDnsZone.id
         }
       }
       {
-        name: privateAznbDnsZoneName[environment().name]
+        name: notebookPrivateDnsZone.name
         properties:{
           privateDnsZoneId: notebookPrivateDnsZone.id
         }

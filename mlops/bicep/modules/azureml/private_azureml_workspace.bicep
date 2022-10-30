@@ -68,6 +68,34 @@ module vnet '../networking/vnet.bicep' = {
   }
 }
 
+// create all DNS zones needed for the next private resources
+var amlPrivateDnsZoneNames =  {
+  azureusgovernment: 'privatelink.api.ml.azure.us'
+  azurechinacloud: 'privatelink.api.ml.azure.cn'
+  azurecloud: 'privatelink.api.azureml.ms'
+}
+
+var aznbPrivateAznbDnsZoneName = {
+    azureusgovernment: 'privatelink.notebooks.usgovcloudapi.net'
+    azurechinacloud: 'privatelink.notebooks.chinacloudapi.cn'
+    azurecloud: 'privatelink.notebooks.azure.net'
+}
+
+var requiredDNSZones = [
+  'privatelink${environment().suffixes.acrLoginServer}'
+  'privatelink${environment().suffixes.keyvaultDns}'
+  'privatelink.blob.${environment().suffixes.storage}'
+  'privatelink.file.${environment().suffixes.storage}'
+  amlPrivateDnsZoneNames[toLower(environment().name)]
+  aznbPrivateAznbDnsZoneName[toLower(environment().name)]
+]
+
+resource allDNSZones 'Microsoft.Network/privateDnsZones@2020-06-01' = [for zone in requiredDNSZones: {
+  name: zone
+  location: 'global'
+}]
+
+
 // Dependent resources for the Azure Machine Learning workspace
 module keyvault '../resources/private_keyvault.bicep' = {
   name: 'kv-${baseName}-deployment'
@@ -76,6 +104,8 @@ module keyvault '../resources/private_keyvault.bicep' = {
     keyvaultName: 'kv-${baseName}'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
+    privateDNSZoneName: 'privatelink${environment().suffixes.keyvaultDns}'
+    privateDNSZoneLocation: 'global'
     tags: tags
   }
 }
@@ -88,6 +118,10 @@ module storage '../resources/private_storage.bicep' = {
     storageSKU: 'Standard_LRS'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
+    blobPrivateDNSZoneName: 'privatelink.blob.${environment().suffixes.storage}'
+    blobPrivateDNSZoneLocation: 'global'
+    filePrivateDNSZoneName: 'privatelink.file.${environment().suffixes.storage}'
+    filePrivateDNSZoneLocation: 'global'
     tags: tags
   }
 }
@@ -99,6 +133,8 @@ module containerRegistry '../resources/private_acr.bicep' = {
     containerRegistryName: 'cr${baseName}'
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     virtualNetworkId: vnet.outputs.id
+    privateDNSZoneName: 'privatelink${environment().suffixes.acrLoginServer}'
+    privateDNSZoneLocation: 'global'
     tags: tags
   }
 }
@@ -146,6 +182,12 @@ module machineLearningPrivateEndpoint './private_azureml_networking.bicep' = {
     workspaceArmId: machineLearning.id
     subnetId: '${vnet.outputs.id}/subnets/snet-training'
     machineLearningPleName: 'ple-${baseName}-aml'
+
+    // private DNS zone for Azure Machine Learning workspace
+    amlPrivateDnsZoneName: amlPrivateDnsZoneNames[toLower(environment().name)]
+    amlPrivateDnsZoneLocation: 'global'
+    aznbPrivateDnsZoneName: aznbPrivateAznbDnsZoneName[toLower(environment().name)]
+    aznbPrivateDnsZoneLocation: 'global'
   }
 }
 
