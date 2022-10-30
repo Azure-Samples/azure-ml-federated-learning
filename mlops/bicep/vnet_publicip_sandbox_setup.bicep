@@ -129,7 +129,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
     // (to orch vnet and to each silo vnet)
     // we need to set static IP to create a unique record in DNS zone
     // with all the IPs to the orchestrator storage
-    useStorageStaticIP: true
+    useStorageStaticIP: orchestratorAccess == 'Disabled'
     storagePLEStaticIP: '10.0.0.50'
 
     // IMPORTANT: compute still has public ip to let workspace submit job
