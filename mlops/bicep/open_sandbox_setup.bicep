@@ -62,6 +62,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
+    baseName: demoBaseName
     machineLearningName: 'aml-${demoBaseName}'
     location: orchestratorRegion
     tags: tags
