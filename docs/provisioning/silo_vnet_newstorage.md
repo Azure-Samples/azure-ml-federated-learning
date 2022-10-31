@@ -50,7 +50,7 @@ In this scenario, the silo's blob storage account's networking settings are such
 > * _Secure your storage account by configuring the storage firewall to block all connections on the public endpoint for the storage service._
 > * _Increase security for the virtual network (VNet), by enabling you to block exfiltration of data from the VNet._
 
-In addition, the compute can interact with the orchestrator storage account, through public network, the UAI being also given R/W permissions to the orchestrator storage.
+In addition, the compute can interact with the **orchestrator storage account**. This storage account can either be 1) "public" meaning only regulated by RBAC, accessible through the public IP and API or 2) private and accessible only through an endpoint. Both options, and their corresponding RBAC roles and private endpoint provisioning have to be **set up separately** (see below).
 
 ## Create a compute and storage pair for the silo
 
@@ -58,7 +58,7 @@ In addition, the compute can interact with the orchestrator storage account, thr
 
 :important: make sure the subnet address space is not overlapping with any other subnet in your vnet, in particular that it is unique accross all your silos and orchestrator. For instance you can use `10.0.0.0/24` for the orchestrator, then `10.0.N.0/24` for each silo, with a distinct N value.
 
-### Option 1: one click deployment
+### Using one click deployment
 
 1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_compute_storage_pair.json)
 
@@ -70,7 +70,7 @@ In addition, the compute can interact with the orchestrator storage account, thr
     - Pair Region: the region where the compute and storage will be deployed (default: same as resource group).
     - Pair Base Name: a unique name for the **silo**, example `silo1-westus`. This will be used to create all other resources (storage name, compute name, etc.).
 
-### Option 2: using az cli
+### Using az cli
 
 In the resource group of your AzureML workspace, use the following command with parameters corresponding to your setup:
 
@@ -78,7 +78,11 @@ In the resource group of your AzureML workspace, use the following command with 
 az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_compute_storage_pair.bicep --resource-group <resource group name> --parameters pairBaseName="silo1-westus" pairRegion="westus" machineLearningName="aml-fldemo" machineLearningRegion="eastus" subnetPrefix="10.0.1.0/24"
 ```
 
-## Set permissions for the silo's compute to R/W from/to the orchestrator
+## Set up interactions with the orchestrator
+
+### Option 1: public storage account
+
+All you'll have to set are permissions for the silo's compute to R/W from/to the orchestrator.
 
 1. Navigate the Azure portal to find your resource group.
 
@@ -92,3 +96,7 @@ az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_c
     - **Storage Account Key Operator Service Role**
 
 4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
+
+### Option 2: private storage with endpoints
+
+:construction: work in progress :construction:

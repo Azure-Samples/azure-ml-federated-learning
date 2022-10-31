@@ -41,7 +41,7 @@ It is important in this case that you set the following on your existing storage
 
 :important: make sure the subnet address space is not overlapping with any other subnet in your vnet, in particular that it is unique accross all your silos and orchestrator. For instance you can use `10.0.0.0/24` for the orchestrator, then `10.0.N.0/24` for each silo, with a distinct N value.
 
-### Option 1: one click deployment
+### Using one click deployment
 
 1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_compute_existing_storage.json)
 
@@ -58,7 +58,7 @@ It is important in this case that you set the following on your existing storage
     - Existing Storage Container Name: name of container where the data will be located.
 
 
-### Option 2: using az cli
+### Using az cli
 
 In the resource group of your AzureML workspace, use the following command with parameters corresponding to your setup:
 
@@ -68,9 +68,7 @@ az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_c
 
 Make sure `pairRegion` matches with the region of your storage account.
 
-## Set required permissions
-
-### 1. Between the silo's compute and the silo's existing storage account
+## Set required permissions between the silo's compute and the silo's existing storage account
 
 1. Navigate the Azure portal to find your resource group.
 
@@ -86,7 +84,11 @@ Make sure `pairRegion` matches with the region of your storage account.
 4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
 
 
-### 2. Between the silo's compute to R/W from/to the orchestrator storage
+## Set up interactions with the orchestrator
+
+### Option 1: public storage account
+
+All you'll have to set are permissions for the silo's compute to R/W from/to the orchestrator.
 
 1. Navigate the Azure portal to find your resource group.
 
@@ -100,3 +102,7 @@ Make sure `pairRegion` matches with the region of your storage account.
     - **Storage Account Key Operator Service Role**
 
 4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
+
+### Option 2: private storage with endpoints
+
+:construction: work in progress :construction:
