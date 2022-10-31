@@ -51,11 +51,8 @@ This repo provides some code samples for running a federated learning pipeline i
 
 ### Tutorial on how to adapt the "literal" and the "factory" code
 
-⚠️ **Work In Progress**
-
 The complete tutorial can be found [**here**](./literal-factory-tutorial.md)
 
-⚠️ **Work In Progress**
 
 ### Glossary
 
