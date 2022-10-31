@@ -28,9 +28,9 @@ We refer to those types of silos as _external_ silos. The goal of this document 
 
 > This is all explained in the first sections of the [cookbook](./README.md) but repeated here for convenience and to clarify that it needs to be done by the **FL Admin**.
 
-**FL Admin** first creates an open Azure ML workspace named `<workspace-name>`. FL Admin will need Owner permissions in `<workspace-resource-group>`, since Role Assignments will need to be created later on.
+**FL Admin** first creates an open Azure ML workspace named `<workspace-name>`. FL Admin will need Owner permissions in `<workspace-resource-group>`, since Role Assignments will need to be created later on. (The `<base-name>` value will be used when creating associated resources and can be chosen arbitrarily, but note that it should be unique in the subscription.)
 ```bash 
-az deployment group create --template-file ./mlops/bicep/modules/azureml/open_azureml_workspace.bicep --resource-group <workspace-resource-group> --parameters machineLearningName=<workspace-name>
+az deployment group create --template-file ./mlops/bicep/modules/azureml/open_azureml_workspace.bicep --resource-group <workspace-resource-group> --parameters machineLearningName=<workspace-name> baseName=<base-name>
 ```
 After that, **FL Admin** creates the compute and storage corresponding to the orchestrator (the value of the `pairBaseName` parameter will need to be adjusted if you have already created an orchestrator with this base name in the subscription).
 ```bash
