@@ -140,6 +140,7 @@ module blobPrivateEndpoint '../networking/private_endpoint.bicep' = {
     location: storage.location
     resourceServiceId: storage.id
     resourceName: storage.name
+    pleRootName: 'ple-${storage.name}-blob-amlworkspace-${uniqueString(subnetId)}'
     virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: blobPrivateDNSZoneName
@@ -156,6 +157,7 @@ module filePrivateEndpoint '../networking/private_endpoint.bicep' = {
     location: storage.location
     resourceServiceId: storage.id
     resourceName: storage.name
+    pleRootName: 'ple-${storage.name}-file-amlworkspace-${uniqueString(subnetId)}'
     virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: filePrivateDNSZoneName
