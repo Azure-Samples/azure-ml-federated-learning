@@ -8,8 +8,11 @@
 targetScope = 'resourceGroup'
 
 // required parameters
+@description('Base name to create all the resources')
+param baseName string
+
 @description('Machine learning workspace name')
-param machineLearningName string
+param machineLearningName string = 'aml-${baseName}'
 
 // optional parameters
 @description('Machine learning workspace display name')
@@ -28,16 +31,16 @@ param hbi_workspace bool = false
 param tags object = {}
 
 @description('Name of the application insights resource')
-param applicationInsightsName string = 'appi-${machineLearningName}'
+param applicationInsightsName string = 'appi-${baseName}'
 
 @description('Name of the container registry resource')
-param containerRegistryName string = replace('cr-${machineLearningName}','-','') // replace because only alphanumeric characters are supported
+param containerRegistryName string = replace('cr-${baseName}','-','') // replace because only alphanumeric characters are supported
 
 @description('Name of the key vault resource')
-param keyVaultName string = 'kv-${machineLearningName}'
+param keyVaultName string = 'kv-${baseName}'
 
 @description('Name of the storage account resource')
-param storageAccountName string = replace('st-${machineLearningName}','-','') // replace because only alphanumeric characters are supported
+param storageAccountName string = replace('st-${baseName}','-','') // replace because only alphanumeric characters are supported
 
 @description('Name of the default compute cluster in orchestrator')
 param defaultComputeName string = 'cpu-cluster'

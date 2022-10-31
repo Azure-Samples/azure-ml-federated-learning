@@ -54,9 +54,6 @@ param identityType string = 'UserAssigned'
 @description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
 param uaiName string = 'uai-${pairBaseName}'
 
-@description('Name of the existing private DNS zone for storage in this resource group')
-param privateStorageDnsZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
-
 @description('Name of the Network Security Group resource')
 param nsgResourceName string = 'nsg-${pairBaseName}'
 
@@ -75,8 +72,11 @@ param subnetName string = 'snet-training'
 @description('Enable compute node public IP')
 param enableNodePublicIp bool = true
 
-@description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
-param applyDefaultPermissions bool = true
+@description('Name of the private DNS zone for blob')
+param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
+
+@description('Location of the private DNS zone for blob')
+param blobPrivateDNSZoneLocation string = 'global'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -126,36 +126,26 @@ module storageDeployment '../storages/existing_blob_storage_datastore.bicep' = {
   }
 }
 
-// Look for existing private DNS zone for all our private endpoints
-resource privateStorageDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
-  name: privateStorageDnsZoneName
-}
-
 // Create a private service endpoints internal to each pair for their respective storages
-module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = {
+module privateEndpoint '../networking/private_endpoint.bicep' = {
   name: '${pairBaseName}-endpoint-to-existing-storage'
   scope: resourceGroup()
   params: {
     location: pairRegion
     tags: tags
-    privateLinkServiceId: storageDeployment.outputs.storageId
-    storagePleRootName: 'ple-remoteaccount-${existingStorageAccountName}-to-${pairBaseName}-st-blob'
-    subnetId: '${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'
+    resourceServiceId: storageDeployment.outputs.storageId
+    resourceName: storageDeployment.outputs.storageName
+    pleRootName: 'ple-remoteaccount-${existingStorageAccountName}-to-${pairBaseName}-st-blob'
     virtualNetworkId: computeDeployment.outputs.vnetId
-    privateDNSZoneName: privateStorageDnsZone.name
-    privateDNSZoneId: privateStorageDnsZone.id
-    groupIds: [
-      'blob'
-      //'file'
-    ]
+    subnetId: '${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'
+    privateDNSZoneName: blobPrivateDNSZoneName
+    privateDNSZoneLocation: blobPrivateDNSZoneLocation
+    groupId: 'blob'
   }
   dependsOn: [
     storageDeployment
   ]
 }
-
-// Set R/W permissions for orchestrator UAI towards orchestrator storage
-// NOTE: this part is not possible without tenant-level deployment
 
 // output the pair config for next actions (permission model)
 output identityPrincipalId string = computeDeployment.outputs.identityPrincipalId
