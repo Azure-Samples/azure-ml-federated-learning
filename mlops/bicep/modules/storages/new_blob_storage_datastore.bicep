@@ -5,14 +5,24 @@ param machineLearningName string
 @description('The region of the machine learning workspace')
 param machineLearningRegion string = resourceGroup().location
 
-@description('Tags to add to the resources')
-param tags object
-
 @description('Name of the storage account')
 param storageName string
 
 @description('Azure region of the storage to create')
 param storageRegion string
+
+@allowed([
+  'Standard_LRS'
+  'Standard_ZRS'
+  'Standard_GRS'
+  'Standard_GZRS'
+  'Standard_RAGRS'
+  'Standard_RAGZRS'
+  'Premium_LRS'
+  'Premium_ZRS'
+])
+@description('Storage SKU')
+param storageSKU string = 'Standard_LRS'
 
 @description('Name of the storage container resource to create for the pair')
 param containerName string = 'private'
@@ -27,19 +37,8 @@ param subnetIds array = []
 @description('Allow or disallow public network access to Storage Account.')
 param publicNetworkAccess string = 'Disabled' // for Disabled, you'd need to create private endpoints
 
-@allowed([
-  'Standard_LRS'
-  'Standard_ZRS'
-  'Standard_GRS'
-  'Standard_GZRS'
-  'Standard_RAGRS'
-  'Standard_RAGZRS'
-  'Premium_LRS'
-  'Premium_ZRS'
-])
-
-@description('Storage SKU')
-param storageSKU string = 'Standard_LRS'
+@description('Tags to add to the resources')
+param tags object = {}
 
 var storageNameCleaned = replace(storageName, '-', '')
 var storageAccountCleanName = substring(storageNameCleaned, 0, min(length(storageNameCleaned),24))
