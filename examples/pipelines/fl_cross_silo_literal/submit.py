@@ -361,7 +361,7 @@ if args.submit:
             time.sleep(100)
             pipeline_job = ML_CLIENT.jobs.get(name=job_name)
             status = pipeline_job.status
-            
+
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
