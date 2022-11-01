@@ -92,14 +92,16 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
   }
 }
 
+var aksClusterNameClean = substring(aksClusterName, 0, min(length(aksClusterName), 16))
+
 module computeDeployment '../computes/open_new_aks_with_confcomp.bicep' = {
   name: '${pairBaseName}-open-aks-confcomp'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
     machineLearningRegion: machineLearningRegion
-    aksClusterName: aksClusterName
-    amlComputeName: aksClusterName
+    aksClusterName: aksClusterNameClean
+    amlComputeName: aksClusterNameClean
     computeRegion: pairRegion
     agentVMSize: computeSKU
     agentCount: computeNodes
