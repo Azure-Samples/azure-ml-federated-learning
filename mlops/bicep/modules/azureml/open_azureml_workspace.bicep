@@ -10,7 +10,7 @@ targetScope = 'resourceGroup'
 // required parameters
 @description('Base name to create all the resources')
 @minLength(2)
-@maxLength(10)
+@maxLength(20)
 param baseName string
 
 @description('Machine learning workspace name')
