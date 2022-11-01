@@ -75,7 +75,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   params: {
     machineLearningName: 'aml-${demoBaseName}'
     machineLearningDescription: 'Azure ML demo workspace for federated learning (orchestratorAccess=${orchestratorAccess}, applyVNetPeering=${applyVNetPeering})'
-    baseName: substring(uniqueString(resourceGroup().id, demoBaseName), 0, 4)
+    baseName: demoBaseName
     location: orchestratorRegion
     tags: tags
   }

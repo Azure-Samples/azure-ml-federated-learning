@@ -294,6 +294,7 @@ resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
 resource amlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   name: uniqueString(machineLearning.id)
   parent: amlPrivateDnsZone
+  location: 'global'
   properties: {
     registrationEnabled: false
     virtualNetwork: {
@@ -314,6 +315,7 @@ resource aznbPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
 resource notebookPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   name: uniqueString(machineLearning.id)
   parent: aznbPrivateDnsZone
+  location: 'global'
   properties: {
     registrationEnabled: false
     virtualNetwork: {
