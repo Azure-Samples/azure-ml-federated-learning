@@ -1,5 +1,3 @@
-// EXPERIMENTAL - please do not take production dependency on this setup
-
 // This BICEP script will fully provision a federated learning sandbox
 // based on internal silos kept eyes-off using a combination of vnets
 // and private service endpoints, to support the communication
@@ -76,6 +74,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
+    machineLearningDescription: 'Azure ML demo workspace for federated learning (orchestratorAccess=${orchestratorAccess}, applyVNetPeering=${applyVNetPeering})'
     baseName: substring(uniqueString(resourceGroup().id, demoBaseName), 0, 4)
     location: orchestratorRegion
     tags: tags
@@ -99,7 +98,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
   name: '${demoBaseName}-vnetpair-orchestrator'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
 
     pairRegion: orchestratorRegion
@@ -158,7 +157,7 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   name: '${demoBaseName}-vnetpair-silo-${i}'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
     pairRegion: siloRegions[i]
     tags: tags
