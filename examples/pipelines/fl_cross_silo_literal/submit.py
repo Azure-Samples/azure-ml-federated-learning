@@ -356,7 +356,7 @@ if args.submit:
 
         while status not in ["Failed", "Completed", "Canceled"]:
             print(f"Job current status is {status}")
-            
+
             # check status after every 1 min.
             time.sleep(60)
             try:
