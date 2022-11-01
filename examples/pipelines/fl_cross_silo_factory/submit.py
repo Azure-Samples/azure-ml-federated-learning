@@ -41,7 +41,7 @@ from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
-from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
+from azure.ai.ml.entities._job.pipeline._io import NodeOutput
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
@@ -368,8 +368,8 @@ def silo_subgraph(
         ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
         for key in preprocessing_outputs.keys():
             assert isinstance(
-                preprocessing_outputs[key], PipelineOutputBase
-            ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
+                preprocessing_outputs[key], NodeOutput
+            ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
 
         # make sure the compute corresponds to the silo
         # make sure the data is written in the right datastore
@@ -396,8 +396,8 @@ def silo_subgraph(
         ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
         for key in training_outputs.keys():
             assert isinstance(
-                training_outputs[key], PipelineOutputBase
-            ), f"silo_training() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
+                training_outputs[key], NodeOutput
+            ), f"silo_training() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
 
         # make sure the compute corresponds to the silo
         # make sure the data is written in the right datastore

@@ -25,8 +25,8 @@ from typing import List, Optional, Union
 from typing import Callable, Dict
 from dataclasses import dataclass
 import itertools
-from azure.ai.ml.entities._job.pipeline._io import PipelineOutputBase
-from azure.ai.ml._ml_exceptions import ValidationException
+from azure.ai.ml.entities._job.pipeline._io import NodeOutput
+from azure.ai.ml.exceptions import ValidationException
 
 
 class FederatedLearningPipelineFactory:
@@ -181,8 +181,8 @@ class FederatedLearningPipelineFactory:
                 ), f"your silo_subgraph() function should return a step,outputs tuple with outputs a dictionary (currently a {type(silo_subgraph_output)})"
                 for key in silo_subgraph_output.keys():
                     assert isinstance(
-                        silo_subgraph_output[key], PipelineOutputBase
-                    ), f"silo_subgraph() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(silo_subgraph_output[key])})."
+                        silo_subgraph_output[key], NodeOutput
+                    ), f"silo_subgraph() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(silo_subgraph_output[key])})."
 
                 # each output is indexed to be fed into aggregate_component as a distinct input
                 silo_training_outputs.append(silo_subgraph_output["checkpoint"])
@@ -210,8 +210,8 @@ class FederatedLearningPipelineFactory:
             ), f"your orchestrator_aggregation() function should return a (step,outputs) tuple with outputs a dictionary (current type a {type(aggregation_outputs)})"
             for key in aggregation_outputs.keys():
                 assert isinstance(
-                    aggregation_outputs[key], PipelineOutputBase
-                ), f"orchestrator_aggregation() returned outputs has a key '{key}' not mapping to an PipelineOutputBase class from Azure ML SDK v2 (current type is {type(aggregation_outputs[key])})."
+                    aggregation_outputs[key], NodeOutput
+                ), f"orchestrator_aggregation() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(aggregation_outputs[key])})."
 
             # this is done in the orchestrator compute/datastore
             self.anchor_step_in_silo(
