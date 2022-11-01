@@ -499,27 +499,11 @@ if args.submit:
         while status not in ["Failed", "Completed", "Canceled"]:
             print(f"Job current status is {status}")
 
-            # check status after every 1 min.
-            time.sleep(60)
-            # try:
-            #     pipeline_job = ML_CLIENT.jobs.get(name=job_name)
-            #     status = pipeline_job.status
-            # except (
-            #     azure.identity._exceptions.CredentialUnavailableError,
-            #     subprocess.CalledProcessError,
-            # ) as e:
-            #     print(f"Reconnect to AML since the following error occurred: {e}")
-            #     ML_CLIENT = connect_to_aml()
-            cmd_output = os.popen(
-                f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
-            ).read()
-            try:
-                status = json.loads(cmd_output.strip()).get("status")
-            except json.decoder.JSONDecodeError as e:
-                print(
-                    f"Error occurred while checking the status of the pipeline job: {e}"
-                )
-                sys.exit(1)
+            # check status after every 100 sec.
+            time.sleep(100)
+            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            status = pipeline_job.status
+            
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
