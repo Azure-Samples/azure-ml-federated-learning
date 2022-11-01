@@ -497,8 +497,9 @@ if args.submit:
         status = pipeline_job.status
 
         while status not in ["Failed", "Completed", "Canceled"]:
-            # check status after every 1 min.
             print(f"Job current status is {status}")
+            
+            # check status after every 1 min.
             time.sleep(60)
             try:
                 pipeline_job = ML_CLIENT.jobs.get(name=job_name)
