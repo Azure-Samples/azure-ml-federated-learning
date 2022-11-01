@@ -53,7 +53,12 @@ These tutorials will let you create silos as a pair of compute and storage, opti
 
 ## Create external silos
 
-:construction:
+These tutorials will let you create an _external_ silo by creating a storage account and linking it to an existing kubernetes cluster, optionally behind a vnet with private endpoints. 
+
+| Manual | Description |
+| :-- | :-- |
+| [Tutorial](./external-silos.md) | Create a simple, external silo based on an existing k8s cluster (for sandbox/dev use only). |
+| :construction:| Create an open pair (for sandbox/dev use only) using an AKS cluster with confidential compute. |
 
 ## Set permission model between orchestrator and silos
 

@@ -7,11 +7,16 @@ Many real-world Federated Learning (FL) applications will rely on silos that are
 We refer to those types of silos as _external_ silos. The goal of this document is to **provide guidance on how to provision a FL setup with _external_ silos.**
 
 
-## Nomenclature
-- `FL Admin`: this is the person who is responsible for provisioning the FL setup and ensuring the security. He or she works for Contoso, the company who wants to train a model using FL.
-- `Silo Admin`: this is the person who owns the compute and the data of a given silo. He or she works for Fabrikam, a company that has agreed to share their data with Contoso for FL purposes. 
-- `Subscription`: in all that follows, when we talk about an _Azure subscription_ we mean the subscription where the Azure ML workspace and the orchestrator will be deployed. This subscription belongs to Contoso.
-- For common FL terms such as `silo` or `orchestrator`, please refer to the [glossary](../glossary.md).
+## Scenario
+The _Contoso_ corporation wants to train a model using a FL scheme. The underlying data belong to partner companies, and reside on-premises. One such company is _Fabrikam_.
+
+At Contoso, one person is responsible for provisioning the FL setup and ensuring the security. We'll call that person the **FL Admin**.
+
+At Fabrikam (one of the silos), one person owns the compute and the data. We'll call that person the **Silo Admin**.
+
+In all that follows, when we talk about an _Azure subscription_ we mean the subscription where the Azure ML workspace and the orchestrator will be deployed. This subscription belongs to Contoso.
+
+For common FL terms such as `silo` or `orchestrator`, please refer to the [glossary](../glossary.md).
 
 
 ## Prerequisites
@@ -20,33 +25,39 @@ We refer to those types of silos as _external_ silos. The goal of this document 
   - For creating a k8s cluster in Azure (in a different tenant otherwise we'd be dealing with _internal_ silos), one can use [Azure Kubernetes Service (AKS)](https://portal.azure.com/#create/microsoft.aks).
 - FL Admin needs to have **Owner** role in the subscription, or at least in the resource group where the Azure ML workspace will be created. This is because some Role Assignments will have to be created.
 - Silo Admin must be given (temporary) Contributor role to the subscription, or at least the [Azure Arc Onboarding](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#kubernetes-cluster---azure-arc-onboarding) built-in role. This is because one step will require access to both the orchestrator subscription, and to the k8s cluster. It assumed that _the FL Admin shouldn't have direct access to the k8s cluster_.
+- An identity that can be used to log in to the Azure CLI and connect the k8s cluster to Azure Arc (that would be the *Silo Admin's identity*).
+- [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) with version >= 2.24.0.
+- The **connectedk8s** Azure CLI extension with version >= 1.2.0;
+  - install _via_ `az extension add --name connectedk8s`
+
+
+0. In addition to the prerequisites listed [above](#prerequisites), make sure you have the following:
+    
+   
+    
+    - a [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and context pointing to the k8s cluster;
+    - [Helm 3](https://helm.sh/docs/intro/install) with version < 3.7.0;
 
 
 ## Procedure
 
-### A. Create the Azure ML workspace and the orchestrator
+### A. FL Admin creates the Azure ML workspace and the orchestrator
 
 > This is all explained in the first sections of the [cookbook](./README.md) but repeated here for convenience and to clarify that it needs to be done by the **FL Admin**.
 
-**FL Admin** first creates an open Azure ML workspace named `<workspace-name>`. FL Admin will need Owner permissions in `<workspace-resource-group>`, since Role Assignments will need to be created later on. (The `<base-name>` value will be used when creating associated resources and can be chosen arbitrarily, but note that it should be unique in the subscription.)
+First, create an open Azure ML workspace named `<workspace-name>`. Owner permissions in `<workspace-resource-group>` are required, since Role Assignments will need to be created later on. (The `<base-name>` value will be used when creating associated resources and can be chosen arbitrarily, but note that it should be unique in the subscription.)
 ```bash 
 az deployment group create --template-file ./mlops/bicep/modules/azureml/open_azureml_workspace.bicep --resource-group <workspace-resource-group> --parameters machineLearningName=<workspace-name> baseName=<base-name>
 ```
-After that, **FL Admin** creates the compute and storage corresponding to the orchestrator (the value of the `pairBaseName` parameter will need to be adjusted if you have already created an orchestrator with this base name in the subscription).
+After that, create the compute and storage corresponding to the orchestrator (the value of the `pairBaseName` parameter will need to be adjusted if you have already created an orchestrator with this base name in the subscription).
 ```bash
 az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/open_compute_storage_pair.bicep --resource-group <workspace-resource-group> --parameters pairBaseName="orch" machineLearningName=<workspace-name>
 ```
 
 ### B. Connect the existing k8s cluster to Azure Arc
-Detailed instructions for this phase, including steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/azure-arc/kubernetes/quickstart-connect-cluster?tabs=azure-cli). Here is a summary, which should be all you need.
+> Detailed instructions for this phase, including steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/azure-arc/kubernetes/quickstart-connect-cluster?tabs=azure-cli). Here is a summary, which should be all you need.
 
-0. In addition to the prerequisites listed [above](#prerequisites), make sure you have the following:
-    - an identity that can be used to log in to the Azure CLI and connect the k8s cluster to Azure Arc;
-    - [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) with version >= 2.24.0;
-    - the **connectedk8s** Azure CLI extension with version >= 1.2.0;
-      - install _via_ `az extension add --name connectedk8s`
-    - a [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and context pointing to the k8s cluster;
-    - [Helm 3](https://helm.sh/docs/intro/install) with version < 3.7.0;
+
 1. Register providers for Azure Arc-enabled Kubernetes. **This step should be performed by the FL Admin.** It only needs to be performed once, not for every silo.
     - Enter the following commands.
       ```bash
@@ -74,10 +85,10 @@ Detailed instructions for this phase, including steps for verification or for sl
     - If the default kube config and context do not point to the k8s cluster, then the `--kube-config` and `--kube-context` parameters can be used to specify the correct values.
 
 
-### C. Deploy the Azure ML extension on the k8s cluster
-Detailed instructions for this phase, including current limitations, steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-deploy-kubernetes-extension?tabs=deploy-extension-with-cli). Here is a summary, which should be all you need.
+### D. FL Admin deploys the Azure ML extension on the k8s cluster
+> Detailed instructions for this phase, including current limitations, steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-deploy-kubernetes-extension?tabs=deploy-extension-with-cli). Here is a summary, which should be all you need.
 
-**This step should be run by the FL Admin.** The Azure CLI extension `k8s-extension` with version >= 1.2.3 is required. It can be installed _via_ `az extension add --name k8s-extension`. 
+The Azure CLI extension `k8s-extension` with version >= 1.2.3 is required. It can be installed _via_ `az extension add --name k8s-extension`. 
 
 To deploy the Azure ML extension on the k8s cluster, enter the following command.
 ```bash
@@ -93,16 +104,18 @@ az k8s-extension show --name <extension-name> --cluster-type connectedClusters -
 In the response, look for `"name"` and `"provisioningState": "Succeeded"`. Note that this step can take 10-15 minutes and will show `"provisioningState": "Pending"` at first.
 
 
-### D. Attach the Arc cluster to the orchestrator workspace
+### E. FL Admin attaches the Arc cluster to the orchestrator workspace
 
-**This step should be run by the FL Admin.** The `ml` Azure CLI extension (_a.k.a._ Azure ML CLI v2) will be required. It can be installed _via_ `az extension add --name ml`. See [over there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-cli?tabs=public) for more details on installation.
+The `ml` Azure CLI extension (_a.k.a._ Azure ML CLI v2) will be required. It can be installed _via_ `az extension add --name ml`. See [over there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-cli?tabs=public) for more details on installation.
 
 1. First, we'll need to create a user-assigned identity (uai) for the soon-to-be-created Azure ML attached compute. We recommend creating it in the workspace resource group, and using a name of the form: `uai-<azureml-compute-name>`, where `<azureml-compute-name>` will be reused shortly and will be the name of the attached compute in Azure ML.
 Just run the following command with the proper parameter values.
     ```bash
     az identity create --name uai-<azureml-compute-name> --resource-group <workspace-resource-group>
     ```
-2. Then, we are ready to attach the Arc cluster to the orchestrator workspace, or in other words _to create an Azure ML attached compute pointing to the Arc cluster_. Just run the following command with the proper parameter values. (Detailed instructions for this phase, including steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-attach-kubernetes-to-workspace?tabs=cli).)
+2. Then, we are ready to attach the Arc cluster to the orchestrator workspace, or in other words _to create an Azure ML attached compute pointing to the Arc cluster_. Just run the following command with the proper parameter values. 
+    > (Detailed instructions for this phase, including steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-attach-kubernetes-to-workspace?tabs=cli).)
+
     ```bash
     az ml compute attach --resource-group <workspace-resource-group> --workspace-name <workspace-name> --type Kubernetes --name <azureml-compute-name> --resource-id "/subscriptions/<subscription-id>/resourceGroups/<connected-cluster-resource-group>/providers/Microsoft.Kubernetes/connectedClusters/<Azure-Arc-enabled-k8s-resource-name>" --identity-type UserAssigned --user-assigned-identities "subscriptions/<subscription-id>/resourceGroups/<workspace-resource-group>/providers/Microsoft.ManagedIdentity/userAssignedIdentities/uai-<azureml-compute-name>" --no-wait    
     ```
@@ -136,7 +149,7 @@ Just run the following command with the proper parameter values.
     4.5. Repeat the same steps for the storage account of your orchestrator (this storage account should be named `storch` if you kept the default value for the `pairBaseName` parameter suggested in [step A](#a-create-the-azure-ml-workspace-and-the-orchestrator), otherwise it will be the value you chose for `pairBaseName`, appended to `st`).    
 
 
-### E. Run a test job
+### F. Run a test job
 To validate everything is wired properly we are going to run a degenerate (using only one silo) HELLOWORLD-type FL job.
 
 First, open the [config.yaml](../../examples/pipelines/fl_cross_silo_literal/config.yaml) file located in the `examples/pipelines/fl_cross_silo_literal` directory, and do the following.
