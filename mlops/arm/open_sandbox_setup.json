@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "13541336172490270351"
+      "templateHash": "3030098846165820793"
     }
   },
   "parameters": {
@@ -80,8 +80,14 @@
         },
         "mode": "Incremental",
         "parameters": {
+          "baseName": {
+            "value": "[parameters('demoBaseName')]"
+          },
           "machineLearningName": {
             "value": "[format('aml-{0}', parameters('demoBaseName'))]"
+          },
+          "machineLearningDescription": {
+            "value": "Azure ML demo workspace for federated learning (use for dev purpose only)"
           },
           "location": {
             "value": "[parameters('orchestratorRegion')]"
@@ -97,26 +103,35 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "14535409971068554388"
+              "templateHash": "8206466772114353852"
             }
           },
           "parameters": {
+            "baseName": {
+              "type": "string",
+              "maxLength": 20,
+              "minLength": 2,
+              "metadata": {
+                "description": "Base name to create all the resources"
+              }
+            },
             "machineLearningName": {
               "type": "string",
+              "defaultValue": "[format('aml-{0}', parameters('baseName'))]",
               "metadata": {
                 "description": "Machine learning workspace name"
               }
             },
             "machineLearningFriendlyName": {
               "type": "string",
-              "defaultValue": "[parameters('machineLearningName')]",
+              "defaultValue": "Sandbox workspace",
               "metadata": {
                 "description": "Machine learning workspace display name"
               }
             },
             "machineLearningDescription": {
               "type": "string",
-              "defaultValue": "Federated Learning open demo orchestrator workspace",
+              "defaultValue": "An open AzureML workspace with no specific security settings.",
               "metadata": {
                 "description": "Machine learning workspace description"
               }
@@ -128,44 +143,37 @@
                 "description": "Specifies the location of the Azure Machine Learning workspace and dependent resources."
               }
             },
-            "hbi_workspace": {
+            "hbiWorkspace": {
               "type": "bool",
               "defaultValue": false,
               "metadata": {
                 "description": "Specifies whether to reduce telemetry collection and enable additional encryption."
               }
             },
-            "tags": {
-              "type": "object",
-              "defaultValue": {},
-              "metadata": {
-                "description": "Tags to curate the resources in Azure."
-              }
-            },
             "applicationInsightsName": {
               "type": "string",
-              "defaultValue": "[format('appi-{0}', parameters('machineLearningName'))]",
+              "defaultValue": "[format('appi-{0}', parameters('baseName'))]",
               "metadata": {
                 "description": "Name of the application insights resource"
               }
             },
             "containerRegistryName": {
               "type": "string",
-              "defaultValue": "[replace(format('cr-{0}', parameters('machineLearningName')), '-', '')]",
+              "defaultValue": "[replace(format('cr-{0}', parameters('baseName')), '-', '')]",
               "metadata": {
                 "description": "Name of the container registry resource"
               }
             },
             "keyVaultName": {
               "type": "string",
-              "defaultValue": "[format('kv-{0}', parameters('machineLearningName'))]",
+              "defaultValue": "[format('kv-{0}', parameters('baseName'))]",
               "metadata": {
                 "description": "Name of the key vault resource"
               }
             },
             "storageAccountName": {
               "type": "string",
-              "defaultValue": "[replace(format('st-{0}', parameters('machineLearningName')), '-', '')]",
+              "defaultValue": "[replace(format('st-{0}', parameters('baseName')), '-', '')]",
               "metadata": {
                 "description": "Name of the storage account resource"
               }
@@ -189,6 +197,13 @@
               "defaultValue": 4,
               "metadata": {
                 "description": "VM nodes for the default compute cluster"
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to curate the resources in Azure."
               }
             }
           },
@@ -235,6 +250,19 @@
               }
             },
             {
+              "type": "Microsoft.ContainerRegistry/registries",
+              "apiVersion": "2021-09-01",
+              "name": "[parameters('containerRegistryName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
+              "sku": {
+                "name": "Standard"
+              },
+              "properties": {
+                "adminUserEnabled": true
+              }
+            },
+            {
               "type": "Microsoft.Insights/components",
               "apiVersion": "2020-02-02",
               "name": "[parameters('applicationInsightsName')]",
@@ -246,27 +274,14 @@
               }
             },
             {
-              "type": "Microsoft.ContainerRegistry/registries",
-              "apiVersion": "2021-09-01",
-              "name": "[parameters('containerRegistryName')]",
-              "sku": {
-                "name": "Standard"
-              },
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "properties": {
-                "adminUserEnabled": true
-              }
-            },
-            {
               "type": "Microsoft.MachineLearningServices/workspaces",
               "apiVersion": "2022-05-01",
               "name": "[parameters('machineLearningName')]",
+              "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
               "identity": {
                 "type": "SystemAssigned"
               },
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
               "properties": {
                 "friendlyName": "[parameters('machineLearningFriendlyName')]",
                 "description": "[parameters('machineLearningDescription')]",
@@ -274,9 +289,9 @@
                 "keyVault": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
                 "applicationInsights": "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
                 "containerRegistry": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
-                "hbiWorkspace": "[parameters('hbi_workspace')]",
-                "imageBuildCompute": "[parameters('defaultComputeName')]",
-                "publicNetworkAccess": "Enabled"
+                "hbiWorkspace": "[parameters('hbiWorkspace')]",
+                "publicNetworkAccess": "Enabled",
+                "imageBuildCompute": "[parameters('defaultComputeName')]"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
@@ -290,20 +305,28 @@
               "apiVersion": "2022-05-01",
               "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('defaultComputeName'))]",
               "location": "[parameters('location')]",
+              "tags": "[parameters('tags')]",
               "identity": {
                 "type": "SystemAssigned"
               },
               "properties": {
                 "computeType": "AmlCompute",
+                "computeLocation": "[parameters('location')]",
+                "description": "default cluster",
+                "disableLocalAuth": true,
                 "properties": {
+                  "vmPriority": "Dedicated",
                   "vmSize": "[parameters('defaultComputeSKU')]",
-                  "subnet": "[json('null')]",
+                  "enableNodePublicIp": true,
+                  "isolatedNetwork": false,
                   "osType": "Linux",
+                  "remoteLoginPortPublicAccess": "NotSpecified",
                   "scaleSettings": {
                     "maxNodeCount": "[parameters('defaultComputeNodes')]",
                     "minNodeCount": 0,
                     "nodeIdleTimeBeforeScaleDown": "PT300S"
-                  }
+                  },
+                  "subnet": "[json('null')]"
                 }
               },
               "dependsOn": [
@@ -312,15 +335,15 @@
             }
           ],
           "outputs": {
-            "storage": {
+            "storageName": {
               "type": "string",
               "value": "[parameters('storageAccountName')]"
             },
-            "compute": {
+            "computeName": {
               "type": "string",
               "value": "[format('{0}/{1}', parameters('machineLearningName'), parameters('defaultComputeName'))]"
             },
-            "workspace": {
+            "workspaceName": {
               "type": "string",
               "value": "[parameters('machineLearningName')]"
             },
@@ -343,7 +366,7 @@
         "mode": "Incremental",
         "parameters": {
           "machineLearningName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspace.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspaceName.value]"
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
@@ -383,7 +406,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "2712484827820124609"
+              "templateHash": "2959121738972884748"
             }
           },
           "parameters": {
@@ -518,7 +541,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.11.1.770",
-                      "templateHash": "6611935237026140155"
+                      "templateHash": "4597355319206548270"
                     }
                   },
                   "parameters": {
@@ -535,12 +558,6 @@
                         "description": "The region of the machine learning workspace"
                       }
                     },
-                    "tags": {
-                      "type": "object",
-                      "metadata": {
-                        "description": "Tags to add to the resources"
-                      }
-                    },
                     "storageName": {
                       "type": "string",
                       "metadata": {
@@ -552,6 +569,23 @@
                       "metadata": {
                         "description": "Azure region of the storage to create"
                       }
+                    },
+                    "storageSKU": {
+                      "type": "string",
+                      "defaultValue": "Standard_LRS",
+                      "metadata": {
+                        "description": "Storage SKU"
+                      },
+                      "allowedValues": [
+                        "Standard_LRS",
+                        "Standard_ZRS",
+                        "Standard_GRS",
+                        "Standard_GZRS",
+                        "Standard_RAGRS",
+                        "Standard_RAGZRS",
+                        "Premium_LRS",
+                        "Premium_ZRS"
+                      ]
                     },
                     "containerName": {
                       "type": "string",
@@ -586,22 +620,12 @@
                         "Disabled"
                       ]
                     },
-                    "storageSKU": {
-                      "type": "string",
-                      "defaultValue": "Standard_LRS",
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
                       "metadata": {
-                        "description": "Storage SKU"
-                      },
-                      "allowedValues": [
-                        "Standard_LRS",
-                        "Standard_ZRS",
-                        "Standard_GRS",
-                        "Standard_GZRS",
-                        "Standard_RAGRS",
-                        "Standard_RAGZRS",
-                        "Premium_LRS",
-                        "Premium_ZRS"
-                      ]
+                        "description": "Tags to add to the resources"
+                      }
                     }
                   },
                   "variables": {
@@ -699,6 +723,7 @@
                       "apiVersion": "2022-06-01-preview",
                       "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('datastoreName'))]",
                       "properties": {
+                        "tags": "[parameters('tags')]",
                         "credentials": {
                           "credentialsType": "None"
                         },
@@ -1031,7 +1056,7 @@
         "mode": "Incremental",
         "parameters": {
           "machineLearningName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspace.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspaceName.value]"
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
@@ -1071,7 +1096,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "2712484827820124609"
+              "templateHash": "2959121738972884748"
             }
           },
           "parameters": {
@@ -1206,7 +1231,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.11.1.770",
-                      "templateHash": "6611935237026140155"
+                      "templateHash": "4597355319206548270"
                     }
                   },
                   "parameters": {
@@ -1223,12 +1248,6 @@
                         "description": "The region of the machine learning workspace"
                       }
                     },
-                    "tags": {
-                      "type": "object",
-                      "metadata": {
-                        "description": "Tags to add to the resources"
-                      }
-                    },
                     "storageName": {
                       "type": "string",
                       "metadata": {
@@ -1240,6 +1259,23 @@
                       "metadata": {
                         "description": "Azure region of the storage to create"
                       }
+                    },
+                    "storageSKU": {
+                      "type": "string",
+                      "defaultValue": "Standard_LRS",
+                      "metadata": {
+                        "description": "Storage SKU"
+                      },
+                      "allowedValues": [
+                        "Standard_LRS",
+                        "Standard_ZRS",
+                        "Standard_GRS",
+                        "Standard_GZRS",
+                        "Standard_RAGRS",
+                        "Standard_RAGZRS",
+                        "Premium_LRS",
+                        "Premium_ZRS"
+                      ]
                     },
                     "containerName": {
                       "type": "string",
@@ -1274,22 +1310,12 @@
                         "Disabled"
                       ]
                     },
-                    "storageSKU": {
-                      "type": "string",
-                      "defaultValue": "Standard_LRS",
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
                       "metadata": {
-                        "description": "Storage SKU"
-                      },
-                      "allowedValues": [
-                        "Standard_LRS",
-                        "Standard_ZRS",
-                        "Standard_GRS",
-                        "Standard_GZRS",
-                        "Standard_RAGRS",
-                        "Standard_RAGZRS",
-                        "Premium_LRS",
-                        "Premium_ZRS"
-                      ]
+                        "description": "Tags to add to the resources"
+                      }
                     }
                   },
                   "variables": {
@@ -1387,6 +1413,7 @@
                       "apiVersion": "2022-06-01-preview",
                       "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('datastoreName'))]",
                       "properties": {
+                        "tags": "[parameters('tags')]",
                         "credentials": {
                           "credentialsType": "None"
                         },

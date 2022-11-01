@@ -62,7 +62,9 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
+    baseName: demoBaseName
     machineLearningName: 'aml-${demoBaseName}'
+    machineLearningDescription: 'Azure ML demo workspace for federated learning (use for dev purpose only)'
     location: orchestratorRegion
     tags: tags
   }
@@ -73,7 +75,7 @@ module orchestrator './modules/fl_pairs/open_compute_storage_pair.bicep' = {
   name: '${demoBaseName}-openpair-orchestrator'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
 
     pairRegion: orchestratorRegion
@@ -104,7 +106,7 @@ module silos './modules/fl_pairs/open_compute_storage_pair.bicep' = [for i in ra
   name: '${demoBaseName}-openpair-silo-${i}'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
     pairRegion: siloRegions[i]
     tags: tags

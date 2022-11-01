@@ -9,9 +9,10 @@ Typically, this would happen when using internal silos corresponding to various 
 - [Prerequisites](#prerequisites)
 - [Important: understand the design](#important-understand-the-design)
 - [Create a compute pair for the silo, attach storage as datastore](#create-a-compute-pair-for-the-silo-attach-storage-as-datastore)
-  - [Option 1: one click deployment](#option-1-one-click-deployment)
-  - [Option 2: using az cli](#option-2-using-az-cli)
-- [Set required permissions](#set-required-permissions)
+  - [Using one click deployment](#using-one-click-deployment)
+  - [Using az cli](#using-az-cli)
+- [Set up interactions within the silo](#set-up-interactions-within-the-silo)
+- [Set up interactions with the orchestrator](#set-up-interactions-with-the-orchestrator)
 
 ## Prerequisites
 
@@ -41,7 +42,7 @@ It is important in this case that you set the following on your existing storage
 
 :important: make sure the subnet address space is not overlapping with any other subnet in your vnet, in particular that it is unique accross all your silos and orchestrator. For instance you can use `10.0.0.0/24` for the orchestrator, then `10.0.N.0/24` for each silo, with a distinct N value.
 
-### Option 1: one click deployment
+### Using one click deployment
 
 1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_compute_existing_storage.json)
 
@@ -58,7 +59,7 @@ It is important in this case that you set the following on your existing storage
     - Existing Storage Container Name: name of container where the data will be located.
 
 
-### Option 2: using az cli
+### Using az cli
 
 In the resource group of your AzureML workspace, use the following command with parameters corresponding to your setup:
 
@@ -68,9 +69,29 @@ az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_c
 
 Make sure `pairRegion` matches with the region of your storage account.
 
-## Set required permissions
+## Set up interactions within the silo
 
-### 1. Between the silo's compute and the silo's existing storage account
+Let's set required permissions between the silo's compute and the silo's existing storage account.
+
+1. Navigate the Azure portal to find your resource group.
+
+2. Look for a resource of type **Managed Identity** in the region of the silo named like `uai-<pairBaseName>`. It should have been created by the instructions above.
+
+3. Open this identity and click on **Azure role assignments**. You should see the list of assignments for this identity.
+
+    It should contain 3 roles towards the storage account of the silo itself:
+    - **Storage Blob Data Contributor**
+    - **Reader and Data Access**
+    - **Storage Account Key Operator Service Role**
+
+4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
+
+
+## Set up interactions with the orchestrator
+
+### Option 1: public storage account
+
+All you'll have to set are permissions for the silo's compute to R/W from/to the orchestrator.
 
 1. Navigate the Azure portal to find your resource group.
 
@@ -85,18 +106,6 @@ Make sure `pairRegion` matches with the region of your storage account.
 
 4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
 
+### Option 2: private storage with endpoints
 
-### 2. Between the silo's compute to R/W from/to the orchestrator storage
-
-1. Navigate the Azure portal to find your resource group.
-
-2. Look for a resource of type **Managed Identity** in the region of the silo named like `uai-<pairBaseName>`. It should have been created by the instructions above.
-
-3. Open this identity and click on **Azure role assignments**. You should see the list of assignments for this identity.
-
-    It should contain 3 roles towards the storage account of the silo itself:
-    - **Storage Blob Data Contributor**
-    - **Reader and Data Access**
-    - **Storage Account Key Operator Service Role**
-
-4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
+:construction: work in progress :construction:
