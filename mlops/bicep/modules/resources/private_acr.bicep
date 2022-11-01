@@ -3,7 +3,7 @@
 param location string
 
 @description('Tags to add to the resources')
-param tags object
+param tags object = {}
 
 @description('Container registry name')
 param containerRegistryName string

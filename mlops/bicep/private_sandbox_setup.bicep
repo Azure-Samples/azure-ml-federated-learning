@@ -58,7 +58,6 @@ param computeSKU string = 'Standard_DS3_v2'
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = false
 
-
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -66,6 +65,14 @@ param tags object = {
   Environment: 'dev'
   Toolkit: 'bicep'
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
+}
+
+
+// Create the storage DNS zone before the rest
+resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.blob.${environment().suffixes.storage}'
+  location: 'global'
+  tags: tags
 }
 
 // Create Azure Machine Learning workspace
@@ -80,13 +87,10 @@ module workspace './modules/azureml/private_azureml_workspace.bicep' = {
     location: orchestratorRegion
     tags: tags
   }
+  dependsOn: [
+    storagePrivateDnsZone
+  ]
 }
-
-// The DNS zone should have been created already during workspace provisioning above
-resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
-  name: 'privatelink.blob.${environment().suffixes.storage}'
-}
-
 
 // In order to be able to record this storage in dns zone with static ip
 // we need to set this storage account name ourselves here

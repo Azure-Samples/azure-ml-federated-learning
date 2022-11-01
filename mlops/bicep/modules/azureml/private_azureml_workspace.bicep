@@ -87,8 +87,8 @@ module nsg '../networking/nsg.bicep' = {
   name: 'nsg-${baseName}-deployment'
   params: {
     location: location
-    tags: tags 
     nsgName: nsgName
+    tags: tags 
   }
 }
 
@@ -121,10 +121,12 @@ module vnet '../networking/vnet.bicep' = {
 resource blobStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: 'privatelink.blob.${environment().suffixes.storage}'
   location: 'global'
+  tags: tags 
 }
 resource fileStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: 'privatelink.file.${environment().suffixes.storage}'
   location: 'global'
+  tags: tags 
 }
 module storage '../resources/private_storage.bicep' = {
   name: 'st${baseName}-deployment'
@@ -145,6 +147,7 @@ module storage '../resources/private_storage.bicep' = {
 resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: 'privatelink${environment().suffixes.keyvaultDns}'
   location: 'global'
+  tags: tags 
 }
 module keyVault '../resources/private_keyvault.bicep' = {
   name: 'kv-${baseName}-deployment'
@@ -162,6 +165,7 @@ module keyVault '../resources/private_keyvault.bicep' = {
 resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: 'privatelink${environment().suffixes.acrLoginServer}'
   location: 'global'
+  tags: tags 
 }
 module containerRegistry '../resources/private_acr.bicep' = {
   name: 'cr${baseName}-deployment'
@@ -290,11 +294,13 @@ var amlPrivateDnsZoneNames =  {
 resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: amlPrivateDnsZoneNames[toLower(environment().name)]
   location: 'global'
+  tags: tags 
 }
 resource amlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   name: uniqueString(machineLearning.id)
   parent: amlPrivateDnsZone
   location: 'global'
+  tags: tags
   properties: {
     registrationEnabled: false
     virtualNetwork: {
@@ -311,11 +317,13 @@ var aznbPrivateAznbDnsZoneName = {
 resource aznbPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: aznbPrivateAznbDnsZoneName[toLower(environment().name)]
   location: 'global'
+  tags: tags 
 }
 resource notebookPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
   name: uniqueString(machineLearning.id)
   parent: aznbPrivateDnsZone
   location: 'global'
+  tags: tags 
   properties: {
     registrationEnabled: false
     virtualNetwork: {

@@ -195,6 +195,7 @@ resource container 'Microsoft.Storage/storageAccounts/blobServices/containers@20
 resource datastore 'Microsoft.MachineLearningServices/workspaces/datastores@2022-06-01-preview' = {
   name: '${machineLearningName}/${datastoreName}'
   properties: {
+    tags: tags
     credentials: {
       credentialsType: 'None'
       // For remaining properties, see DatastoreCredentials objects
