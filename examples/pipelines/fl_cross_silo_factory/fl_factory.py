@@ -422,7 +422,7 @@ class FederatedLearningPipelineFactory:
                     continue
 
                 # extract the datastore
-                if input_path.startswith("azureml://datastores/"):
+                if input_path and input_path.startswith("azureml://datastores/"):
                     datastore = input_path[21:].split("/")[0]
                 else:
                     # if using a registered dataset, let's consider datastore UNKNOWN
@@ -445,7 +445,7 @@ class FederatedLearningPipelineFactory:
                     continue
 
                 # extract the datastore
-                if output_path.startswith("azureml://datastores/"):
+                if output_path and output_path.startswith("azureml://datastores/"):
                     datastore = output_path[21:].split("/")[0]
                 else:
                     soft_validation_report.append(
