@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "2712484827820124609"
+      "templateHash": "2959121738972884748"
     }
   },
   "parameters": {
@@ -140,7 +140,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "6611935237026140155"
+              "templateHash": "4597355319206548270"
             }
           },
           "parameters": {
@@ -157,12 +157,6 @@
                 "description": "The region of the machine learning workspace"
               }
             },
-            "tags": {
-              "type": "object",
-              "metadata": {
-                "description": "Tags to add to the resources"
-              }
-            },
             "storageName": {
               "type": "string",
               "metadata": {
@@ -174,6 +168,23 @@
               "metadata": {
                 "description": "Azure region of the storage to create"
               }
+            },
+            "storageSKU": {
+              "type": "string",
+              "defaultValue": "Standard_LRS",
+              "metadata": {
+                "description": "Storage SKU"
+              },
+              "allowedValues": [
+                "Standard_LRS",
+                "Standard_ZRS",
+                "Standard_GRS",
+                "Standard_GZRS",
+                "Standard_RAGRS",
+                "Standard_RAGZRS",
+                "Premium_LRS",
+                "Premium_ZRS"
+              ]
             },
             "containerName": {
               "type": "string",
@@ -208,22 +219,12 @@
                 "Disabled"
               ]
             },
-            "storageSKU": {
-              "type": "string",
-              "defaultValue": "Standard_LRS",
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
               "metadata": {
-                "description": "Storage SKU"
-              },
-              "allowedValues": [
-                "Standard_LRS",
-                "Standard_ZRS",
-                "Standard_GRS",
-                "Standard_GZRS",
-                "Standard_RAGRS",
-                "Standard_RAGZRS",
-                "Premium_LRS",
-                "Premium_ZRS"
-              ]
+                "description": "Tags to add to the resources"
+              }
             }
           },
           "variables": {
@@ -321,6 +322,7 @@
               "apiVersion": "2022-06-01-preview",
               "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('datastoreName'))]",
               "properties": {
+                "tags": "[parameters('tags')]",
                 "credentials": {
                   "credentialsType": "None"
                 },

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "2668480736116909204"
+      "templateHash": "7506273961337252040"
     }
   },
   "parameters": {
@@ -151,6 +151,13 @@
     "bastionPublicIpName": {
       "type": "string",
       "defaultValue": "[format('publicip-bastion-{0}', parameters('bastionHostName'))]"
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to add to the resources"
+      }
     }
   },
   "variables": {
@@ -169,6 +176,7 @@
       "apiVersion": "2021-03-01",
       "name": "[parameters('jumpboxNetworkInterfaceName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "properties": {
         "ipConfigurations": [
           {
@@ -194,6 +202,7 @@
       "apiVersion": "2022-03-01",
       "name": "[parameters('jumpboxVmName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "zones": [
         "2"
       ],
@@ -251,6 +260,7 @@
       "apiVersion": "2020-07-01",
       "name": "[parameters('bastionPublicIpName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "sku": {
         "name": "Standard"
       },
@@ -264,6 +274,7 @@
       "apiVersion": "2020-07-01",
       "name": "[parameters('bastionNsgName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "properties": {
         "securityRules": [
           {
@@ -416,7 +427,6 @@
       "type": "Microsoft.Network/virtualNetworks/subnets",
       "apiVersion": "2020-07-01",
       "name": "[format('{0}/{1}', parameters('vnetName'), parameters('bastionSubnetName'))]",
-      "location": "[parameters('location')]",
       "properties": {
         "addressPrefix": "[parameters('bastionSubnetPrefix')]",
         "networkSecurityGroup": {
@@ -433,6 +443,7 @@
       "apiVersion": "2020-07-01",
       "name": "[parameters('bastionHostName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "properties": {
         "ipConfigurations": [
           {
