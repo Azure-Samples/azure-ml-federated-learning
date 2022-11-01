@@ -36,7 +36,7 @@ The orchestrator is the central server of the Federated Learning pipeline. It is
 | Manual | Description |
 | :-- | :-- |
 | [Tutorial](./orchestrator_open.md) | Create a sandbox open pair of compute and storage for the orchestrator. |
-| :construction: | Create a vnet with a compute, a private DNS zone and private endpoints to a new blob storage (created in the same resource group). |
+| [Tutorial](./orchestrator_vnet.md) | Create a vnet with a compute and private endpoints to a **new** blob storage created in the same resource group. |
 
 ## Create internal silos
 
