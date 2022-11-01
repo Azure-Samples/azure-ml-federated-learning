@@ -367,7 +367,6 @@ if args.submit:
             ) as e:
                 print(f"Reconnect to AML since the following error occurred: {e}")
                 ML_CLIENT = connect_to_aml()
-                pipeline_job = ML_CLIENT.jobs.get(name=job_name)
 
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
