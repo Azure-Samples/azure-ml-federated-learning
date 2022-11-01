@@ -34,6 +34,7 @@ param aksClusterName string = 'aks-${pairBaseName}'
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
 @description('VM size for the compute cluster.')
 @allowed([
+  // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
   'Standard_DC1ds_v3'
   'Standard_DC2ds_v3'
   'Standard_DC4ds_v3'
@@ -42,6 +43,23 @@ param aksClusterName string = 'aks-${pairBaseName}'
   'Standard_DC24ds_v3'
   'Standard_DC32ds_v3'
   'Standard_DC48ds_v3'
+  // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series
+  'Standard_DC2as_v5'
+  'Standard_DC4as_v5'
+  'Standard_DC8as_v5'
+  'Standard_DC16as_v5'
+  'Standard_DC32as_v5'
+  'Standard_DC48as_v5'
+  'Standard_DC64as_v5'
+  'Standard_DC96as_v5'
+  'Standard_DC2ads_v5'
+  'Standard_DC4ads_v5'
+  'Standard_DC8ads_v5'
+  'Standard_DC16ads_v5'
+  'Standard_DC32ads_v5'
+  'Standard_DC48ads_v5'
+  'Standard_DC64ads_v5'
+  'Standard_DC96ads_v5'
 ])
 param computeSKU string = 'Standard_DC4ds_v3'
 
@@ -74,14 +92,16 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
   }
 }
 
+var aksClusterNameClean = substring(aksClusterName, 0, min(length(aksClusterName), 16))
+
 module computeDeployment '../computes/open_new_aks_with_confcomp.bicep' = {
   name: '${pairBaseName}-open-aks-confcomp'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
     machineLearningRegion: machineLearningRegion
-    aksClusterName: aksClusterName
-    amlComputeName: aksClusterName
+    aksClusterName: aksClusterNameClean
+    amlComputeName: aksClusterNameClean
     computeRegion: pairRegion
     agentVMSize: computeSKU
     agentCount: computeNodes

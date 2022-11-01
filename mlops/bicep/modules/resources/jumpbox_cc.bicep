@@ -88,6 +88,8 @@ param bastionSubnetName string = 'AzureBastionSubnet'
 param bastionSubnetPrefix string = '10.0.250.0/27'
 param bastionPublicIpName string = 'publicip-bastion-${bastionHostName}'
 
+@description('Tags to add to the resources')
+param tags object = {}
 
 // look for the existing vnet,subnet,nsg in which to create jumpbox
 resource vnet 'Microsoft.Network/virtualNetworks@2020-07-01' existing = {
@@ -142,6 +144,7 @@ var osProfile = jumpboxOs == 'linux' ? {
 resource jumpboxNetworkInterface 'Microsoft.Network/networkInterfaces@2021-03-01' = {
   name: jumpboxNetworkInterfaceName
   location: location
+  tags: tags 
   properties: {
     ipConfigurations: [
       {
@@ -163,6 +166,7 @@ resource jumpboxNetworkInterface 'Microsoft.Network/networkInterfaces@2021-03-01
 resource virtualMachine 'Microsoft.Compute/virtualMachines@2022-03-01' = {
   name: jumpboxVmName
   location: location
+  tags: tags 
   zones: [
     '2'
   ]
@@ -218,6 +222,7 @@ resource virtualMachine 'Microsoft.Compute/virtualMachines@2022-03-01' = {
 resource bastionPublicIpAddress 'Microsoft.Network/publicIpAddresses@2020-07-01' = if (provisionBastion) {
   name: bastionPublicIpName
   location: location
+  tags: tags 
   sku: {
     name: 'Standard'
   }
@@ -230,6 +235,7 @@ resource bastionPublicIpAddress 'Microsoft.Network/publicIpAddresses@2020-07-01'
 resource bastionNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = if (provisionBastion) {
   name: bastionNsgName
   location: location
+  tags: tags 
   properties: {
     securityRules: [
       {
@@ -382,7 +388,6 @@ resource bastionNsg 'Microsoft.Network/networkSecurityGroups@2020-07-01' = if (p
 resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-07-01' = if (provisionBastion) {
   parent: vnet
   name: bastionSubnetName
-  location: location
   properties: {
     addressPrefix: bastionSubnetPrefix
     networkSecurityGroup: {
@@ -395,6 +400,7 @@ resource bastionSubnet 'Microsoft.Network/virtualNetworks/subnets@2020-07-01' = 
 resource bastionHost 'Microsoft.Network/bastionHosts@2020-07-01' = if (provisionBastion) {
   name: bastionHostName
   location: location
+  tags: tags 
   properties: {
     ipConfigurations: [
       {

@@ -6,10 +6,10 @@ This tutorial applies in the case you want to create a **completely new storage*
 
 - [Prerequisites](#prerequisites)
 - [Important: understand the design](#important-understand-the-design)
-- [Create a compute and storage pair for the silo](#need-support)
-  - [Option 1: one click deployment](#option-1-one-click-deployment)
-  - [Option 2: using az cli](#option-2-using-az-cli)
-- [Set permissions for the silo's compute to R/W from/to the orchestrator](#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)
+- [Create a compute and storage pair for the silo](#create-a-compute-and-storage-pair-for-the-silo)
+  - [Using one click deployment](#using-one-click-deployment)
+  - [Using az cli](#using-az-cli)
+- [Set up interactions with the orchestrator](#set-up-interactions-with-the-orchestrator)
 
 ## Prerequisites
 

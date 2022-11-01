@@ -1,5 +1,3 @@
-// EXPERIMENTAL - please do not take production dependency on this setup
-
 // This BICEP script will fully provision a federated learning sandbox
 // based on internal silos kept eyes-off using a combination of vnets
 // and private service endpoints, to support the communication
@@ -60,7 +58,6 @@ param computeSKU string = 'Standard_DS3_v2'
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = false
 
-
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -70,24 +67,25 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
+// Create the storage DNS zone before the rest
+resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
+  name: 'privatelink.blob.${environment().suffixes.storage}'
+  location: 'global'
+  tags: tags
+}
+
 // Create Azure Machine Learning workspace
 module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
-    baseName: substring(uniqueString(resourceGroup().id, demoBaseName), 0, 4)
+    machineLearningDescription: 'Azure ML demo workspace for federated learning (orchestratorAccess=${orchestratorAccess}, applyVNetPeering=${applyVNetPeering})'
+    baseName: demoBaseName
     location: orchestratorRegion
     tags: tags
   }
 }
-
-// Requirement: create all required private DNS zones before creating the orchestrator+silos
-resource storagePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.blob.${environment().suffixes.storage}'
-  location: 'global'
-}
-
 
 // In order to be able to record this storage in dns zone with static ip
 // we need to set this storage account name ourselves here
@@ -99,7 +97,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
   name: '${demoBaseName}-vnetpair-orchestrator'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
 
     pairRegion: orchestratorRegion
@@ -158,7 +156,7 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   name: '${demoBaseName}-vnetpair-silo-${i}'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
     pairRegion: siloRegions[i]
     tags: tags

@@ -9,9 +9,10 @@ Typically, this would happen when using internal silos corresponding to various 
 - [Prerequisites](#prerequisites)
 - [Important: understand the design](#important-understand-the-design)
 - [Create a compute pair for the silo, attach storage as datastore](#create-a-compute-pair-for-the-silo-attach-storage-as-datastore)
-  - [Option 1: one click deployment](#option-1-one-click-deployment)
-  - [Option 2: using az cli](#option-2-using-az-cli)
-- [Set required permissions](#set-required-permissions)
+  - [Using one click deployment](#using-one-click-deployment)
+  - [Using az cli](#using-az-cli)
+- [Set up interactions within the silo](#set-up-interactions-within-the-silo)
+- [Set up interactions with the orchestrator](#set-up-interactions-with-the-orchestrator)
 
 ## Prerequisites
 
@@ -68,7 +69,9 @@ az deployment group create --template-file ./mlops/bicep/modules/fl_pairs/vnet_c
 
 Make sure `pairRegion` matches with the region of your storage account.
 
-## Set required permissions between the silo's compute and the silo's existing storage account
+## Set up interactions within the silo
+
+Let's set required permissions between the silo's compute and the silo's existing storage account.
 
 1. Navigate the Azure portal to find your resource group.
 

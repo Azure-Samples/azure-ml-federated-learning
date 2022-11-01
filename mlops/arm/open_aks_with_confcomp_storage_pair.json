@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.11.1.770",
-      "templateHash": "6799237867959004747"
+      "templateHash": "3286272064761087458"
     }
   },
   "parameters": {
@@ -67,7 +67,23 @@
         "Standard_DC16ds_v3",
         "Standard_DC24ds_v3",
         "Standard_DC32ds_v3",
-        "Standard_DC48ds_v3"
+        "Standard_DC48ds_v3",
+        "Standard_DC2as_v5",
+        "Standard_DC4as_v5",
+        "Standard_DC8as_v5",
+        "Standard_DC16as_v5",
+        "Standard_DC32as_v5",
+        "Standard_DC48as_v5",
+        "Standard_DC64as_v5",
+        "Standard_DC96as_v5",
+        "Standard_DC2ads_v5",
+        "Standard_DC4ads_v5",
+        "Standard_DC8ads_v5",
+        "Standard_DC16ads_v5",
+        "Standard_DC32ads_v5",
+        "Standard_DC48ads_v5",
+        "Standard_DC64ads_v5",
+        "Standard_DC96ads_v5"
       ],
       "metadata": {
         "description": "VM size for the compute cluster."
@@ -103,6 +119,9 @@
         "description": "Tags to curate the resources in Azure."
       }
     }
+  },
+  "variables": {
+    "aksClusterNameClean": "[substring(parameters('aksClusterName'), 0, min(length(parameters('aksClusterName')), 16))]"
   },
   "resources": [
     {
@@ -144,7 +163,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "6611935237026140155"
+              "templateHash": "4597355319206548270"
             }
           },
           "parameters": {
@@ -161,12 +180,6 @@
                 "description": "The region of the machine learning workspace"
               }
             },
-            "tags": {
-              "type": "object",
-              "metadata": {
-                "description": "Tags to add to the resources"
-              }
-            },
             "storageName": {
               "type": "string",
               "metadata": {
@@ -178,6 +191,23 @@
               "metadata": {
                 "description": "Azure region of the storage to create"
               }
+            },
+            "storageSKU": {
+              "type": "string",
+              "defaultValue": "Standard_LRS",
+              "metadata": {
+                "description": "Storage SKU"
+              },
+              "allowedValues": [
+                "Standard_LRS",
+                "Standard_ZRS",
+                "Standard_GRS",
+                "Standard_GZRS",
+                "Standard_RAGRS",
+                "Standard_RAGZRS",
+                "Premium_LRS",
+                "Premium_ZRS"
+              ]
             },
             "containerName": {
               "type": "string",
@@ -212,22 +242,12 @@
                 "Disabled"
               ]
             },
-            "storageSKU": {
-              "type": "string",
-              "defaultValue": "Standard_LRS",
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
               "metadata": {
-                "description": "Storage SKU"
-              },
-              "allowedValues": [
-                "Standard_LRS",
-                "Standard_ZRS",
-                "Standard_GRS",
-                "Standard_GZRS",
-                "Standard_RAGRS",
-                "Standard_RAGZRS",
-                "Premium_LRS",
-                "Premium_ZRS"
-              ]
+                "description": "Tags to add to the resources"
+              }
             }
           },
           "variables": {
@@ -325,6 +345,7 @@
               "apiVersion": "2022-06-01-preview",
               "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('datastoreName'))]",
               "properties": {
+                "tags": "[parameters('tags')]",
                 "credentials": {
                   "credentialsType": "None"
                 },
@@ -380,10 +401,10 @@
             "value": "[parameters('machineLearningRegion')]"
           },
           "aksClusterName": {
-            "value": "[parameters('aksClusterName')]"
+            "value": "[variables('aksClusterNameClean')]"
           },
           "amlComputeName": {
-            "value": "[parameters('aksClusterName')]"
+            "value": "[variables('aksClusterNameClean')]"
           },
           "computeRegion": {
             "value": "[parameters('pairRegion')]"
@@ -408,7 +429,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.11.1.770",
-              "templateHash": "8149133785144232818"
+              "templateHash": "13435328150647687136"
             }
           },
           "parameters": {
@@ -472,7 +493,23 @@
                 "Standard_DC16ds_v3",
                 "Standard_DC24ds_v3",
                 "Standard_DC32ds_v3",
-                "Standard_DC48ds_v3"
+                "Standard_DC48ds_v3",
+                "Standard_DC2as_v5",
+                "Standard_DC4as_v5",
+                "Standard_DC8as_v5",
+                "Standard_DC16as_v5",
+                "Standard_DC32as_v5",
+                "Standard_DC48as_v5",
+                "Standard_DC64as_v5",
+                "Standard_DC96as_v5",
+                "Standard_DC2ads_v5",
+                "Standard_DC4ads_v5",
+                "Standard_DC8ads_v5",
+                "Standard_DC16ads_v5",
+                "Standard_DC32ads_v5",
+                "Standard_DC48ads_v5",
+                "Standard_DC64ads_v5",
+                "Standard_DC96ads_v5"
               ],
               "metadata": {
                 "description": "The size of the Virtual Machine."

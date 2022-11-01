@@ -36,7 +36,7 @@ The orchestrator is the central server of the Federated Learning pipeline. It is
 | Manual | Description |
 | :-- | :-- |
 | [Tutorial](./orchestrator_open.md) | Create a sandbox open pair of compute and storage for the orchestrator. |
-| :construction: | Create a vnet with a compute, a private DNS zone and private endpoints to a new blob storage (created in the same resource group). |
+| [Tutorial](./orchestrator_vnet.md) | Create a vnet with a compute and private endpoints to a **new** blob storage created in the same resource group. |
 
 ## Create internal silos
 
@@ -48,7 +48,6 @@ These tutorials will let you create silos as a pair of compute and storage, opti
 | [Tutorial](./silo_open_aks_with_cc.md) | Create an open pair (for sandbox/dev use only) using an AKS cluster with confidential compute. |
 | [Tutorial](./silo_vnet_newstorage.md) | Create a vnet with a compute and private endpoints to a **new** blob storage created in the same resource group. |
 | [Tutorial](./silo_vnet_existingstorage.md) | Create a vnet with a compute and private endpoint to an **existing** blob storage, in the **same tenant**. |
-| :construction: | Create a vnet with a compute and private endpoint to an **existing** blob storage, in a **different tenant**. |
 | :construction: | Create a vnet with an AKS cluster using **confidential computes** and private endpoint to an **existing** blob storage. |
 
 ## Create external silos
