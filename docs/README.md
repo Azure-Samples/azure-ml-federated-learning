@@ -10,6 +10,7 @@
 - [Why Federated Learning?](#why-should-you-consider-federated-learning)
 - [What this repo as to offer?](#what-this-repo-as-to-offer)
 - [Tutorial on how to adapt the "literal" and the "factory" code](#tutorial-on-how-to-adapt-the-literal-and-the-factory-code)
+- [Real-world examples](#real-world-examples)
 - [Glossary](#glossary)
 
 ## Motivation
@@ -53,6 +54,12 @@ This repo provides some code samples for running a federated learning pipeline i
 
 The complete tutorial can be found [**here**](./literal-factory-tutorial.md)
 
+## Real-world examples
+
+In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [factory](../examples/pipelines/fl_cross_silo_factory/) sample experiments, we also provide examples based on real-world applications.
+
+### Pneumonia detection from chest radiographs
+In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on a dataset from the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._ See [here](./real-world-examples/pneumonia.md) for detailed instructions on how to run this example.
 
 ## Glossary
 
