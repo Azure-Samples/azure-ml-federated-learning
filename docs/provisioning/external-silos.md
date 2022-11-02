@@ -2,7 +2,7 @@
 
 
 ## Contents
-Many real-world Federated Learning (FL) applications will rely on silos that are not in the same Azure tenant as the orchestrator. This is the case for example when the silos are owned by different companies. Furthermore, those silos might not even be in Azure at all - they might be on different cloud platforms, or on-premises.
+Many real-world Federated Learning (FL) applications will rely on silos that are not in the same Azure tenant as the orchestrator. This is the case when the silos are owned by different companies. Furthermore, those silos might not even be in Azure at all - they might be on different cloud platforms, or on-premises.
 
 We refer to those types of silos as _external_ silos. The goal of this document is to **provide guidance on how to provision a FL setup with _external_ silos.**
 
@@ -20,7 +20,7 @@ For common FL terms such as **silo** or **orchestrator**, please refer to the [g
 
 
 ## Prerequisites
-- **Some Kubernetes (k8s) cluster** (at least one) with version <= 1.24.6, either on-premises, or in Azure (in a different tenant from that of the orchestrator). The cluster should have a minimum of 4 vCPU cores and 8-GB memory
+- **Some Kubernetes (k8s) cluster** (at least one) with version <= 1.24.6, either on-premises, or in Azure (in a different tenant from that of the orchestrator). The cluster should have a minimum of 4 vCPU cores and 8-GB memory.
   - For creating a k8s cluster on-premises one can use [Kind](https://kind.sigs.k8s.io/), for instance.
   - For creating a k8s cluster in Azure (in a different tenant otherwise we'd be dealing with _internal_ silos), one can use [Azure Kubernetes Service (AKS)](https://portal.azure.com/#create/microsoft.aks).
 - **FL Admin** needs to have **Owner** role in the subscription, or at least in the resource group where the Azure ML workspace will be created. This is because some Role Assignments will have to be created.
@@ -32,7 +32,7 @@ For common FL terms such as **silo** or **orchestrator**, please refer to the [g
     - Install _via_ `az extension add --name ml`. See [over there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-cli?tabs=public) for more details on installation.
   - The **k8s-extension** Azure CLI extension with version >= 1.2.3.
     - Install _via_ `az extension add --name k8s-extension`. 
-- **Silo Admin** will also need the following:
+- **Silo Admin** will need the following:
   - The **connectedk8s** Azure CLI extension with version >= 1.2.0.
     - Install _via_ `az extension add --name connectedk8s`.
   - A [kubeconfig file](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/) and context pointing to the k8s cluster.
@@ -41,9 +41,9 @@ For common FL terms such as **silo** or **orchestrator**, please refer to the [g
 ## Procedure
 
 ### A. **FL Admin** creates the Azure ML workspace and the orchestrator
-> This is all explained in the first sections of the [cookbook](./README.md) but repeated here for convenience and to clarify that it needs to be done by the **FL Admin**.
+> This is all explained in the first sections of the [cookbook](./README.md) but repeated here for convenience.
 
-First, create an open Azure ML workspace named `<workspace-name>`. Owner permissions in `<workspace-resource-group>` are required, since Role Assignments will need to be created later on. (The `<base-name>` value will be used when creating associated resources and can be chosen arbitrarily, but note that it should be unique in the subscription.)
+Create an open Azure ML workspace named `<workspace-name>`. Owner permissions in `<workspace-resource-group>` are required, since Role Assignments will need to be created later on. (The `<base-name>` value will be used when creating associated resources and can be chosen arbitrarily, but note that it should be unique in the subscription.)
 ```bash 
 az deployment group create --template-file ./mlops/bicep/modules/azureml/open_azureml_workspace.bicep --resource-group <workspace-resource-group> --parameters machineLearningName=<workspace-name> baseName=<base-name>
 ```
