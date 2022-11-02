@@ -151,7 +151,7 @@ First, open the [config.yaml](../../examples/pipelines/fl_cross_silo_literal/con
   - The `datastore` value should be `datastore_orch` if you kept the default value for the `pairBaseName` , otherwise it will be the value you chose for `pairBaseName`, appended to `datastore_` (if you had '`-`' characters in `pairBaseName`, they will be replaced by '`_`').
 - In the `silo` section:
   - Just keep one silo, by deleting or commenting out all entries but one (3 entries to start with, each with a `compute`, `datastore`, `training_data`, and `testing_data` parameter).
-  - Adjust the remaining values of `compute` and `datastore` to those corresponding to the silo you created in [step D](#e-fl-admin-attaches-the-arc-cluster-to-the-orchestrator-workspace). The value for `compute` will be `<azureml-compute-name>`, and the value for `datastore` will be `datastore_<storage-account-name>` (with '`-`' characters replaced by '`_`' if applicable). 
+  - Adjust the remaining values of `compute` and `datastore` to those corresponding to the silo you created in [step E](#e-fl-admin-attaches-the-arc-cluster-to-the-orchestrator-workspace). The value for `compute` will be `<azureml-compute-name>`, and the value for `datastore` will be `datastore_<storage-account-name>` (with '`-`' characters replaced by '`_`' if applicable). 
 
 Submit the job by running the following command.
 ```bash
