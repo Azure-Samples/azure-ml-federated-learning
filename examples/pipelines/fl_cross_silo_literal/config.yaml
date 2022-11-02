@@ -9,11 +9,14 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: "cpu-orchestrator"
-    datastore: "datastore_orchestrator"
+    # compute: "cpu-orchestrator"
+    # datastore: "datastore_orchestrator"
+    compute: cpu-cluster
+    datastore: workspaceblobstore
 
   silos:
-    - compute: cpu-silo0-westus
+    # - compute: cpu-silo0-westus
+    - compute: gpu-m60-1
       datastore: workspaceblobstore # datastore_silo0_westus
       # in this demo, we're using public data from a url instead
       training_data:

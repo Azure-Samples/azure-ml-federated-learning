@@ -168,9 +168,12 @@ preprocessing_component = load_component(
 
 if args.example == "MNIST_STAGING":
     training_component = ML_CLIENT_STAGING.components.get(args.staging_component_name, version=args.staging_component_version)
+    training_component = load_component(
+        source=os.path.join(COMPONENTS_FOLDER + "_STAGING", "spec.yaml")
+    )
 else:
     training_component = load_component(
-        path=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+        source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
     )
 
 aggregate_component = load_component(
@@ -305,6 +308,7 @@ def fl_cross_silo_internal_basic():
                     number_of_epochs=YAML_CONFIG.training_parameters.epochs,
                     # Dataloader batch size
                     training_batch_size=YAML_CONFIG.training_parameters.batch_size,
+                    checkpoint_filename=running_checkpoint,
                     model_name='mobilenetv2'
                 )
 

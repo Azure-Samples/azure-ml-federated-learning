@@ -4,13 +4,15 @@ import logging
 import sys
 import json
 
+from tqdm import tqdm
 from torchvision import transforms
 from torchvision.utils import save_image
 from torch.utils.data import Dataset
 import torch
 import pandas as pd
 import mlflow
-import mltable
+import multiprocessing
+from multiprocessing import Pool
 
 
 def get_arg_parser(parser=None):
@@ -130,26 +132,30 @@ def preprocess_data(
     # Mlflow logging
     log_metadata(X_train, X_test, metrics_prefix)
 
-    JSONL_filecontent = ""
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
-        for idx, (data, target) in enumerate(datasets[x]):
+        jsonl_file_contents = []
+        jsonl_file_path = processed_data_dir + f"/{x}_annotations.jsonl"
+
+        # cpu_count = multiprocessing.cpu_count()
+        # with Pool(cpu_count) as pool:
+        #     jsonl_file_contents = pool.map(process_sample, )
+        for idx, (data, target) in enumerate(tqdm(datasets[x])):
             os.makedirs(processed_data_dir + f"/{target}", exist_ok=True)
 
             output_path = processed_data_dir + f"/{target}/{idx}.jpg"
             save_image(data, output_path)
 
             json_line_sample = {
-                "image_url": output_path,
+                "image_url": f"./{target}/{idx}.jpg",
                 "image_details": {"format": None, "width": None, "height": None},
                 "label": str(target),
             }
-            JSONL_filecontent += json.dumps(json_line_sample)
-            JSONL_filecontent += "\n"
-        
-        JSONL_file = processed_data_dir + f"/{x}_annotations.jsonl"
-        with open(JSONL_file, "w") as f:
-            f.write(JSONL_filecontent)
+            jsonl_file_contents.append(json.dumps(json_line_sample))
+
+        with open(jsonl_file_path, "w") as jsonl_file:
+            jsonl_file.write("\n".join(jsonl_file_contents))
+
         MLTable_filecontent = \
 f"""paths:
   - file: ./{x}_annotations.jsonl
