@@ -9,6 +9,7 @@
 - [Getting Started](#getting-started)
 - [Why Federated Learning?](#why-should-you-consider-federated-learning)
 - [What this repo as to offer?](#what-this-repo-as-to-offer)
+- [Tutorial on how to adapt the "literal" and the "factory" code](#tutorial-on-how-to-adapt-the-literal-and-the-factory-code)
 - [Glossary](#glossary)
 
 ### Motivation
@@ -46,6 +47,12 @@ This repo provides some code samples for running a federated learning pipeline i
 | :--- | :--- |
 | [examples](../examples) | Scripts and pipelines to run FL sample experiments |
 | [mlops](../mlops) | Provisioning scripts |
+
+
+### Tutorial on how to adapt the "literal" and the "factory" code
+
+The complete tutorial can be found [**here**](./literal-factory-tutorial.md)
+
 
 ### Glossary
 
