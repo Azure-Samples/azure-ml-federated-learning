@@ -38,8 +38,8 @@ jobs:
         # Download the Pneumonia dataset
         pip install kaggle
         pip install split-folders
-        kaggle datasets download -d paultimothymooney/chest-xray-pneumonia -p /tmp
-        unzip -q /tmp/chest-xray-pneumonia.zip -d /tmp
+        kaggle datasets download -d paultimothymooney/chest-xray-pneumonia -p /tmp --unzip
+        #unzip -q /tmp/chest-xray-pneumonia.zip -d /tmp
 
         # split in train, val and test
         splitfolders --output /tmp/chest_xray_tvt/ --ratio .8 .1 .1 --seed 33 --move -- /tmp/chest_xray/train
