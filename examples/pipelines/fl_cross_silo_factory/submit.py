@@ -324,15 +324,7 @@ pipeline_job = builder.build_flexible_fl_pipeline(
     accumulator={
         # this key needs to be the name of the output of gather component/pipeline
         # AND be an acceptable input key for scatter component/pipeline
-        "aggregated_checkpoint" : Input(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=Input(
-                type="uri_folder",
-                mode="mount",
-                path="azureml://{YAML_CONFIG.federated_learning.orchestrator.datastore}/foo"
-            ),
-        )
+        "name" : "aggregated_checkpoint"
     },
     iterations=YAML_CONFIG.training_parameters.num_of_iterations,
 

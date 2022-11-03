@@ -211,17 +211,13 @@ class FederatedLearningPipelineFactory:
         """
         # type checking
         assert isinstance(accumulator, dict), "accumulator must be an dict"
-        assert len(accumulator) == 1, "you need to provide exactly one accumulator"
-        for key in accumulator:
-            assert isinstance(
-                accumulator[key], Input
-            ), f"accumulator[{key}] must be an Input"
+        assert "name" in accumulator, "accumulator must have a key 'name'"
 
         # assert isinstance(scatter, function), f"scatter must be a {scatter.__class__.__name__}"
         # assert isinstance(gather, PipelineStep), "gather must be a PipelineStep"
 
         # prepare keys for building
-        accumulator_key = list(accumulator.keys())[0]
+        accumulator_key = accumulator["name"]
         scatter_outputs_keys = None
 
         @pipeline(
@@ -328,12 +324,33 @@ class FederatedLearningPipelineFactory:
                 output_iteration = fl_scatter_gather_iteration(running_accumulator, iteration_num)
                 output_iteration.name = f"scatter_gather_iteration_{iteration_num}"
 
+                # the running accumulator is on the orchestrator side
+                for key in output_iteration.outputs:
+                    setattr(
+                        output_iteration.outputs,
+                        key,
+                        self.custom_fl_data_output(self.orchestrator["datastore"], key),
+                    )
+
                 # let's keep track of the checkpoint to be used as input for next iteration
                 running_accumulator = output_iteration.outputs[accumulator_key]
 
-            return {accumulator_key : running_accumulator}
+            return {
+                # the only output is the accumulator
+                accumulator_key : running_accumulator
+            }
 
-        return _fl_cross_silo_factory_pipeline()
+        pipeline_job = _fl_cross_silo_factory_pipeline()
+
+        # for some reason, we also need that here, making sure
+        for key in pipeline_job.outputs:
+            setattr(
+                pipeline_job.outputs,
+                key,
+                self.custom_fl_data_output(self.orchestrator["datastore"], key),
+            )
+
+        return pipeline_job
 
     ###########################
     ### AFFINITY VALIDATION ###
