@@ -26,11 +26,11 @@ jobs:
       uses: azure/login@v1
       with:
         creds: ${{secrets.AZURE_CREDENTIALS_DATAPREP}}
-    - name: Provision resources
+    - name: Download, split and upload data
       run: |
         clients=( europe asia us)
         export KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME }}
-        export KAGGLE_KEY=${{ secrets.KAGGLE_PASSWORD }}
+        export KAGGLE_KEY=${{ secrets.KAGGLE_KEY }}
 
         az configure --defaults group="${{ github.event.inputs.resource_group }}"
         az configure --defaults workspace="${{ github.event.inputs.workspace }}"
