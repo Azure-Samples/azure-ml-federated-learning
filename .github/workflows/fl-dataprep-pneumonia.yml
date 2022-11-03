@@ -28,7 +28,7 @@ jobs:
         creds: ${{secrets.AZURE_CREDENTIALS_DATAPREP}}
     - name: Download, split and upload data
       run: |
-        clients=( europe asia us)
+        clients=( france brazil us )
         export KAGGLE_USERNAME=${{ secrets.KAGGLE_USERNAME }}
         export KAGGLE_KEY=${{ secrets.KAGGLE_KEY }}
 
@@ -39,18 +39,17 @@ jobs:
         pip install kaggle
         pip install split-folders
         kaggle datasets download -d paultimothymooney/chest-xray-pneumonia -p /tmp --unzip
-        #unzip -q /tmp/chest-xray-pneumonia.zip -d /tmp
 
         # split in train, val and test
         splitfolders --output /tmp/chest_xray_tvt/ --ratio .8 .1 .1 --seed 33 --move -- /tmp/chest_xray/train
 
-        # store central dataset to asia hospital
-        az ml data create --name pneumonia-central \
+        # store all data in case we need them later on
+        az ml data create --name pneumonia-alldata \
                           --path /tmp/chest_xray_tvt \
                           --type uri_folder
 
         stages=( train test val )
-        classes=( PNEUMONIA NORMAL)
+        classes=( PNEUMONIA NORMAL )
 
         # Create folders
         for client in "${clients[@]}"; do
@@ -69,6 +68,12 @@ jobs:
             classnr=$(( i % 3 ))
             cp $file ${file/chest_xray_tvt/chest_xray_${clients[classnr]}}
             i=$((i+1))
+        done
+
+        for client in "${clients[@]}"; do
+          az ml data create --name pneumonia-dataset \
+                            --path /tmp/chest_xray_$client \
+                            --type uri_folder
         done
 
         # #Upload data assets
