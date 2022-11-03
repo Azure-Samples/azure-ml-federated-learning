@@ -37,7 +37,7 @@ The goal of this phase is to upload to Azure ML 3 distinct datasets (one per sil
 2. Create a GitHub secret in your _forked_ repository. Name it AZURE_CREDENTIALS_DATAPREP and copy and paste the output of the above command to the Value field of the secret.
 3. Add the following secrets to your repository with corresponding values:
   - KAGGLE_USERNAME: your Kaggle username.
-  - KAGGLE_PASSWORD: your Kaggle API key. More info [here](https://www.kaggle.com/docs/api).
+  - KAGGLE_KEY: your Kaggle API key. More info [here](https://www.kaggle.com/docs/api).
 4. Navigate to the GitHub Actions tab, and run the workflow with the name *FL data preparation - pneumonia example*. Provide the names of your workspace and resource group. This will register the datasets required for your experiment in your workspace.
 
 
