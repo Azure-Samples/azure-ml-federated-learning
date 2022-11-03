@@ -11,8 +11,8 @@ from torch.utils.data import Dataset
 import torch
 import pandas as pd
 import mlflow
-import multiprocessing
-from multiprocessing import Pool
+import multiprocessing as mt
+from functools import partial
 
 
 def get_arg_parser(parser=None):
@@ -69,6 +69,21 @@ class MnistDataset(Dataset):
             return [self.X[idx]]
         return self.X[idx], self.Y[idx]
 
+def process_sample(processed_data_dir, idxdatatarget):
+    idx, (data, target) = idxdatatarget
+
+    os.makedirs(processed_data_dir + f"/{target}", exist_ok=True)
+
+    output_path = processed_data_dir + f"/{target}/{idx}.jpg"
+    save_image(data, output_path)
+
+    json_line_sample = {
+        "image_url": f"./{target}/{idx}.jpg",
+        # "image_url": f"azureml://subscriptions/<my-subscription-id>/resourcegroups/<my-resource-group>/workspaces/<my-workspace>/datastores/<my-datastore>/paths/<path_to_image>",
+        "image_details": {"format": "jpg", "width": data.shape[1], "height": data.shape[0]},
+        "label": str(target.item()),
+    }
+    return json.dumps(json_line_sample)
 
 def preprocess_data(
     raw_training_data,
@@ -134,24 +149,16 @@ def preprocess_data(
 
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
-        jsonl_file_contents = []
         jsonl_file_path = processed_data_dir + f"/{x}_annotations.jsonl"
+        os.makedirs(processed_data_dir, exist_ok=True)
 
-        # cpu_count = multiprocessing.cpu_count()
-        # with Pool(cpu_count) as pool:
-        #     jsonl_file_contents = pool.map(process_sample, )
-        for idx, (data, target) in enumerate(tqdm(datasets[x])):
-            os.makedirs(processed_data_dir + f"/{target}", exist_ok=True)
-
-            output_path = processed_data_dir + f"/{target}/{idx}.jpg"
-            save_image(data, output_path)
-
-            json_line_sample = {
-                "image_url": f"./{target}/{idx}.jpg",
-                "image_details": {"format": None, "width": None, "height": None},
-                "label": str(target),
-            }
-            jsonl_file_contents.append(json.dumps(json_line_sample))
+        cpu_count = mt.cpu_count()
+        process_sample_partial = partial(process_sample, processed_data_dir)
+        with mt.Pool(cpu_count) as pool:
+            jsonl_file_contents = list(tqdm(
+                pool.imap(process_sample_partial, enumerate(datasets[x])), 
+                total=len(datasets[x])
+            ))
 
         with open(jsonl_file_path, "w") as jsonl_file:
             jsonl_file.write("\n".join(jsonl_file_contents))
