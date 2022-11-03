@@ -25,14 +25,10 @@ To adapt this script to your scenario, you can:
 """
 import os
 import argparse
-import random
-import string
-import datetime
 import webbrowser
 import time
-import json
 import sys
-import subprocess
+import logging
 
 # Azure ML sdk v2 imports
 import azure
@@ -45,11 +41,6 @@ from azure.ai.ml.entities._job.pipeline._io import NodeOutput
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
-
-from typing import List, Optional, Union
-from typing import Callable, Dict
-from dataclasses import dataclass
-import itertools
 
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
@@ -342,12 +333,14 @@ print(pipeline_job)  # print yaml for visual debugging
 builder.set_default_affinity_map()
 
 # run affinity map validation
-# builder.soft_validate(
-#     pipeline_job,
-#     raise_exception=not (
-#         args.ignore_validation
-#     ),  # set to False if you know what you're doing
-# )
+print("Running soft validation...")
+builder.soft_validate(
+    pipeline_job,
+    raise_exception=not (
+        args.ignore_validation
+    ),  # set to False if you know what you're doing
+)
+
 
 # 5. Submit to Azure ML
 
