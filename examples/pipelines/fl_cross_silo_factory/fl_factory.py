@@ -161,7 +161,6 @@ class FederatedLearningPipelineFactory:
                         _path=f"{_path}.jobs.{job_key}",
                     )
 
-
             return pipeline_step
 
         elif pipeline_step.type == "command":
@@ -468,92 +467,175 @@ class FederatedLearningPipelineFactory:
 
         return False
 
-    def _recursive_validate(self, job, default_datastore=None, default_compute=None):
+    def _resolve_pipeline_data(self, data_key, data_def, inputs_map={}, outputs_map={}, _path="ROOT"):
+        if data_def.type in ['string', 'boolean', 'integer', 'number']:
+            self.logger.debug(f"{_path}: job i/o key={data_key} is not data")
+            return data_def.type, None
+
+        #print(data_def.__dict__)
+
+        if isinstance(data_def._data, Input):
+            self.logger.debug(f"{_path}: job i/o key={data_key} is input")
+            return data_def._data.type, data_def._data.path
+        if isinstance(data_def._data, Output):
+            self.logger.debug(f"{_path}: job i/o key={data_key} is output")
+            print(data_def._data.__dict__)
+            return data_def._data.type, data_def._data.path
+    
+        if data_def._data is not None:
+            # internal reference inside the graph
+            self.logger.debug(f"{_path}: job i/o key={data_key} is an internal reference to pipeline level data name={data_def._data._name}")
+
+            ref_key = data_def._data._name
+
+            if ref_key in inputs_map:
+                _data_def = inputs_map[ref_key]
+            elif ref_key in outputs_map:
+                _data_def = outputs_map[ref_key]
+            else:
+                raise ValueError(f"{_path}: internal reference {ref_key} not found in inputs_map (keys={list(inputs_map.keys())}) or outputs_map (keys={list(outputs_map.keys())})")
+
+            return self._resolve_pipeline_data(
+                data_key=data_def._data._name,
+                data_def=_data_def,
+                inputs_map=inputs_map,
+                outputs_map=outputs_map,
+                _path=f"{_path}->{data_key}",
+            )
+        else:
+            self.logger.debug(f"{_path}: job i/o key={data_key} is pointing to type={data_def.type} path={data_def.path}")
+            return data_def.type, data_def.path
+
+
+    def _recursive_validate(self, job, _path="ROOT", inputs_map={}, outputs_map={}):
         soft_validation_report = []
+        self.logger.debug(f"{_path}: recursive validation of job name={job.name} with inputs_map={inputs_map} outputs_map={outputs_map}")
 
         if job.type == "pipeline":
-            print("Validating pipeline", job.name)
+            compute = job.compute
+
+            for key in job.inputs:
+                # validate inputs somehow
+                self.logger.debug(f"{_path}: job input={key} <> {compute}")
+                inputs_map[key] = job.inputs[key]
+
+            for key in job.outputs:
+                # validate outputs somehow
+                self.logger.debug(f"{_path}: job output={key} <> {compute}")
+                outputs_map[key] = job.outputs[key]
+
             if hasattr(job, "component"):
                 # pipeline component
+                self.logger.debug(f"{_path}: pipeline component detected for job name={job.name}")
+
+                job_level_inputs_map = inputs_map.copy()
+                job_level_outputs_map = outputs_map.copy()
                 for job_key in job.component.jobs:
-                    soft_validation_report.extend(self._recursive_validate(job.component.jobs[job_key]))
+                    for key in job.component.jobs[job_key].inputs:
+                        job_level_inputs_map[key] = job.component.jobs[job_key].inputs[key]
+                    for key in job.component.jobs[job_key].outputs:
+                        job_level_outputs_map[key] = job.component.jobs[job_key].outputs[key]
+
+                    soft_validation_report.extend(
+                        self._recursive_validate(
+                            job.component.jobs[job_key],
+                            _path=f"{_path}.component.jobs.{job_key}",
+                            inputs_map=job_level_inputs_map,
+                            outputs_map=job_level_outputs_map,
+                        ),
+                    )
+
                 return soft_validation_report
             else:
                 # regular pipeline
+                self.logger.debug(f"{_path}: regular pipeline detected for job name={job.name}")
                 for job_key in job.jobs:
-                    soft_validation_report.extend(self._recursive_validate(job.component.jobs[job_key]))
+                    soft_validation_report.extend(
+                        self._recursive_validate(
+                            job.component.jobs[job_key],
+                            _path=f"{_path}.jobs.{job_key}",
+                            inputs_map=inputs_map,
+                            outputs_map=outputs_map,
+                        ),
+                    )
+
                 return soft_validation_report
 
         elif job.type == "command":
-            print(f"Validating command name={job.name} compute={job.compute}")
-            if job.compute is None:
-                soft_validation_report.append(
-                    f"In job {job.name}, compute is not set."
-                )
+            # make sure the compute corresponds to the silo
+            job_key = job.name
 
-            compute = job.compute
+            if job.compute is None:
+                soft_validation_report.append(f"{_path}: job name={job.name} has no compute")
 
             # loop on all the inputs
             for input_key in job.inputs:
-                try:
-                    # get the path of this input
-                    input_path = job.inputs[input_key].path
-                except ValidationException:
+                input_type, input_path = self._resolve_pipeline_data(
+                    data_key=input_key,
+                    data_def=job.inputs[input_key],
+                    _path=f"{_path}.inputs.{input_key}",
+                    inputs_map=inputs_map,
+                    outputs_map=outputs_map,
+                )
+
+                if input_path is None:
                     continue
+
+                self.logger.debug(f"{_path}: job input={input_key} is pointing to to path={input_path}")
 
                 # extract the datastore
                 if input_path and input_path.startswith("azureml://datastores/"):
                     datastore = input_path[21:].split("/")[0]
-                elif input_path and input_path.startswith("$"):
-                    datastore = "#REF"
                 else:
                     # if using a registered dataset, let's consider datastore UNKNOWN
                     datastore = self.DATASTORE_UNKNOWN
 
-                print(f"Validating input={input_key} from command name={job.name} compute={job.compute} input_path={input_path}")
+                self.logger.debug(f"{_path}: validating job input={input_key} on datastore={datastore} against compute={job.compute}")
 
                 # verify affinity and log errors
                 if not self.check_affinity(
-                    compute, datastore, self.OPERATION_READ, job.inputs[input_key].type
+                    job.compute, datastore, self.OPERATION_READ, job.inputs[input_key].type
                 ):
                     soft_validation_report.append(
-                        f"In job {job_key}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={compute}"
+                        f"{_path}: In job name={job.name}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={compute}"
                     )
-
+            
             # loop on all the outputs
             for output_key in job.outputs:
+                if job.inputs[input_key]._data is not None:
+                    # internal reference to another input somewhere
+                    pass
+
                 try:
                     # get the path of this output
                     output_path = job.outputs[output_key].path
                 except ValidationException:
                     continue
 
-                print(f"Validating output={output_key} from command name={job.name} compute={job.compute} output_path={output_path}")
-
                 # extract the datastore
                 if output_path and output_path.startswith("azureml://datastores/"):
                     datastore = output_path[21:].split("/")[0]
                 else:
                     soft_validation_report.append(
-                        f"In job {job_key}, output={output_key} does not start with azureml://datastores/"
+                        f"{_path}: In job name={job.name}, output={output_key} does not start with azureml://datastores/"
                     )
                     continue
 
                 # verify affinity and log errors
                 if not self.check_affinity(
-                    compute,
+                    job.compute,
                     datastore,
                     self.OPERATION_WRITE,
                     job.outputs[output_key].type,
                 ):
                     soft_validation_report.append(
-                        f"In job {job_key}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={compute}"
+                        f"{_path}: In job name={job.name}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={compute}"
                     )
 
             return soft_validation_report
 
         else:
-            raise NotImplementedError(f"soft validation of step type={job.type} (name={job.name}) is not supported")
+            raise NotImplementedError(f"{_path}: job name={job.name} has type={job.type} that is not supported")
 
      
     def soft_validate(self, pipeline_job, raise_exception=True):
