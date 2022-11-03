@@ -43,7 +43,7 @@ jobs:
         # split in train, val and test
         splitfolders --output /tmp/chest_xray_tvt/ --ratio .8 .1 .1 --seed 33 --move -- /tmp/chest_xray/train
 
-        # store all data in case we need them later on
+        # create a data asset with all data in case we need them later on
         az ml data create --name pneumonia-alldata \
                           --path /tmp/chest_xray_tvt \
                           --type uri_folder
@@ -70,24 +70,9 @@ jobs:
             i=$((i+1))
         done
 
+        # Create a data asset for each client
         for client in "${clients[@]}"; do
           az ml data create --name pneumonia-$client \
                             --path /tmp/chest_xray_$client \
                             --type uri_folder
         done
-
-        # #Upload data assets
-        # az ml data create --workspace-name Asia-Hospital \
-        #                   --name pneumonia-dataset \
-        #                   --path /tmp/chest_xray_asia \
-        #                   --type uri_folder
-
-        # az ml data create --workspace-name Europe-Hospital \
-        #                   --name pneumonia-dataset \
-        #                   --path /tmp/chest_xray_europe \
-        #                   --type uri_folder
-
-        # az ml data create --workspace-name US-Hospital \
-        #                   --name pneumonia-dataset \
-        #                   --path /tmp/chest_xray_us \
-        #                   --type uri_folder
