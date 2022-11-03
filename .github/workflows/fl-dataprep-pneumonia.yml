@@ -71,7 +71,7 @@ jobs:
         done
 
         for client in "${clients[@]}"; do
-          az ml data create --name pneumonia-dataset \
+          az ml data create --name pneumonia-$client \
                             --path /tmp/chest_xray_$client \
                             --type uri_folder
         done
