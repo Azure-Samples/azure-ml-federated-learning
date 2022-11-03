@@ -467,12 +467,18 @@ class FederatedLearningPipelineFactory:
 
         return False
 
+
+    #######################
+    ## WORK IN PROGRESS ###
+    #######################
+
     def _resolve_pipeline_data(self, data_key, data_def, inputs_map={}, outputs_map={}, _path="ROOT"):
         if data_def.type in ['string', 'boolean', 'integer', 'number']:
             self.logger.debug(f"{_path}: job i/o key={data_key} is not data")
             return data_def.type, None
 
-        #print(data_def.__dict__)
+        if data_def._data is None:
+            return None, None
 
         if isinstance(data_def._data, Input):
             self.logger.debug(f"{_path}: job i/o key={data_key} is input")
