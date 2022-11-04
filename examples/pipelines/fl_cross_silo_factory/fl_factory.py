@@ -346,7 +346,9 @@ class FederatedLearningPipelineFactory:
             # now let's map the output of gather() to the accumulator for next iteration
             iteration_outputs = {}
             for key in aggregation_step.outputs:
-                iteration_outputs[gather_to_accumulator_map(key)] = aggregation_step.outputs[key]
+                iteration_outputs[
+                    gather_to_accumulator_map(key)
+                ] = aggregation_step.outputs[key]
 
             # and return that as the output of the iteration pipeline
             return iteration_outputs
