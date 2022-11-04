@@ -19,10 +19,10 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
-  iteration_name:
-    type: string
-    description: Iteration name
-    default: Default-iteration
+  iteration_num:
+    type: integer
+    description: Iteration number
+    default: 1
     optional: true
   checkpoint:
     type: uri_folder
@@ -52,7 +52,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_name ${{inputs.iteration_name}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
+  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04

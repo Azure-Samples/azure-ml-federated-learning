@@ -17,6 +17,7 @@ import json
 import sys
 
 # Azure ML sdk v2 imports
+import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
@@ -97,32 +98,38 @@ COMPONENTS_FOLDER = os.path.join(
 ### CONNECT TO AZURE ML ###
 ###########################
 
-try:
-    credential = DefaultAzureCredential()
-    # Check if given credential can get token successfully.
-    credential.get_token("https://management.azure.com/.default")
-except Exception as ex:
-    # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
-    credential = InteractiveBrowserCredential()
 
-# Get a handle to workspace
-try:
-    # tries to connect using local config.json
-    ML_CLIENT = MLClient.from_config(credential=credential)
+def connect_to_aml():
+    try:
+        credential = DefaultAzureCredential()
+        # Check if given credential can get token successfully.
+        credential.get_token("https://management.azure.com/.default")
+    except Exception as ex:
+        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
+        credential = InteractiveBrowserCredential()
 
-except Exception as ex:
-    print(
-        "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
-    )
+    # Get a handle to workspace
+    try:
+        # tries to connect using local config.json
+        ML_CLIENT = MLClient.from_config(credential=credential)
 
-    # tries to connect using cli args if provided else using config.yaml
-    ML_CLIENT = MLClient(
-        subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
-        resource_group_name=args.resource_group or YAML_CONFIG.aml.resource_group_name,
-        workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
-        credential=credential,
-    )
+    except Exception as ex:
+        print(
+            "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
+        )
 
+        # tries to connect using cli args if provided else using config.yaml
+        ML_CLIENT = MLClient(
+            subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
+            resource_group_name=args.resource_group
+            or YAML_CONFIG.aml.resource_group_name,
+            workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
+            credential=credential,
+        )
+    return ML_CLIENT
+
+
+ML_CLIENT = connect_to_aml()
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -130,15 +137,15 @@ except Exception as ex:
 
 # Loading the component from their yaml specifications
 preprocessing_component = load_component(
-    path=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
 )
 
 training_component = load_component(
-    path=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
 )
 
 aggregate_component = load_component(
-    path=os.path.join(
+    source=os.path.join(
         COMPONENTS_FOLDER, "aggregatemodelweights", "aggregatemodelweights.yaml"
     )
 )
@@ -272,8 +279,8 @@ def fl_cross_silo_internal_basic():
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
                 metrics_prefix=silo_config.compute,
-                # Iteration name
-                iteration_name=f"Iteration-{iteration}",
+                # Iteration number
+                iteration_num=iteration,
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -347,20 +354,12 @@ if args.submit:
         status = pipeline_job.status
 
         while status not in ["Failed", "Completed", "Canceled"]:
-            # check status after every 1 min.
             print(f"Job current status is {status}")
-            time.sleep(60)
-            cmd_output = os.popen(
-                f"az ml job show --name {job_name} --resource-group {args.resource_group or YAML_CONFIG.aml.resource_group_name} --workspace-name {args.workspace_name or YAML_CONFIG.aml.workspace_name}"
-            ).read()
-            print(cmd_output)
-            try:
-                status = json.loads(cmd_output.strip()).get("status")
-            except json.decoder.JSONDecodeError as e:
-                print(
-                    f"Error occurred while checking the status of the pipeline job: {e}"
-                )
-                sys.exit(1)
+
+            # check status after every 100 sec.
+            time.sleep(100)
+            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            status = pipeline_job.status
 
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
