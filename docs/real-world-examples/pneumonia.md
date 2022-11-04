@@ -40,5 +40,15 @@ The goal of this phase is to upload to Azure ML 3 distinct datasets (one per sil
   - KAGGLE_KEY: your Kaggle API key. More info [here](https://www.kaggle.com/docs/api).
 4. Navigate to the GitHub Actions tab, and run the workflow with the name *FL data preparation - pneumonia example*. Provide the names of your workspace and resource group. This will register the datasets required for your experiment in your workspace.
 
-
 ### Run the FL job
+
+1. Create a conda environment for _submitting_ the job, and activate it.
+   ```bash
+   conda env create --file ./examples/pipelines/pneumonia/environment.yml
+   conda activate fl_pneumonia_env
+   ```
+2. Adjust config file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
+3. Submit the experiment.
+   ```bash
+   python ./examples/pipelines/pneumonia/pneumonia_submit.py --submit
+   ```
