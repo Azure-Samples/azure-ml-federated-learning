@@ -13,3 +13,5 @@ dependencies:
     - pandas
     - mltable
     - tqdm
+    - azure-ai-ml
+    - azureml-core

@@ -13,6 +13,13 @@ import pandas as pd
 import mlflow
 import multiprocessing as mt
 from functools import partial
+from azureml.core import Run, Workspace
+
+from azure.ai.ml import MLClient
+
+from azure.ai.ml.constants import AssetTypes
+from azure.ai.ml.entities import Data
+from azure.ai.ml.identity import AzureMLOnBehalfOfCredential
 
 
 def get_arg_parser(parser=None):
@@ -69,6 +76,17 @@ class MnistDataset(Dataset):
             return [self.X[idx]]
         return self.X[idx], self.Y[idx]
 
+def create_sample_jsonl_entry(azureml_data_dir, idxdatatarget):
+    idx, (data, target) = idxdatatarget
+
+    json_line_sample = {
+        "image_url": azureml_data_dir + f"/{target}/{idx}.jpg",
+        # "image_url": f"azureml://subscriptions/<my-subscription-id>/resourcegroups/<my-resource-group>/workspaces/<my-workspace>/datastores/<my-datastore>/paths/<path_to_image>",
+        "image_details": {"format": "jpg", "width": data.shape[1], "height": data.shape[0]},
+        "label": str(target.item()),
+    }
+    return json.dumps(json_line_sample)
+
 def process_sample(processed_data_dir, idxdatatarget):
     idx, (data, target) = idxdatatarget
 
@@ -77,13 +95,21 @@ def process_sample(processed_data_dir, idxdatatarget):
     output_path = processed_data_dir + f"/{target}/{idx}.jpg"
     save_image(data, output_path)
 
-    json_line_sample = {
-        "image_url": f"./{target}/{idx}.jpg",
-        # "image_url": f"azureml://subscriptions/<my-subscription-id>/resourcegroups/<my-resource-group>/workspaces/<my-workspace>/datastores/<my-datastore>/paths/<path_to_image>",
-        "image_details": {"format": "jpg", "width": data.shape[1], "height": data.shape[0]},
-        "label": str(target.item()),
-    }
-    return json.dumps(json_line_sample)
+def get_mlclient():
+    run: Run = Run.get_context()
+    workspace: Workspace = run.experiment.workspace
+
+    subscription_id = workspace.subscription_id
+    resource_group = workspace.resource_group
+    workspace_name = workspace.name
+
+    credential = AzureMLOnBehalfOfCredential()
+    return MLClient(
+        credential=credential,
+        subscription_id=subscription_id,
+        resource_group_name=resource_group,
+        workspace_name=workspace_name,
+    )
 
 def preprocess_data(
     raw_training_data,
@@ -102,7 +128,7 @@ def preprocess_data(
     Returns:
         None
     """
-
+    
     logger.info(
         f"Raw Training Data path: {raw_training_data}, Raw Testing Data path: {raw_testing_data}, Processed Training Data dir path: {train_data_dir}, Processed Testing Data dir path: {test_data_dir}"
     )
@@ -146,6 +172,9 @@ def preprocess_data(
 
     # Mlflow logging
     log_metadata(X_train, X_test, metrics_prefix)
+    
+    # Create MLClient for creating the dataset
+    ml_client = get_mlclient()
 
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
@@ -155,10 +184,23 @@ def preprocess_data(
         cpu_count = mt.cpu_count()
         process_sample_partial = partial(process_sample, processed_data_dir)
         with mt.Pool(cpu_count) as pool:
-            jsonl_file_contents = list(tqdm(
+            list(tqdm(
                 pool.imap(process_sample_partial, enumerate(datasets[x])), 
                 total=len(datasets[x])
             ))
+
+        # Create dataset info inside AML
+        data = Data(
+            type=AssetTypes.URI_FOLDER,
+            path=processed_data_dir,
+            name="mnist_train"
+        )
+        azureml_data_dir = ml_client.data.create_or_update(data).path
+
+        jsonl_file_contents = [
+            create_sample_jsonl_entry(azureml_data_dir, idxdatatarget) 
+            for idxdatatarget in enumerate(tqdm(datasets[x]))
+        ]
 
         with open(jsonl_file_path, "w") as jsonl_file:
             jsonl_file.write("\n".join(jsonl_file_contents))

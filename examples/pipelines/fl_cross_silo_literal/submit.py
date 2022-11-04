@@ -396,6 +396,7 @@ def fl_cross_silo_internal_basic():
 
 
 pipeline_job = fl_cross_silo_internal_basic()
+pipeline_job.identity = UserIdentityConfiguration()
 
 # Inspect built pipeline
 print(pipeline_job)
