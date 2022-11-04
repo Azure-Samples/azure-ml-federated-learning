@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.11.1.770",
-      "templateHash": "16399115122750186299"
+      "version": "0.12.1.58429",
+      "templateHash": "16857721830276313281"
     }
   },
   "parameters": {
@@ -151,8 +151,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "8206466772114353852"
+              "version": "0.12.1.58429",
+              "templateHash": "12909729265480575074"
             }
           },
           "parameters": {
@@ -415,7 +415,7 @@
         "mode": "Incremental",
         "parameters": {
           "machineLearningName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceName.value]"
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
@@ -481,8 +481,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "5468692794058122646"
+              "version": "0.12.1.58429",
+              "templateHash": "8601235637397386756"
             }
           },
           "parameters": {
@@ -729,8 +729,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "16767805571868573174"
+                      "version": "0.12.1.58429",
+                      "templateHash": "7634015947996351621"
                     }
                   },
                   "parameters": {
@@ -876,7 +876,7 @@
                           "isolatedNetwork": false,
                           "remoteLoginPortPublicAccess": "Disabled",
                           "subnet": {
-                            "id": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
+                            "id": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
                           }
                         }
                       },
@@ -911,8 +911,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.11.1.770",
-                              "templateHash": "14209094507518255665"
+                              "version": "0.12.1.58429",
+                              "templateHash": "7322159487400738214"
                             }
                           },
                           "parameters": {
@@ -1091,7 +1091,7 @@
                             "value": "[parameters('vnetResourceName')]"
                           },
                           "networkSecurityGroupId": {
-                            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgResourceName')))).outputs.id.value]"
+                            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgResourceName'))), '2020-10-01').outputs.id.value]"
                           },
                           "vnetAddressPrefix": {
                             "value": "[parameters('vnetAddressPrefix')]"
@@ -1114,8 +1114,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.11.1.770",
-                              "templateHash": "9119103325655861190"
+                              "version": "0.12.1.58429",
+                              "templateHash": "9909889569874368262"
                             }
                           },
                           "parameters": {
@@ -1252,15 +1252,15 @@
                     },
                     "vnetName": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.name.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.name.value]"
                     },
                     "vnetId": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
                     },
                     "subnetId": {
                       "type": "string",
-                      "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
+                      "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
                     },
                     "subnetName": {
                       "type": "string",
@@ -1299,7 +1299,7 @@
                     "value": "[parameters('storagePublicNetworkAccess')]"
                   },
                   "subnetIds": {
-                    "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.subnetName.value)), parameters('allowedSubnetIds'))]"
+                    "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.subnetName.value)), parameters('allowedSubnetIds'))]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -1311,8 +1311,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "4597355319206548270"
+                      "version": "0.12.1.58429",
+                      "templateHash": "15695720227000711530"
                     }
                   },
                   "parameters": {
@@ -1554,19 +1554,19 @@
                     "value": "[parameters('tags')]"
                   },
                   "resourceServiceId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
                   },
                   "resourceName": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
                   },
                   "pleRootName": {
-                    "value": "[format('ple-{0}-to-{1}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value, parameters('pairBaseName'))]"
+                    "value": "[format('ple-{0}-to-{1}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value, parameters('pairBaseName'))]"
                   },
                   "virtualNetworkId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value]"
                   },
                   "subnetId": {
-                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.subnetName.value)]"
+                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.subnetName.value)]"
                   },
                   "useStaticIPAddress": {
                     "value": "[parameters('useStorageStaticIP')]"
@@ -1590,8 +1590,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "5727420364397609270"
+                      "version": "0.12.1.58429",
+                      "templateHash": "13740218925975593492"
                     }
                   },
                   "parameters": {
@@ -1775,10 +1775,10 @@
                 "mode": "Incremental",
                 "parameters": {
                   "storageAccountName": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
                   },
                   "identityPrincipalId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
                   }
                 },
                 "template": {
@@ -1787,8 +1787,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "17992859547784854732"
+                      "version": "0.12.1.58429",
+                      "templateHash": "15885661083233540174"
                     }
                   },
                   "parameters": {
@@ -1844,19 +1844,19 @@
           "outputs": {
             "identityPrincipalId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
             },
             "storageName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
             },
             "storageServiceId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
             },
             "computeName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.compute.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
             },
             "region": {
               "type": "string",
@@ -1864,15 +1864,15 @@
             },
             "vnetName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetName.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetName.value]"
             },
             "vnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value]"
             },
             "subnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.subnetId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.subnetId.value]"
             }
           }
         }
@@ -1897,7 +1897,7 @@
         "mode": "Incremental",
         "parameters": {
           "machineLearningName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))).outputs.workspaceName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceName.value]"
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
@@ -1954,8 +1954,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "5468692794058122646"
+              "version": "0.12.1.58429",
+              "templateHash": "8601235637397386756"
             }
           },
           "parameters": {
@@ -2202,8 +2202,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "16767805571868573174"
+                      "version": "0.12.1.58429",
+                      "templateHash": "7634015947996351621"
                     }
                   },
                   "parameters": {
@@ -2349,7 +2349,7 @@
                           "isolatedNetwork": false,
                           "remoteLoginPortPublicAccess": "Disabled",
                           "subnet": {
-                            "id": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
+                            "id": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
                           }
                         }
                       },
@@ -2384,8 +2384,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.11.1.770",
-                              "templateHash": "14209094507518255665"
+                              "version": "0.12.1.58429",
+                              "templateHash": "7322159487400738214"
                             }
                           },
                           "parameters": {
@@ -2564,7 +2564,7 @@
                             "value": "[parameters('vnetResourceName')]"
                           },
                           "networkSecurityGroupId": {
-                            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgResourceName')))).outputs.id.value]"
+                            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('nsgResourceName'))), '2020-10-01').outputs.id.value]"
                           },
                           "vnetAddressPrefix": {
                             "value": "[parameters('vnetAddressPrefix')]"
@@ -2587,8 +2587,8 @@
                           "metadata": {
                             "_generator": {
                               "name": "bicep",
-                              "version": "0.11.1.770",
-                              "templateHash": "9119103325655861190"
+                              "version": "0.12.1.58429",
+                              "templateHash": "9909889569874368262"
                             }
                           },
                           "parameters": {
@@ -2725,15 +2725,15 @@
                     },
                     "vnetName": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.name.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.name.value]"
                     },
                     "vnetId": {
                       "type": "string",
-                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value]"
+                      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
                     },
                     "subnetId": {
                       "type": "string",
-                      "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))).outputs.id.value, parameters('subnetName'))]"
+                      "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
                     },
                     "subnetName": {
                       "type": "string",
@@ -2772,7 +2772,7 @@
                     "value": "[parameters('storagePublicNetworkAccess')]"
                   },
                   "subnetIds": {
-                    "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.subnetName.value)), parameters('allowedSubnetIds'))]"
+                    "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.subnetName.value)), parameters('allowedSubnetIds'))]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -2784,8 +2784,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "4597355319206548270"
+                      "version": "0.12.1.58429",
+                      "templateHash": "15695720227000711530"
                     }
                   },
                   "parameters": {
@@ -3027,19 +3027,19 @@
                     "value": "[parameters('tags')]"
                   },
                   "resourceServiceId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
                   },
                   "resourceName": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
                   },
                   "pleRootName": {
-                    "value": "[format('ple-{0}-to-{1}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value, parameters('pairBaseName'))]"
+                    "value": "[format('ple-{0}-to-{1}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value, parameters('pairBaseName'))]"
                   },
                   "virtualNetworkId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value]"
                   },
                   "subnetId": {
-                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.subnetName.value)]"
+                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value, reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.subnetName.value)]"
                   },
                   "useStaticIPAddress": {
                     "value": "[parameters('useStorageStaticIP')]"
@@ -3063,8 +3063,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "5727420364397609270"
+                      "version": "0.12.1.58429",
+                      "templateHash": "13740218925975593492"
                     }
                   },
                   "parameters": {
@@ -3248,10 +3248,10 @@
                 "mode": "Incremental",
                 "parameters": {
                   "storageAccountName": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
                   },
                   "identityPrincipalId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
                   }
                 },
                 "template": {
@@ -3260,8 +3260,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "17992859547784854732"
+                      "version": "0.12.1.58429",
+                      "templateHash": "15885661083233540174"
                     }
                   },
                   "parameters": {
@@ -3317,19 +3317,19 @@
           "outputs": {
             "identityPrincipalId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
             },
             "storageName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
             },
             "storageServiceId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName')))).outputs.storageId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
             },
             "computeName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.compute.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
             },
             "region": {
               "type": "string",
@@ -3337,15 +3337,15 @@
             },
             "vnetName": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetName.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetName.value]"
             },
             "vnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.vnetId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.vnetId.value]"
             },
             "subnetId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName')))).outputs.subnetId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.subnetId.value]"
             }
           }
         }
@@ -3371,28 +3371,28 @@
         "mode": "Incremental",
         "parameters": {
           "location": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))).outputs.region.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.region.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
           },
           "resourceServiceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))).outputs.storageServiceId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageServiceId.value]"
           },
           "resourceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))).outputs.storageName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value]"
           },
           "linkVirtualNetwork": {
             "value": false
           },
           "pleRootName": {
-            "value": "[format('ple-{0}-to-{1}-silo{2}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))).outputs.storageName.value, parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]"
+            "value": "[format('ple-{0}-to-{1}-silo{2}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value, parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]"
           },
           "virtualNetworkId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))).outputs.vnetId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.vnetId.value]"
           },
           "subnetId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))).outputs.subnetId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.subnetId.value]"
           },
           "useStaticIPAddress": {
             "value": true
@@ -3416,8 +3416,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "5727420364397609270"
+              "version": "0.12.1.58429",
+              "templateHash": "13740218925975593492"
             }
           },
           "parameters": {
@@ -3608,10 +3608,10 @@
         "mode": "Incremental",
         "parameters": {
           "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))).outputs.storageName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value]"
           },
           "identityPrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))).outputs.identityPrincipalId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.identityPrincipalId.value]"
           }
         },
         "template": {
@@ -3620,8 +3620,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "17992859547784854732"
+              "version": "0.12.1.58429",
+              "templateHash": "15885661083233540174"
             }
           },
           "parameters": {
@@ -3689,10 +3689,10 @@
         "mode": "Incremental",
         "parameters": {
           "existingVirtualNetworkNameSource": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))).outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.vnetName.value]"
           },
           "existingVirtualNetworkNameTarget": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))).outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.vnetName.value]"
           },
           "existingVirtualNetworkNameTargetResourceGroupName": {
             "value": "[resourceGroup().name]"
@@ -3707,8 +3707,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "5341287850067882437"
+              "version": "0.12.1.58429",
+              "templateHash": "14914809746105970556"
             }
           },
           "parameters": {

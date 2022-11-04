@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.11.1.770",
-      "templateHash": "2959121738972884748"
+      "version": "0.12.1.58429",
+      "templateHash": "8822622349816178858"
     }
   },
   "parameters": {
@@ -139,8 +139,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "4597355319206548270"
+              "version": "0.12.1.58429",
+              "templateHash": "15695720227000711530"
             }
           },
           "parameters": {
@@ -405,8 +405,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "16414558413110912074"
+              "version": "0.12.1.58429",
+              "templateHash": "4931441202113453979"
             }
           },
           "parameters": {
@@ -546,10 +546,10 @@
         "mode": "Incremental",
         "parameters": {
           "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
           },
           "identityPrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
           }
         },
         "template": {
@@ -558,8 +558,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "17992859547784854732"
+              "version": "0.12.1.58429",
+              "templateHash": "15885661083233540174"
             }
           },
           "parameters": {
@@ -615,19 +615,19 @@
   "outputs": {
     "identityPrincipalId": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
     },
     "storageName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
     },
     "storageServiceId": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
     },
     "computeName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName')))).outputs.compute.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
     },
     "region": {
       "type": "string",
