@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-This script provides a class to help building Federated Learning pipelines in AzureML.
+This script provides an EXPERIMENTAL class to help building Federated Learning pipelines in AzureML.
 
 We invite you to NOT MODIFY THIS SCRIPT unless you know what you are doing, and you
 are trying to achieve a particular edge case scenario.
@@ -38,6 +38,8 @@ class FederatedLearningPipelineFactory:
 
         # see soft_validate()
         self.affinity_map = {}
+
+        self.logger = logging.getLogger(__name__)
 
     def set_orchestrator(self, compute: str, datastore: str):
         """Set the internal configuration of the orchestrator.
@@ -99,153 +101,305 @@ class FederatedLearningPipelineFactory:
         pipeline_step,
         compute,
         output_datastore,
-        model_output_datastore=None,
         tags={},
         description=None,
+        _path="root",
     ):
-        """Take a step and enforces the right compute/datastore config.
+        """Take a step and recursively enforces the right compute/datastore config.
 
         Args:
             pipeline_step (PipelineStep): a step to anchor
             compute (str): name of the compute target
             output_datastore (str): name of the datastore for the outputs of this step
-            model_output_datastore (str): name of the datastore for the model/weights outputs of this step
             tags (dict): tags to add to the step in AzureML UI
             description (str): description of the step in AzureML UI
+            _path (str): for recursive anchoring, codes the "path" inside the pipeline
 
         Returns:
             pipeline_step (PipelineStep): the anchored step
         """
-        # make sure the compute corresponds to the silo
-        pipeline_step.compute = compute
+        self.logger.debug(f"{_path}: anchoring node of type={pipeline_step.type}")
 
-        # make sure every output data is written in the right datastore
-        for key in pipeline_step.outputs:
-            _output = getattr(pipeline_step.outputs, key)
-            if _output.type == AssetTypes.CUSTOM_MODEL or key.startswith("model"):
-                setattr(
-                    pipeline_step.outputs,
-                    key,
-                    self.custom_fl_data_output(
-                        model_output_datastore or output_datastore, key
-                    ),
+        if pipeline_step.type == "pipeline":  # if the current step is a pipeline
+            if hasattr(pipeline_step, "component"):
+                # current step is a pipeline component
+                self.logger.debug(f"{_path} --  pipeline component detected")
+
+                # then anchor the component inside the current step
+                self.anchor_step_in_silo(
+                    pipeline_step.component,
+                    compute,
+                    output_datastore,
+                    tags=tags,
+                    description=description,
+                    _path=f"{_path}.component",  # pass the path for the debug logs
                 )
+
+                # and make sure every output data is anchored to the right datastore
+                for key in pipeline_step.outputs:
+                    self.logger.debug(
+                        f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
+                    )
+                    setattr(
+                        pipeline_step.outputs,
+                        key,
+                        self.custom_fl_data_output(output_datastore, key),
+                    )
+
             else:
-                setattr(
-                    pipeline_step.outputs,
-                    key,
-                    self.custom_fl_data_output(output_datastore, key),
+                # current step is a (regular) pipeline (likely the root of the graph)
+                self.logger.debug(f"{_path}: pipeline (regular) detected")
+
+                # let's anchor each outputs of the pipeline to the right datastore
+                for key in pipeline_step.outputs:
+                    self.logger.debug(
+                        f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
+                    )
+                    pipeline_step.outputs[key] = self.custom_fl_data_output(
+                        self.orchestrator["datastore"], key
+                    )
+
+                # then recursively anchor each job inside the pipeline
+                for job_key in pipeline_step.jobs:
+                    job = pipeline_step.jobs[job_key]
+                    self.anchor_step_in_silo(
+                        job,
+                        compute,
+                        output_datastore,
+                        tags=tags,
+                        description=description,
+                        _path=f"{_path}.jobs.{job_key}",  # pass the path for the debug logs
+                    )
+
+            # return the anchored pipeline
+            return pipeline_step
+
+        elif pipeline_step.type == "command":
+            # if the current step is a command
+            self.logger.debug(f"{_path}: command detected")
+
+            # make sure the compute corresponds to the silo
+            if pipeline_step.compute is None:
+                self.logger.debug(
+                    f"{_path}: compute is None, forcing compute={compute} instead"
+                )
+                pipeline_step.compute = compute
+
+            # then anchor each of the job's outputs to the right datastore
+            for key in pipeline_step.outputs:
+                self.logger.debug(
+                    f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
                 )
 
-        return pipeline_step
+                if pipeline_step.outputs[key]._data is None:
+                    # if the output is an intermediary output
+                    self.logger.debug(
+                        f"{_path}.outputs.{key}: intermediary output detected, forcing datastore {output_datastore}"
+                    )
+                    setattr(
+                        pipeline_step.outputs,
+                        key,
+                        self.custom_fl_data_output(output_datastore, key),
+                    )
+                else:
+                    # if the output is an internal reference to a parent output
+                    # let's trust that the parent has been anchored properly
+                    self.logger.debug(
+                        f"{_path}.outputs.{key}: reference ouptut detected, leaving as is"
+                    )
+
+            # return the anchored pipeline
+            return pipeline_step
+
+        else:
+            raise NotImplementedError(
+                f"under path={_path}: step type={pipeline_step.type} is not supported"
+            )
 
     def build_flexible_fl_pipeline(
         self,
-        silo_subgraph,
-        orchestrator_aggregation,
+        scatter,
+        gather,
+        scatter_to_gather_map: Callable,
+        gather_to_accumulator_map: Callable,
+        accumulator: dict,
         iterations=1,
+        **constant_scatter_args,
     ):
         """Build a typical FL pipeline based on the provided steps.
 
         Args:
-            silo_subgraph (func): Silo/Training subgraph step contains components such as pre-processing, training, etc
-            orchestrator_aggregation (func): aggregation step to run in the orchestrator
+            scatter (Pipeline): Silo/Training subgraph step contains components such as pre-processing, training, etc
+            gather (Pipeline): aggregation step to run in the orchestrator
+            scatter_to_gather_map (Callable): function to map the outputs of the scatter step to the inputs of the gather step
+            gather_to_accumulator_map (Callable): function to map the outputs of the gather step to the accumulator
+            accumulator (Dict[Input]): a dictionary defining the input passed between iterations
             iterations (int): number of iterations to run (default: 1)
+            constant_scatter_args (Dict[Any]): any constant custom arguments passed to every scatter step (ex: training params)
         """
+        # type checking
+        assert isinstance(accumulator, dict), "accumulator must be an dict"
+        assert "name" in accumulator, "accumulator must have a key 'name'"
+        if "initial_input" in accumulator:
+            if accumulator["initial_input"] is not None:
+                assert isinstance(
+                    accumulator["initial_input"], Input
+                ), "accumulator['initial_input'] must be an Input (or None)"
+        assert callable(
+            scatter_to_gather_map
+        ), "scatter_to_gather_map must be a function"
+        assert callable(
+            gather_to_accumulator_map
+        ), "gather_to_accumulator_map must be a function"
+        assert isinstance(iterations, int), "iterations must be an int"
+        assert iterations > 0, "iterations must be > 0"
 
         @pipeline(
-            name="Federated Learning Subgraph",
+            name="FL Scatter-Gather Iteration",
             description="Pipeline includes preprocessing, training and aggregation components",
         )
-        def subgraph_pipeline(
-            running_checkpoint: Input(optional=True), iteration_num: int
+        def fl_scatter_gather_iteration(
+            iteration_input: Input(optional=True), iteration_num: int
         ):
-            # collect all outputs in a list to be used for aggregation
-            silo_training_outputs = []
-            # for each silo, run a distinct training with its own inputs and outputs
-            for silo_config in self.silos:
+            """Pipeline for a single iteration of the scatter-gather graph.
 
-                silo_subgraph_step, silo_subgraph_output = silo_subgraph(
-                    silo_config["custom_input_args"].get("raw_train_data"),
-                    silo_config["custom_input_args"].get("raw_test_data"),
-                    running_checkpoint,
-                    iteration_num,
-                    silo_config.get("compute"),
-                    silo_config.get("datastore"),
-                    self.orchestrator.get("datastore"),
+            Args:
+                iteration_input (Input): accumulator input to the iteration (ex: checkpoint)
+                iteration_num (int): iteration number
+            """
+            # collect all outputs in a list to be used for aggregation
+            scatter_subgraphs_outputs = []
+
+            # for each silo, run a distinct training with its own inputs and outputs
+            for silo_index, silo_config in enumerate(self.silos):
+
+                scatter_arguments = {}
+                # custom scatter data inputs
+                scatter_arguments.update(silo_config["custom_input_args"])
+
+                # custom accumulator input
+                scatter_arguments[accumulator["name"]] = iteration_input
+
+                # custom training args
+                scatter_arguments.update(constant_scatter_args)
+
+                # reserved scatter inputs
+                scatter_arguments["iteration_num"] = iteration_num
+                scatter_arguments["scatter_compute"] = silo_config["compute"]
+                scatter_arguments["scatter_datastore"] = silo_config["datastore"]
+                scatter_arguments["gather_datastore"] = self.orchestrator["datastore"]
+
+                silo_subgraph_step = scatter(**scatter_arguments)
+                silo_subgraph_step.name = f"silo_subgraph_{silo_index}"
+
+                # every step within the silo_subgraph_step needs to be anchored in the SILO
+                self.anchor_step_in_silo(
+                    silo_subgraph_step,
+                    compute=silo_config["compute"],
+                    output_datastore=silo_config["datastore"],
+                    _path="silo_subgraph_step",  # to help with debug logging
                 )
 
-                # verify the outputs of silo/training subgraph component
-                assert isinstance(
-                    silo_subgraph_output, dict
-                ), f"your silo_subgraph() function should return a step,outputs tuple with outputs a dictionary (currently a {type(silo_subgraph_output)})"
-                for key in silo_subgraph_output.keys():
-                    assert isinstance(
-                        silo_subgraph_output[key], NodeOutput
-                    ), f"silo_subgraph() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(silo_subgraph_output[key])})."
+                # BUT the outputs of the scatter() subgraph/component
+                # are exfiltrated to the orchestrator instead
+                for key in silo_subgraph_step.outputs:
+                    setattr(
+                        silo_subgraph_step.outputs,
+                        key,
+                        self.custom_fl_data_output(self.orchestrator["datastore"], key),
+                    )
 
-                # each output is indexed to be fed into aggregate_component as a distinct input
-                silo_training_outputs.append(silo_subgraph_output["checkpoint"])
+                # each output is added to a list to be fed into gather() as a distinct inputs
+                scatter_subgraphs_outputs.append(silo_subgraph_step.outputs)
 
-            # a couple of basic tests before aggregating
+            # a couple of basic tests before gathering
             # do we even have outputs?
             assert (
-                len(silo_training_outputs) > 0
-            ), "The list of silo outputs is empty, did you define a list of silos in config.yaml:federated_learning.silos section?"
+                len(scatter_subgraphs_outputs) > 0
+            ), "The list of scattered outputs is empty, did you define a list of silos with add_silo() method?"
             # do we have enough?
-            assert len(silo_training_outputs) == len(
+            assert len(scatter_subgraphs_outputs) == len(
                 self.silos
-            ), "The list of silo outputs has length that doesn't match length of config.yaml:federated_learning.silos section."
+            ), "The list of scattered outputs has length that doesn't match the number of silos provided with add_silo() method."
 
-            # aggregate all silo models into one
-            aggregation_step, aggregation_outputs = orchestrator_aggregation(
-                silo_training_outputs
-            )
+            # prepare inputs with their respective keys for the gather() step
+            gather_inputs_list = []
+            for i, scatter_output in enumerate(scatter_subgraphs_outputs):
+                # map keys of outputs of scatter subgraph into inputs of gather
+                gather_inputs_list.append(
+                    (scatter_to_gather_map(key, i), scatter_output[key])
+                )
+            # create a dict to feed to gather() using **
+            gather_inputs_dict = dict(gather_inputs_list)
 
-            # TODO: verify _step is an actual step
+            # call gather() to aggregate all scattered outputs into one
+            aggregation_step = gather(**gather_inputs_dict)
 
-            # verify the outputs from the developer code
-            assert isinstance(
-                aggregation_outputs, dict
-            ), f"your orchestrator_aggregation() function should return a (step,outputs) tuple with outputs a dictionary (current type a {type(aggregation_outputs)})"
-            for key in aggregation_outputs.keys():
-                assert isinstance(
-                    aggregation_outputs[key], NodeOutput
-                ), f"orchestrator_aggregation() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(aggregation_outputs[key])})."
-
-            # this is done in the orchestrator compute/datastore
+            # and let's anchor the output of gather() in the ORCHESTRATOR
             self.anchor_step_in_silo(
                 aggregation_step,
                 compute=self.orchestrator["compute"],
                 output_datastore=self.orchestrator["datastore"],
-                model_output_datastore=self.orchestrator["datastore"],
+                _path="aggregation_step",  # to help with debug logging
             )
 
-            # let's keep track of the running outputs (dict) to be used as input for next round
-            running_outputs = aggregation_outputs
+            # now let's map the output of gather() to the accumulator for next iteration
+            iteration_outputs = {}
+            for key in aggregation_step.outputs:
+                iteration_outputs[
+                    gather_to_accumulator_map(key)
+                ] = aggregation_step.outputs[key]
 
-            return running_outputs
+            # and return that as the output of the iteration pipeline
+            return iteration_outputs
 
         @pipeline(
             description=f'FL cross-silo factory pipeline and the unique identifier is "{self.unique_identifier}" that can help you to track files in the storage account.',
         )
         def _fl_cross_silo_factory_pipeline():
+            """The entire scatter-gather pipeline."""
+            # initialize the accumulator
+            running_accumulator = accumulator.get("initial_input", None)
 
-            running_checkpoint = None
-
-            # now for each iteration, run training
-            # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
+            # now for each iteration, run scatter-gather subgraph
             for iteration_num in range(1, iterations + 1):
+                # call scatter-gather() for each iteration
+                iteration_step = fl_scatter_gather_iteration(
+                    iteration_input=running_accumulator, iteration_num=iteration_num
+                )
 
-                # call pipeline for each iteration
-                output_iteration = subgraph_pipeline(running_checkpoint, iteration_num)
+                # set a readable name for the iteration step
+                iteration_step.name = f"scatter_gather_iteration_{iteration_num}"
 
-                # let's keep track of the checkpoint to be used as input for next iteration
-                running_checkpoint = output_iteration.outputs.aggregated_output
+                # the running accumulator needs to be anchored to the orchestrator
+                for key in iteration_step.outputs:
+                    setattr(
+                        iteration_step.outputs,
+                        key,
+                        self.custom_fl_data_output(self.orchestrator["datastore"], key),
+                    )
 
-            return {"final_aggregated_model": running_checkpoint}
+                # let's keep track of the accumulator to be used as input for next iteration
+                running_accumulator = iteration_step.outputs[accumulator["name"]]
 
-        return _fl_cross_silo_factory_pipeline()
+            return {
+                # the only output is the accumulator with a custom key
+                accumulator["name"]: running_accumulator
+            }
+
+        # finally create an instance of the job
+        pipeline_job = _fl_cross_silo_factory_pipeline()
+
+        # NOTE: for some reason, we need to anchor the output of that job as well
+        # this is anchored to the orchestrator
+        for key in pipeline_job.outputs:
+            setattr(
+                pipeline_job.outputs,
+                key,
+                self.custom_fl_data_output(self.orchestrator["datastore"], key),
+            )
+
+        return pipeline_job
 
     ###########################
     ### AFFINITY VALIDATION ###
@@ -363,6 +517,269 @@ class FederatedLearningPipelineFactory:
 
         return False
 
+    #######################
+    ## WORK IN PROGRESS ###
+    #######################
+
+    def _resolve_pipeline_data_path(
+        self, data_key, data_def, inputs_map={}, outputs_map={}, _path="ROOT"
+    ):
+        """Recursively resolves a given data input/output definition within the pipeline graph.
+
+        Args:
+            data_key (str): the key of the data input/output
+            data_def (Any): the definition of the data input/output (ex: Input)
+            inputs_map (dict): the map of inputs in the context of the current job
+            outputs_map (dict): the map of outputs in the context of the current job
+            _path (str): the path of the current job in the graph
+
+        Returns:
+            str: the type of the data
+            str: the resolved data input/output path or value
+        """
+        self.logger.debug(
+            f"{_path}: resolving data_key={data_key} type={data_def.type} class={data_def.__class__.__name__} with inputs_map={list(inputs_map.keys())} outputs_map={list(outputs_map.keys())}"
+        )
+
+        # if data is not data at all, just return it
+        if data_def.type in ["string", "boolean", "integer", "number"]:
+            self.logger.debug(f"{_path}: job i/o key={data_key} is not data")
+            return data_def.type, None
+
+        # if data is an actual input/output, just return the path directly
+        if isinstance(data_def._data, Input):
+            self.logger.debug(f"{_path}: job i/o key={data_key} is input")
+            return data_def._data.type, data_def._data.path
+        if isinstance(data_def._data, Output):
+            self.logger.debug(f"{_path}: job i/o key={data_key} is output")
+            return data_def._data.type, data_def._data.path
+
+        if data_def._data is not None:
+            # if data is an internal reference inside the graph
+            self.logger.debug(
+                f"{_path}: job i/o key={data_key} is an internal reference to pipeline level data name={data_def._data._name}"
+            )
+
+            if data_def._data._data is not None:
+                # if that reference is a direct link with a path, return it
+                return data_def._data._data.type, data_def._data._data.path
+
+            # if not, we need to look it up in the context of the job
+            ref_key = data_def._data._name
+
+            # we try as an input or output first
+            if ref_key in inputs_map:
+                _data_def = inputs_map[ref_key]
+            elif ref_key in outputs_map:
+                _data_def = outputs_map[ref_key]
+            else:
+                # if not found, we need to except
+                raise ValueError(
+                    f"{_path}: internal reference {ref_key} not found in inputs_map (keys={list(inputs_map.keys())}) or outputs_map (keys={list(outputs_map.keys())})"
+                )
+
+            # when we find the actual reference
+            self.logger.debug(
+                f"{_path}: job i/o key={data_key} resolved to data definition name={data_def._data._name}"
+            )
+
+            # we recursively resolve it (in case there's multiple levels of references)
+            return self._resolve_pipeline_data_path(
+                data_key=data_def._data._name,
+                data_def=_data_def,
+                inputs_map=inputs_map,
+                outputs_map=outputs_map,
+                _path=f"{_path}->{data_key}",
+            )
+        else:
+            # if data ref is None, it's likely an optional input
+            self.logger.debug(
+                f"{_path}: job i/o key={data_key} is pointing to None (optional input)"
+            )
+            return None, None
+
+    def _recursive_validate(self, job, inputs_map={}, outputs_map={}, _path="ROOT"):
+        """Recursively soft-validate a job against the affinity map.
+
+        Args:
+            job (Job): the job to validate
+            inputs_map (dict): the map of inputs in the context of the current job
+            outputs_map (dict): the map of outputs in the context of the current job
+            _path (str): the path of the current job in the graph
+
+        Returns:
+            report (List[str]): the list of errors found
+        """
+        # let's create a report (hopefully empty by the end of the process)
+        soft_validation_report = []
+
+        # debug logs
+        self.logger.debug(
+            f"{_path}: recursive validation of job name={job.name} with inputs_map={list(inputs_map.keys())} outputs_map={list(outputs_map.keys())}"
+        )
+
+        if job.type == "pipeline":
+            # if the job is a pipeline, we need to validate the pipeline itself
+
+            # let's first record the inputs into the context of the job
+            for key in job.inputs:
+                # TODO: validate inputs somehow?
+                self.logger.debug(f"{_path}: job input={key}")
+                inputs_map[key] = job.inputs[key]
+
+            for key in job.outputs:
+                # TODO: validate outputs somehow?
+                self.logger.debug(f"{_path}: job output={key}")
+                outputs_map[key] = job.outputs[key]
+
+            if hasattr(job, "component"):
+                # if the job is a pipeline component
+                self.logger.debug(
+                    f"{_path}: pipeline component detected for job name={job.name}"
+                )
+
+                # let's prepare to recurse into the component
+                # create a context for inputs/outputs
+                job_level_inputs_map = inputs_map.copy()
+                job_level_outputs_map = outputs_map.copy()
+
+                # loop over the component jobs
+                for job_key in job.component.jobs:
+                    # context is cumulative to allow for a job N+1 to reference outputs of job N
+                    for key in job.component.jobs[job_key].inputs:
+                        job_level_inputs_map[key] = job.component.jobs[job_key].inputs[
+                            key
+                        ]
+                    for key in job.component.jobs[job_key].outputs:
+                        job_level_outputs_map[key] = job.component.jobs[
+                            job_key
+                        ].outputs[key]
+
+                    # recurse into the job
+                    soft_validation_report.extend(
+                        self._recursive_validate(
+                            job.component.jobs[job_key],
+                            inputs_map=job_level_inputs_map,
+                            outputs_map=job_level_outputs_map,
+                            _path=f"{_path}.component.jobs.{job_key}",  # to help with debug logging
+                        ),
+                    )
+
+                # return the report
+                return soft_validation_report
+            else:
+                # the job is a regular pipeline (root?)
+                self.logger.debug(
+                    f"{_path}: regular pipeline detected for job name={job.name}"
+                )
+                # let's recurse into the pipeline jobs
+                for job_key in job.jobs:
+                    soft_validation_report.extend(
+                        self._recursive_validate(
+                            job.component.jobs[job_key],
+                            inputs_map=inputs_map,
+                            outputs_map=outputs_map,
+                            _path=f"{_path}.jobs.{job_key}",  # to help with debug logging
+                        ),
+                    )
+
+                # return the report
+                return soft_validation_report
+
+        elif job.type == "command":
+            # if the job is an actual command, we need to validate the command itself
+
+            # validate that the compute is anchored (unspecified compute is not accepted)
+            if job.compute is None:
+                soft_validation_report.append(
+                    f"{_path}: job name={job.name} has no compute"
+                )
+
+            # loop on all the inputs
+            for input_key in job.inputs:
+                # resolve the input path by recursing through the references
+                input_type, input_path = self._resolve_pipeline_data_path(
+                    data_key=input_key,
+                    data_def=job.inputs[input_key],
+                    inputs_map=inputs_map,
+                    outputs_map=outputs_map,
+                    _path=f"{_path}.inputs.{input_key}",  # to help with debug logging
+                )
+
+                if input_path is None:
+                    # assuming this is an optional input here
+                    self.logger.debug("{_path}: optional input detected, passing")
+                    continue
+
+                self.logger.debug(
+                    f"{_path}: job input={input_key} is pointing to to path={input_path}"
+                )
+
+                # extract the datastore from the input path
+                if input_path and input_path.startswith("azureml://datastores/"):
+                    datastore = input_path[21:].split("/")[0]
+                else:
+                    # if using a registered dataset, let's consider datastore UNKNOWN
+                    datastore = self.DATASTORE_UNKNOWN
+
+                self.logger.debug(
+                    f"{_path}: validating job input={input_key} on datastore={datastore} against compute={job.compute}"
+                )
+
+                # verify affinity and log errors if they occur
+                if not self.check_affinity(
+                    job.compute,
+                    datastore,
+                    self.OPERATION_READ,
+                    job.inputs[input_key].type,
+                ):
+                    soft_validation_report.append(
+                        f"In job {_path}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job.compute}"
+                    )
+
+            # loop on all the outputs
+            for output_key in job.outputs:
+                # resolve the output path by recursing through the references
+                output_type, output_path = self._resolve_pipeline_data_path(
+                    data_key=output_key,
+                    data_def=job.outputs[output_key],
+                    inputs_map=inputs_map,
+                    outputs_map=outputs_map,
+                    _path=f"{_path}.outputs.{output_key}",  # to help with debug logging
+                )
+
+                self.logger.debug(
+                    f"{_path}: job output={output_key} is pointing to to path={output_path}"
+                )
+
+                # extract the datastore
+                if output_path and output_path.startswith("azureml://datastores/"):
+                    datastore = output_path[21:].split("/")[0]
+                else:
+                    soft_validation_report.append(
+                        f"In job {_path}, output={output_key} does not start with azureml://datastores/ but is {output_path}"
+                    )
+                    continue
+
+                # verify affinity and log errors if they occur
+                if not self.check_affinity(
+                    job.compute,
+                    datastore,
+                    self.OPERATION_WRITE,
+                    job.outputs[output_key].type,
+                ):
+                    soft_validation_report.append(
+                        f"In job {_path}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job.compute}"
+                    )
+
+            # return the report
+            return soft_validation_report
+
+        else:
+            raise NotImplementedError(
+                f"{_path}: job name={job.name} has type={job.type} that is not supported"
+            )
+
     def soft_validate(self, pipeline_job, raise_exception=True):
         """Runs a soft validation to verify computes and datastores have affinity.
 
@@ -408,61 +825,8 @@ class FederatedLearningPipelineFactory:
                 "You have the orchestrator and silos using the same compute, please fix your config."
             )
 
-        # loop on all the jobs
-        for job_key in pipeline_job.jobs:
-            job = pipeline_job.jobs[job_key]
-            compute = job.compute
-
-            # loop on all the inputs
-            for input_key in job.inputs:
-                try:
-                    # get the path of this input
-                    input_path = job.inputs[input_key].path
-                except ValidationException:
-                    continue
-
-                # extract the datastore
-                if input_path and input_path.startswith("azureml://datastores/"):
-                    datastore = input_path[21:].split("/")[0]
-                else:
-                    # if using a registered dataset, let's consider datastore UNKNOWN
-                    datastore = self.DATASTORE_UNKNOWN
-
-                # verify affinity and log errors
-                if not self.check_affinity(
-                    compute, datastore, self.OPERATION_READ, job.inputs[input_key].type
-                ):
-                    soft_validation_report.append(
-                        f"In job {job_key}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={compute}"
-                    )
-
-            # loop on all the outputs
-            for output_key in job.outputs:
-                try:
-                    # get the path of this output
-                    output_path = job.outputs[output_key].path
-                except ValidationException:
-                    continue
-
-                # extract the datastore
-                if output_path and output_path.startswith("azureml://datastores/"):
-                    datastore = output_path[21:].split("/")[0]
-                else:
-                    soft_validation_report.append(
-                        f"In job {job_key}, output={output_key} does not start with azureml://datastores/"
-                    )
-                    continue
-
-                # verify affinity and log errors
-                if not self.check_affinity(
-                    compute,
-                    datastore,
-                    self.OPERATION_WRITE,
-                    job.outputs[output_key].type,
-                ):
-                    soft_validation_report.append(
-                        f"In job {job_key}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={compute}"
-                    )
+        # recurse through all the jobs to identify errors
+        soft_validation_report.extend(self._recursive_validate(pipeline_job))
 
         # when looping through all jobs is done
         if soft_validation_report:
