@@ -51,7 +51,7 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=False,
-    choices=["MNIST", "HELLOWORLD"],
+    choices=["MNIST", "HELLOWORLD", "CreditCardFraud"],
     default="MNIST",
     help="dataset name",
 )
