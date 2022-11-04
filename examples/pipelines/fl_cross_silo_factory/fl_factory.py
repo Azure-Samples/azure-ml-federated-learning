@@ -2,7 +2,7 @@
 # Licensed under the MIT License.
 
 """
-This script provides a class to help building Federated Learning pipelines in AzureML.
+This script provides an EXPERIMENTAL class to help building Federated Learning pipelines in AzureML.
 
 We invite you to NOT MODIFY THIS SCRIPT unless you know what you are doing, and you
 are trying to achieve a particular edge case scenario.

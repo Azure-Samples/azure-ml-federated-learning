@@ -3,10 +3,11 @@
 
 """Federated Learning Cross-Silo pipeline built by a factory class.
 
-This scripts wraps up the FL pipeline orchestration code in a "factory" class.
-This class is a draft API to build a pipeline based on simple steps
-(preprocessing, training, aggregation). The factory could be extended
-to cover more advanced scenarios.
+This scripts wraps up the FL pipeline orchestration code in an EXPERIMENTAL "factory" class.
+
+This class is a draft API to build a pipeline based on simple
+scatter / gather steps. The factory could be extended
+to cover more advanced scenarios in the future.
 
 In sequence, this script will:
 A) reads a config file in yaml specifying the number of silos and their parameters,
@@ -14,12 +15,11 @@ B) reads the components from a given folder,
 C) allow developers to write FL pipeline steps as pythonic functions,
 D) call the factory class to build the full FL pipeline based on custom user code.
 
-
 To adapt this script to your scenario, you can:
 - modify the config file to change the number of silos
   and their parameters (see section A and config.yaml file),
 - modify the components directly in the components folder (see section B),
-- modify the silo_preprocessing()m silo_training() and orchestrator_aggregation() functions
+- modify the silo_scatter_subgraph() and aggregate_component()
   to change the steps behaviors (see section C and D.2 D.3),
 - modify the affinity map according to a custom permission model (see section D.4).
 """
@@ -202,7 +202,7 @@ aggregate_component = load_component(
 
 @pipeline(
     name="Silo Federated Learning Subgraph",
-    description="It includes preprocessing and training components",
+    description="It includes all steps that needs to be executing in silo",
 )
 def silo_scatter_subgraph(
     # user defined inputs
