@@ -3,10 +3,11 @@
 
 """Federated Learning Cross-Silo pipeline built by a factory class.
 
-This scripts wraps up the FL pipeline orchestration code in a "factory" class.
-This class is a draft API to build a pipeline based on simple steps
-(preprocessing, training, aggregation). The factory could be extended
-to cover more advanced scenarios.
+This scripts wraps up the FL pipeline orchestration code in an EXPERIMENTAL "factory" class.
+
+This class is a draft API to build a pipeline based on simple
+scatter / gather steps. The factory could be extended
+to cover more advanced scenarios in the future.
 
 In sequence, this script will:
 A) reads a config file in yaml specifying the number of silos and their parameters,
@@ -14,24 +15,20 @@ B) reads the components from a given folder,
 C) allow developers to write FL pipeline steps as pythonic functions,
 D) call the factory class to build the full FL pipeline based on custom user code.
 
-
 To adapt this script to your scenario, you can:
 - modify the config file to change the number of silos
   and their parameters (see section A and config.yaml file),
 - modify the components directly in the components folder (see section B),
-- modify the silo_preprocessing()m silo_training() and orchestrator_aggregation() functions
+- modify the silo_scatter_subgraph() and aggregate_component()
   to change the steps behaviors (see section C and D.2 D.3),
 - modify the affinity map according to a custom permission model (see section D.4).
 """
 import os
 import argparse
-import random
-import string
-import datetime
 import webbrowser
 import time
-import json
 import sys
+import logging
 
 # Azure ML sdk v2 imports
 import azure
@@ -44,11 +41,6 @@ from azure.ai.ml.entities._job.pipeline._io import NodeOutput
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
-
-from typing import List, Optional, Union
-from typing import Callable, Dict
-from dataclasses import dataclass
-import itertools
 
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
@@ -76,6 +68,12 @@ parser.add_argument(
     default=False,
     action="store_true",
     help="actually submits the experiment to AzureML",
+)
+parser.add_argument(
+    "--debug",
+    default=False,
+    action="store_true",
+    help="enable DEBUG logs",
 )
 parser.add_argument(
     "--ignore_validation",
@@ -201,72 +199,61 @@ aggregate_component = load_component(
 # This is your section, please modify anything here following the guidelines
 # in the docstrings.
 
-# The idea is that each of the following method is a "contract" you own
-# and specify. The factory will read this contract and assemble the
-# pieces of your pipeline based on input and output keys.
 
-
-def silo_preprocessing(
-    raw_train_data: Input, raw_test_data: Input, metrics_prefix: str
-) -> Dict[str, Input]:
-    """Create steps for running FL preprocessing in the silo.
+@pipeline(
+    name="Silo Federated Learning Subgraph",
+    description="It includes all steps that needs to be executing in silo",
+)
+def silo_scatter_subgraph(
+    # user defined inputs
+    raw_train_data: Input,
+    raw_test_data: Input,
+    # user defined accumulator
+    aggregated_checkpoint: Input(optional=True),
+    # factory inputs (contract)
+    scatter_compute: str,
+    scatter_datastore: str,
+    gather_datastore: str,
+    iteration_num: int,
+    # user defined training arguments
+    lr: float = 0.01,
+    epochs: int = 3,
+    batch_size: int = 64,
+):
+    """Create silo/training subgraph.
 
     Args:
-        raw_train_data (Input): preprocessed data (see FederatedLearningPipelineFactory.add_silo())
-        raw_test_data (Input): preprocessed data (see FederatedLearningPipelineFactory.add_silo())
+        raw_train_data (Input): raw train data
+        raw_test_data (Input): raw test data
+        aggregated_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
+        scatter_compute (str): Silo compute name
+        scatter_datastore (str): Silo datastore name
+        gather_datastore (str): Orchestrator datastore name
+        iteration_num (int): Iteration number
+        lr (float, optional): Learning rate. Defaults to 0.01.
+        epochs (int, optional): Number of epochs. Defaults to 3.
+        batch_size (int, optional): Batch size. Defaults to 64.
 
     Returns:
-        PipelineStep: the preprocessing step of the FL pipeline
-        Dict[str, Input]: a map of the inputs expected as kwargs by silo_training()
+        Dict[str, Outputs]: a map of the outputs
     """
-    # run the pre-processing component once
+    # we're using our own preprocessing component
     silo_pre_processing_step = preprocessing_component(
+        # this consumes whatever user defined inputs
         raw_training_data=raw_train_data,
         raw_testing_data=raw_test_data,
-        metrics_prefix=metrics_prefix,
+        # here we're using the name of the silo compute as a metrics prefix
+        metrics_prefix=scatter_compute,
     )
 
-    return silo_pre_processing_step, {
-        # IMPORTANT: use a key that is consistent with kwargs of silo_training()
-        "train_data": silo_pre_processing_step.outputs.processed_train_data,
-        "test_data": silo_pre_processing_step.outputs.processed_test_data,
-    }
-
-
-def silo_training(
-    train_data: Input = None,  # output from silo_preprocessing()
-    test_data: Input = None,  # output from silo_preprocessing()
-    running_checkpoint: Input = None,  # output from orchestrator_aggregation()
-    lr: int = 0.01,  # custom param given to factory build_basic_fl_pipeline()
-    batch_size: int = 64,  # custom param given to factory build_basic_fl_pipeline()
-    epochs: int = 1,  # custom param given to factory build_basic_fl_pipeline()
-    metrics_prefix: str = "default-prefix",  # prefix to be used for mlflow metrics
-    iteration_num: int = 1,  # Iteration number
-):
-    """Create steps for running FL training in the silo.
-
-    Args:
-        train_data (Input): preprocessed data (see outputs of silo_preprocessing())
-        test_data (Input): preprocessed data (see outputs of silo_preprocessing())
-        running_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
-        lr (int): learning rate for training component
-        batch_size (int): batch size for training component
-        epochs (int): epochs for training component
-        metrics_prefix (str): Metrics prefix
-        iteration_num (int): Iteration number
-
-    Returns:
-        PipelineStep: the training step of the FL pipeline
-        Dict[str, Input]: a map of the inputs expected as kwargs by orchestrator_aggregation()
-    """
-    # we're using training component here
+    # we're using our own training component
     silo_training_step = training_component(
         # with the train_data from the pre_processing step
-        train_data=train_data,
+        train_data=silo_pre_processing_step.outputs.processed_train_data,
         # with the test_data from the pre_processing step
-        test_data=test_data,
+        test_data=silo_pre_processing_step.outputs.processed_test_data,
         # and the checkpoint from previous iteration (or None if iteration == 1)
-        checkpoint=running_checkpoint,
+        checkpoint=aggregated_checkpoint,
         # Learning rate for local training
         lr=lr,
         # Number of epochs
@@ -274,146 +261,18 @@ def silo_training(
         # Dataloader batch size
         batch_size=batch_size,
         # Silo name/identifier
-        metrics_prefix=metrics_prefix,
+        metrics_prefix=scatter_compute,
         # Iteration number
         iteration_num=iteration_num,
     )
 
-    return silo_training_step, {
-        # IMPORTANT: use a key that is consistent with kwargs of orchestrator_aggregation()
-        "weights": silo_training_step.outputs.model
+    # IMPORTANT: we will assume that any output provided here can be exfiltrated into the orchestrator
+    return {
+        # NOTE: the key you use is custom
+        # a map function scatter_to_gather_map needs to be provided
+        # to map the name here to the expected input from gather
+        "input_silo": silo_training_step.outputs.model
     }
-
-
-def orchestrator_aggregation(weights=[]):
-    """Create steps for running FL training in the silo.
-
-    Args:
-        train_data (Input): preprocessed data (see silo_training())
-        test_data (Input): preprocessed data (see silo_training())
-        running_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
-        lr (int): learning rate for training component
-        batch_size (int): batch size for training component
-        epochs (int): epochs for training component
-
-    Returns:
-        PipelineStep: the training step of the FL pipeline
-        Dict[str, Input]: a map of the inputs expected as kwargs by orchestrator_aggregation()
-    """
-    # create some custom map from silo_outputs_map to expected inputs
-    aggregation_inputs = dict(
-        [
-            (f"input_silo_{silo_index+1}", silo_output)
-            for silo_index, silo_output in enumerate(weights)
-        ]
-    )
-
-    # aggregate all silo models into one
-    aggregate_weights_step = aggregate_component(**aggregation_inputs)
-
-    return aggregate_weights_step, {
-        # IMPORTANT: use a key that is consistent with kwargs of silo_training()
-        "aggregated_output": aggregate_weights_step.outputs.aggregated_output
-    }
-
-
-def silo_subgraph(
-    raw_train_data: Input,
-    raw_test_data: Input,
-    running_checkpoint: Input(optional=True),
-    iteration_num: int,
-    compute: str,
-    datastore: str,
-    model_datastore: str,
-):
-    """Create silo/training subgraph.
-
-    Args:
-        raw_train_data (Input): raw train data
-        raw_test_data (Input): raw test data
-        running_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
-        iteration_num (int): Iteration number
-        compute (str): Silo compute name
-        datastore (str): Silo datastore name
-        model_datastore (str): Model datastore name
-
-    Returns:
-        PipelineStep: the training step of the FL pipeline
-        Dict[str, Input]: a map of the inputs expected as kwargs by orchestrator_aggregation()
-    """
-
-    @pipeline(
-        name="Silo Federated Learning Subgraph",
-        description="It includes preprocessing and training components",
-    )
-    def silo_subgraph_component(
-        raw_train_data: Input,
-        raw_test_data: Input,
-        running_checkpoint: Input(optional=True),
-        iteration_num: int,
-    ):
-        # Preprocessing
-        preprocessing_step, preprocessing_outputs = silo_preprocessing(
-            raw_train_data=raw_train_data,
-            raw_test_data=raw_test_data,
-            metrics_prefix=compute,
-        )
-
-        # TODO: verify _step is an actual step
-
-        # verify the outputs from the developer code
-        assert isinstance(
-            preprocessing_outputs, dict
-        ), f"your silo_preprocessing() function should return a step,outputs tuple with outputs a dictionary (currently a {type(preprocessing_outputs)})"
-        for key in preprocessing_outputs.keys():
-            assert isinstance(
-                preprocessing_outputs[key], NodeOutput
-            ), f"silo_preprocessing() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(preprocessing_outputs[key])})."
-
-        # make sure the compute corresponds to the silo
-        # make sure the data is written in the right datastore
-        builder.anchor_step_in_silo(
-            preprocessing_step,
-            compute=compute,
-            output_datastore=datastore,
-        )
-
-        # building the training steps as specified by developer
-        training_step, training_outputs = silo_training(
-            **preprocessing_outputs,  # feed kwargs as produced by silo_preprocessing()
-            running_checkpoint=running_checkpoint,  # feed optional running kwargs as produced by aggregate_component()
-            iteration_num=iteration_num,
-            metrics_prefix=compute,
-            **training_kwargs,  # providing training params
-        )
-
-        # TODO: verify _step is an actual step
-
-        # verify the outputs from the developer code
-        assert isinstance(
-            training_outputs, dict
-        ), f"your silo_training() function should return a step,outputs tuple with outputs a dictionary (currently a {type(training_outputs)})"
-        for key in training_outputs.keys():
-            assert isinstance(
-                training_outputs[key], NodeOutput
-            ), f"silo_training() returned outputs has a key '{key}' not mapping to an NodeOutput class from Azure ML SDK v2 (current type is {type(training_outputs[key])})."
-
-        # make sure the compute corresponds to the silo
-        # make sure the data is written in the right datastore
-        builder.anchor_step_in_silo(
-            training_step,
-            compute=compute,
-            output_datastore=datastore,
-            model_output_datastore=model_datastore,
-        )
-
-        return training_outputs
-
-    silo_subgraph_step = silo_subgraph_component(
-        raw_train_data, raw_test_data, running_checkpoint, iteration_num
-    )
-
-    return silo_subgraph_step, {"checkpoint": silo_subgraph_step.outputs.weights}
 
 
 #######################
@@ -455,11 +314,43 @@ for silo_config in YAML_CONFIG.federated_learning.silos:
 # 3. use a pipeline factory method
 # 3.1 build flexible fl pipeline
 
+# DEBUG
+if args.debug:
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    log_format = logging.Formatter("[%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+
 pipeline_job = builder.build_flexible_fl_pipeline(
-    # building requires all 2 functions provided as argument below
-    silo_subgraph,
-    orchestrator_aggregation,
+    # building the FL graph requires two arguments that can be either a component or a pipeline
+    # scatter is our subgraph above
+    scatter=silo_scatter_subgraph,
+    # gather is directly a command component
+    gather=aggregate_component,
+    # a function to map name of outputs from each scatter into a name for the inputs of gather
+    scatter_to_gather_map=lambda output_name, silo_index: f"input_silo_{silo_index+1}",
+    # a function to map name of outputs of gather to inputs of scatter
+    gather_to_accumulator_map=lambda output_name: "aggregated_checkpoint",
+    # a dictionary describing the "accumulator"
+    # i.e. the input that is passed from gather to scatter in the next iteration
+    accumulator={
+        # this key needs to be the name of the input expected by scatter
+        # factory will use gather_to_accumulator_map(key) to map
+        # to the input name required by scatter
+        "name": "aggregated_checkpoint",
+        # we can provide an initial input for the first iteration
+        # but this is an optional input
+        "initial_input": None,
+    },
+    # how many iterations
     iterations=YAML_CONFIG.training_parameters.num_of_iterations,
+    # any additional kwarg is considered constant and given to scatter as is
+    lr=YAML_CONFIG.training_parameters.lr,
+    batch_size=YAML_CONFIG.training_parameters.batch_size,
+    epochs=YAML_CONFIG.training_parameters.epochs,
 )
 
 # 4. Validate the pipeline using soft rules
@@ -470,12 +361,14 @@ print(pipeline_job)  # print yaml for visual debugging
 builder.set_default_affinity_map()
 
 # run affinity map validation
+print("Running soft validation...")
 builder.soft_validate(
     pipeline_job,
     raise_exception=not (
         args.ignore_validation
     ),  # set to False if you know what you're doing
 )
+
 
 # 5. Submit to Azure ML
 
