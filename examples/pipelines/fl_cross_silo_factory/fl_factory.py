@@ -607,7 +607,7 @@ class FederatedLearningPipelineFactory:
                     job.compute, datastore, self.OPERATION_READ, job.inputs[input_key].type
                 ):
                     soft_validation_report.append(
-                        f"{_path}: In job name={job.name}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job.compute}"
+                        f"In job {_path}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job.compute}"
                     )
 
             # loop on all the outputs
@@ -627,7 +627,7 @@ class FederatedLearningPipelineFactory:
                     datastore = output_path[21:].split("/")[0]
                 else:
                     soft_validation_report.append(
-                        f"{_path}: In job name={job.name}, output={output_key} does not start with azureml://datastores/ but is {output_path}"
+                        f"In job {_path}, output={output_key} does not start with azureml://datastores/ but is {output_path}"
                     )
                     continue
 
@@ -639,7 +639,7 @@ class FederatedLearningPipelineFactory:
                     job.outputs[output_key].type,
                 ):
                     soft_validation_report.append(
-                        f"{_path}: In job name={job.name}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job.compute}"
+                        f"In job {_path}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job.compute}"
                     )
 
             return soft_validation_report
