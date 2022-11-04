@@ -1,5 +1,33 @@
 # FL Accelerator Changelog
 
+##  October 2022 release
+
+We are excited to announce the release of the September iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
+
+Here are the new features.
+
+
+### Repository structure
+- Enabled CI/CD on the repo to ensure nothing breaks.
+
+### Provisioning
+- Decoupled the provisioning of the workspace, the orchestrator, and the silos.
+- New scripts for provisioning various kinds of resources, all listed in the [cookbook](./docs/provisioning/README.md) (orchestrator behind vnet, silos behind vnets, silos using an AKS cluster with confidential compute, silos using an existing storage account).
+- Introduced "one-click deployments" for all resources.
+
+### Documentation
+- Instructions on how to provision [external silos](./docs/provisioning/external-silos.md).
+- Tutorial on [how to adapt literal and factory code to your scenarios](./docs/literal-factory-tutorial.md).
+
+### FL Experience
+- Added training subgraphs to the "factory" example for a better user experience.
+- Added Subscription ID, Resource Group, and Workspace Name as CLI arguments for job submission.
+
+To get started, go [here](./docs/quickstart.md)!
+
+If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
+
+
 ##  September 2022 release
 
 We are excited to announce the release of the September iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
@@ -24,7 +52,3 @@ Here are the new features.
   - Soft validation to check the correct permissions of your assets.
 - Metrics:
   - The combined losses and model performances of several silos can now be seen at the pipeline level.
-
-To get started, go [here](./docs/quickstart.md)!
-
-If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
