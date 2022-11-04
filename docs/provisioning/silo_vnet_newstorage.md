@@ -30,7 +30,7 @@ To run these deployment options, you first need:
 
 In this tutorial, we're provisioning the resources according to the following schema. In this design, the silo is located in a region that is distinct from the Azure ML workspace and the orchestrator storage account.
 
-If any of that design doesn't fit your requirements, feel free to check out the bicep provisioning script [`vnet_compute_storage_pair.bicep`](/mlops/bicep/modules/resources/vnet_compute_storage_pair.bicep) and adapt it to your needs. Also please give us feedback by filing an issue in this repo.
+If any of that design doesn't fit your requirements, feel free to check out the bicep provisioning script [`vnet_compute_storage_pair.bicep`](/mlops/bicep/modules/fl_pairs/vnet_compute_storage_pair.bicep) and adapt it to your needs. Also please give us feedback by filing an issue in this repo.
 
 ![](../pics/vnet_silo_provisioning.png)
 
