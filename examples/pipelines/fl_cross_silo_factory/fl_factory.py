@@ -196,6 +196,8 @@ class FederatedLearningPipelineFactory:
         self,
         scatter,
         gather,
+        scatter_to_gather_map: callable,
+        gather_to_accumulator_map: callable,
         accumulator: dict,
         iterations=1,
         **constant_scatter_args
@@ -224,7 +226,7 @@ class FederatedLearningPipelineFactory:
             description="Pipeline includes preprocessing, training and aggregation components",
         )
         def fl_scatter_gather_iteration(
-            running_accumulator: Input(optional=True),
+            iteration_input: Input(optional=True),
             iteration_num: int
         ):
             # collect all outputs in a list to be used for aggregation
@@ -234,11 +236,11 @@ class FederatedLearningPipelineFactory:
             for silo_config in self.silos:
 
                 scatter_arguments = {}
-                # custom data inputs
+                # custom scatter data inputs
                 scatter_arguments.update(silo_config["custom_input_args"])
 
-                # custom accumulator input
-                scatter_arguments[accumulator_key] = running_accumulator
+                # custom iteration inputs
+                scatter_arguments[accumulator_key] = iteration_input
 
                 # custom training args
                 scatter_arguments.update(constant_scatter_args)
@@ -270,7 +272,7 @@ class FederatedLearningPipelineFactory:
 
                 # each output is indexed to be fed into aggregate_component as a distinct input
                 silo_subgraphs_outputs.append(silo_subgraph_step.outputs)
-                scatter_outputs_keys = list(silo_subgraph_step.outputs.keys())
+                # scatter_outputs_keys = list(silo_subgraph_step.outputs.keys())
 
             # a couple of basic tests before aggregating
             # do we even have outputs?
@@ -284,11 +286,10 @@ class FederatedLearningPipelineFactory:
 
             # prepare inputs for the gather step
             gather_inputs_list = []
-            for key in scatter_outputs_keys:
-                for i, silo_output in enumerate(silo_subgraphs_outputs):
-                    gather_inputs_list.append(
-                        ( f"{key}_{i+1}", silo_output[key] )
-                    )
+            for i, silo_output in enumerate(silo_subgraphs_outputs):
+                gather_inputs_list.append(
+                    ( scatter_to_gather_map(key, i), silo_output[key] )
+                )
             gather_inputs_dict = dict(gather_inputs_list)
 
             # aggregate all silo models into one
@@ -303,9 +304,10 @@ class FederatedLearningPipelineFactory:
                 _path="aggregation_step"
             )
 
-            return {
-                accumulator_key: aggregation_step.outputs[accumulator_key]
-            }
+            iteration_outputs = {}
+            for key in aggregation_step.outputs:
+                iteration_outputs[key] = aggregation_step.outputs[gather_to_accumulator_map(key)]
+            return iteration_outputs
 
 
         @pipeline(
@@ -313,26 +315,29 @@ class FederatedLearningPipelineFactory:
         )
         def _fl_cross_silo_factory_pipeline():
 
-            running_accumulator = None
+            running_accumulator = accumulator.get("initial_input", None)
 
             # now for each iteration, run training
             # Note: The Preprocessing will be done once. For 'n-1' iterations, the cached states/outputs will be used.
             for iteration_num in range(1, iterations + 1):
 
                 # call pipeline for each iteration
-                output_iteration = fl_scatter_gather_iteration(running_accumulator, iteration_num)
-                output_iteration.name = f"scatter_gather_iteration_{iteration_num}"
+                iteration_step = fl_scatter_gather_iteration(
+                    iteration_input=running_accumulator,
+                    iteration_num=iteration_num
+                )
+                iteration_step.name = f"scatter_gather_iteration_{iteration_num}"
 
                 # the running accumulator is on the orchestrator side
-                for key in output_iteration.outputs:
+                for key in iteration_step.outputs:
                     setattr(
-                        output_iteration.outputs,
+                        iteration_step.outputs,
                         key,
                         self.custom_fl_data_output(self.orchestrator["datastore"], key),
                     )
 
                 # let's keep track of the checkpoint to be used as input for next iteration
-                running_accumulator = output_iteration.outputs[accumulator_key]
+                running_accumulator = iteration_step.outputs[accumulator_key]
 
             return {
                 # the only output is the accumulator

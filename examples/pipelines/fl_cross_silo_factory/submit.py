@@ -70,6 +70,12 @@ parser.add_argument(
     help="actually submits the experiment to AzureML",
 )
 parser.add_argument(
+    "--debug",
+    default=False,
+    action="store_true",
+    help="enable DEBUG logs",
+)
+parser.add_argument(
     "--ignore_validation",
     default=False,
     action="store_true",
@@ -307,16 +313,35 @@ for silo_config in YAML_CONFIG.federated_learning.silos:
 # 3. use a pipeline factory method
 # 3.1 build flexible fl pipeline
 
+# DEBUG
+if args.debug:
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    log_format = logging.Formatter("[%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+
 pipeline_job = builder.build_flexible_fl_pipeline(
-    # building requires all 2 functions provided as argument below
+    # building requires two arguments that can be either a component or a pipeline
     scatter=silo_scatter_subgraph,
     gather=aggregate_component,
+
+    # function to map name of outputs from each scatter into a name for the inputs of gather
+    scatter_to_gather_map = lambda output_name, silo_index : f"input_silo_{silo_index+1}",
+
+    # function to map name of outputs of gather to inputs of scatter
+    gather_to_accumulator_map = lambda output_name : "aggregated_checkpoint",
 
     accumulator={
         # this key needs to be the name of the output of gather component/pipeline
         # AND be an acceptable input key for scatter component/pipeline
-        "name" : "aggregated_checkpoint"
+        "name" : "aggregated_checkpoint",
+        "initial_input" : None
     },
+
+    # how many iterations
     iterations=YAML_CONFIG.training_parameters.num_of_iterations,
 
     # any additional kwarg is considered constant and given to scatter as is
