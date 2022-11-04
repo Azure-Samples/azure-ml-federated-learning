@@ -271,7 +271,7 @@ class FederatedLearningPipelineFactory:
             scatter_subgraphs_outputs = []
 
             # for each silo, run a distinct training with its own inputs and outputs
-            for silo_config in self.silos:
+            for silo_index, silo_config in enumerate(self.silos):
 
                 scatter_arguments = {}
                 # custom scatter data inputs
@@ -290,6 +290,7 @@ class FederatedLearningPipelineFactory:
                 scatter_arguments["gather_datastore"] = self.orchestrator["datastore"]
 
                 silo_subgraph_step = scatter(**scatter_arguments)
+                silo_subgraph_step.name = f"silo_subgraph_{silo_index}"
 
                 # every step within the silo_subgraph_step needs to be anchored in the SILO
                 self.anchor_step_in_silo(
@@ -345,9 +346,7 @@ class FederatedLearningPipelineFactory:
             # now let's map the output of gather() to the accumulator for next iteration
             iteration_outputs = {}
             for key in aggregation_step.outputs:
-                iteration_outputs[key] = aggregation_step.outputs[
-                    gather_to_accumulator_map(key)
-                ]
+                iteration_outputs[gather_to_accumulator_map(key)] = aggregation_step.outputs[key]
 
             # and return that as the output of the iteration pipeline
             return iteration_outputs
