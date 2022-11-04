@@ -2,26 +2,25 @@
 
 ##  October 2022 release
 
-We are excited to announce the release of the September iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
+We are excited to announce the release of the October iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
 
 Here are the new features.
 
-
-### Repository structure
-- Enabled CI/CD on the repo to ensure nothing breaks.
-
 ### Provisioning
-- Decoupled the provisioning of the workspace, the orchestrator, and the silos.
-- New scripts for provisioning various kinds of resources, all listed in the [cookbook](./docs/provisioning/README.md) (orchestrator behind vnet, silos behind vnets, silos using an AKS cluster with confidential compute, silos using an existing storage account).
-- Introduced "one-click deployments" for all resources.
+- A new provisioning [cookbook](./docs/provisioning/README.md) so you can pick and choose the setup that best suits your needs, based on the provided templates (orchestrator behind vnet, silos behind vnets, silos using an AKS cluster with confidential compute, silos using an existing storage account...).
+- All bicep scripts can now be used as standalone to adapt to your specific infrastructure needs.
 
 ### Documentation
 - Instructions on how to provision [external silos](./docs/provisioning/external-silos.md).
 - Tutorial on [how to adapt literal and factory code to your scenarios](./docs/literal-factory-tutorial.md).
+- Introduced "one-click deployments" for all bicep templates.
 
 ### FL Experience
-- Added training subgraphs to the "factory" example for a better user experience.
+- Using AzureML SDK subgraphs (preview) as a basis for the factory code sample, so that writing an FL experiment is easier and more flexible, and the experiment graph is shown better in the Azure ML UI.
 - Added Subscription ID, Resource Group, and Workspace Name as CLI arguments for job submission.
+
+### Repository structure
+- Enabled CI/CD on the repo to ensure nothing breaks.
 
 To get started, go [here](./docs/quickstart.md)!
 
