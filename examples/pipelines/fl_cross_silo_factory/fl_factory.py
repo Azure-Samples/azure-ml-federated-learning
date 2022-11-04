@@ -473,24 +473,26 @@ class FederatedLearningPipelineFactory:
     #######################
 
     def _resolve_pipeline_data(self, data_key, data_def, inputs_map={}, outputs_map={}, _path="ROOT"):
+        self.logger.debug(f"{_path}: resolving data_key={data_key} type={data_def.type} class={data_def.__class__.__name__} with inputs_map={list(inputs_map.keys())} outputs_map={list(outputs_map.keys())}")
         if data_def.type in ['string', 'boolean', 'integer', 'number']:
             self.logger.debug(f"{_path}: job i/o key={data_key} is not data")
             return data_def.type, None
-
-        if data_def._data is None:
-            return None, None
 
         if isinstance(data_def._data, Input):
             self.logger.debug(f"{_path}: job i/o key={data_key} is input")
             return data_def._data.type, data_def._data.path
         if isinstance(data_def._data, Output):
             self.logger.debug(f"{_path}: job i/o key={data_key} is output")
-            print(data_def._data.__dict__)
             return data_def._data.type, data_def._data.path
-    
+
+
         if data_def._data is not None:
             # internal reference inside the graph
             self.logger.debug(f"{_path}: job i/o key={data_key} is an internal reference to pipeline level data name={data_def._data._name}")
+
+            if data_def._data._data is not None:
+                # to avoid infinite recursion
+                return data_def._data._data.type, data_def._data._data.path
 
             ref_key = data_def._data._name
 
@@ -501,6 +503,7 @@ class FederatedLearningPipelineFactory:
             else:
                 raise ValueError(f"{_path}: internal reference {ref_key} not found in inputs_map (keys={list(inputs_map.keys())}) or outputs_map (keys={list(outputs_map.keys())})")
 
+            self.logger.debug(f"{_path}: job i/o key={data_key} resolved to data definition name={data_def._data._name}")
             return self._resolve_pipeline_data(
                 data_key=data_def._data._name,
                 data_def=_data_def,
@@ -509,13 +512,13 @@ class FederatedLearningPipelineFactory:
                 _path=f"{_path}->{data_key}",
             )
         else:
-            self.logger.debug(f"{_path}: job i/o key={data_key} is pointing to type={data_def.type} path={data_def.path}")
-            return data_def.type, data_def.path
+            self.logger.debug(f"{_path}: job i/o key={data_key} is pointing to None (optional input)")
+            return None, None
 
 
     def _recursive_validate(self, job, _path="ROOT", inputs_map={}, outputs_map={}):
         soft_validation_report = []
-        self.logger.debug(f"{_path}: recursive validation of job name={job.name} with inputs_map={inputs_map} outputs_map={outputs_map}")
+        self.logger.debug(f"{_path}: recursive validation of job name={job.name} with inputs_map={list(inputs_map.keys())} outputs_map={list(outputs_map.keys())}")
 
         if job.type == "pipeline":
             compute = job.compute
@@ -585,6 +588,7 @@ class FederatedLearningPipelineFactory:
                 )
 
                 if input_path is None:
+                    # optional input
                     continue
 
                 self.logger.debug(f"{_path}: job input={input_key} is pointing to to path={input_path}")
@@ -603,27 +607,27 @@ class FederatedLearningPipelineFactory:
                     job.compute, datastore, self.OPERATION_READ, job.inputs[input_key].type
                 ):
                     soft_validation_report.append(
-                        f"{_path}: In job name={job.name}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={compute}"
+                        f"{_path}: In job name={job.name}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job.compute}"
                     )
-            
+
             # loop on all the outputs
             for output_key in job.outputs:
-                if job.inputs[input_key]._data is not None:
-                    # internal reference to another input somewhere
-                    pass
+                output_type, output_path = self._resolve_pipeline_data(
+                    data_key=output_key,
+                    data_def=job.outputs[output_key],
+                    _path=f"{_path}.outputs.{output_key}",
+                    inputs_map=inputs_map,
+                    outputs_map=outputs_map,
+                )
 
-                try:
-                    # get the path of this output
-                    output_path = job.outputs[output_key].path
-                except ValidationException:
-                    continue
+                self.logger.debug(f"{_path}: job output={output_key} is pointing to to path={output_path}")
 
                 # extract the datastore
                 if output_path and output_path.startswith("azureml://datastores/"):
                     datastore = output_path[21:].split("/")[0]
                 else:
                     soft_validation_report.append(
-                        f"{_path}: In job name={job.name}, output={output_key} does not start with azureml://datastores/"
+                        f"{_path}: In job name={job.name}, output={output_key} does not start with azureml://datastores/ but is {output_path}"
                     )
                     continue
 
@@ -635,7 +639,7 @@ class FederatedLearningPipelineFactory:
                     job.outputs[output_key].type,
                 ):
                     soft_validation_report.append(
-                        f"{_path}: In job name={job.name}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={compute}"
+                        f"{_path}: In job name={job.name}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job.compute}"
                     )
 
             return soft_validation_report
