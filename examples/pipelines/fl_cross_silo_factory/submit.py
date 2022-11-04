@@ -32,7 +32,6 @@ import webbrowser
 import time
 import json
 import sys
-import subprocess
 
 # Azure ML sdk v2 imports
 import azure
