@@ -199,9 +199,6 @@ aggregate_component = load_component(
 # This is your section, please modify anything here following the guidelines
 # in the docstrings.
 
-# The idea is that each of the following method is a "contract" you own
-# and specify. The factory will read this contract and assemble the
-# pieces of your pipeline based on input and output keys.
 
 @pipeline(
     name="Silo Federated Learning Subgraph",
@@ -211,16 +208,13 @@ def silo_scatter_subgraph(
     # user defined inputs
     raw_train_data: Input,
     raw_test_data: Input,
-
     # user defined accumulator
     aggregated_checkpoint: Input(optional=True),
-
     # factory inputs (contract)
     scatter_compute: str,
     scatter_datastore: str,
     gather_datastore: str,
     iteration_num: int,
-
     # user defined training arguments
     lr: float = 0.01,
     epochs: int = 3,
@@ -232,22 +226,27 @@ def silo_scatter_subgraph(
         raw_train_data (Input): raw train data
         raw_test_data (Input): raw test data
         aggregated_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
+        scatter_compute (str): Silo compute name
+        scatter_datastore (str): Silo datastore name
+        gather_datastore (str): Orchestrator datastore name
         iteration_num (int): Iteration number
-        compute (str): Silo compute name
-        datastore (str): Silo datastore name
-        model_datastore (str): Model datastore name
+        lr (float, optional): Learning rate. Defaults to 0.01.
+        epochs (int, optional): Number of epochs. Defaults to 3.
+        batch_size (int, optional): Batch size. Defaults to 64.
 
     Returns:
         Dict[str, Outputs]: a map of the outputs
     """
-    # we're using preprocessing component directly
+    # we're using our own preprocessing component
     silo_pre_processing_step = preprocessing_component(
+        # this consumes whatever user defined inputs
         raw_training_data=raw_train_data,
         raw_testing_data=raw_test_data,
+        # here we're using the name of the silo compute as a metrics prefix
         metrics_prefix=scatter_compute,
     )
 
-    # we're using training component directly
+    # we're using our own training component
     silo_training_step = training_component(
         # with the train_data from the pre_processing step
         train_data=silo_pre_processing_step.outputs.processed_train_data,
@@ -267,10 +266,12 @@ def silo_scatter_subgraph(
         iteration_num=iteration_num,
     )
 
-    # IMPORTANT: use outputs only for data that can be exfiltrated into the orchestrator
+    # IMPORTANT: we will assume that any output provided here can be exfiltrated into the orchestrator
     return {
-        # IMPORTANT: key needs to be consistent with expected numbered inputs of gather component/pipeline
-        "input_silo" : silo_training_step.outputs.model
+        # NOTE: the key you use is custom
+        # a map function scatter_to_gather_map needs to be provided
+        # to map the name here to the expected input from gather
+        "input_silo": silo_training_step.outputs.model
     }
 
 
@@ -324,26 +325,28 @@ if args.debug:
     logger.addHandler(handler)
 
 pipeline_job = builder.build_flexible_fl_pipeline(
-    # building requires two arguments that can be either a component or a pipeline
+    # building the FL graph requires two arguments that can be either a component or a pipeline
+    # scatter is our subgraph above
     scatter=silo_scatter_subgraph,
+    # gather is directly a command component
     gather=aggregate_component,
-
-    # function to map name of outputs from each scatter into a name for the inputs of gather
-    scatter_to_gather_map = lambda output_name, silo_index : f"input_silo_{silo_index+1}",
-
-    # function to map name of outputs of gather to inputs of scatter
-    gather_to_accumulator_map = lambda output_name : "aggregated_checkpoint",
-
+    # a function to map name of outputs from each scatter into a name for the inputs of gather
+    scatter_to_gather_map=lambda output_name, silo_index: f"input_silo_{silo_index+1}",
+    # a function to map name of outputs of gather to inputs of scatter
+    gather_to_accumulator_map=lambda output_name: "aggregated_checkpoint",
+    # a dictionary describing the "accumulator"
+    # i.e. the input that is passed from gather to scatter in the next iteration
     accumulator={
-        # this key needs to be the name of the output of gather component/pipeline
-        # AND be an acceptable input key for scatter component/pipeline
-        "name" : "aggregated_checkpoint",
-        "initial_input" : None
+        # this key needs to be the name of the input expected by scatter
+        # factory will use gather_to_accumulator_map(key) to map
+        # to the input name required by scatter
+        "name": "aggregated_checkpoint",
+        # we can provide an initial input for the first iteration
+        # but this is an optional input
+        "initial_input": None,
     },
-
     # how many iterations
     iterations=YAML_CONFIG.training_parameters.num_of_iterations,
-
     # any additional kwarg is considered constant and given to scatter as is
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
