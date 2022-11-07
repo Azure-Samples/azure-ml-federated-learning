@@ -28,6 +28,7 @@ def run(task, component_settings, checkpoint_setting):
 if __name__ == "__main__":
     utils.validate_running_on_gpu_compute()
 
+    
     # Run the component.
     # (If multiple processes are spawned on the same node, only run the component on one process
     # since AutoML will spawn child processes as appropriate.)
