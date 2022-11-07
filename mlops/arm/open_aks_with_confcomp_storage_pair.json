@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.11.1.770",
-      "templateHash": "3286272064761087458"
+      "version": "0.12.1.58429",
+      "templateHash": "16454367035248089744"
     }
   },
   "parameters": {
@@ -162,8 +162,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "4597355319206548270"
+              "version": "0.12.1.58429",
+              "templateHash": "15695720227000711530"
             }
           },
           "parameters": {
@@ -428,8 +428,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "13435328150647687136"
+              "version": "0.12.1.58429",
+              "templateHash": "14513633552874658395"
             }
           },
           "parameters": {
@@ -612,8 +612,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "16152633449067688318"
+                      "version": "0.12.1.58429",
+                      "templateHash": "8007756182546678148"
                     }
                   },
                   "parameters": {
@@ -807,8 +807,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.11.1.770",
-                      "templateHash": "3788879703163585225"
+                      "version": "0.12.1.58429",
+                      "templateHash": "13536683662660053364"
                     }
                   },
                   "parameters": {
@@ -895,7 +895,7 @@
           "outputs": {
             "identityPrincipalId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))).principalId]"
+              "value": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName')), '2022-01-31-preview').principalId]"
             },
             "compute": {
               "type": "string",
@@ -907,7 +907,7 @@
             },
             "aksControlPlaneFQDN": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))).fqdn]"
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName')), '2022-05-02-preview').fqdn]"
             },
             "aksId": {
               "type": "string",
@@ -929,10 +929,10 @@
         "mode": "Incremental",
         "parameters": {
           "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
           },
           "identityPrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
           }
         },
         "template": {
@@ -941,8 +941,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.11.1.770",
-              "templateHash": "17992859547784854732"
+              "version": "0.12.1.58429",
+              "templateHash": "15885661083233540174"
             }
           },
           "parameters": {
@@ -998,19 +998,19 @@
   "outputs": {
     "identityPrincipalId": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName')))).outputs.identityPrincipalId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
     },
     "storageName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageName.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
     },
     "storageServiceId": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))).outputs.storageId.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
     },
     "computeName": {
       "type": "string",
-      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName')))).outputs.compute.value]"
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aks-confcomp', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
     },
     "region": {
       "type": "string",

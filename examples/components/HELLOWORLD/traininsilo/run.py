@@ -31,7 +31,7 @@ def get_arg_parser(parser=None):
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
     parser.add_argument(
-        "--iteration_name", type=str, required=False, help="Iteration name"
+        "--iteration_num", type=int, required=False, help="Iteration number"
     )
 
     parser.add_argument(

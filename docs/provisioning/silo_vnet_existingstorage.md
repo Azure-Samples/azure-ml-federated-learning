@@ -44,7 +44,7 @@ It is important in this case that you set the following on your existing storage
 
 ### Using one click deployment
 
-1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Frelease-sdkv2-iteration-03%2Fmlops%2Farm%2Fvnet_compute_existing_storage.json)
+1. Click on [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fvnet_compute_existing_storage.json)
 
 2. Adjust parameters, in particular:
 
