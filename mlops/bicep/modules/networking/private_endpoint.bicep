@@ -1,15 +1,17 @@
-// Creates a storage account, private endpoints and DNS zones
+// Creates a private link endpoint for a given resource
+targetScope = 'resourceGroup'
+
 @description('Azure region of the deployment')
-param location string
+param location string = resourceGroup().location
 
-@description('Tags to add to the resources')
-param tags object = {}
+@description('Service ID of the resource to create private link endpoint to')
+param resourceServiceId string
 
-@description('Service ID')
-param privateLinkServiceId string
+@description('Name of resource in private DNS zone A record (if privateIPAddress is specified)')
+param resourceName string
 
 @description('Name of the storage blob private link endpoint')
-param storagePleRootName string
+param pleRootName string = 'ple-${resourceName}'
 
 @description('Resource ID of the vnet')
 param virtualNetworkId string
@@ -17,63 +19,90 @@ param virtualNetworkId string
 @description('Resource ID of the subnet')
 param subnetId string
 
-@description('Name of the DNS zone')
+@description('use privateIPAddress to assign a specific static IP address to PLE')
+param useStaticIPAddress bool = false
+
+@description('Specify the private IP address on the subnet.')
+param privateIPAddress string = ''
+
+@description('Name of the existing DNS zone to add the PLE to')
 param privateDNSZoneName string
 
-@description('Resource ID of the DNS zone group')
-param privateDNSZoneId string
+@description('Location of the existing DNS zone to add the PLE to')
+param privateDNSZoneLocation string = 'global'
 
-@description('Name of the DNS zone groups to add to the private endpoint')
-param groupIds array
+@description('Name of the DNS zone group to add to the PLE')
+param groupId string
 
+@description('Creates the virtual network link or not (use false if link already exists).')
+param linkVirtualNetwork bool = true
 
-resource servicePrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: storagePleRootName
+@description('Tags to add to the resources')
+param tags object = {}
+
+var ipConfigurationsDefinition = useStaticIPAddress ? [{
+  name: '${pleRootName}-ipconfig'
+  properties: {
+    groupId: groupId
+    memberName: groupId
+    privateIPAddress: privateIPAddress
+  }
+}] : []
+
+resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
+  name: pleRootName
   location: location
   tags: tags
   properties: {
-    privateLinkServiceConnections: [ for groupId in groupIds: {
-      name: storagePleRootName
+    ipConfigurations: ipConfigurationsDefinition
+    privateLinkServiceConnections: [ {
+      name: pleRootName
       properties: {
         groupIds: [ groupId ]
-        privateLinkServiceId: privateLinkServiceId
+        privateLinkServiceId: resourceServiceId
         privateLinkServiceConnectionState: {
           status: 'Approved'
           description: 'Auto-Approved'
           actionsRequired: 'None'
         }
       }
-  }]
+    }]
     subnet: {
       id: subnetId
     }
   }
 }
 
-resource privateEndpointDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2020-06-01' = [for groupId in groupIds: {
-  name: '${servicePrivateEndpoint.name}/${groupId}-PrivateDnsZoneGroup'
-  //name: '${storagePrivateEndpointBlob.name}/blob-${uniqueString(storage.id)}-PrivateDnsZoneGroup'
+resource privateDNSZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: privateDNSZoneName
+}
+
+resource privateEndpointDnsZoneGroup 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2020-06-01' = {
+  name: '${groupId}-PrivateDnsZoneGroup'
+  parent: privateEndpoint
   properties:{
     privateDnsZoneConfigs: [
       {
-        name: privateDNSZoneName
+        name: privateDNSZone.name
         properties:{
-          privateDnsZoneId: privateDNSZoneId
+          privateDnsZoneId: privateDNSZone.id
         }
       }
     ]
   }
-}]
+}
 
-resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = [for groupId in groupIds: {
-  name: '${privateDNSZoneName}/${uniqueString(subnetId, privateLinkServiceId, groupId)}'
-  location: 'global'
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (linkVirtualNetwork) {
+  name: uniqueString(subnetId, resourceServiceId, groupId)
+  parent: privateDNSZone
+  location: privateDNSZoneLocation
   properties: {
     registrationEnabled: false
     virtualNetwork: {
       id: virtualNetworkId
     }
   }
-}]
+}
 
-output endpoint string = servicePrivateEndpoint.id
+output name string = privateEndpoint.name
+output id string = privateEndpoint.id

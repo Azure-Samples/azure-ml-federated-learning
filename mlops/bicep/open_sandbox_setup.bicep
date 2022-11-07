@@ -31,9 +31,10 @@ param demoBaseName string = 'fldemo'
 
 // below parameters are optionals and have default values
 @allowed(['UserAssigned','SystemAssigned'])
+@description('Type of identity to use for permissions model')
 param identityType string = 'UserAssigned'
 
-@description('Location of the orchestrator (workspace, central storage and compute).')
+@description('Region of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
@@ -44,7 +45,7 @@ param siloRegions array = [
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param computeSKU string = 'Standard_DS13_v2'
+param computeSKU string = 'Standard_DS3_v2'
 
 
 @description('Tags to curate the resources in Azure.')
@@ -57,25 +58,27 @@ param tags object = {
 }
 
 // Create Azure Machine Learning workspace
-module workspace './modules/resources/open_azureml_workspace.bicep' = {
-  name: '${demoBaseName}-deploy-aml-${orchestratorRegion}'
+module workspace './modules/azureml/open_azureml_workspace.bicep' = {
+  name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
+    baseName: demoBaseName
     machineLearningName: 'aml-${demoBaseName}'
+    machineLearningDescription: 'Azure ML demo workspace for federated learning (use for dev purpose only)'
     location: orchestratorRegion
     tags: tags
   }
 }
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
-  name: '${demoBaseName}-deploy-orchestrator'
+module orchestrator './modules/fl_pairs/open_compute_storage_pair.bicep' = {
+  name: '${demoBaseName}-openpair-orchestrator'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
 
-    region: orchestratorRegion
+    pairRegion: orchestratorRegion
     tags: tags
 
     pairBaseName: '${demoBaseName}-orch'
@@ -87,35 +90,25 @@ module orchestrator './modules/resources/open_compute_storage_pair.bicep' = {
 
     // identity for permissions model
     identityType: identityType
+
+    // set R/W permissions for orchestrator UAI towards orchestrator storage
+    applyDefaultPermissions: true
   }
   dependsOn: [
     workspace
   ]
 }
 
-// set R/W permissions for orchestrator UAI towards orchestrator storage
-module orchestratorPermission './modules/permissions/msi_storage_rw.bicep' = {
-  name: '${demoBaseName}-deploy-orchestrator-permission-${orchestratorRegion}'
-  scope: resourceGroup()
-  params: {
-    storageAccountName: orchestrator.outputs.storageName
-    identityPrincipalId: orchestrator.outputs.identityPrincipalId
-  }
-  dependsOn: [
-    orchestrator
-  ]
-}
-
 var siloCount = length(siloRegions)
 
 // Create all silos using a provided bicep module
-module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo-${i}-${siloRegions[i]}'
+module silos './modules/fl_pairs/open_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-openpair-silo-${i}'
   scope: resourceGroup()
   params: {
-    machineLearningName: workspace.outputs.workspace
+    machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
-    region: siloRegions[i]
+    pairRegion: siloRegions[i]
     tags: tags
 
     pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
@@ -125,29 +118,20 @@ module silos './modules/resources/open_compute_storage_pair.bicep' = [for i in r
     computeNodes: 4
     datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
 
+    // identity for permissions model
     identityType: identityType
+
+    // set R/W permissions for orchestrator UAI towards orchestrator storage
+    applyDefaultPermissions: true
   }
   dependsOn: [
     workspace
   ]
 }]
 
-// set R/W permissions for silo identity towards silo storage
-module siloToSiloPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo${i}-permission'
-  scope: resourceGroup()
-  params: {
-    storageAccountName: silos[i].outputs.storageName
-    identityPrincipalId: silos[i].outputs.identityPrincipalId
-  }
-  dependsOn: [
-    silos
-  ]
-}]
-
 // set R/W permissions for silo identity towards orchestrator storage
 module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${demoBaseName}-deploy-silo${i}-to-orch-permission'
+  name: '${demoBaseName}-rw-perms-silo${i}-to-orch'
   scope: resourceGroup()
   params: {
     storageAccountName: orchestrator.outputs.storageName
