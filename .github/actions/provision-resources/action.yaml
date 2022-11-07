@@ -1,0 +1,50 @@
+name: Provision resources
+description: Provision resources to perform an FL experiment
+inputs:
+  client-id:
+    description: Client ID of the service principal
+    required: true
+  tenant-id:
+    description: Tenant ID of the service principal
+    required: true
+  subscription-id:
+    description: Subscription to use for resources
+    required: true
+  resource-group:
+    description: Resource group
+    required: true
+  deployment-file-path:
+    description: File path of the deployment
+    required: true
+  deployment-name:
+    description: Name for the azure deployment (unique)
+    required: true
+  demo-base-name:
+    description: Demo base name (it should be unique)
+    required: true
+  region:
+    description: Region of the resource group
+    required: false
+    default: 'westus'
+
+runs:
+  using: composite
+  steps:
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+          client-id: ${{ inputs.client-id }}
+          tenant-id: ${{ inputs.tenant-id }}
+          subscription-id: ${{ inputs.subscription-id }}
+
+    - name: Delete the resource group created by the provisioning script
+      shell: bash
+      run: az group delete --name ${{ inputs.resource-group }} --yes || echo No resource group named ${{ inputs.resource-group }} is found.
+
+    - name: Create a new resource group
+      shell: bash
+      run: az group create --name ${{ inputs.resource-group }} --location ${{ inputs.region }}
+
+    - name: Deploy the demo resources in your resource group
+      shell: bash
+      run: az deployment group create --template-file ${{ inputs.deployment-file-path }} --resource-group ${{ inputs.resource-group }} --parameters demoBaseName=${{ inputs.demo-base-name }} --name ${{ inputs.deployment-name }}

@@ -1,0 +1,157 @@
+name: Release-branch-test
+
+on:
+  pull_request:
+    branches:
+    - release**
+
+jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+    outputs:
+      provisioning-modules: ${{ steps.filter.outputs.provisioning-modules }}
+      open-sandbox: ${{ steps.filter.outputs.open-sandbox }}
+      vnet-sandbox: ${{ steps.filter.outputs.vnet-sandbox }}
+      components-helloworld: ${{ steps.filter.outputs.components-helloworld }}
+      components-mnist: ${{ steps.filter.outputs.components-mnist }}
+      literal: ${{ steps.filter.outputs.literal }}
+      factory: ${{ steps.filter.outputs.factory }}
+    steps:
+    - uses: actions/checkout@v2
+    - uses: dorny/paths-filter@v2
+      id: filter
+      with:
+        filters: |
+          provisioning-modules:
+            - 'mlops/bicep/modules/**'
+          open-sandbox:
+            - 'mlops/bicep/open_sandbox_setup.bicep'
+          vnet-sandbox:
+            - 'mlops/bicep/vnet_publicip_sandbox_setup.bicep'
+          components-helloworld:
+            - 'examples/components/HELLOWORLD/**'
+          components-mnist:
+            - 'examples/components/MNIST/**'
+          literal:
+            - 'examples/pipelines/fl_cross_silo_literal/**'
+          factory:
+            - 'examples/pipelines/fl_cross_silo_factory/**'
+
+  open-sandbox-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.provisioning-modules == 'true') || (needs.paths-filter.outputs.open-sandbox == 'true') }}
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Provision resources
+      uses: ./.github/actions/provision-resources
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
+        deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
+        deployment-name: open_sandbox_${{ github.run_attempt }}${{ github.run_id }}
+        demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
+
+  vnet-sandbox-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.provisioning-modules == 'true') || (needs.paths-filter.outputs.vnet-sandbox == 'true') }}
+    permissions:
+      id-token: write
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Provision resources
+      uses: ./.github/actions/provision-resources
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        deployment-file-path: ./mlops/bicep/vnet_publicip_sandbox_setup.bicep
+        deployment-name: vnet_sandbox_${{ github.run_attempt }}${{ github.run_id }}
+        demo-base-name: fl2${{ github.run_attempt }}${{ github.run_id }}
+
+  literal-helloworld-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.components-helloworld == 'true') || (needs.paths-filter.outputs.literal == 'true') }}
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit Helloworld example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: HELLOWORLD
+
+  factory-helloworld-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.components-helloworld == 'true') || (needs.paths-filter.outputs.factory == 'true') }}    
+    permissions:
+      id-token: write
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Submit Helloworld example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: HELLOWORLD
+
+  literal-mnist-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ needs.paths-filter.outputs.components-mnist == 'true' }}
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit MNIST example using the literal code
+      uses: ./.github/actions/submit-aml-literal-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: MNIST
+
+  factory-mnist-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ needs.paths-filter.outputs.components-mnist == 'true' }}
+    permissions:
+      id-token: write
+    steps:
+
+    - uses: actions/checkout@v2
+
+    - name: Submit MNIST example using the factory code
+      uses: ./.github/actions/submit-aml-factory-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: MNIST

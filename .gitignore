@@ -130,3 +130,6 @@ dmypy.json
 
 # if you use an AzureML config file locally
 config.json
+
+# for ignoring test jobs
+/examples/pipelines/test*

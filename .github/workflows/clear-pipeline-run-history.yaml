@@ -1,0 +1,28 @@
+name: Delete run history
+on:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  delete-history:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Azure login
+      uses: azure/login@v1
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    
+    - name: Install azure ml latest extension
+      shell: bash
+      run: |
+        az extension remove -n azure-cli-ml || echo "azure-cli-ml extension is not installed."
+        az extension remove -n ml || echo "ml extension is not installed."
+        az extension add -n ml -y
+
+    - name: Delete run history
+      shell: bash
+      run: ./.github/scripts/delete-run-history.sh ${{ secrets.RESOURCE_GROUP }} ${{ secrets.AML_WORKSPACE_NAME }}

@@ -1,0 +1,1 @@
+These ARM templates are generated automatically from the ![bicep scripts](../bicep/). Please refer to bicep for the source of truth.
