@@ -27,7 +27,7 @@ inputs:
     description: the name of the dataset
   analytic_sender_id:
     type: string
-    description: does not matter, we'll get rid of this one
+    description: id of `AnalyticsSender` if configured as a client component
     optional: true
   iteration_num:
     type: integer
