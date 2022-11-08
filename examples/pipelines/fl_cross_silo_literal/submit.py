@@ -220,6 +220,8 @@ def fl_cross_silo_internal_basic():
                 path=silo_config.testing_data.path,
             ),
             metrics_prefix=silo_config.compute,
+            # Config that may contain extra parameters
+            config=silo_config,
         )
 
         # add a readable name to the step
@@ -305,7 +307,11 @@ def fl_cross_silo_internal_basic():
             ] = silo_training_step.outputs.model
 
         # aggregate all silo models into one
-        aggregate_weights_step = aggregate_component(**silo_weights_outputs)
+        aggregate_weights_step = aggregate_component(
+            **silo_weights_outputs,
+            # Config that may contain extra parameters
+            # config=silo_config,
+        )
         # this is done in the orchestrator compute
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
