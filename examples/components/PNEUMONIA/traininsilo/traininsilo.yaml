@@ -8,26 +8,6 @@ description: Component to train a model within a FL silo.
 is_deterministic: true
 
 inputs:
-  train_data:
-    type: uri_folder
-    description: the input training data
-  test_data:
-    type: uri_folder
-    description: the input testing data
-  metrics_prefix:
-    type: string
-    description: Metrics prefix
-    default: Default-prefix
-    optional: true
-  iteration_num:
-    type: integer
-    description: Iteration number
-    default: 1
-    optional: true
-  checkpoint:
-    type: uri_folder
-    description: a given pre-existing checkpoint
-    optional: true
   lr:
     type: number
     description: learning rate
@@ -38,11 +18,36 @@ inputs:
     description: total number of epochs for local training
     default: 3
     optional: true
-  batch_size:
-    type: integer
-    description: batch size
-    default: 64
+  exclude_vars:
+    type: string
+    description: list of variables to exclude during model loading
     optional: true
+  dataset_name:
+    type: uri_folder
+    description: the name of the dataset
+  analytic_sender_id:
+    type: string
+    description: does not matter, we'll get rid of this one
+    optional: true
+  iteration_num:
+    type: integer
+    description: Iteration number
+    default: 1
+    optional: true
+  checkpoint:
+    type: uri_folder
+    description: a given pre-existing checkpoint
+    optional: true
+  # metrics_prefix:
+  #   type: string
+  #   description: Metrics prefix
+  #   default: Default-prefix
+  #   optional: true
+  # batch_size:
+  #   type: integer
+  #   description: batch size
+  #   default: 64
+  #   optional: true  
 
 outputs:
   model:
@@ -52,7 +57,11 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
+  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--exclude_vars ${{inputs.exclude_vars}}]] $[[--analytic_sender_id ${{inputs.analytic_sender_id}}]]
+  
+# $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--batch_size ${{inputs.batch_size}}]]
+
+
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
