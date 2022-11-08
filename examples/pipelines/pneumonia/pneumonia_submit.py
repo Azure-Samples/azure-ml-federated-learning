@@ -97,7 +97,7 @@ def connect_to_aml():
         # Check if given credential can get token successfully.
         credential.get_token("https://management.azure.com/.default")
     except Exception as ex:
-        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
+        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential does not work
         credential = InteractiveBrowserCredential()
 
     # Get a handle to workspace
@@ -128,10 +128,6 @@ ML_CLIENT = connect_to_aml()
 ####################################
 
 # Loading the component from their yaml specifications
-preprocessing_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
-)
-
 training_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
 )
@@ -188,59 +184,59 @@ pipeline_identifier = getUniqueIdentifier()
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_cross_silo_internal_basic():
-    ######################
-    ### PRE-PROCESSING ###
-    ######################
+    # ######################
+    # ### PRE-PROCESSING ###
+    # ######################
 
-    # once per silo, we're running a pre-processing step
+    # # once per silo, we're running a pre-processing step
 
-    silo_preprocessed_train_data = (
-        []
-    )  # list of preprocessed train datasets for each silo
-    silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
+    # silo_preprocessed_train_data = (
+    #     []
+    # )  # list of preprocessed train datasets for each silo
+    # silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
 
-    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
-        # run the pre-processing component once
-        silo_pre_processing_step = preprocessing_component(
-            raw_training_data=Input(
-                type=silo_config.training_data.type,
-                mode=silo_config.training_data.mode,
-                path=silo_config.training_data.path,
-            ),
-            raw_testing_data=Input(
-                type=silo_config.testing_data.type,
-                mode=silo_config.testing_data.mode,
-                path=silo_config.testing_data.path,
-            ),
-            metrics_prefix=silo_config.compute,
-        )
+    # for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+    #     # run the pre-processing component once
+    #     silo_pre_processing_step = preprocessing_component(
+    #         raw_training_data=Input(
+    #             type=silo_config.training_data.type,
+    #             mode=silo_config.training_data.mode,
+    #             path=silo_config.training_data.path,
+    #         ),
+    #         raw_testing_data=Input(
+    #             type=silo_config.testing_data.type,
+    #             mode=silo_config.testing_data.mode,
+    #             path=silo_config.testing_data.path,
+    #         ),
+    #         metrics_prefix=silo_config.compute,
+    #     )
 
-        # add a readable name to the step
-        silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
+    #     # add a readable name to the step
+    #     silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
-        # make sure the compute corresponds to the silo
-        silo_pre_processing_step.compute = silo_config.compute
+    #     # make sure the compute corresponds to the silo
+    #     silo_pre_processing_step.compute = silo_config.compute
 
-        # make sure the data is written in the right datastore
-        silo_pre_processing_step.outputs.processed_train_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=custom_fl_data_path(silo_config.datastore, "train_data"),
-        )
-        silo_pre_processing_step.outputs.processed_test_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=custom_fl_data_path(silo_config.datastore, "test_data"),
-        )
+    #     # make sure the data is written in the right datastore
+    #     silo_pre_processing_step.outputs.processed_train_data = Output(
+    #         type=AssetTypes.URI_FOLDER,
+    #         mode="mount",
+    #         path=custom_fl_data_path(silo_config.datastore, "train_data"),
+    #     )
+    #     silo_pre_processing_step.outputs.processed_test_data = Output(
+    #         type=AssetTypes.URI_FOLDER,
+    #         mode="mount",
+    #         path=custom_fl_data_path(silo_config.datastore, "test_data"),
+    #     )
 
-        # store a handle to the train data for this silo
-        silo_preprocessed_train_data.append(
-            silo_pre_processing_step.outputs.processed_train_data
-        )
-        # store a handle to the test data for this silo
-        silo_preprocessed_test_data.append(
-            silo_pre_processing_step.outputs.processed_test_data
-        )
+    #     # store a handle to the train data for this silo
+    #     silo_preprocessed_train_data.append(
+    #         silo_pre_processing_step.outputs.processed_train_data
+    #     )
+    #     # store a handle to the test data for this silo
+    #     silo_preprocessed_test_data.append(
+    #         silo_pre_processing_step.outputs.processed_test_data
+    #     )
 
     ################
     ### TRAINING ###
@@ -258,9 +254,17 @@ def fl_cross_silo_internal_basic():
             # we're using training component here
             silo_training_step = training_component(
                 # with the train_data from the pre_processing step
-                train_data=silo_preprocessed_train_data[silo_index],
+                train_data=Input(
+                    type=silo_config.silo_data.type,
+                    mode=silo_config.silo_data.mode,
+                    path=silo_config.silo_data.path,
+                ),
                 # with the test_data from the pre_processing step
-                test_data=silo_preprocessed_test_data[silo_index],
+                test_data=Input(
+                    type=silo_config.silo_data.type,
+                    mode=silo_config.silo_data.mode,
+                    path=silo_config.silo_data.path,
+                ),
                 # and the checkpoint from previous iteration (or None if iteration == 1)
                 checkpoint=running_checkpoint,
                 # Learning rate for local training
