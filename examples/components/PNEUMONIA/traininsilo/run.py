@@ -46,7 +46,7 @@ from pneumonia_network import PneumoniaNetwork
 # from azureml.core import Workspace, Dataset
 
 
-class PTLearner(Learner):
+class PTLearner:
 
     def __init__(
         self,
@@ -69,8 +69,16 @@ class PTLearner(Learner):
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
             model_path (str, optional): where in the output directory to save the model
+
+        Attributes:
+            model_: PneumoniaNetwork model
+            loss_: CrossEntropy loss
+            optimizer_: Stochastic gradient descent
+            train_dataset_: Training Dataset obj
+            train_loader_: Training DataLoader
+            test_dataset_: Testing Dataset obj
+            test_loader_: Testing DataLoader
         """
-        super().__init__()
         self.lr = lr
         self.epochs = epochs
         self.exclude_vars = exclude_vars
@@ -81,17 +89,17 @@ class PTLearner(Learner):
 
     # def initialize(self, parts: dict, fl_ctx: FLContext):
         # Training setup
-        self.model = PneumoniaNetwork()
+        self.model_ = PneumoniaNetwork()
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model.to(self.device)
+        self.model_.to(self.device)
         self._model_path = model_path
-        self.loss = nn.CrossEntropyLoss()
-        self.optimizer = SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
+        self.loss_ = nn.CrossEntropyLoss()
+        self.optimizer_ = SGD(self.model_.parameters(), lr=self.lr, momentum=0.9)
 
         # self.workspace = Workspace.from_config()
         # print(self.workspace)
-        print('model', self.model)
+        print('model', self.model_)
 
         IMG_HEIGHT, IMG_WIDTH = 224, 224
         IMG_MEAN = 0.4818
@@ -112,23 +120,23 @@ class PTLearner(Learner):
 
         self.train_dataset_, self.test_dataset_ = self.load_dataset(dataset_dir)
 
-        self.train_loader = DataLoader(
+        self.train_loader_ = DataLoader(
             dataset=self.train_dataset_, batch_size=32, shuffle=True, drop_last=True)
 
         self.n_iterations = len(self.train_loader)
 
         # self.test_dataset = ImageFolder(root=os.path.join(os.path.expanduser(
         #     '~'), 'data', 'pneumonia-2class-reduced', 'test'), transform=transforms)
-        self.test_loader = DataLoader(
+        self.test_loader_ = DataLoader(
             dataset=self.test_dataset_, batch_size=100, shuffle=False)
 
         # # Setup the persistence manager to save PT model.
         # # The default training configuration is used by persistence manager in case no initial model is found.
         # self.default_train_conf = {
-        #     "train": {"model": type(self.model).__name__}}
+        #     "train": {"model": type(self.model_).__name__}}
         # print('default_train_conf', self.default_train_conf)
         # self.persistence_manager = PTModelPersistenceFormatManager(
-        #     data=self.model.state_dict(), default_train_conf=self.default_train_conf)
+        #     data=self.model_.state_dict(), default_train_conf=self.default_train_conf)
 
         # # Tensorboard streaming setup
         # # user configuration from config_fed_client.json
@@ -181,48 +189,131 @@ class PTLearner(Learner):
     #     # self.save_local_model(fl_ctx)
 
     #     # Get the new state dict and send as weights
-    #     new_weights = self.model.state_dict()
+    #     new_weights = self.model_.state_dict()
     #     new_weights = {k: v.cpu().numpy() for k, v in new_weights.items()}
 
     #     outgoing_dxo = DXO(data_kind=DataKind.WEIGHTS, data=new_weights,
     #                        meta={MetaKey.NUM_STEPS_CURRENT_ROUND: self.n_iterations})
     #     return outgoing_dxo.to_shareable()
 
-    # def local_train(self, fl_ctx, weights, abort_signal):
-    #     # Set the model weights
-    #     print("weights", weights)
-    #     self.model.load_state_dict(state_dict=weights)
+    def log_params(self, client, run_id):
+        client.log_param(
+            run_id=run_id, key=f"learning_rate {self._experiment_name}", value=self._lr
+        )
+        client.log_param(
+            run_id=run_id, key=f"epochs {self._experiment_name}", value=self._epochs
+        )
+        # client.log_param(
+        #     run_id=run_id,
+        #     key=f"batch_size {self._experiment_name}",
+        #     value=self._batch_size,
+        # )
+        client.log_param(
+            run_id=run_id,
+            key=f"loss {self._experiment_name}",
+            value=self.loss_.__class__.__name__,
+        )
+        client.log_param(
+            run_id=run_id,
+            key=f"optimizer {self._experiment_name}",
+            value=self.optimizer_.__class__.__name__,
+        )
 
-    #     # Basic training
-    #     for epoch in range(self.epochs):
-    #         self.model.train()
-    #         running_loss = 0.0
-    #         for i, batch in enumerate(self.train_loader):
-    #             if abort_signal.triggered:
-    #                 return
+    def log_metrics(self, client, run_id, key, value, pipeline_level=False):
 
-    #             images, labels = batch[0].to(
-    #                 self.device), batch[1].to(self.device)
-    #             self.optimizer.zero_grad()
+        if pipeline_level:
+            client.log_metric(
+                run_id=run_id,
+                key=f"{self._experiment_name}/{key}",
+                value=value,
+            )
+        else:
+            client.log_metric(
+                run_id=run_id,
+                key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
+                value=value,
+            )
 
-    #             predictions = self.model(images)
-    #             cost = self.loss(predictions, labels)
-    #             cost.backward()
-    #             self.optimizer.step()
+    def local_train(self, checkpoint):
+        """Perform local training for a given number of epochs
 
-    #             running_loss += (cost.cpu().detach().numpy()/images.size()[0])
-    #             if i % 3000 == 0:
-    #                 self.log_info(fl_ctx, f"Epoch: {epoch}/{self.epochs}, Iteration: {i}, "
-    #                                       f"Loss: {running_loss/3000}")
-    #                 running_loss = 0.0
+        Args:
+            checkpoint: Previous model checkpoint from where training has to be started.
+        """
+        
+        if checkpoint:
+            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
-    #             # Stream training loss at each step
-    #             current_step = len(self.train_loader) * epoch + i
-    #             self.writer.add_scalar("train_loss", cost.item(), current_step)
+        with mlflow.start_run() as mlflow_run:
 
-    #         # Stream validation accuracy at the end of each epoch
-    #         metric = self.local_validate(self.test_loader, abort_signal)
-    #         self.writer.add_scalar("validation_accuracy", metric, epoch)
+            # get Mlflow client and root run id
+            mlflow_client = mlflow.tracking.client.MlflowClient()
+            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
+            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+
+            # log params
+            self.log_params(mlflow_client, root_run_id)
+
+            self.model_.train()
+            logger.debug("Local training started")
+
+            training_loss = 0.0
+            test_loss = 0.0
+            test_acc = 0.0
+
+            # Basic training
+            for epoch in range(self.epochs):
+                # self.model_.train()
+                running_loss = 0.0
+                num_of_batches_before_logging = 100
+
+                for i, batch in enumerate(self.train_loader_):
+
+                    images, labels = batch[0].to(
+                        self.device), batch[1].to(self.device)
+                    self.optimizer_.zero_grad()
+
+                    predictions = self.model_(images)
+                    cost = self.loss_(predictions, labels)
+                    cost.backward()
+                    self.optimizer_.step()
+
+                    running_loss += (cost.cpu().detach().numpy()/images.size()[0])
+                    if i != 0 and i % num_of_batches_before_logging == 0:
+                        training_loss = running_loss / num_of_batches_before_logging
+                        logger.info(
+                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
+                        )
+
+                        # log train loss
+                        self.log_metrics(
+                            mlflow_client,
+                            root_run_id,
+                            "Train Loss",
+                            training_loss,
+                        )
+
+                        running_loss = 0.0
+
+                    # # Stream training loss at each step
+                    # current_step = len(self.train_loader) * epoch + i
+                    # self.writer.add_scalar("train_loss", cost.item(), current_step)
+
+                # # Stream validation accuracy at the end of each epoch
+                # metric = self.local_validate(self.test_loader, abort_signal)
+                # self.writer.add_scalar("validation_accuracy", metric, epoch)
+                
+                # test_loss, test_acc = self.test()
+                test_loss, test_acc = 0, 0
+
+
+                # log test metrics after each epoch
+                self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
+                self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc)
+
+                logger.info(
+                    f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
+                )
 
     # def get_model_for_validation(self, model_name: str, fl_ctx: FLContext) -> Shareable:
     #     run_dir = fl_ctx.get_engine().get_workspace().get_run_dir(
@@ -265,7 +356,7 @@ class PTLearner(Learner):
     #         weights = {k: torch.as_tensor(v, device=self.device)
     #                    for k, v in dxo.data.items()}
 
-    #         self.model.load_state_dict(weights)
+    #         self.model_.load_state_dict(weights)
 
     #         # Get validation accuracy
     #         val_accuracy = self.local_validate(weights, abort_signal)
@@ -284,7 +375,7 @@ class PTLearner(Learner):
     #         return make_reply(ReturnCode.EXECUTION_EXCEPTION)
 
     # def local_validate(self, weights, abort_signal):
-    #     self.model.eval()
+    #     self.model_.eval()
     #     correct = 0
     #     total = 0
     #     with torch.no_grad():
@@ -293,7 +384,7 @@ class PTLearner(Learner):
     #                 return 0
 
     #             images, labels = images.to(self.device), labels.to(self.device)
-    #             output = self.model(images)
+    #             output = self.model_(images)
 
     #             _, pred_label = torch.max(output, 1)
 
@@ -310,257 +401,22 @@ class PTLearner(Learner):
     #         os.makedirs(models_dir)
     #     model_path = os.path.join(models_dir, PTConstants.PTLocalModelName)
 
-    #     ml = make_model_learnable(self.model.state_dict(), {})
+    #     ml = make_model_learnable(self.model_.state_dict(), {})
     #     self.persistence_manager.update(ml)
     #     torch.save(self.persistence_manager.to_persistence_dict(), model_path)
 
+    def execute(self, checkpoint=None):
+        """Bundle steps to perform local training, model testing and finally saving the model.
 
-# class MnistTrainer:
-#     def __init__(
-#         self,
-#         train_data_dir="./",
-#         test_data_dir="./",
-#         model_path=None,
-#         lr=0.01,
-#         epochs=1,
-#         batch_size=64,
-#         experiment_name="default-experiment",
-#         iteration_num=1,
-#     ):
-#         """MNIST Trainer trains RESNET18 model on the MNIST dataset.
+        Args:
+            checkpoint: Previous model checkpoint from where training has to be started.
+        """
+        logger.debug("Start training")
+        self.local_train(checkpoint)
 
-#         Args:
-#             train_data_dir(str, optional): Training data directory path
-#             test_data_dir(str, optional): Testing data directory path
-#             lr (float, optional): Learning rate. Defaults to 0.01
-#             epochs (int, optional): Epochs. Defaults to 1
-#             batch_size (int, optional): DataLoader batch size. Defaults to 64
-#             experiment_name (str, optional): Experiment name. Default is default-experiment
-#             iteration_num (int, optional): Iteration number. Defaults to 1
-
-#         Attributes:
-#             model_: RESNET18 model
-#             loss_: CrossEntropy loss
-#             optimizer_: Stochastic gradient descent
-#             train_dataset_: Training Dataset obj
-#             train_loader_: Training DataLoader
-#             test_dataset_: Testing Dataset obj
-#             test_loader_: Testing DataLoader
-#         """
-
-#         # Training setup
-#         self._lr = lr
-#         self._epochs = epochs
-#         self._batch_size = batch_size
-#         self._experiment_name = experiment_name
-#         self._iteration_num = iteration_num
-
-#         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-#         # Build model
-#         self.model_ = models.resnet18(pretrained=True)
-#         self.model_.conv1 = nn.Conv2d(
-#             1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-#         )
-#         num_ftrs = self.model_.fc.in_features
-#         self.model_.fc = nn.Linear(num_ftrs, 10)
-#         self.model_.to(self.device_)
-#         self._model_path = model_path
-
-#         self.loss_ = nn.CrossEntropyLoss()
-#         self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
-
-#         self.train_dataset_, self.test_dataset_ = self.load_dataset(
-#             train_data_dir, test_data_dir
-#         )
-#         self.train_loader_ = DataLoader(
-#             self.train_dataset_, batch_size=batch_size, shuffle=True
-#         )
-#         self.test_loader_ = DataLoader(
-#             self.test_dataset_, batch_size=batch_size, shuffle=True
-#         )
-
-#     def load_dataset(self, train_data_dir, test_data_dir):
-#         """Load dataset from {train_data_dir} and {test_data_dir}
-
-#         Args:
-#             train_data_dir(str, optional): Training data directory path
-#             test_data_dir(str, optional): Testing data directory path
-#             lr (float, optional): Learning rate. Defaults to 0.01
-#             epochs (int, optional): Epochs. Defaults to 5
-#             batch_size (int, optional): DataLoader batch size. Defaults to 64.
-#         """
-#         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-#         transformer = transforms.Compose(
-#             [
-#                 transforms.Grayscale(num_output_channels=1),
-#                 transforms.ToTensor(),
-#             ]
-#         )
-#         train_dataset = datasets.ImageFolder(train_data_dir, transformer)
-#         test_dataset = datasets.ImageFolder(test_data_dir, transformer)
-
-#         return train_dataset, test_dataset
-
-#     def log_params(self, client, run_id):
-#         client.log_param(
-#             run_id=run_id, key=f"learning_rate {self._experiment_name}", value=self._lr
-#         )
-#         client.log_param(
-#             run_id=run_id, key=f"epochs {self._experiment_name}", value=self._epochs
-#         )
-#         client.log_param(
-#             run_id=run_id,
-#             key=f"batch_size {self._experiment_name}",
-#             value=self._batch_size,
-#         )
-#         client.log_param(
-#             run_id=run_id,
-#             key=f"loss {self._experiment_name}",
-#             value=self.loss_.__class__.__name__,
-#         )
-#         client.log_param(
-#             run_id=run_id,
-#             key=f"optimizer {self._experiment_name}",
-#             value=self.optimizer_.__class__.__name__,
-#         )
-
-#     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-
-#         if pipeline_level:
-#             client.log_metric(
-#                 run_id=run_id,
-#                 key=f"{self._experiment_name}/{key}",
-#                 value=value,
-#             )
-#         else:
-#             client.log_metric(
-#                 run_id=run_id,
-#                 key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
-#                 value=value,
-#             )
-
-#     def local_train(self, checkpoint):
-#         """Perform local training for a given number of epochs
-
-#         Args:
-#             checkpoint: Previous model checkpoint from where training has to be started.
-#         """
-
-#         if checkpoint:
-#             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
-
-#         with mlflow.start_run() as mlflow_run:
-
-#             # get Mlflow client and root run id
-#             mlflow_client = mlflow.tracking.client.MlflowClient()
-#             logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-#             root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-
-#             # log params
-#             self.log_params(mlflow_client, root_run_id)
-
-#             self.model_.train()
-#             logger.debug("Local training started")
-
-#             training_loss = 0.0
-#             test_loss = 0.0
-#             test_acc = 0.0
-
-#             for epoch in range(self._epochs):
-
-#                 running_loss = 0.0
-#                 num_of_batches_before_logging = 100
-
-#                 for i, batch in enumerate(self.train_loader_):
-
-#                     images, labels = batch[0].to(self.device_), batch[1].to(
-#                         self.device_
-#                     )
-#                     self.optimizer_.zero_grad()
-
-#                     predictions = self.model_(images)
-#                     cost = self.loss_(predictions, labels)
-#                     cost.backward()
-#                     self.optimizer_.step()
-
-#                     running_loss += cost.cpu().detach().numpy() / images.size()[0]
-#                     if i != 0 and i % num_of_batches_before_logging == 0:
-#                         training_loss = running_loss / num_of_batches_before_logging
-#                         logger.info(
-#                             f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
-#                         )
-
-#                         # log train loss
-#                         self.log_metrics(
-#                             mlflow_client,
-#                             root_run_id,
-#                             "Train Loss",
-#                             training_loss,
-#                         )
-
-#                         running_loss = 0.0
-
-#                 test_loss, test_acc = self.test()
-
-#                 # log test metrics after each epoch
-#                 self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
-#                 self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc)
-
-#                 logger.info(
-#                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
-#                 )
-
-#             # log metrics at the pipeline level
-#             self.log_metrics(
-#                 mlflow_client,
-#                 root_run_id,
-#                 "Train Loss",
-#                 training_loss,
-#                 pipeline_level=True,
-#             )
-#             self.log_metrics(
-#                 mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
-#             )
-#             self.log_metrics(
-#                 mlflow_client,
-#                 root_run_id,
-#                 "Test Accuracy",
-#                 test_acc,
-#                 pipeline_level=True,
-#             )
-
-#     def test(self):
-#         """Test the trained model and report test loss and accuracy"""
-#         self.model_.eval()
-#         test_loss = 0
-#         correct = 0
-#         with torch.no_grad():
-#             for data, target in self.test_loader_:
-#                 data, target = data.to(self.device_), target.to(self.device_)
-#                 output = self.model_(data)
-#                 test_loss += self.loss_(output, target).item()
-#                 pred = output.argmax(dim=1, keepdim=True)
-#                 correct += pred.eq(target.view_as(pred)).sum().item()
-
-#         test_loss /= len(self.test_loader_.dataset)
-#         acc = correct / len(self.test_loader_.dataset)
-
-#         return test_loss, acc
-
-#     def execute(self, checkpoint=None):
-#         """Bundle steps to perform local training, model testing and finally saving the model.
-
-#         Args:
-#             checkpoint: Previous model checkpoint from where training has to be started.
-#         """
-#         logger.debug("Start training")
-#         self.local_train(checkpoint)
-
-#         logger.debug("Save model")
-#         torch.save(self.model_.state_dict(), self._model_path)
-#         logger.info(f"Model saved to {self._model_path}")
-
+        logger.debug("Save model")
+        torch.save(self.model_.state_dict(), self._model_path)
+        logger.info(f"Model saved to {self._model_path}")
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -612,7 +468,7 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    logger.info("Instantiate trainer...")
+    # logger.info("Instantiate trainer...")
     trainer = PTLearner(
         dataset_dir=args.dataset_name,        
         lr=args.lr,
@@ -621,11 +477,11 @@ def run(args):
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",
     )
-    logger.info(trainer)
-    logger.info("Trainer has been instantiated.")
-    logger.info("Execute trainer...")
-    #trainer.execute(args.checkpoint)
-    logger.info("Trainer has been executed.")
+    # logger.info(trainer)
+    # logger.info("Trainer has been instantiated.")
+    # logger.info("Execute trainer...")
+    trainer.execute(args.checkpoint)
+    # logger.info("Trainer has been executed.")
 
 
 def main(cli_args=None):
@@ -651,10 +507,12 @@ if __name__ == "__main__":
 
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
+    #logger.setLevel(logging.DEBUG) # Restore to debug level
+    logger.setLevel(logging.INFO)
     log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
     handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
+    #handler.setLevel(logging.DEBUG) # Restore to debug level
+    handler.setLevel(logging.INFO)
     handler.setFormatter(log_format)
     logger.addHandler(handler)
 
