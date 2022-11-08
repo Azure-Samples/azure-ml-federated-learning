@@ -32,46 +32,46 @@ def get_arg_parser(parser=None):
     parser.add_argument("--raw_testing_data", type=str, required=True, help="")
     parser.add_argument("--train_output", type=str, required=True, help="")
     parser.add_argument("--test_output", type=str, required=True, help="")
-    parser.add_argument("--region", type=str, required=True, help="")
+    parser.add_argument("--config", type=str, required=False)
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
     return parser
 
 
-class MnistDataset(Dataset):
-    """MNIST Dataset - combination of features and labels
+class FraudDataset(Dataset):
+    """FraudDataset Dataset - combination of features and labels
 
     Args:
-        feature: MNIST images tensors
+        feature: Transaction detail tensors
         target: Tensor of labels corresponding to features
-        transform: Transformation to be applied on each image
 
     Returns:
         None
     """
 
-    def __init__(self, feature, target=None, transform=None):
+    def __init__(self, feature, target=None):
         self.X = feature
         self.Y = target
-        self.transform = transform
 
     def __len__(self):
         return len(self.X)
 
     def __getitem__(self, idx):
-        if self.transform is not None:
-            return self.transform(self.X[idx]), self.Y[idx]
-        elif self.Y is None:
+        if self.Y is None:
             return [self.X[idx]]
         return self.X[idx], self.Y[idx]
 
+def apply_transforms(df):
+    df["full_name"] = df["first"] + " " + df["last"]
+    df['region'] = df['state'].map(STATES_REGIONS)
 
 def preprocess_data(
     raw_training_data,
     raw_testing_data,
     train_data_dir="./",
     test_data_dir="./",
+    config=None,
     metrics_prefix="default-prefix",
 ):
     """Preprocess the raw_training_data and raw_testing_data and save the processed data to train_data_dir and test_data_dir.
@@ -90,25 +90,18 @@ def preprocess_data(
     )
     train_data = pd.read_csv(raw_training_data)
     test_data = pd.read_csv(raw_testing_data)
-    regions = pd.read_csv("./us_regions.csv")
 
-    statecode_region = {row["State Code"]: row["Region"] for row in regions.iterrows()}
-    train_data["Region"] = train_data["State"].map(statecode_region)
-    test_data["Region"] = test_data["State"].map(statecode_region)
+    train_data["Region"] = train_data["State"].map(STATES_REGIONS)
+    test_data["Region"] = test_data["State"].map(STATES_REGIONS)
 
     logger.debug(f"Segregating labels and features")
-    X_train = torch.tensor(train_data.loc[:, train_data.columns != "label"].values)
-    X_train = torch.reshape(X_train, (-1, 28, 28))
-    y_train = torch.tensor(train_data["label"].values)
+    X_train = torch.tensor(train_data.loc[:, train_data.columns != "is_fraud"].values)
+    y_train = torch.tensor(train_data["is_fraud"].values)
 
-    X_test = torch.tensor(test_data.loc[:, test_data.columns != "label"].values)
-    X_test = torch.reshape(X_test, (-1, 28, 28))
-    y_test = torch.tensor(test_data["label"].values)
+    X_test = torch.tensor(test_data.loc[:, test_data.columns != "is_fraud"].values)
+    y_test = torch.tensor(test_data["is_fraud"].values)
 
-    X_train = X_train / 255.0
-    X_test = X_test / 255.0
-
-    train_set = MnistDataset(X_train.float(), y_train)
+    train_set = FraudDataset(X_train.float(), y_train)
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=128, shuffle=True)
     data = next(iter(train_loader))
     mean = data[0].mean()
@@ -167,9 +160,16 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
+    global STATES_REGIONS
+
+    df_states_regions = pd.read_csv("./us_regions.csv")
+    STATES_REGIONS = {row.StateCode: row.Region for row in df_states_regions.itertuples()}
+    REGIONS = list(df_states_regions['Region'].unique())
+
     preprocess_data(
         args.raw_training_data,
         args.raw_testing_data,
+        args.config,
         args.train_output,
         args.test_output,
         args.metrics_prefix,
