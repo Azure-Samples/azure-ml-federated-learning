@@ -32,6 +32,7 @@ def get_arg_parser(parser=None):
     parser.add_argument("--raw_testing_data", type=str, required=True, help="")
     parser.add_argument("--train_output", type=str, required=True, help="")
     parser.add_argument("--test_output", type=str, required=True, help="")
+    parser.add_argument("--region", type=str, required=True, help="")
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
@@ -89,6 +90,11 @@ def preprocess_data(
     )
     train_data = pd.read_csv(raw_training_data)
     test_data = pd.read_csv(raw_testing_data)
+    regions = pd.read_csv("./us_regions.csv")
+
+    statecode_region = {row["State Code"]: row["Region"] for row in regions.iterrows()}
+    train_data["Region"] = train_data["State"].map(statecode_region)
+    test_data["Region"] = test_data["State"].map(statecode_region)
 
     logger.debug(f"Segregating labels and features")
     X_train = torch.tensor(train_data.loc[:, train_data.columns != "label"].values)
