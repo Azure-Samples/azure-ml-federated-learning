@@ -79,8 +79,11 @@ class MnistDataset(Dataset):
 def create_sample_jsonl_entry(azureml_data_dir, idxdatatarget):
     idx, (data, target) = idxdatatarget
 
+    print(azureml_data_dir)
+    print(azureml_data_dir + f"{target}/{idx}.jpg")
+
     json_line_sample = {
-        "image_url": azureml_data_dir + f"/{target}/{idx}.jpg",
+        "image_url": azureml_data_dir + f"{target}/{idx}.jpg",
         # "image_url": f"azureml://subscriptions/<my-subscription-id>/resourcegroups/<my-resource-group>/workspaces/<my-workspace>/datastores/<my-datastore>/paths/<path_to_image>",
         "image_details": {"format": "jpg", "width": data.shape[1], "height": data.shape[0]},
         "label": str(target.item()),
@@ -193,7 +196,7 @@ def preprocess_data(
         data = Data(
             type=AssetTypes.URI_FOLDER,
             path=processed_data_dir,
-            name="mnist_train"
+            name=f"mnist_{x}"
         )
         azureml_data_dir = ml_client.data.create_or_update(data).path
 
