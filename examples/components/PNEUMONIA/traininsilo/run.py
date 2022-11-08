@@ -11,6 +11,8 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import models, datasets, transforms
 from mlflow import log_metric, log_param
 
+from pt_learner import PTLearner
+
 
 class MnistTrainer:
     def __init__(
@@ -276,13 +278,12 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--train_data", type=str, required=True, help="")
-    parser.add_argument("--test_data", type=str, required=True, help="")
+    parser.add_argument("--dataset_name", type=str, required=True, help="")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
     parser.add_argument("--model", type=str, required=True, help="")
-    parser.add_argument(
-        "--metrics_prefix", type=str, required=False, help="Metrics prefix"
-    )
+    # parser.add_argument(
+    #     "--metrics_prefix", type=str, required=False, help="Metrics prefix"
+    # )
     parser.add_argument(
         "--iteration_num", type=int, required=False, help="Iteration number"
     )
@@ -296,7 +297,10 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training",
     )
-    parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    # parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument("--exclude_vars", type=str, required=False, help="list of variables to exclude during model loading")
+    parser.add_argument("--analytic_sender_id", type=str, required=False, help="id of `AnalyticsSender` if configured as a client component")
+    
     return parser
 
 
@@ -307,7 +311,7 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    trainer = MnistTrainer(
+    trainer = PTLearner(
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,
         model_path=args.model + "/model.pt",
