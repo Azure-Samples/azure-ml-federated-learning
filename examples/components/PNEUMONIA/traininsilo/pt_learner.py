@@ -45,10 +45,7 @@ class PTLearner(Learner):
         epochs=5,
         exclude_vars=None,
         dataset_name: str = "pneumonia-reduced",
-        analytic_sender_id="analytic_sender",
-        experiment_name="default-experiment",
-        iteration_num=1,
-
+        analytic_sender_id="analytic_sender"
     ):
         """Simple PyTorch Learner.
         Args:
@@ -57,8 +54,6 @@ class PTLearner(Learner):
             exclude_vars (list): List of variables to exclude during model loading.
             analytic_sender_id: id of `AnalyticsSender` if configured as a client component.
             If configured, TensorBoard events will be fired. Defaults to "analytic_sender".
-            experiment_name (str, optional): Experiment name. Default is default-experiment
-            iteration_num (int, optional): Iteration number. Defaults to 1
         """
         super().__init__()
         self.lr = lr
@@ -66,8 +61,6 @@ class PTLearner(Learner):
         self.exclude_vars = exclude_vars
         self.dataset_name = dataset_name
         self.analytic_sender_id = analytic_sender_id
-        self._experiment_name = experiment_name
-        self._iteration_num = iteration_num
 
     def initialize(self, parts: dict, fl_ctx: FLContext):
         # Training setup
