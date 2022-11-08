@@ -351,8 +351,12 @@ if args.submit:
 
     if args.wait:
         job_name = pipeline_job.name
-        stream_output = ML_CLIENT.jobs.stream(job_name)
-        print(f"Pipeline's log streaming done: {stream_output}")
+
+        # Stream logs
+        ML_CLIENT.jobs.stream(job_name)
+        print("Pipeline's logs streaming done")
+
+        # check status
         pipeline_job = ML_CLIENT.jobs.get(name=job_name)
         status = pipeline_job.status
 
