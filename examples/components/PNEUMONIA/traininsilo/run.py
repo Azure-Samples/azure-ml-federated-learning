@@ -123,7 +123,7 @@ class PTLearner:
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_, batch_size=32, shuffle=True, drop_last=True)
 
-        self.n_iterations = len(self.train_loader)
+        self.n_iterations = len(self.train_loader_)
 
         # self.test_dataset = ImageFolder(root=os.path.join(os.path.expanduser(
         #     '~'), 'data', 'pneumonia-2class-reduced', 'test'), transform=transforms)
