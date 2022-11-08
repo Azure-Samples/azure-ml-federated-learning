@@ -184,60 +184,6 @@ pipeline_identifier = getUniqueIdentifier()
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_cross_silo_internal_basic():
-    # ######################
-    # ### PRE-PROCESSING ###
-    # ######################
-
-    # # once per silo, we're running a pre-processing step
-
-    # silo_preprocessed_train_data = (
-    #     []
-    # )  # list of preprocessed train datasets for each silo
-    # silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
-
-    # for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
-    #     # run the pre-processing component once
-    #     silo_pre_processing_step = preprocessing_component(
-    #         raw_training_data=Input(
-    #             type=silo_config.training_data.type,
-    #             mode=silo_config.training_data.mode,
-    #             path=silo_config.training_data.path,
-    #         ),
-    #         raw_testing_data=Input(
-    #             type=silo_config.testing_data.type,
-    #             mode=silo_config.testing_data.mode,
-    #             path=silo_config.testing_data.path,
-    #         ),
-    #         metrics_prefix=silo_config.compute,
-    #     )
-
-    #     # add a readable name to the step
-    #     silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
-
-    #     # make sure the compute corresponds to the silo
-    #     silo_pre_processing_step.compute = silo_config.compute
-
-    #     # make sure the data is written in the right datastore
-    #     silo_pre_processing_step.outputs.processed_train_data = Output(
-    #         type=AssetTypes.URI_FOLDER,
-    #         mode="mount",
-    #         path=custom_fl_data_path(silo_config.datastore, "train_data"),
-    #     )
-    #     silo_pre_processing_step.outputs.processed_test_data = Output(
-    #         type=AssetTypes.URI_FOLDER,
-    #         mode="mount",
-    #         path=custom_fl_data_path(silo_config.datastore, "test_data"),
-    #     )
-
-    #     # store a handle to the train data for this silo
-    #     silo_preprocessed_train_data.append(
-    #         silo_pre_processing_step.outputs.processed_train_data
-    #     )
-    #     # store a handle to the test data for this silo
-    #     silo_preprocessed_test_data.append(
-    #         silo_pre_processing_step.outputs.processed_test_data
-    #     )
-
     ################
     ### TRAINING ###
     ################
@@ -254,13 +200,7 @@ def fl_cross_silo_internal_basic():
             # we're using training component here
             silo_training_step = training_component(
                 # with the train_data from the pre_processing step
-                train_data=Input(
-                    type=silo_config.silo_data.type,
-                    mode=silo_config.silo_data.mode,
-                    path=silo_config.silo_data.path,
-                ),
-                # with the test_data from the pre_processing step
-                test_data=Input(
+                dataset_name=Input(
                     type=silo_config.silo_data.type,
                     mode=silo_config.silo_data.mode,
                     path=silo_config.silo_data.path,
@@ -271,10 +211,10 @@ def fl_cross_silo_internal_basic():
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
                 epochs=YAML_CONFIG.training_parameters.epochs,
-                # Dataloader batch size
-                batch_size=YAML_CONFIG.training_parameters.batch_size,
-                # Silo name/identifier
-                metrics_prefix=silo_config.compute,
+                # # Dataloader batch size
+                # batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # # Silo name/identifier
+                # metrics_prefix=silo_config.compute,
                 # Iteration number
                 iteration_num=iteration,
             )
