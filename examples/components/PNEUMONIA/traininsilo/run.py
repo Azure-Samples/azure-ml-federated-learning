@@ -90,9 +90,9 @@ class PTLearner:
     # def initialize(self, parts: dict, fl_ctx: FLContext):
         # Training setup
         self.model_ = PneumoniaNetwork()
-        self.device = torch.device(
+        self.device_ = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model_.to(self.device)
+        self.model_.to(self.device_)
         self._model_path = model_path
         self.loss_ = nn.CrossEntropyLoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self.lr, momentum=0.9)
@@ -270,7 +270,7 @@ class PTLearner:
                 for i, batch in enumerate(self.train_loader_):
 
                     images, labels = batch[0].to(
-                        self.device), batch[1].to(self.device)
+                        self.device_), batch[1].to(self.device_)
                     self.optimizer_.zero_grad()
 
                     predictions = self.model_(images)
@@ -303,8 +303,8 @@ class PTLearner:
                 # metric = self.local_validate(self.test_loader, abort_signal)
                 # self.writer.add_scalar("validation_accuracy", metric, epoch)
                 
-                # test_loss, test_acc = self.test()
-                test_loss, test_acc = 0, 0
+                test_loss, test_acc = self.test()
+                # test_loss, test_acc = 0, 0
 
 
                 # log test metrics after each epoch
@@ -314,6 +314,43 @@ class PTLearner:
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
+            
+            # log metrics at the pipeline level
+            self.log_metrics(
+                mlflow_client,
+                root_run_id,
+                "Train Loss",
+                training_loss,
+                pipeline_level=True,
+            )
+            self.log_metrics(
+                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
+            )
+            self.log_metrics(
+                mlflow_client,
+                root_run_id,
+                "Test Accuracy",
+                test_acc,
+                pipeline_level=True,
+            )
+
+    def test(self):
+        """Test the trained model and report test loss and accuracy"""
+        self.model_.eval()
+        test_loss = 0
+        correct = 0
+        with torch.no_grad():
+            for data, target in self.test_loader_:
+                data, target = data.to(self.device_), target.to(self.device_)
+                output = self.model_(data)
+                test_loss += self.loss_(output, target).item()
+                pred = output.argmax(dim=1, keepdim=True)
+                correct += pred.eq(target.view_as(pred)).sum().item()
+
+        test_loss /= len(self.test_loader_.dataset)
+        acc = correct / len(self.test_loader_.dataset)
+
+        return test_loss, acc
 
     # def get_model_for_validation(self, model_name: str, fl_ctx: FLContext) -> Shareable:
     #     run_dir = fl_ctx.get_engine().get_workspace().get_run_dir(
