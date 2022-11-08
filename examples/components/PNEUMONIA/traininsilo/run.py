@@ -79,11 +79,11 @@ class PTLearner:
             test_dataset_: Testing Dataset obj
             test_loader_: Testing DataLoader
         """
-        self.lr = lr
-        self.epochs = epochs
-        self.exclude_vars = exclude_vars
+        self._lr = lr
+        self._epochs = epochs
+        self._exclude_vars = exclude_vars
         # self.dataset_name = dataset_name
-        self.analytic_sender_id = analytic_sender_id
+        self._analytic_sender_id = analytic_sender_id
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
 
@@ -95,7 +95,7 @@ class PTLearner:
         self.model_.to(self.device_)
         self._model_path = model_path
         self.loss_ = nn.CrossEntropyLoss()
-        self.optimizer_ = SGD(self.model_.parameters(), lr=self.lr, momentum=0.9)
+        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, momentum=0.9)
 
         # self.workspace = Workspace.from_config()
         # print(self.workspace)
@@ -262,7 +262,7 @@ class PTLearner:
             test_acc = 0.0
 
             # Basic training
-            for epoch in range(self.epochs):
+            for epoch in range(self._epochs):
                 # self.model_.train()
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
