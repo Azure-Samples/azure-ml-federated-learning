@@ -1,3 +1,4 @@
+"""Aggregate multiple pytorch models using FedAvg."""
 import os
 import argparse
 import logging
@@ -32,15 +33,27 @@ def get_arg_parser(parser=None):
 
 
 class PyTorchStadeDictFedAvg:
+    """Class to handle FedAvg of pytorch models."""
     def __init__(self):
-        self.model_class = "NoneType"
-        self.model_count = 0
-        self.model_type = "state_dict"
-        self.model_object = None
+        """Constructor."""
+        # below we keep the average of the models
         self.avg_state_dict = None
+        # keep count of how many models were averaged (rolling)
+        self.model_count = 0
+        # if model is a class, we'll store it here
+        self.model_object = None
+        # keep track of the class and keys in the model (to test consistency)
+        self.model_class = "NoneType"
         self.ref_keys = {}
+        # a logger
+        self.logger = logging.getLogger(__name__)
 
     def add_model(self, model_path: str):
+        """Add one model to the average.
+
+        Args:
+            model_path (str): path to the model to add
+        """
         if self.avg_state_dict is None:
             # no model yet, nothing to average
             self.avg_state_dict = torch.load(model_path)
@@ -53,7 +66,7 @@ class PyTorchStadeDictFedAvg:
 
             self.ref_keys = set(self.avg_state_dict.keys())
 
-            print(f"Loaded model from path={model_path}, class={self.model_class}, keys={self.ref_keys}")
+            self.logger.info(f"Loaded model from path={model_path}, class={self.model_class}, keys={self.ref_keys}")
             self.model_count = 1
 
         else:
@@ -71,7 +84,7 @@ class PyTorchStadeDictFedAvg:
                 self.ref_keys == add_model_keys
             ), f"model has keys {add_model_keys} != first model keys {self.ref_keys}"
 
-            print(f"Loaded model from path={model_path}, class={self.model_class}, keys=IDEM")
+            self.logger.info(f"Loaded model from path={model_path}, class={self.model_class}, keys=IDEM")
 
             # rolling average
             for key in self.ref_keys:
@@ -86,9 +99,16 @@ class PyTorchStadeDictFedAvg:
             del add_model
 
     def save_model(self, model_path: str):
+        """Save the averaged model.
+
+        Args:
+            model_path (str): path to save the model to
+        """
         if self.model_class == "OrderedDict":
+            self.logger.info(f"Saving state dict to path={model_path}")
             torch.save(self.avg_state_dict, model_path)
         else:
+            self.logger.info(f"Saving model object to path={model_path}")
             self.model_object.load_state_dict(self.avg_state_dict)
             torch.save(self.model_object, model_path)
 
@@ -121,7 +141,7 @@ def main(cli_args=None):
     for model_path in model_paths:
         model_handler.add_model(model_path)
 
-    model_handler.save_model(args.output)
+    model_handler.save_model(os.path.join(args.output, f"model.{args.extension}"))
 
 if __name__ == "__main__":
     # Set logging to sys.out
