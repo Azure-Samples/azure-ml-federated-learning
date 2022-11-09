@@ -24,7 +24,7 @@ inputs:
 outputs:
   aggregated_output:
     type: uri_folder
-    description: the aggregated model or gradiants, residing in the orchestrator compute.
+    description: the aggregated model or gradients, residing in the orchestrator compute.
 
 code: .
 

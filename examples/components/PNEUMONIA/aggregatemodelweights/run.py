@@ -6,6 +6,7 @@ import sys
 import torch
 from torch import nn
 from torchvision import models
+from pneumonia_network import PneumoniaNetwork
 
 
 def get_arg_parser(parser=None):
@@ -60,12 +61,13 @@ def get_model(model_path):
 
     model_path: Pretrained model weights file path
     """
-    model = models.resnet18(pretrained=True)
-    model.conv1 = nn.Conv2d(
-        1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-    )
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 10)
+    # model = models.resnet18(pretrained=True)
+    # model.conv1 = nn.Conv2d(
+    #     1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+    # )
+    # num_ftrs = model.fc.in_features
+    # model.fc = nn.Linear(num_ftrs, 10)
+    model = PneumoniaNetwork()
     if model_path:
         model.load_state_dict(torch.load(model_path + "/model.pt"))
     return model
