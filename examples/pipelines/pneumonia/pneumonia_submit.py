@@ -211,8 +211,8 @@ def fl_cross_silo_internal_basic():
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
                 epochs=YAML_CONFIG.training_parameters.epochs,
-                # # Silo name/identifier
-                # metrics_prefix=silo_config.compute,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
                 # Iteration number
                 iteration_num=iteration,
             )
