@@ -2,10 +2,9 @@ import os
 import argparse
 import logging
 import sys
+import glob
 
 import torch
-from torch import nn
-from torchvision import models
 
 
 def get_arg_parser(parser=None):
@@ -25,98 +24,64 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--input_silo_1", type=str, required=True, help="")
-    parser.add_argument("--input_silo_2", type=str, required=False, help="")
-    parser.add_argument("--input_silo_3", type=str, required=False, help="")
-    parser.add_argument("--aggregated_output", type=str, required=True, help="")
+    parser.add_argument("--checkpoints", type=str, required=True, nargs="+", help="list of paths or directories to search for model files")
+    parser.add_argument("--extension", type=str, default="pt", help="model extension")
+    parser.add_argument("--output", type=str, required=True, help="where to write the averaged model")
+
     return parser
 
 
-def aggregate_model_weights(global_model, client_models):
-    """
-    This function has aggregation method 'mean'
+class PyTorchStadeDictFedAvg:
+    def __init__(self):
+        self.model_class = "NoneType"
+        self.model_count = 0
+        self.model_type = "state_dict"
+        self.avg_model = None
+        self.ref_keys = {}
 
-    Args:
-    global_model: aggregated model that is saved for each iteration
-    client_models: list of client models
-    """
-    global_dict = global_model.state_dict()
+    def add_model(self, model_path: str):
+        if self.avg_model is None:
+            # no model yet, nothing to average
+            self.avg_model = torch.load(model_path)
+            self.ref_keys = set(self.avg_model.keys())
+            self.model_class = self.avg_model.__class__.__name__
 
-    for k in global_dict.keys():
-        global_dict[k] = torch.stack(
-            [
-                client_models[i].state_dict()[k].float()
-                for i in range(len(client_models))
-            ],
-            0,
-        ).mean(0)
-    global_model.load_state_dict(global_dict)
+            if self.model_class == "OrderedDict":
+                self.model_type = "state_dict"
+            else:
+                raise NotImplementedError(f"Model type {self.model_class} not supported")
 
-    return global_model
+            print(f"Loaded model from path={model_path}, class={self.model_class}, keys={self.ref_keys}")
+            self.model_count = 1
 
+        else:
+            # load the new model
+            add_model = torch.load(model_path)
+            add_model_keys = set(add_model.keys())
 
-def get_model(model_path):
-    """Get the model having custom input dimensions.
+            # type check against the reference model
+            assert add_model.__class__.__name__ == self.model_class, f"Model class mismatch: {add_model.__class__.__name__} != {self.model_class}"
+            assert (
+                self.ref_keys == add_model_keys
+            ), f"model has keys {add_model_keys} != first model keys {self.ref_keys}"
 
-    model_path: Pretrained model weights file path
-    """
-    model = models.resnet18(pretrained=True)
-    model.conv1 = nn.Conv2d(
-        1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-    )
-    num_ftrs = model.fc.in_features
-    model.fc = nn.Linear(num_ftrs, 10)
-    if model_path:
-        model.load_state_dict(torch.load(model_path + "/model.pt"))
-    return model
+            print(f"Loaded model from path={model_path}, class={self.model_class}, keys=IDEM")
 
+            # rolling average
+            for key in self.ref_keys:
+                self.avg_model[key] = torch.div(
+                    self.avg_model[key] * self.model_count + add_model[key],
+                    float(self.model_count + 1),
+                )
 
-def get_client_models(args):
-    """Get the list of client models.
+            self.model_count += 1
 
-    args: an argument parser instance
-    """
-    client_models = []
-    for i in range(1, len(args.__dict__)):
-        client_model_name = "input_silo_" + str(i)
-        if client_model_name in args.__dict__:
-            client_models.append(get_model(args.__dict__[client_model_name]))
-    return client_models
+            # would this help free memory?
+            del add_model
 
+    def save_model(self, model_path: str):
+        torch.save(self.avg_model, model_path)
 
-def get_global_model(args):
-    """Get the global model.
-
-    args: an argument parser instance
-    """
-
-    global_model = get_model(
-        args.aggregated_output
-        if args.aggregated_output
-        and os.path.isfile(args.aggregated_output + "/model.pt")
-        else None
-    )
-    return global_model
-
-
-def run(args):
-    """Run script with arguments (the core of the component).
-
-    Args:
-        args (argparse.namespace): command line arguments provided to script
-    """
-    logger.debug("Get client models")
-    client_models = get_client_models(args)
-    logger.info(f"Total number of client models: {len(client_models)}")
-
-    logger.debug(f"Get global model")
-    global_model = get_global_model(args)
-
-    logger.debug("aggregate model weights")
-    global_model = aggregate_model_weights(global_model, client_models)
-
-    logger.info("Saving model weights")
-    torch.save(global_model.state_dict(), args.aggregated_output + "/model.pt")
 
 
 def main(cli_args=None):
@@ -134,11 +99,22 @@ def main(cli_args=None):
     args = parser.parse_args(cli_args)
 
     print(f"Running script with arguments: {args}")
-    run(args)
 
+    model_paths = []
+    for model_path in args.checkpoints:
+        if os.path.isdir(model_path):
+            for f in glob.glob(os.path.join(model_path, f"*.{args.extension}"), recursive=True):
+                model_paths.append(f)
+        else:
+            model_paths.append(model_path)
+
+    model_handler = PyTorchStadeDictFedAvg()
+    for model_path in model_paths:
+        model_handler.add_model(model_path)
+
+    model_handler.save_model(args.output)
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

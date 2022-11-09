@@ -20,6 +20,14 @@ inputs:
     type: uri_folder
     description: input from silo 3 (e.g., model weights, or gradient updates)
     optional: true
+  input_silo_4:
+    type: uri_folder
+    description: input from silo 4 (e.g., model weights, or gradient updates)
+    optional: true
+  input_silo_5:
+    type: uri_folder
+    description: input from silo 5 (e.g., model weights, or gradient updates)
+    optional: true
 
 outputs:
   aggregated_output:
@@ -29,11 +37,12 @@ outputs:
 code: .
 
 command: >-
-  python run.py --aggregated_output ${{outputs.aggregated_output}}
-  --input_silo_1 ${{inputs.input_silo_1}}
-  $[[--input_silo_2 ${{inputs.input_silo_2}}]]
-  $[[--input_silo_3 ${{inputs.input_silo_3}}]]
+  python run.py --output ${{outputs.aggregated_output}} 
+  --extension pt 
+  --checkpoints ${{inputs.input_silo_1}} 
+  $[[${{inputs.input_silo_2}}]] 
+  $[[${{inputs.input_silo_3}}]] 
+  $[[${{inputs.input_silo_4}}]] 
+  $[[${{inputs.input_silo_5}}]] 
 
-environment: 
-  conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+environment: azureml:AzureML-pytorch-1.10-ubuntu18.04-py38-cuda11-gpu:33
