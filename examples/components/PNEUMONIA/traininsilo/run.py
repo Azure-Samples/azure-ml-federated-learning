@@ -118,7 +118,7 @@ class PTLearner:
         # self.train_dataset = ImageFolder(root=os.path.join(os.path.expanduser(
         #     '~'), 'data', 'pneumonia-2class-reduced', 'train'), transform=transforms)
 
-        self.train_dataset_, self.test_dataset_ = self.load_dataset(dataset_dir)
+        self.train_dataset_, self.test_dataset_ = self.load_dataset(dataset_dir, transforms)
 
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_, batch_size=32, shuffle=True, drop_last=True)
@@ -144,21 +144,16 @@ class PTLearner:
         # if not self.writer:  # else use local TensorBoard writer only
         #     self.writer = SummaryWriter(fl_ctx.get_prop(FLContextKey.APP_ROOT))
 
-    def load_dataset(self, data_dir):
+    def load_dataset(self, data_dir, transforms):
         """Load dataset from {data_dir}
 
         Args:
             data_dir(str, optional): Data directory path
         """
         logger.info(f"Data dir: {data_dir}.")
-        transformer = transforms.Compose(
-            [
-                transforms.Grayscale(num_output_channels=1),
-                transforms.ToTensor(),
-            ]
-        )
-        train_dataset = datasets.ImageFolder(root=os.path.join(data_dir, 'train'), transform=transformer)
-        test_dataset = datasets.ImageFolder(root=os.path.join(data_dir, 'test'), transform=transformer)
+
+        train_dataset = datasets.ImageFolder(root=os.path.join(data_dir, 'train'), transform=transforms)
+        test_dataset = datasets.ImageFolder(root=os.path.join(data_dir, 'test'), transform=transforms)
 
         return train_dataset, test_dataset
 
