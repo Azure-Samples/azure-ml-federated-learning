@@ -211,8 +211,6 @@ def fl_cross_silo_internal_basic():
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
                 epochs=YAML_CONFIG.training_parameters.epochs,
-                # # Dataloader batch size
-                # batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # # Silo name/identifier
                 # metrics_prefix=silo_config.compute,
                 # Iteration number

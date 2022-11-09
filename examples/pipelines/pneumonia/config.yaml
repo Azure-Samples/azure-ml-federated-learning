@@ -37,4 +37,3 @@ training_parameters:
   num_of_iterations: 2
   epochs: 5
   lr: 0.01
-  #batch_size: 64

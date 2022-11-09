@@ -61,12 +61,6 @@ def get_model(model_path):
 
     model_path: Pretrained model weights file path
     """
-    # model = models.resnet18(pretrained=True)
-    # model.conv1 = nn.Conv2d(
-    #     1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-    # )
-    # num_ftrs = model.fc.in_features
-    # model.fc = nn.Linear(num_ftrs, 10)
     model = PneumoniaNetwork()
     if model_path:
         model.load_state_dict(torch.load(model_path + "/model.pt"))
@@ -91,7 +85,6 @@ def get_global_model(args):
 
     args: an argument parser instance
     """
-
     global_model = get_model(
         args.aggregated_output
         if args.aggregated_output
@@ -140,7 +133,7 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
+    
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
