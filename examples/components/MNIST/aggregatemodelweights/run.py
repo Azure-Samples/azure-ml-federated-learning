@@ -86,8 +86,11 @@ class PyTorchStadeDictFedAvg:
             del add_model
 
     def save_model(self, model_path: str):
-        torch.save(self.avg_state_dict, model_path)
-
+        if self.model_class == "OrderedDict":
+            torch.save(self.avg_state_dict, model_path)
+        else:
+            self.model_object.load_state_dict(self.avg_state_dict)
+            torch.save(self.model_object, model_path)
 
 
 def main(cli_args=None):
