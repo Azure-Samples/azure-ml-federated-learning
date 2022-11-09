@@ -30,11 +30,11 @@ inputs:
     type: uri_folder
     description: a given pre-existing checkpoint
     optional: true
-  # metrics_prefix:
-  #   type: string
-  #   description: Metrics prefix
-  #   default: Default-prefix
-  #   optional: true
+  metrics_prefix:
+    type: string
+    description: Metrics prefix
+    default: Default-prefix
+    optional: true
 
 outputs:
   model:
@@ -44,9 +44,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]]
-  
-# $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
 
 environment: 
   conda_file: ./conda.yaml
