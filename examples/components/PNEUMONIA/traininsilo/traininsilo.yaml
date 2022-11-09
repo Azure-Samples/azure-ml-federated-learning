@@ -41,7 +41,9 @@ outputs:
     type: uri_folder
     description: the output checkpoint
 
-code: .
+code: 
+  .
+  ../shared
 
 command: >-
   python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
