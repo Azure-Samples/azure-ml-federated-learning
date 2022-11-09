@@ -25,15 +25,24 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--checkpoints", type=str, required=True, nargs="+", help="list of paths or directories to search for model files")
+    parser.add_argument(
+        "--checkpoints",
+        type=str,
+        required=True,
+        nargs="+",
+        help="list of paths or directories to search for model files",
+    )
     parser.add_argument("--extension", type=str, default="pt", help="model extension")
-    parser.add_argument("--output", type=str, required=True, help="where to write the averaged model")
+    parser.add_argument(
+        "--output", type=str, required=True, help="where to write the averaged model"
+    )
 
     return parser
 
 
 class PyTorchStadeDictFedAvg:
     """Class to handle FedAvg of pytorch models."""
+
     def __init__(self):
         """Constructor."""
         # below we keep the average of the models
@@ -66,13 +75,17 @@ class PyTorchStadeDictFedAvg:
 
             self.ref_keys = set(self.avg_state_dict.keys())
 
-            self.logger.info(f"Loaded model from path={model_path}, class={self.model_class}, keys={self.ref_keys}")
+            self.logger.info(
+                f"Loaded model from path={model_path}, class={self.model_class}, keys={self.ref_keys}"
+            )
             self.model_count = 1
 
         else:
             # load the new model
             add_model = torch.load(model_path)
-            assert add_model.__class__.__name__ == self.model_class, f"Model class mismatch: {add_model.__class__.__name__} != {self.model_class}"
+            assert (
+                add_model.__class__.__name__ == self.model_class
+            ), f"Model class mismatch: {add_model.__class__.__name__} != {self.model_class}"
 
             if self.model_class != "OrderedDict":
                 # if the model loaded is actually a class, we need to extract the state_dict
@@ -84,7 +97,9 @@ class PyTorchStadeDictFedAvg:
                 self.ref_keys == add_model_keys
             ), f"model has keys {add_model_keys} != first model keys {self.ref_keys}"
 
-            self.logger.info(f"Loaded model from path={model_path}, class={self.model_class}, keys=IDEM")
+            self.logger.info(
+                f"Loaded model from path={model_path}, class={self.model_class}, keys=IDEM"
+            )
 
             # rolling average
             for key in self.ref_keys:
@@ -132,7 +147,9 @@ def main(cli_args=None):
     model_paths = []
     for model_path in args.checkpoints:
         if os.path.isdir(model_path):
-            for f in glob.glob(os.path.join(model_path, f"*.{args.extension}"), recursive=True):
+            for f in glob.glob(
+                os.path.join(model_path, f"*.{args.extension}"), recursive=True
+            ):
                 model_paths.append(f)
         else:
             model_paths.append(model_path)
@@ -142,6 +159,7 @@ def main(cli_args=None):
         model_handler.add_model(model_path)
 
     model_handler.save_model(os.path.join(args.output, f"model.{args.extension}"))
+
 
 if __name__ == "__main__":
     # Set logging to sys.out
