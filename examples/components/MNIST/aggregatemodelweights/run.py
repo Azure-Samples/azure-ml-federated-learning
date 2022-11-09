@@ -36,20 +36,22 @@ class PyTorchStadeDictFedAvg:
         self.model_class = "NoneType"
         self.model_count = 0
         self.model_type = "state_dict"
-        self.avg_model = None
+        self.model_object = None
+        self.avg_state_dict = None
         self.ref_keys = {}
 
     def add_model(self, model_path: str):
-        if self.avg_model is None:
+        if self.avg_state_dict is None:
             # no model yet, nothing to average
-            self.avg_model = torch.load(model_path)
-            self.ref_keys = set(self.avg_model.keys())
-            self.model_class = self.avg_model.__class__.__name__
+            self.avg_state_dict = torch.load(model_path)
+            self.model_class = self.avg_state_dict.__class__.__name__
 
-            if self.model_class == "OrderedDict":
-                self.model_type = "state_dict"
-            else:
-                raise NotImplementedError(f"Model type {self.model_class} not supported")
+            if self.model_class != "OrderedDict":
+                # if the model loaded is actually a class, we need to extract the state_dict
+                self.model_object = self.avg_state_dict
+                self.avg_state_dict = self.model_object.state_dict()
+
+            self.ref_keys = set(self.avg_state_dict.keys())
 
             print(f"Loaded model from path={model_path}, class={self.model_class}, keys={self.ref_keys}")
             self.model_count = 1
@@ -57,10 +59,14 @@ class PyTorchStadeDictFedAvg:
         else:
             # load the new model
             add_model = torch.load(model_path)
-            add_model_keys = set(add_model.keys())
-
-            # type check against the reference model
             assert add_model.__class__.__name__ == self.model_class, f"Model class mismatch: {add_model.__class__.__name__} != {self.model_class}"
+
+            if self.model_class != "OrderedDict":
+                # if the model loaded is actually a class, we need to extract the state_dict
+                model_object = add_model
+                add_model = model_object.state_dict()
+
+            add_model_keys = set(add_model.keys())
             assert (
                 self.ref_keys == add_model_keys
             ), f"model has keys {add_model_keys} != first model keys {self.ref_keys}"
@@ -69,8 +75,8 @@ class PyTorchStadeDictFedAvg:
 
             # rolling average
             for key in self.ref_keys:
-                self.avg_model[key] = torch.div(
-                    self.avg_model[key] * self.model_count + add_model[key],
+                self.avg_state_dict[key] = torch.div(
+                    self.avg_state_dict[key] * self.model_count + add_model[key],
                     float(self.model_count + 1),
                 )
 
@@ -80,7 +86,7 @@ class PyTorchStadeDictFedAvg:
             del add_model
 
     def save_model(self, model_path: str):
-        torch.save(self.avg_model, model_path)
+        torch.save(self.avg_state_dict, model_path)
 
 
 
