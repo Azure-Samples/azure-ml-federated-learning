@@ -26,6 +26,11 @@ param adminPassword string
 
 @description('The size of the Virtual Machine.')
 @allowed([
+  // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv2-series
+  'Standard_DC1s_v2'
+  'Standard_DC2s_v2'
+  'Standard_DC4s_v2'
+  'Standard_DC8_v2'
   // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
   'Standard_DC1ds_v3'
   'Standard_DC2ds_v3'
@@ -53,7 +58,7 @@ param adminPassword string
   'Standard_DC64ads_v5'
   'Standard_DC96ads_v5'
 ])
-param jumpboxVmSize string = 'Standard_DC4ads_v5'
+param jumpboxVmSize string = 'Standard_DC4ds_v3'
 
 @allowed([
   'linux'

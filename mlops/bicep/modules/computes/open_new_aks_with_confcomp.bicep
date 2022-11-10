@@ -34,9 +34,13 @@ param dnsPrefix string = replace('dnxprefix-${aksClusterName}', '-', '')
 @maxValue(50)
 param agentCount int = 4
 
-// see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
 @description('The size of the Virtual Machine.')
 @allowed([
+  // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv2-series
+  'Standard_DC1s_v2'
+  'Standard_DC2s_v2'
+  'Standard_DC4s_v2'
+  'Standard_DC8_v2'
   // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
   'Standard_DC1ds_v3'
   'Standard_DC2ds_v3'
@@ -119,8 +123,12 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
         osType: 'Linux'
         mode: 'System'
         osDiskSizeGB: osDiskSizeGB
+        osDiskType: 'Ephemeral'
       }
     ]
+    storageProfile: {
+      diskCSIDriver: { enabled : true }
+    }
     apiServerAccessProfile: {
       // IMPORTANT: use this for demo only, it is not a private AKS cluster
       authorizedIPRanges: []
@@ -136,7 +144,7 @@ module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bice
   name: 'deploy-aml-extension-${aksClusterName}'
   scope: resourceGroup()
   params: {
-    clusterName: aksClusterName
+    clusterName: aks.name
   }
   dependsOn: [
     aks
@@ -144,7 +152,7 @@ module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bice
 }
 
 module deployAttachToWorkspace '../azureml/attach_aks_training_to_azureml.bicep' = {
-  name: 'attach-${aksClusterName}-to-aml-${machineLearningName}'
+  name: 'attach-${aks.name}-to-aml-${machineLearningName}'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
