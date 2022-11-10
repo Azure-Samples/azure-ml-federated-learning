@@ -26,9 +26,7 @@ outputs:
     type: uri_folder
     description: the aggregated model or gradients, residing in the orchestrator compute.
 
-code: 
-  .
-  ../shared
+code: .
 
 command: >-
   python run.py --aggregated_output ${{outputs.aggregated_output}}
