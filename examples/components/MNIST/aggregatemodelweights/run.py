@@ -40,7 +40,7 @@ def get_arg_parser(parser=None):
     return parser
 
 
-class PyTorchStadeDictFedAvg:
+class PyTorchStateDictFedAvg:
     """Class to handle FedAvg of pytorch models."""
 
     def __init__(self):
@@ -154,7 +154,7 @@ def main(cli_args=None):
         else:
             model_paths.append(model_path)
 
-    model_handler = PyTorchStadeDictFedAvg()
+    model_handler = PyTorchStateDictFedAvg()
     for model_path in model_paths:
         model_handler.add_model(model_path)
 
