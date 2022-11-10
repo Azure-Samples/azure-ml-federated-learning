@@ -44,12 +44,12 @@ class PTLearner:
     ):
         """Simple PyTorch Learner.
         Args:
-            lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 5
-            dataset_dir (str, optional): Name of data asset in Azure ML. Defaults to "pneumonia-alldata"
-            experiment_name (str, optional): Experiment name. Default is default-experiment
+            lr (float, optional): Learning rate. Defaults to 0.01.
+            epochs (int, optional): Epochs. Defaults to 5.
+            dataset_dir (str, optional): Name of data asset in Azure ML. Defaults to "pneumonia-alldata".
+            experiment_name (str, optional): Experiment name. Default is "default-experiment".
             iteration_num (int, optional): Iteration number. Defaults to 1
-            model_path (str, optional): where in the output directory to save the model
+            model_path (str, optional): where in the output directory to save the model. Defaults to None.
 
         Attributes:
             model_: PneumoniaNetwork model
@@ -65,13 +65,13 @@ class PTLearner:
         self._dataset_dir = dataset_dir
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
+        self._model_path = model_path
 
         # Training setup
         self.model_ = PneumoniaNetwork()
         self.device_ = torch.device(
             "cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_.to(self.device_)
-        self._model_path = model_path
         self.loss_ = nn.CrossEntropyLoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, momentum=0.9)
 
@@ -92,7 +92,7 @@ class PTLearner:
             dataset=self.test_dataset_, batch_size=100, shuffle=False)
 
     def load_dataset(self, data_dir, transforms):
-        """Load dataset from {data_dir}
+        """Load dataset from {data_dir} directory. It is assumed that it contains two subdirectories 'train' and 'test'.
 
         Args:
             data_dir(str, optional): Data directory path
@@ -273,24 +273,24 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--dataset_name", type=str, required=True, help="")
-    parser.add_argument("--checkpoint", type=str, required=False, help="")
-    parser.add_argument("--model", type=str, required=True, help="")
+    parser.add_argument("--dataset_name", type=str, required=True, help="Name of data asset in Azure ML.")
+    parser.add_argument("--checkpoint", type=str, required=False, help="The previous model checkpoint.")
+    parser.add_argument("--model", type=str, required=True, help="Where to write the model output.")
     parser.add_argument(
-        "--metrics_prefix", type=str, required=False, help="Metrics prefix"
+        "--metrics_prefix", type=str, required=False, help="Metrics prefix."
     )
     parser.add_argument(
-        "--iteration_num", type=int, required=False, help="Iteration number"
+        "--iteration_num", type=int, required=False, help="Iteration number."
     )
 
     parser.add_argument(
-        "--lr", type=float, required=False, help="Training algorithm's learning rate"
+        "--lr", type=float, required=False, help="Training algorithm's learning rate."
     )
     parser.add_argument(
         "--epochs",
         type=int,
         required=False,
-        help="Total number of epochs for local training",
+        help="Total number of epochs for local training.",
     )
     
     return parser

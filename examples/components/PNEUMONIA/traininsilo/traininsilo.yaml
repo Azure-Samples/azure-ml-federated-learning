@@ -20,7 +20,7 @@ inputs:
     optional: true
   dataset_name:
     type: uri_folder
-    description: the name of the dataset
+    description: the data asset in Azure ML
   iteration_num:
     type: integer
     description: Iteration number
@@ -28,7 +28,7 @@ inputs:
     optional: true
   checkpoint:
     type: uri_folder
-    description: a given pre-existing checkpoint
+    description: a given pre-existing model checkpoint
     optional: true
   metrics_prefix:
     type: string
