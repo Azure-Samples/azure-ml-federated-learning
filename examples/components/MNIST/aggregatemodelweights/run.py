@@ -82,20 +82,20 @@ class PyTorchStateDictFedAvg:
 
         else:
             # load the new model
-            add_model = torch.load(model_path)
+            model_to_add = torch.load(model_path)
             assert (
-                add_model.__class__.__name__ == self.model_class
-            ), f"Model class mismatch: {add_model.__class__.__name__} != {self.model_class}"
+                model_to_add.__class__.__name__ == self.model_class
+            ), f"Model class mismatch: {model_to_add.__class__.__name__} != {self.model_class}"
 
             if self.model_class != "OrderedDict":
                 # if the model loaded is actually a class, we need to extract the state_dict
-                model_object = add_model
-                add_model = model_object.state_dict()
+                model_object = model_to_add
+                model_to_add = model_object.state_dict()
 
-            add_model_keys = set(add_model.keys())
+            model_to_add_keys = set(model_to_add.keys())
             assert (
-                self.ref_keys == add_model_keys
-            ), f"model has keys {add_model_keys} != first model keys {self.ref_keys}"
+                self.ref_keys == model_to_add_keys
+            ), f"model has keys {model_to_add_keys} != first model keys {self.ref_keys}"
 
             self.logger.info(
                 f"Loaded model from path={model_path}, class={self.model_class}, keys=IDEM"
@@ -104,14 +104,14 @@ class PyTorchStateDictFedAvg:
             # rolling average
             for key in self.ref_keys:
                 self.avg_state_dict[key] = torch.div(
-                    self.avg_state_dict[key] * self.model_count + add_model[key],
+                    self.avg_state_dict[key] * self.model_count + model_to_add[key],
                     float(self.model_count + 1),
                 )
 
             self.model_count += 1
 
             # would this help free memory?
-            del add_model
+            del model_to_add
 
     def save_model(self, model_path: str):
         """Save the averaged model.
