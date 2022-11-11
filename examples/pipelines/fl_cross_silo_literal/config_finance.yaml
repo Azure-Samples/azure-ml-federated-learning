@@ -9,48 +9,44 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: "cpu-orchestrator"
-    datastore: "datastore_orchestrator"
+    compute: cpu-orchestrator
+    datastore: datastore_orchestrator
 
   silos:
-    - compute: gpu-m60-1
+    - compute: gpu-m60-1-wus
       datastore: datastore_silo0_westus
-      region: '*'
-      # in this demo, we're using public data from a url instead
       training_data:
         type: uri_file
         mode: 'download'
-        path: https://davidtest7213619041.blob.core.windows.net/azureml-blobstore-3ae3b841-1b3a-4c4c-bf4c-896e1f84f412/UI/2022-11-08_003130_UTC/fraudTrain.csv
+        path: https://publictestdatasets.blob.core.windows.net/creditcardfraud/fraudTrain.csv
       testing_data:
         type: uri_file
         mode: 'download'
-        path: https://davidtest7213619041.blob.core.windows.net/azureml-blobstore-3ae3b841-1b3a-4c4c-bf4c-896e1f84f412/UI/2022-11-08_004053_UTC/fraudTest.csv
-    # - compute: cpu-silo1-francecentral
-    #   datastore: datastore_silo1_francecentral
-    #   # in this demo, we're using public data from a url instead
-    #   training_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
-    #   testing_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
-    # - compute: cpu-silo2-brazilsouth
-    #   datastore: datastore_silo2_brazilsouth
-    #   # in this demo, we're using public data from a url instead
-    #   training_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
-    #   testing_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
+        path: https://publictestdatasets.blob.core.windows.net/creditcardfraud/fraudTest.csv
+    - compute: gpu-m60-1-nus
+      datastore: datastore_northus
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: https://publictestdatasets.blob.core.windows.net/creditcardfraud/fraudTrain.csv
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: https://publictestdatasets.blob.core.windows.net/creditcardfraud/fraudTest.csv
+    - compute: gpu-m60-1-sus
+      datastore: datastore_southus
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: https://publictestdatasets.blob.core.windows.net/creditcardfraud/fraudTrain.csv
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: https://publictestdatasets.blob.core.windows.net/creditcardfraud/fraudTest.csv
 
 # training parameters
 training_parameters:
   num_of_iterations: 2
   epochs: 3
   lr: 0.01
-  batch_size: 64
+  batch_size: 10000
