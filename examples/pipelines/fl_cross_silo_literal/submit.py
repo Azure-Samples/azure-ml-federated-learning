@@ -100,15 +100,15 @@ except Exception as ex:
 
 # Loading the component from their yaml specifications
 preprocessing_component = load_component(
-    path=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
 )
 
 training_component = load_component(
-    path=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "trainsilo", "trainsilo.yaml")
 )
 
 aggregate_component = load_component(
-    path=os.path.join(
+    source=os.path.join(
         COMPONENTS_FOLDER, "aggregatemodelweights", "aggregatemodelweights.yaml"
     )
 )
@@ -184,8 +184,6 @@ def fl_cross_silo_internal_basic():
                 path=silo_config.testing_data.path,
             ),
             metrics_prefix=silo_config.compute,
-            # Config that may contain extra parameters
-            config=silo_config,
         )
 
         # add a readable name to the step
@@ -246,8 +244,6 @@ def fl_cross_silo_internal_basic():
                 metrics_prefix=silo_config.compute,
                 # Iteration name
                 iteration_name=f"Iteration-{iteration}",
-                # Config that may contain extra parameters
-                # config=silo_config,
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
