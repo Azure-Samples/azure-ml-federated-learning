@@ -220,8 +220,6 @@ def fl_cross_silo_internal_basic():
                 path=silo_config.testing_data.path,
             ),
             metrics_prefix=silo_config.compute,
-            # Config that may contain extra parameters
-            config=silo_config,
         )
 
         # add a readable name to the step
