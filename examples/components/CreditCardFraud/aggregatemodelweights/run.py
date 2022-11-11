@@ -1,3 +1,4 @@
+"""Aggregate multiple pytorch models using FedAvg."""
 import os
 import argparse
 import logging
@@ -106,27 +107,96 @@ def get_global_model(args):
         else args.__dict__["input_silo_1"],
         args.model_name,
     )
-    return global_model
+
+    return parser
 
 
-def run(args):
-    """Run script with arguments (the core of the component).
+class PyTorchStateDictFedAvg:
+    """Class to handle FedAvg of pytorch models."""
 
-    Args:
-        args (argparse.namespace): command line arguments provided to script
-    """
-    logger.debug("Get client models")
-    client_models = get_client_models(args)
-    logger.info(f"Total number of client models: {len(client_models)}")
+    def __init__(self):
+        """Constructor."""
+        # below we keep the average of the models
+        self.avg_state_dict = None
+        # keep count of how many models were averaged (rolling)
+        self.model_count = 0
+        # if model is a class, we'll store it here
+        self.model_object = None
+        # keep track of the class and keys in the model (to test consistency)
+        self.model_class = "NoneType"
+        self.ref_keys = {}
+        # a logger
+        self.logger = logging.getLogger(__name__)
 
-    logger.debug(f"Get global model")
-    global_model = get_global_model(args)
+    def add_model(self, model_path: str):
+        """Add one model to the average.
 
-    logger.debug("aggregate model weights")
-    global_model = aggregate_model_weights(global_model, client_models)
+        Args:
+            model_path (str): path to the model to add
+        """
+        if self.avg_state_dict is None:
+            # no model yet, nothing to average
+            self.avg_state_dict = torch.load(model_path)
+            self.model_class = self.avg_state_dict.__class__.__name__
 
-    logger.info("Saving model weights")
-    torch.save(global_model.state_dict(), args.aggregated_output + "/model.pt")
+            if self.model_class != "OrderedDict":
+                # if the model loaded is actually a class, we need to extract the state_dict
+                self.model_object = self.avg_state_dict
+                self.avg_state_dict = self.model_object.state_dict()
+
+            self.ref_keys = set(self.avg_state_dict.keys())
+
+            self.logger.info(
+                f"Loaded model from path={model_path}, class={self.model_class}, keys={self.ref_keys}"
+            )
+            self.model_count = 1
+
+        else:
+            # load the new model
+            model_to_add = torch.load(model_path)
+            assert (
+                model_to_add.__class__.__name__ == self.model_class
+            ), f"Model class mismatch: {model_to_add.__class__.__name__} != {self.model_class}"
+
+            if self.model_class != "OrderedDict":
+                # if the model loaded is actually a class, we need to extract the state_dict
+                model_object = model_to_add
+                model_to_add = model_object.state_dict()
+
+            model_to_add_keys = set(model_to_add.keys())
+            assert (
+                self.ref_keys == model_to_add_keys
+            ), f"model has keys {model_to_add_keys} != first model keys {self.ref_keys}"
+
+            self.logger.info(
+                f"Loaded model from path={model_path}, class={self.model_class}, keys=IDEM"
+            )
+
+            # rolling average
+            for key in self.ref_keys:
+                self.avg_state_dict[key] = torch.div(
+                    self.avg_state_dict[key] * self.model_count + model_to_add[key],
+                    float(self.model_count + 1),
+                )
+
+            self.model_count += 1
+
+            # would this help free memory?
+            del model_to_add
+
+    def save_model(self, model_path: str):
+        """Save the averaged model.
+
+        Args:
+            model_path (str): path to save the model to
+        """
+        if self.model_class == "OrderedDict":
+            self.logger.info(f"Saving state dict to path={model_path}")
+            torch.save(self.avg_state_dict, model_path)
+        else:
+            self.logger.info(f"Saving model object to path={model_path}")
+            self.model_object.load_state_dict(self.avg_state_dict)
+            torch.save(self.model_object, model_path)
 
 
 def main(cli_args=None):
@@ -144,11 +214,25 @@ def main(cli_args=None):
     args = parser.parse_args(cli_args)
 
     print(f"Running script with arguments: {args}")
-    run(args)
+
+    model_paths = []
+    for model_path in args.checkpoints:
+        if os.path.isdir(model_path):
+            for f in glob.glob(
+                os.path.join(model_path, f"*.{args.extension}"), recursive=True
+            ):
+                model_paths.append(f)
+        else:
+            model_paths.append(model_path)
+
+    model_handler = PyTorchStateDictFedAvg()
+    for model_path in model_paths:
+        model_handler.add_model(model_path)
+
+    model_handler.save_model(os.path.join(args.output, f"model.{args.extension}"))
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
