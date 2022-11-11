@@ -18,7 +18,7 @@ param siloRegions array = [
   // 'switzerlandnorth' // not supported by sub
   // 'centralus' // not supported by sub
   //'eastus'
-  'eastus2' // use dcv3 series
+  'eastus2' // use dcv3 series or DC2as_v5
   'southcentralus' // use dcv3 series
   // 'westus' // not supported by sub
   'westus2' // use dcv3 series
@@ -59,7 +59,7 @@ param siloRegions array = [
   'Standard_DC64ads_v5'
   'Standard_DC96ads_v5'
 ])
-param computeSKU string = 'Standard_DC16as_v5'
+param computeSKU string = 'Standard_DC4ads_v5'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {
