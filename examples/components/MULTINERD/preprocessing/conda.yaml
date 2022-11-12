@@ -1,0 +1,13 @@
+name: mnist_preprocess_conda_env
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.7.11
+  - pip=20.0
+  - pytorch=1.12.1
+  - torchvision=0.13.1
+  - cudatoolkit=11.3
+  - pip:
+    - azureml-mlflow
+    - pandas
