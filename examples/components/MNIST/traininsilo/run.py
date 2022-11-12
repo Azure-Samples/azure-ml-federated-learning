@@ -78,7 +78,7 @@ class MnistTrainer:
         )
 
     def load_dataset(self, train_data_dir, test_data_dir):
-        """Load dataset from {train_data_dir} and {test_data_dir}
+        """Load dataset from {train_data_dir} and {test_data_dir}.
 
         Args:
             train_data_dir(str, optional): Training data directory path
