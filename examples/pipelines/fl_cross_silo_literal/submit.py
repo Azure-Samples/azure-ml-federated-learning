@@ -351,14 +351,15 @@ if args.submit:
 
     if args.wait:
         job_name = pipeline_job.name
-
-        # Stream logs
-        ML_CLIENT.jobs.stream(job_name)
-        print("Pipeline's logs streaming done")
-
-        # check status
-        pipeline_job = ML_CLIENT.jobs.get(name=job_name)
         status = pipeline_job.status
+
+        while status not in ["Failed", "Completed", "Canceled"]:
+            print(f"Job current status is {status}")
+
+            # check status after every 100 sec.
+            time.sleep(100)
+            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            status = pipeline_job.status
 
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
