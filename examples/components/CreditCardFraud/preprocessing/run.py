@@ -5,6 +5,7 @@ import sys
 import json
 
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import mlflow
 import hydra
@@ -12,6 +13,7 @@ import hydra
 from azureml.core import Run, Workspace
 
 ENCODERS = {}
+SCALERS = {}
 STATES_REGIONS = {}
 
 def get_arg_parser(parser=None):
@@ -43,6 +45,7 @@ def get_arg_parser(parser=None):
 
 def apply_transforms(df):
     global ENCODERS
+    global SCALERS
 
     useful_props = [
         "amt",
@@ -58,18 +61,20 @@ def apply_transforms(df):
         "long",
         "city_pop",
         "job",
-        "dob",
+        # "dob",
         "trans_date_trans_time",
         "is_fraud",
+        "age",
     ]
     categorical = ["category", "region", "gender", "state", "job"]
-    datetimes = ["dob", "trans_date_trans_time"]
-    normalize = ["dob", "age"]
+    datetimes = ["trans_date_trans_time"] # "dob"
+    normalize = ["age", "merch_lat", "merch_long", "lat", "long", "city_pop", "trans_date_trans_time", "amt"]
+
+    df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta('1y')
 
     # Filter only useful columns
     df = df[useful_props]
-
-    df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta('1y')
+    
     for column in categorical:
         if column not in ENCODERS:
             print(f"Creating encoder for column: {column}")
@@ -87,7 +92,16 @@ def apply_transforms(df):
     for column in datetimes:
         df.loc[:, column] = pd.to_datetime(df[column]).view("int64")
     for column in normalize:
-        df.loc[:, column] = (df[column] - df[column].min())/(df[column].max() - df[column].min())
+        if column not in SCALERS:
+            print(f"Creating encoder for column: {column}")
+            # Simply set all zeros if the category is unseen
+            scaler = StandardScaler()
+            scaler.fit(df[column].values.reshape(-1,1))
+            SCALERS[column] = scaler
+
+        scaler = SCALERS.get(column)
+        df.loc[:, column] = scaler.transform(df[column].values.reshape(-1,1))
+        # df.loc[:, column] = (df[column] - df[column].min())/(df[column].max() - df[column].min())
 
     return df
 

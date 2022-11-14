@@ -11,7 +11,6 @@ from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Dataset
-from torchvision import models, datasets, transforms
 from mlflow import log_metric, log_param
 from typing import List
 
@@ -122,12 +121,11 @@ class CCFraudTrainer:
             nn.ReLU(),
             nn.Linear(4, 1),
             nn.Sigmoid()
-        )
-        self.model_.to(self.device_)
+        ).to(self.device_)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
-        self.optimizer_ = Adam(self.model_.parameters(), lr=lr)
+        self.optimizer_ = Adam(self.model_.parameters(), lr=self._lr)
 
         self.train_dataset_, self.test_dataset_ = self.load_dataset(
             train_data_dir, test_data_dir
@@ -211,12 +209,13 @@ class CCFraudTrainer:
             # log params
             self.log_params(mlflow_client, root_run_id)
 
-            self.model_.train()
             logger.debug("Local training started")
 
             train_metrics = RunningMetrics(["loss", "accuracy", "precision", "recall"], prefix="train")
             test_metrics = RunningMetrics(["accuracy", "precision", "recall"], prefix="test")
             for epoch in range(self._epochs):
+                self.model_.train()
+
                 for i, batch in enumerate(self.train_loader_):
                     data, labels = batch[0].to(self.device_), batch[1].to(
                         self.device_
@@ -286,8 +285,6 @@ class CCFraudTrainer:
         test_metrics = RunningMetrics(["loss", "accuracy", "precision", "recall"], prefix="test")
 
         self.model_.eval()
-        test_loss = 0
-        correct = 0
         with torch.no_grad():
             for data, target in self.test_loader_:
                 data, labels = data.to(self.device_), target.to(self.device_)
