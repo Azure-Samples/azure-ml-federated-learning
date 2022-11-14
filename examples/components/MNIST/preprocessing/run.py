@@ -155,7 +155,7 @@ def log_metadata(X_train, X_test, metrics_prefix):
 
 
 def run(args):
-    """Run script with arguments (the core of the component)
+    """Run script with arguments (the core of the component)..
 
     Args:
         args (argparse.namespace): command line arguments provided to script

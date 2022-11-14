@@ -178,7 +178,7 @@ def custom_fl_data_path(
 
 
 def getUniqueIdentifier(length=8):
-    """Generates a random string and concatenates it with today's date
+    """Generates a random string and concatenates it with today's date.
 
     Args:
         length (int): length of the random string (default: 8)
