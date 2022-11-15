@@ -5,14 +5,18 @@ import sys
 
 import mlflow
 import torch
-from torch import nn
-from torch.optim import SGD
-from torch.utils.data.dataloader import DataLoader
-from torchvision import models, datasets, transforms
+from transformers import DataCollatorForTokenClassification, AutoModelForTokenClassification, AutoTokenizer, get_scheduler
+from torch.utils.data import DataLoader
+from torch.optim import AdamW
+from datasets import load_from_disk
+import pandas as pd
+import evaluate
+import numpy as np
+from tqdm.auto import tqdm
 from mlflow import log_metric, log_param
 
 
-class MnistTrainer:
+class NERTrainer:
     def __init__(
         self,
         train_data_dir="./",
@@ -54,27 +58,33 @@ class MnistTrainer:
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        # Build model
-        self.model_ = models.resnet18(pretrained=True)
-        self.model_.conv1 = nn.Conv2d(
-            1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-        )
-        num_ftrs = self.model_.fc.in_features
-        self.model_.fc = nn.Linear(num_ftrs, 10)
-        self.model_.to(self.device_)
-        self._model_path = model_path
+        self.train_data_dir = train_data_dir
+        self.test_data_dir = test_data_dir
 
-        self.loss_ = nn.CrossEntropyLoss()
-        self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
+        self.labelToId_ = pd.read_json("./labels.json", typ='series').to_dict()
+        self.idToLabel_ = {val: key for key, val in self.labelToId_.items()}
+        self.metric = evaluate.load("seqeval")
 
-        self.train_dataset_, self.test_dataset_ = self.load_dataset(
+        model_name = "bert-base-cased"
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
+        self.model_ = AutoModelForTokenClassification.from_pretrained(
+            model_name,
+            id2label=self.idToLabel_,
+            label2id=self.labelToId_,
+        )  
+        train_dataset, test_dataset = self.load_dataset(
             train_data_dir, test_data_dir
         )
+
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_size=batch_size, shuffle=True
+            train_dataset,
+            shuffle=True,
+            collate_fn=data_collator,
+            batch_size=self._batch_size,
         )
-        self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_size=batch_size, shuffle=True
+        self.test_loader_  = DataLoader(
+            test_dataset, collate_fn=data_collator, batch_size=self._batch_size
         )
 
     def load_dataset(self, train_data_dir, test_data_dir):
@@ -88,14 +98,8 @@ class MnistTrainer:
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        transformer = transforms.Compose(
-            [
-                transforms.Grayscale(num_output_channels=1),
-                transforms.ToTensor(),
-            ]
-        )
-        train_dataset = datasets.ImageFolder(train_data_dir, transformer)
-        test_dataset = datasets.ImageFolder(test_data_dir, transformer)
+        train_dataset = load_from_disk(train_data_dir)
+        test_dataset = load_from_disk(test_data_dir)
 
         return train_dataset, test_dataset
 
@@ -136,6 +140,36 @@ class MnistTrainer:
                 key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
                 value=value,
             )
+    
+    def compute_metrics(self, eval_preds):
+        logits, labels = eval_preds
+        predictions = np.argmax(logits, axis=-1)
+
+        # Remove ignored index (special tokens) and convert to labels
+        true_labels = [[self.idToLabel_[l] for l in label if l != -100] for label in labels]
+        true_predictions = [
+            [self.idToLabel_[p] for (p, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(predictions, labels)
+        ]
+        all_metrics = self.metric.compute(predictions=true_predictions, references=true_labels)
+        return {
+            "precision": all_metrics["overall_precision"],
+            "recall": all_metrics["overall_recall"],
+            "f1": all_metrics["overall_f1"],
+            "accuracy": all_metrics["overall_accuracy"],
+        }
+
+    def postprocess(self, predictions, labels):
+        predictions = predictions.detach().cpu().clone().numpy()
+        labels = labels.detach().cpu().clone().numpy()
+
+        # Remove ignored index (special tokens) and convert to labels
+        true_labels = [[self.idToLabel_[l] for l in label if l != -100] for label in labels]
+        true_predictions = [
+            [self.idToLabel_[p] for (p, l) in zip(prediction, label) if l != -100]
+            for prediction, label in zip(predictions, labels)
+        ]
+        return true_labels, true_predictions
 
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
@@ -147,41 +181,46 @@ class MnistTrainer:
         if checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
+        # get Mlflow client and root run id
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
+        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+
+        # log params
+        self.log_params(mlflow_client, root_run_id)   
+        
+        optimizer = AdamW(self.model_.parameters(), lr=2e-5)
+        
         with mlflow.start_run() as mlflow_run:
+            num_update_steps_per_epoch = len(self.train_loader_)
+            num_training_steps = self._epochs * num_update_steps_per_epoch
 
-            # get Mlflow client and root run id
-            mlflow_client = mlflow.tracking.client.MlflowClient()
-            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            lr_scheduler = get_scheduler(
+                "linear",
+                optimizer=optimizer,
+                num_warmup_steps=0,
+                num_training_steps=num_training_steps,
+            )
 
-            # log params
-            self.log_params(mlflow_client, root_run_id)
-
-            self.model_.train()
-            logger.debug("Local training started")
-
-            training_loss = 0.0
-            test_loss = 0.0
-            test_acc = 0.0
+            progress_bar = tqdm(range(num_training_steps))
 
             for epoch in range(self._epochs):
 
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
-
+                # Training
+                self.model_.train()
                 for i, batch in enumerate(self.train_loader_):
+                    outputs = self.model_(**batch)
+                    loss = outputs.loss
+                    # accelerator.backward(loss)
 
-                    images, labels = batch[0].to(self.device_), batch[1].to(
-                        self.device_
-                    )
-                    self.optimizer_.zero_grad()
+                    optimizer.step()
+                    lr_scheduler.step()
+                    optimizer.zero_grad()
+                    progress_bar.update(1)
 
-                    predictions = self.model_(images)
-                    cost = self.loss_(predictions, labels)
-                    cost.backward()
-                    self.optimizer_.step()
-
-                    running_loss += cost.cpu().detach().numpy() / images.size()[0]
+                    running_loss += loss / len(batch)
                     if i != 0 and i % num_of_batches_before_logging == 0:
                         training_loss = running_loss / num_of_batches_before_logging
                         logger.info(
@@ -198,52 +237,6 @@ class MnistTrainer:
 
                         running_loss = 0.0
 
-                test_loss, test_acc = self.test()
-
-                # log test metrics after each epoch
-                self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
-                self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc)
-
-                logger.info(
-                    f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
-                )
-
-            # log metrics at the pipeline level
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Train Loss",
-                training_loss,
-                pipeline_level=True,
-            )
-            self.log_metrics(
-                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
-            )
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Test Accuracy",
-                test_acc,
-                pipeline_level=True,
-            )
-
-    def test(self):
-        """Test the trained model and report test loss and accuracy"""
-        self.model_.eval()
-        test_loss = 0
-        correct = 0
-        with torch.no_grad():
-            for data, target in self.test_loader_:
-                data, target = data.to(self.device_), target.to(self.device_)
-                output = self.model_(data)
-                test_loss += self.loss_(output, target).item()
-                pred = output.argmax(dim=1, keepdim=True)
-                correct += pred.eq(target.view_as(pred)).sum().item()
-
-        test_loss /= len(self.test_loader_.dataset)
-        acc = correct / len(self.test_loader_.dataset)
-
-        return test_loss, acc
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.
@@ -307,7 +300,7 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    trainer = MnistTrainer(
+    trainer = NERTrainer(
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,
         model_path=args.model + "/model.pt",

@@ -1,4 +1,3 @@
-
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: aggregate_model_weights
 version: 0.1.0
@@ -29,11 +28,12 @@ outputs:
 code: .
 
 command: >-
-  python run.py --aggregated_output ${{outputs.aggregated_output}}
-  --input_silo_1 ${{inputs.input_silo_1}}
-  $[[--input_silo_2 ${{inputs.input_silo_2}}]]
-  $[[--input_silo_3 ${{inputs.input_silo_3}}]]
+  python run.py --output ${{outputs.aggregated_output}} 
+  --extension pt 
+  --checkpoints ${{inputs.input_silo_1}} 
+  $[[${{inputs.input_silo_2}}]] 
+  $[[${{inputs.input_silo_3}}]]
 
-environment: 
+environment:
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04

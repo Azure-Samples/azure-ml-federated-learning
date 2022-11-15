@@ -8,12 +8,6 @@ description: Component for preprocessing raw data in a given silo. The images ar
 is_deterministic: true
 
 inputs:
-  raw_training_data:
-    type: uri_file
-    description: the raw training data in a given silo
-  raw_testing_data:
-    type: uri_file
-    description: the raw testing data in a given silo
   metrics_prefix:
     type: string
     description: Metrics prefix
@@ -32,7 +26,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --raw_training_data ${{inputs.raw_training_data}} --raw_testing_data ${{inputs.raw_testing_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  python run.py --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
 
 environment: 
   conda_file: ./conda.yaml

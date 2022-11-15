@@ -51,9 +51,9 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=False,
-    choices=["MNIST", "HELLOWORLD"],
+    choices=["MNIST", "HELLOWORLD", "PrivateEntityRecognition"],
     default="MNIST",
-    help="dataset name",
+    help="example name",
 )
 
 parser.add_argument(
