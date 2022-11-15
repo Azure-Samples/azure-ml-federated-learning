@@ -5,7 +5,12 @@ import sys
 
 import mlflow
 import torch
-from transformers import DataCollatorForTokenClassification, AutoModelForTokenClassification, AutoTokenizer, get_scheduler
+from transformers import (
+    DataCollatorForTokenClassification,
+    AutoModelForTokenClassification,
+    AutoTokenizer,
+    get_scheduler,
+)
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 from datasets import load_from_disk
@@ -49,7 +54,7 @@ class NERTrainer:
             test_loader_: Testing DataLoader
         """
 
-        # Training setup
+        # training params
         self._lr = lr
         self._epochs = epochs
         self._batch_size = batch_size
@@ -58,34 +63,33 @@ class NERTrainer:
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.train_data_dir = train_data_dir
-        self.test_data_dir = test_data_dir
-
-        self.labelToId_ = pd.read_json("./labels.json", typ='series').to_dict()
-        self.idToLabel_ = {val: key for key, val in self.labelToId_.items()}
-        self.metric = evaluate.load("seqeval")
-
+        # tokenizer
         model_name = "bert-base-cased"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
-        self.model_ = AutoModelForTokenClassification.from_pretrained(
-            model_name,
-            id2label=self.idToLabel_,
-            label2id=self.labelToId_,
-        )  
-        train_dataset, test_dataset = self.load_dataset(
-            train_data_dir, test_data_dir
-        )
+        train_dataset, test_dataset = self.load_dataset(train_data_dir, test_data_dir)
 
+        # data loader
         self.train_loader_ = DataLoader(
             train_dataset,
             shuffle=True,
             collate_fn=data_collator,
             batch_size=self._batch_size,
         )
-        self.test_loader_  = DataLoader(
+        self.test_loader_ = DataLoader(
             test_dataset, collate_fn=data_collator, batch_size=self._batch_size
         )
+
+        # model
+        self.labelToId_ = pd.read_json("./labels.json", typ="series").to_dict()
+        self.idToLabel_ = {val: key for key, val in self.labelToId_.items()}
+        self.model_ = AutoModelForTokenClassification.from_pretrained(
+            model_name,
+            id2label=self.idToLabel_,
+            label2id=self.labelToId_,
+        )
+        self.metric_ = evaluate.load("seqeval")
+        self.optimizer_ = AdamW(self.model_.parameters(), lr=2e-5)
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -140,18 +144,22 @@ class NERTrainer:
                 key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
                 value=value,
             )
-    
+
     def compute_metrics(self, eval_preds):
         logits, labels = eval_preds
         predictions = np.argmax(logits, axis=-1)
 
         # Remove ignored index (special tokens) and convert to labels
-        true_labels = [[self.idToLabel_[l] for l in label if l != -100] for label in labels]
+        true_labels = [
+            [self.idToLabel_[l] for l in label if l != -100] for label in labels
+        ]
         true_predictions = [
             [self.idToLabel_[p] for (p, l) in zip(prediction, label) if l != -100]
             for prediction, label in zip(predictions, labels)
         ]
-        all_metrics = self.metric.compute(predictions=true_predictions, references=true_labels)
+        all_metrics = self.metric_.compute(
+            predictions=true_predictions, references=true_labels
+        )
         return {
             "precision": all_metrics["overall_precision"],
             "recall": all_metrics["overall_recall"],
@@ -164,7 +172,9 @@ class NERTrainer:
         labels = labels.detach().cpu().clone().numpy()
 
         # Remove ignored index (special tokens) and convert to labels
-        true_labels = [[self.idToLabel_[l] for l in label if l != -100] for label in labels]
+        true_labels = [
+            [self.idToLabel_[l] for l in label if l != -100] for label in labels
+        ]
         true_predictions = [
             [self.idToLabel_[p] for (p, l) in zip(prediction, label) if l != -100]
             for prediction, label in zip(predictions, labels)
@@ -181,23 +191,21 @@ class NERTrainer:
         if checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
-        # get Mlflow client and root run id
-        mlflow_client = mlflow.tracking.client.MlflowClient()
-        logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-
-        # log params
-        self.log_params(mlflow_client, root_run_id)   
-        
-        optimizer = AdamW(self.model_.parameters(), lr=2e-5)
-        
         with mlflow.start_run() as mlflow_run:
+            # get Mlflow client and root run id
+            mlflow_client = mlflow.tracking.client.MlflowClient()
+            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
+            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+
+            # log params
+            self.log_params(mlflow_client, root_run_id)
+
             num_update_steps_per_epoch = len(self.train_loader_)
             num_training_steps = self._epochs * num_update_steps_per_epoch
 
             lr_scheduler = get_scheduler(
                 "linear",
-                optimizer=optimizer,
+                optimizer=self.optimizer_,
                 num_warmup_steps=0,
                 num_training_steps=num_training_steps,
             )
@@ -215,9 +223,9 @@ class NERTrainer:
                     loss = outputs.loss
                     # accelerator.backward(loss)
 
-                    optimizer.step()
+                    self.optimizer_.step()
                     lr_scheduler.step()
-                    optimizer.zero_grad()
+                    self.optimizer_.zero_grad()
                     progress_bar.update(1)
 
                     running_loss += loss / len(batch)
@@ -236,7 +244,6 @@ class NERTrainer:
                         )
 
                         running_loss = 0.0
-
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.

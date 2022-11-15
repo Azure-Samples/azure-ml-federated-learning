@@ -9,6 +9,7 @@ import mlflow
 from datasets import load_dataset
 from transformers import AutoTokenizer
 
+
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
 
@@ -34,7 +35,6 @@ def get_arg_parser(parser=None):
     return parser
 
 
-
 def align_labels_with_tokens(labels, word_ids):
     new_labels = []
     current_word = None
@@ -57,6 +57,7 @@ def align_labels_with_tokens(labels, word_ids):
 
     return new_labels
 
+
 def tokenize_and_align_labels(examples):
     model_checkpoint = "bert-base-cased"
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
@@ -72,6 +73,7 @@ def tokenize_and_align_labels(examples):
     tokenized_inputs["labels"] = new_labels
     return tokenized_inputs
 
+
 def preprocess_data(
     train_data_dir="./",
     test_data_dir="./",
@@ -86,7 +88,7 @@ def preprocess_data(
         None
     """
 
-    df = load_dataset("tner/multinerd", 'en', split='test')
+    df = load_dataset("tner/multinerd", "en", split="test")
     df = df.train_test_split(test_size=0.1)
 
     tokenized_datasets = df.map(
@@ -96,11 +98,14 @@ def preprocess_data(
     )
 
     # Mlflow logging
-    log_metadata(tokenized_datasets["train"], tokenized_datasets["test"], metrics_prefix)
+    log_metadata(
+        tokenized_datasets["train"], tokenized_datasets["test"], metrics_prefix
+    )
 
     # save processed data
     tokenized_datasets["train"].save_to_disk(train_data_dir)
     tokenized_datasets["test"].save_to_disk(test_data_dir)
+
 
 def log_metadata(X_train, X_test, metrics_prefix):
     with mlflow.start_run() as mlflow_run:
