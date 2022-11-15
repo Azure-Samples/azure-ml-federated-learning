@@ -47,6 +47,24 @@ def test_output(path):
     with open(os.path.join(path, "output.txt"), "w") as f:
         f.write("Hello World!")
 
+def test_local_input_for_external_silos():
+    print("Path at terminal when executing this file")
+    print(os.getcwd() + "\n")
+
+    print("This file path, relative to os.getcwd()")
+    print(__file__ + "\n")
+
+    print("This file full path (following symlinks)")
+    full_path = os.path.realpath(__file__)
+    print(full_path + "\n")
+
+    print("This file directory and name")
+    path, filename = os.path.split(full_path)
+    print(path + ' --> ' + filename + "\n")
+
+    print("This file directory only")
+    print(os.path.dirname(full_path))
+
 
 def main(cli_args=None):
     """Component main function.
@@ -67,6 +85,8 @@ def main(cli_args=None):
     test_input(args.raw_testing_data)
     test_output(args.train_output)
     test_output(args.test_output)
+
+    test_local_input_for_external_silos()
 
 
 if __name__ == "__main__":
