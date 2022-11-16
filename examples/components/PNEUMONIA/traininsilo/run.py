@@ -18,8 +18,8 @@ from torchvision.transforms import ToTensor, Normalize, Compose, Grayscale, Resi
 
 from pneumonia_network import PneumoniaNetwork
 
-class PTLearner:
 
+class PTLearner:
     def __init__(
         self,
         lr=0.01,
@@ -56,8 +56,7 @@ class PTLearner:
 
         # Training setup
         self.model_ = PneumoniaNetwork()
-        self.device_ = torch.device(
-            "cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_.to(self.device_)
         self.loss_ = nn.CrossEntropyLoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, momentum=0.9)
@@ -66,17 +65,24 @@ class PTLearner:
         IMG_HEIGHT, IMG_WIDTH = 224, 224
         IMG_MEAN = 0.4818
         IMG_STD = 0.2357
-        transforms = Compose([Grayscale(),
-                              Resize((IMG_HEIGHT, IMG_WIDTH)),
-                              ToTensor(),
-                              Normalize(mean=(IMG_MEAN,), std=(IMG_STD,))
-                              ])
-        self.train_dataset_, self.test_dataset_ = self.load_dataset(dataset_dir, transforms)
+        transforms = Compose(
+            [
+                Grayscale(),
+                Resize((IMG_HEIGHT, IMG_WIDTH)),
+                ToTensor(),
+                Normalize(mean=(IMG_MEAN,), std=(IMG_STD,)),
+            ]
+        )
+        self.train_dataset_, self.test_dataset_ = self.load_dataset(
+            dataset_dir, transforms
+        )
         self.train_loader_ = DataLoader(
-            dataset=self.train_dataset_, batch_size=32, shuffle=True, drop_last=True)
+            dataset=self.train_dataset_, batch_size=32, shuffle=True, drop_last=True
+        )
         self.n_iterations = len(self.train_loader_)
         self.test_loader_ = DataLoader(
-            dataset=self.test_dataset_, batch_size=100, shuffle=False)
+            dataset=self.test_dataset_, batch_size=100, shuffle=False
+        )
 
     def load_dataset(self, data_dir, transforms):
         """Load dataset from {data_dir} directory. It is assumed that it contains two subdirectories 'train' and 'test'.
@@ -86,8 +92,12 @@ class PTLearner:
         """
         logger.info(f"Data dir: {data_dir}.")
 
-        train_dataset = datasets.ImageFolder(root=os.path.join(data_dir, 'train'), transform=transforms)
-        test_dataset = datasets.ImageFolder(root=os.path.join(data_dir, 'test'), transform=transforms)
+        train_dataset = datasets.ImageFolder(
+            root=os.path.join(data_dir, "train"), transform=transforms
+        )
+        test_dataset = datasets.ImageFolder(
+            root=os.path.join(data_dir, "test"), transform=transforms
+        )
 
         return train_dataset, test_dataset
 
@@ -156,8 +166,9 @@ class PTLearner:
 
                 for i, batch in enumerate(self.train_loader_):
 
-                    images, labels = batch[0].to(
-                        self.device_), batch[1].to(self.device_)
+                    images, labels = batch[0].to(self.device_), batch[1].to(
+                        self.device_
+                    )
                     self.optimizer_.zero_grad()
 
                     predictions = self.model_(images)
@@ -165,7 +176,7 @@ class PTLearner:
                     cost.backward()
                     self.optimizer_.step()
 
-                    running_loss += (cost.cpu().detach().numpy()/images.size()[0])
+                    running_loss += cost.cpu().detach().numpy() / images.size()[0]
                     if i != 0 and i % num_of_batches_before_logging == 0:
                         training_loss = running_loss / num_of_batches_before_logging
                         logger.info(
@@ -181,7 +192,7 @@ class PTLearner:
                         )
 
                         running_loss = 0.0
-                
+
                 # compute test metrics
                 test_loss, test_acc = self.test()
 
@@ -192,7 +203,7 @@ class PTLearner:
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
-            
+
             # log metrics at the pipeline level
             self.log_metrics(
                 mlflow_client,
@@ -243,6 +254,7 @@ class PTLearner:
         torch.save(self.model_.state_dict(), self._model_path)
         logger.info(f"Model saved to {self._model_path}")
 
+
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
 
@@ -260,9 +272,18 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--dataset_name", type=str, required=True, help="Name of data asset in Azure ML.")
-    parser.add_argument("--checkpoint", type=str, required=False, help="The previous model checkpoint.")
-    parser.add_argument("--model", type=str, required=True, help="Where to write the model output.")
+    parser.add_argument(
+        "--dataset_name",
+        type=str,
+        required=True,
+        help="Name of data asset in Azure ML.",
+    )
+    parser.add_argument(
+        "--checkpoint", type=str, required=False, help="The previous model checkpoint."
+    )
+    parser.add_argument(
+        "--model", type=str, required=True, help="Where to write the model output."
+    )
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix."
     )
@@ -279,8 +300,9 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training.",
     )
-    
+
     return parser
+
 
 def run(args):
     """Run script with arguments (the core of the component).
@@ -289,7 +311,7 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
     trainer = PTLearner(
-        dataset_dir=args.dataset_name,        
+        dataset_dir=args.dataset_name,
         lr=args.lr,
         epochs=args.epochs,
         experiment_name=args.metrics_prefix,
@@ -298,6 +320,7 @@ def run(args):
     )
 
     trainer.execute(args.checkpoint)
+
 
 def main(cli_args=None):
     """Component main function.
@@ -318,7 +341,7 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-    
+
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
