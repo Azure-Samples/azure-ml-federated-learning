@@ -45,8 +45,8 @@ This repo provides some code samples for running a federated learning pipeline i
 
 | Folder | Description |
 | :--- | :--- |
-| [examples](../examples) | Scripts and pipelines to run FL sample experiments |
-| [mlops](../mlops) | Provisioning scripts |
+| [examples](../examples) | Scripts and pipelines to run FL sample experiments. |
+| [mlops](../mlops) | Provisioning scripts. See instructions [here](./provisioning/README.md). |
 
 
 ### Tutorial on how to adapt the "literal" and the "factory" code
