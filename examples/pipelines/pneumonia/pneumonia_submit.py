@@ -1,4 +1,4 @@
-"""Federated Learning Cross-Silo basic pipeline.
+"""Federated Learning Cross-Silo basic pipeline for pneumonia detection on chest xrays.
 
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
@@ -181,9 +181,9 @@ pipeline_identifier = getUniqueIdentifier()
 
 
 @pipeline(
-    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
+    description=f'FL cross-silo basic pipeline for pneumonia detection. The unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
-def fl_cross_silo_internal_basic():
+def pneumonia_basic():
     ################
     ### TRAINING ###
     ################
@@ -266,7 +266,7 @@ def fl_cross_silo_internal_basic():
     return {"final_aggregated_model": running_checkpoint}
 
 
-pipeline_job = fl_cross_silo_internal_basic()
+pipeline_job = pneumonia_basic()
 
 # Inspect built pipeline
 print(pipeline_job)
