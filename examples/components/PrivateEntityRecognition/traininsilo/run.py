@@ -33,7 +33,7 @@ class NERTrainer:
         experiment_name="default-experiment",
         iteration_num=1,
     ):
-        """MNIST Trainer trains RESNET18 model on the MNIST dataset.
+        """NER Trainer trains RESNET18 model on the MNIST dataset.
 
         Args:
             train_data_dir(str, optional): Training data directory path
@@ -46,7 +46,6 @@ class NERTrainer:
 
         Attributes:
             model_: RESNET18 model
-            loss_: CrossEntropy loss
             optimizer_: Stochastic gradient descent
             train_dataset_: Training Dataset obj
             train_loader_: Training DataLoader
@@ -118,11 +117,6 @@ class NERTrainer:
             run_id=run_id,
             key=f"batch_size {self._experiment_name}",
             value=self._batch_size,
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"loss {self._experiment_name}",
-            value=self.loss_.__class__.__name__,
         )
         client.log_param(
             run_id=run_id,
@@ -221,14 +215,21 @@ class NERTrainer:
                 for i, batch in enumerate(self.train_loader_):
                     outputs = self.model_(**batch)
                     loss = outputs.loss
-                    # accelerator.backward(loss)
+
+                    # calculate metric
+                    true_predictions, true_labels = self.postprocess(
+                        outputs.logits.argmax(dim=-1), batch["labels"]
+                    )
+                    self.metric_.add_batch(
+                        predictions=true_predictions, references=true_labels
+                    )
 
                     self.optimizer_.step()
                     lr_scheduler.step()
                     self.optimizer_.zero_grad()
                     progress_bar.update(1)
 
-                    running_loss += loss / len(batch)
+                    running_loss += loss.item() / len(batch)
                     if i != 0 and i % num_of_batches_before_logging == 0:
                         training_loss = running_loss / num_of_batches_before_logging
                         logger.info(
@@ -243,7 +244,78 @@ class NERTrainer:
                             training_loss,
                         )
 
+                        # log evaluation metrics
+                        results = self.metric_.compute()
+                        for key in ["precision", "recall", "f1", "accuracy"]:
+                            self.log_metrics(
+                                mlflow_client,
+                                root_run_id,
+                                f"Train {key}",
+                                results[f"overall_{key}"],
+                            )
+
                         running_loss = 0.0
+
+                test_loss, metric_results = self.test()
+
+                # log test loss for each epoch
+                self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
+                logger.info(f"Epoch: {epoch}, Test Loss: {test_loss}")
+
+                # log test metric for each epoch
+                for key in ["precision", "recall", "f1", "accuracy"]:
+                    logger.info(
+                        f"Epoch: {epoch}: Test {key} is {metric_results[f'overall_{key}']}"
+                    )
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        f"Test {key}",
+                        metric_results[f"overall_{key}"],
+                    )
+
+            # log metrics for each train iteration
+            self.log_metrics(
+                mlflow_client,
+                root_run_id,
+                "Train Loss",
+                training_loss,
+                pipeline_level=True,
+            )
+            self.log_metrics(
+                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
+            )
+
+            for key in ["precision", "recall", "f1", "accuracy"]:
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    f"Test {key}",
+                    metric_results[f"overall_{key}"],
+                    pipeline_level=True,
+                )
+
+    def test(self):
+        """Test the trained model and report test loss and accuracy"""
+        self.model_.eval()
+        test_loss = 0
+        with torch.no_grad():
+            for batch in self.test_loader_:
+                # data, target = data.to(self.device_), target.to(self.device_)
+                outputs = self.model_(**batch)
+                predictions = outputs.logits.argmax(dim=-1)
+                labels = batch["labels"]
+                test_loss += outputs.loss.item()
+
+                true_predictions, true_labels = self.postprocess(predictions, labels)
+                self.metric_.add_batch(
+                    predictions=true_predictions, references=true_labels
+                )
+
+        results = self.metric_.compute()
+        test_loss /= len(self.test_loader_)
+
+        return test_loss, results
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.

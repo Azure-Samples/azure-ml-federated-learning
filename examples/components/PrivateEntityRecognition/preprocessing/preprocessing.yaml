@@ -13,8 +13,22 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
+  total_num_of_silos:
+    type: integer
+    description: Number of silos
+    default: 3
+    optional: true
+  silo_num:
+    type: integer
+    description: Silo number (0-indexed)
+    default: 0
+    optional: true
 
-
+  iteration_num:
+    type: integer
+    description: Iteration number
+    default: 1
+    optional: true
 outputs:
   processed_train_data:
     type: uri_folder
@@ -26,7 +40,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  python run.py --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--total_num_of_silos ${{inputs.total_num_of_silos}}]] $[[--silo_num ${{inputs.silo_num}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
 
 environment: 
   conda_file: ./conda.yaml

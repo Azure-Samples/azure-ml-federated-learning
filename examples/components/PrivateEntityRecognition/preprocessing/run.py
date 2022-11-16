@@ -32,6 +32,12 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
+    parser.add_argument(
+        "--total_num_of_silos", type=int, required=False, help="Total number of silos"
+    )
+    parser.add_argument(
+        "--silo_num", type=int, required=False, help="Silo number/index"
+    )
     return parser
 
 
@@ -78,6 +84,8 @@ def preprocess_data(
     train_data_dir="./",
     test_data_dir="./",
     metrics_prefix="default-prefix",
+    total_num_of_silos=3,
+    silo_num=0,
 ):
     """Preprocess the raw_training_data and raw_testing_data and save the processed data to train_data_dir and test_data_dir.
 
@@ -90,6 +98,10 @@ def preprocess_data(
 
     df = load_dataset("tner/multinerd", "en", split="test")
     df = df.train_test_split(test_size=0.1)
+    df = df.shuffle(seed=42)
+
+    # partititon dataset
+    df = df.shard(num_shards=total_num_of_silos, index=silo_num)
 
     tokenized_datasets = df.map(
         tokenize_and_align_labels,
@@ -137,6 +149,8 @@ def run(args):
         args.train_output,
         args.test_output,
         args.metrics_prefix,
+        args.total_num_of_silos,
+        args.silo_num,
     )
 
 
