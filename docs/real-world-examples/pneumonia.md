@@ -1,9 +1,9 @@
 # Pneumonia detection from chest radiographs
 
 ## Background
-In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on a dataset of chest radiographs from the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._
+In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on a dataset of chest radiographs from the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._, that is relying on NVFlare
 
-We will mimic a real-world scenario where 3 hospitals want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on their data without sharing it with each other. The model will be trained in a federated manner, where each hospital will train a model on its own data, and the models will be aggregated to produce a final model.
+We mimic a real-world scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity. The model will be trained in a federated manner, where each hospital will train a model on its own data, and the models will be aggregated to produce a final model.
 
 > For the sake of simplicity, we will only provision an _open_ setup. Do not upload sensitive data to it! 
 
@@ -14,7 +14,7 @@ To enjoy this tutorial, you will need to:
   - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
 - [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli),
 - have a way to run bash scripts;
-- **fork** this repository (fork as opposed to clone because you will need to create GitHub secrets and run GitHub actions to prepare the data).
+- **fork** this repository (_fork_ as opposed to _clone_ because you will need to create GitHub secrets and run GitHub actions to prepare the data).
 
 ## Procedure
 The procedure to run this example  has three phases:
