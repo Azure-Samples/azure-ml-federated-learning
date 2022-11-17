@@ -2,10 +2,10 @@ import os
 import argparse
 import logging
 import sys
+import copy
 
 import torch
-from torch import nn
-from torchvision import models
+import models as models
 
 
 def get_arg_parser(parser=None):
@@ -29,6 +29,7 @@ def get_arg_parser(parser=None):
     parser.add_argument("--input_silo_2", type=str, required=False, help="")
     parser.add_argument("--input_silo_3", type=str, required=False, help="")
     parser.add_argument("--aggregated_output", type=str, required=True, help="")
+    parser.add_argument("--model_name", type=str, required=True, help="")
     return parser
 
 
@@ -37,10 +38,9 @@ def aggregate_model_weights(global_model, client_models):
     This function has aggregation method 'mean'
 
     Args:
-    global_model: aggregated model that is saved for each iteration
     client_models: list of client models
     """
-    global_dict = global_model.state_dict()
+    global_dict = copy.deepcopy(client_models[0].state_dict())
 
     for k in global_dict.keys():
         global_dict[k] = torch.stack(
@@ -55,33 +55,23 @@ def aggregate_model_weights(global_model, client_models):
     return global_model
 
 
-def get_model(model_path, input_dim=577):
+def get_model(model_path, model_name, input_dim=None):
     """Get the model having custom input dimensions.
 
     model_path: Pretrained model weights file path
     """
-    model = nn.Sequential(
-        nn.Linear(input_dim, 512),
-        nn.ReLU(),
-        nn.Linear(512, 256),
-        nn.ReLU(),
-        nn.Linear(256, 128),
-        nn.ReLU(),
-        nn.Linear(128, 64),
-        nn.ReLU(),
-        nn.Linear(64, 32),
-        nn.ReLU(),
-        nn.Linear(32, 16),
-        nn.ReLU(),
-        nn.Linear(16, 8),
-        nn.ReLU(),
-        nn.Linear(8, 4),
-        nn.ReLU(),
-        nn.Linear(4, 1),
-        nn.Sigmoid()
-    )
+
     if model_path:
-        model.load_state_dict(torch.load(model_path + "/model.pt", map_location=torch.device('cpu')))
+        model_chkpt = torch.load(
+            model_path + "/model.pt", map_location=torch.device("cpu")
+        )
+        input_dim = model_chkpt.input_dim
+
+    assert input_dim is not None
+
+    model = getattr(models, model_name)(input_dim)
+    if model_path:
+        model.load_state_dict(model_chkpt)
     return model
 
 
@@ -93,9 +83,13 @@ def get_client_models(args):
     client_models = []
     for i in range(1, len(args.__dict__)):
         client_model_name = "input_silo_" + str(i)
-        logger.debug(f"Collecting client model name: {client_model_name}, model path: {args.__dict__[client_model_name]}")
+        logger.debug(
+            f"Collecting client model name: {client_model_name}, model path: {args.__dict__[client_model_name]}"
+        )
         if client_model_name in args.__dict__:
-            client_models.append(get_model(args.__dict__[client_model_name]))
+            client_models.append(
+                get_model(args.__dict__[client_model_name], args.model_name)
+            )
     return client_models
 
 
@@ -109,7 +103,8 @@ def get_global_model(args):
         args.aggregated_output
         if args.aggregated_output
         and os.path.isfile(args.aggregated_output + "/model.pt")
-        else None
+        else args.__dict__["input_silo_1"],
+        args.model_name,
     )
     return global_model
 
