@@ -341,7 +341,7 @@ if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_dev"
+        pipeline_job, experiment_name="test_onprem_input"
     )
 
     print("The url to see your live job running is returned by the sdk:")
