@@ -59,6 +59,7 @@ class NERTrainer:
         self._batch_size = batch_size
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
+        self._model_path = model_path
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

@@ -1,4 +1,4 @@
-name: fl_experiment_conda_env
+name: fl_ner_env
 channels:
   - defaults
 dependencies:

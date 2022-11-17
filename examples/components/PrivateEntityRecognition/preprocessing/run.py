@@ -97,11 +97,13 @@ def preprocess_data(
     """
 
     df = load_dataset("tner/multinerd", "en", split="test")
-    df = df.train_test_split(test_size=0.1)
     df = df.shuffle(seed=42)
 
     # partititon dataset
     df = df.shard(num_shards=total_num_of_silos, index=silo_num)
+
+    # train test split
+    df = df.train_test_split(test_size=0.1)
 
     tokenized_datasets = df.map(
         tokenize_and_align_labels,
