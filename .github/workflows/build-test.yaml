@@ -1,0 +1,30 @@
+name: Pipeline-validation
+
+on:
+  push:
+    branches:
+    - "*"
+  pull_request:
+    branches:
+    - "*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: actions/setup-python@v2.2.1
+      with:
+        python-version: 3.8
+
+    - run: pip install black
+
+    - run:  black --check .
+      if: github.base_ref
+
+    - name: Intall python dependencies
+      run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
+    
+    - name: Validate fl_cross_silo_literal pipeline
+      run: python examples/pipelines/fl_cross_silo_literal/submit.py
