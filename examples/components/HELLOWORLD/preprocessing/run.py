@@ -65,6 +65,23 @@ def test_local_input_for_external_silos():
     print("This file directory only")
     print(os.path.dirname(full_path))
 
+    # with open('/localdata/data_file.txt') as f:
+    #     lines = f.readlines()
+    # print("Contents of local input file:")
+    # print(lines)
+
+    dir_path = "/"
+
+    res=[]
+    res_dir = []
+    for (dir_path, dir_names, file_names) in os.walk(dir_path):
+        res_dir.extend(dir_names)
+        res.extend(file_names)
+    print("Directories:")
+    print(res_dir)
+    print("Files:")
+    print(res)
+
 
 def main(cli_args=None):
     """Component main function.
