@@ -24,11 +24,11 @@ Follow the instructions in the [quickstart](../quickstart.md) to provision an op
 
 1. Create a conda environment for _submitting_ the job, and activate it.
    ```bash
-   conda env create --file ./examples/pipelines/PrivateEntityRecognition/environment.yml
+   conda env create --file ./examples/pipelines/namedentityrecognition/environment.yml
    conda activate fl_ner_env
    ```
 2. Adjust config file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
 3. Submit the experiment.
    ```bash
-   python ./examples/pipelines/PrivateEntityRecognition/submit.py --submit
+   python ./examples/pipelines/namedentityrecognition/submit.py --submit
    ```

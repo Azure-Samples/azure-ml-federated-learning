@@ -49,14 +49,6 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--example",
-    required=False,
-    choices=["MNIST", "HELLOWORLD", "NamedEntityRecognition"],
-    default="MNIST",
-    help="example name",
-)
-
-parser.add_argument(
     "--subscription_id",
     type=str,
     required=False,
@@ -90,7 +82,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", args.example
+    os.path.dirname(__file__), "..", "..", "components", "NAMEDENTITYRECOGNITION"
 )
 
 
@@ -137,17 +129,15 @@ ML_CLIENT = connect_to_aml()
 
 # Loading the component from their yaml specifications
 preprocessing_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
 )
 
 training_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
 )
 
 aggregate_component = load_component(
-    source=os.path.join(
-        COMPONENTS_FOLDER, "aggregatemodelweights", "aggregatemodelweights.yaml"
-    )
+    source=os.path.join(COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
 
