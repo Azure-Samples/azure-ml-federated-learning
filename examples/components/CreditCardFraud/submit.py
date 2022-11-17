@@ -44,23 +44,13 @@ parser.add_argument(
     help="actually submits the experiment to AzureML",
 )
 
-parser.add_argument(
-    "--example",
-    required=False,
-    choices=["MNIST", "HELLOWORLD", "CreditCardFraud"],
-    default="MNIST",
-    help="dataset name",
-)
-
 args = parser.parse_args()
 
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
-COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", args.example
-)
+COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__))
 
 
 ###########################
