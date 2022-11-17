@@ -133,9 +133,7 @@ training_component = load_component(
 )
 
 aggregate_component = load_component(
-    source=os.path.join(
-        COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml"
-    )
+    source=os.path.join(COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
 
