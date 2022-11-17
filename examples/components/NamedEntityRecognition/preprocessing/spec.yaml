@@ -4,7 +4,7 @@ name: preprocessing_in_silo
 version: 0.1.0
 display_name: Pre-Processing (in silo)
 type: command
-description: Component for preprocessing raw data in a given silo. The images are transformed using random affine keeping the center invariant, then normalized.
+description: Component to preprocess raw data in a given silo.
 is_deterministic: true
 
 inputs:
@@ -15,7 +15,7 @@ inputs:
     optional: true
   total_num_of_silos:
     type: integer
-    description: Number of silos
+    description: Total number of silos
     default: 3
     optional: true
   silo_num:
@@ -24,11 +24,6 @@ inputs:
     default: 0
     optional: true
 
-  iteration_num:
-    type: integer
-    description: Iteration number
-    default: 1
-    optional: true
 outputs:
   processed_train_data:
     type: uri_folder

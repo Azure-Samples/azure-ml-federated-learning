@@ -1,14 +1,10 @@
-import os
 import argparse
 import logging
 import sys
 
-import pandas as pd
-import mlflow
-
-from datasets import load_dataset
 from transformers import AutoTokenizer
-
+from datasets import load_dataset
+import mlflow
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -42,6 +38,15 @@ def get_arg_parser(parser=None):
 
 
 def align_labels_with_tokens(labels, word_ids):
+    """Align labels in a sentence with tokens.
+
+    Args:
+        labels (list): a list of label_id for a sentence
+        word_ids (list): a list of word ids
+    
+    Returns:
+        list: a list of labels after alignment
+    """
     new_labels = []
     current_word = None
     for word_id in word_ids:
@@ -65,6 +70,15 @@ def align_labels_with_tokens(labels, word_ids):
 
 
 def tokenize_and_align_labels(examples):
+    """Tokenize a sentence and then align labels. 
+    By default, it uses the 'bert-base-cased' tokenizer. 
+
+    Args:
+        examples (dict): Contains tokens, tags as keys.
+    
+    Returns:
+        dict: tokenized sentences with their corresponding labels
+    """
     model_checkpoint = "bert-base-cased"
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
     tokenized_inputs = tokenizer(
@@ -87,15 +101,19 @@ def preprocess_data(
     total_num_of_silos=3,
     silo_num=0,
 ):
-    """Preprocess the raw_training_data and raw_testing_data and save the processed data to train_data_dir and test_data_dir.
+    """Preprocess the data and save the processed data to train_data_dir and test_data_dir.
 
     Args:
-        train_data_dir: Train data directory where processed train data will be saved
-        test_data_dir: Test data directory where processed test data will be saved
+        train_data_dir (str): Train data directory where processed train data will be saved.
+        test_data_dir (str): Test data directory where processed test data will be saved.
+        metrics_prefix (str): prefix to be used in the metric logging. Defaults to "default-prefix".
+        total_num_of_silos (int): Total number of silos as partitions will be made based on this. Defaults to 3.
+        silo_num (int): Silo number/index. Defaults to 0.
     Returns:
         None
     """
 
+    # Load dataset from the huggingface dataset hub
     df = load_dataset("tner/multinerd", "en", split="test")
     df = df.shuffle(seed=42)
 
@@ -105,13 +123,14 @@ def preprocess_data(
     # train test split
     df = df.train_test_split(test_size=0.1)
 
+    # tokenize and align labels
     tokenized_datasets = df.map(
         tokenize_and_align_labels,
         batched=True,
         remove_columns=df["train"].column_names,
     )
 
-    # Mlflow logging
+    # mlflow logging
     log_metadata(
         tokenized_datasets["train"], tokenized_datasets["test"], metrics_prefix
     )
@@ -122,6 +141,15 @@ def preprocess_data(
 
 
 def log_metadata(X_train, X_test, metrics_prefix):
+    """Preprocess the data and save the processed data to train_data_dir and test_data_dir.
+
+    Args:
+        X_train (Dataset): Train dataset
+        X_test (Dataset): Test dataset
+        metrics_prefix (str): prefix to be used in the metric logging. Defaults to "default-prefix".
+    Returns:
+        None
+    """
     with mlflow.start_run() as mlflow_run:
         # get Mlflow client
         mlflow_client = mlflow.tracking.client.MlflowClient()

@@ -32,3 +32,7 @@ Follow the instructions in the [quickstart](../quickstart.md) to provision an op
    ```bash
    python ./examples/pipelines/namedentityrecognition/submit.py --submit
    ```
+
+#### References
+
+- [HuggingFace Token Classification](https://huggingface.co/course/chapter7/2?fw=pt#token-classification)

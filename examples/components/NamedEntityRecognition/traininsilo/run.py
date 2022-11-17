@@ -1,10 +1,7 @@
-"""Script for mock components."""
 import argparse
 import logging
 import sys
 
-import mlflow
-import torch
 from transformers import (
     DataCollatorForTokenClassification,
     AutoModelForTokenClassification,
@@ -12,13 +9,14 @@ from transformers import (
     get_scheduler,
 )
 from torch.utils.data import DataLoader
-from torch.optim import AdamW
 from datasets import load_from_disk
-import pandas as pd
-import evaluate
-import numpy as np
+from torch.optim import AdamW
 from tqdm.auto import tqdm
-from mlflow import log_metric, log_param
+import pandas as pd
+import numpy as np
+import evaluate
+import mlflow
+import torch
 
 
 class NERTrainer:
@@ -33,24 +31,27 @@ class NERTrainer:
         experiment_name="default-experiment",
         iteration_num=1,
     ):
-        """NER Trainer trains RESNET18 model on the MNIST dataset.
+        """NER Trainer trains BERT-base model on the MultiNERD dataset.
 
         Args:
             train_data_dir(str, optional): Training data directory path
             test_data_dir(str, optional): Testing data directory path
+            model_path (str, optional): Model path. Defaults to None
             lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 1
+            epochs (int, optional): number of epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
 
         Attributes:
-            model_: RESNET18 model
+            model_: Huggingface bert-base pretrained model
             optimizer_: Stochastic gradient descent
-            train_dataset_: Training Dataset obj
             train_loader_: Training DataLoader
-            test_dataset_: Testing Dataset obj
             test_loader_: Testing DataLoader
+            labelToId_: label to ID mapping
+            idToLabel_: ID to label mapping
+            metric_: Evaluation metrics
+            device_: Either cpu or gpu
         """
 
         # training params
@@ -61,15 +62,16 @@ class NERTrainer:
         self._iteration_num = iteration_num
         self._model_path = model_path
 
+        # device
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # tokenizer
         model_name = "bert-base-cased"
         tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+        # dataset and data loader
         data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
         train_dataset, test_dataset = self.load_dataset(train_data_dir, test_data_dir)
-
-        # data loader
         self.train_loader_ = DataLoader(
             train_dataset,
             shuffle=True,
@@ -80,7 +82,7 @@ class NERTrainer:
             test_dataset, collate_fn=data_collator, batch_size=self._batch_size
         )
 
-        # model
+        # training params
         self.labelToId_ = pd.read_json("./labels.json", typ="series").to_dict()
         self.idToLabel_ = {val: key for key, val in self.labelToId_.items()}
         self.model_ = AutoModelForTokenClassification.from_pretrained(
@@ -97,9 +99,10 @@ class NERTrainer:
         Args:
             train_data_dir(str, optional): Training data directory path
             test_data_dir(str, optional): Testing data directory path
-            lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 5
-            batch_size (int, optional): DataLoader batch size. Defaults to 64.
+        
+        Returns:
+            Train dataset
+            Test datset 
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
         train_dataset = load_from_disk(train_data_dir)
@@ -108,6 +111,15 @@ class NERTrainer:
         return train_dataset, test_dataset
 
     def log_params(self, client, run_id):
+        """Log parameters to the mlflow metrics
+
+        Args:
+            client (MlflowClient): Mlflow Client where metrics will be logged
+            run_id (str): Run ID
+        
+        Returns:
+            None
+        """
         client.log_param(
             run_id=run_id, key=f"learning_rate {self._experiment_name}", value=self._lr
         )
@@ -126,7 +138,18 @@ class NERTrainer:
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
+        """Log mlflow metrics
 
+        Args:
+            client (MlflowClient): Mlflow Client where metrics will be logged
+            run_id (str): Run ID
+            key (str): metrics x-axis name 
+            value (float): metrics y-axis values
+            pipeline_level (bool): whether the metrics is loggin at the pipeline or the job level
+        
+        Returns:
+            None
+        """
         if pipeline_level:
             client.log_metric(
                 run_id=run_id,
@@ -141,6 +164,15 @@ class NERTrainer:
             )
 
     def compute_metrics(self, eval_preds):
+        """ Compute evaluation results for given predictions
+
+        Args:
+            eval_preds (tuple): Contains logits and labels
+            
+        Returns:
+            dict: Contains precision, recall, f1 and accuracy.
+        """
+        
         logits, labels = eval_preds
         predictions = np.argmax(logits, axis=-1)
 
@@ -163,6 +195,17 @@ class NERTrainer:
         }
 
     def postprocess(self, predictions, labels):
+        """ Post-process predictions- remove padding
+
+        Args:
+            predictions (Tensor): Predicted labels
+            labels (Tensor): Actual labels
+            
+        Returns:
+            list[list]: True labels after removing padded tokens
+            list[list]: Predicted labels after removing padded tokens
+        """
+        
         predictions = predictions.detach().cpu().clone().numpy()
         labels = labels.detach().cpu().clone().numpy()
 
@@ -181,6 +224,9 @@ class NERTrainer:
 
         Args:
             checkpoint: Previous model checkpoint from where training has to be started.
+        
+        Returns:
+            None
         """
 
         if checkpoint:

@@ -1,6 +1,6 @@
 # EXAMPLE CONFIG FILE
 
-# This file is intendedt to help contain all the parameters required
+# This file is intended to help contain all the parameters required
 # to orchestrate our sample federated learning experiments.
 # It is by no means necessary to run an FL experiment, just helpful.
 # See submit.py for details on how to consume this file in python.
