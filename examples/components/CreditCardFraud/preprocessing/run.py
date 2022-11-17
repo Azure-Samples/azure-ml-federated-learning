@@ -143,8 +143,10 @@ def preprocess_data(
     test_data = pd.read_csv(raw_testing_data)
 
     logger.debug(f"Filtering regions...")
+    logger.debug(f"Train data samples before: {len(train_data)}, Region: {config.region}")
     train_data.loc[:, "region"] = train_data["state"].map(STATES_REGIONS)
     train_data = train_data[train_data["region"].str.match(config.region)]
+    logger.debug(f"Train data samples before: {len(train_data)}")
     test_data.loc[:, "region"] = test_data["state"].map(STATES_REGIONS)
     test_data = test_data[test_data["region"].str.match(config.region)]
 
@@ -193,16 +195,17 @@ def main(cli_args=None):
     parser = get_arg_parser()
     # run the parser on cli args
     args = parser.parse_args(cli_args)
-    print(f"Running script with arguments: {args}")
+    logger.info(f"Running script with arguments: {args}")
 
     # Get runtime specific configuration
     run: Run = Run.get_context()
     compute_target = run.get_details()['target']
-    print(f"Compute target: {compute_target}")
-    sys.argv = [f"--config_name={compute_target}"]
+    logger.info(f"Compute target: {compute_target}")
+    config_name = "default" if compute_target + ".yaml" not in os.listdir("./config") else compute_target
+    logger.info(f"Loading config: {config_name}.yaml")
+    sys.argv = sys.argv[:1]
 
-
-    @hydra.main(config_path="config", config_name="default")
+    @hydra.main(config_path="config", config_name=config_name)
     def run(runtime_config):
         """Run script with arguments (the core of the component).
 
