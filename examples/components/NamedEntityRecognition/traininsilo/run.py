@@ -90,6 +90,7 @@ class NERTrainer:
             id2label=self.idToLabel_,
             label2id=self.labelToId_,
         )
+        self.model_.to(self.device_)
         self.metric_ = evaluate.load("seqeval")
         self.optimizer_ = AdamW(self.model_.parameters(), lr=2e-5)
 
@@ -99,10 +100,10 @@ class NERTrainer:
         Args:
             train_data_dir(str, optional): Training data directory path
             test_data_dir(str, optional): Testing data directory path
-        
+
         Returns:
             Train dataset
-            Test datset 
+            Test datset
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
         train_dataset = load_from_disk(train_data_dir)
@@ -116,7 +117,7 @@ class NERTrainer:
         Args:
             client (MlflowClient): Mlflow Client where metrics will be logged
             run_id (str): Run ID
-        
+
         Returns:
             None
         """
@@ -143,10 +144,10 @@ class NERTrainer:
         Args:
             client (MlflowClient): Mlflow Client where metrics will be logged
             run_id (str): Run ID
-            key (str): metrics x-axis name 
+            key (str): metrics x-axis label
             value (float): metrics y-axis values
             pipeline_level (bool): whether the metrics is loggin at the pipeline or the job level
-        
+
         Returns:
             None
         """
@@ -164,15 +165,15 @@ class NERTrainer:
             )
 
     def compute_metrics(self, eval_preds):
-        """ Compute evaluation results for given predictions
+        """Compute evaluation results for given predictions
 
         Args:
             eval_preds (tuple): Contains logits and labels
-            
+
         Returns:
             dict: Contains precision, recall, f1 and accuracy.
         """
-        
+
         logits, labels = eval_preds
         predictions = np.argmax(logits, axis=-1)
 
@@ -195,17 +196,17 @@ class NERTrainer:
         }
 
     def postprocess(self, predictions, labels):
-        """ Post-process predictions- remove padding
+        """Post-process predictions- remove padding
 
         Args:
             predictions (Tensor): Predicted labels
             labels (Tensor): Actual labels
-            
+
         Returns:
             list[list]: True labels after removing padded tokens
             list[list]: Predicted labels after removing padded tokens
         """
-        
+
         predictions = predictions.detach().cpu().clone().numpy()
         labels = labels.detach().cpu().clone().numpy()
 
@@ -224,7 +225,7 @@ class NERTrainer:
 
         Args:
             checkpoint: Previous model checkpoint from where training has to be started.
-        
+
         Returns:
             None
         """
@@ -260,8 +261,16 @@ class NERTrainer:
                 # Training
                 self.model_.train()
                 for i, batch in enumerate(self.train_loader_):
+                    batch = {
+                        key: value.to(self.device_) for key, value in batch.items()
+                    }
                     outputs = self.model_(**batch)
                     loss = outputs.loss
+                    loss.backward()
+                    self.optimizer_.step()
+                    lr_scheduler.step()
+                    self.optimizer_.zero_grad()
+                    progress_bar.update(1)
 
                     # calculate metric
                     true_predictions, true_labels = self.postprocess(
@@ -271,12 +280,11 @@ class NERTrainer:
                         predictions=true_predictions, references=true_labels
                     )
 
-                    self.optimizer_.step()
-                    lr_scheduler.step()
-                    self.optimizer_.zero_grad()
-                    progress_bar.update(1)
+                    running_loss += float(loss) / len(batch)
 
-                    running_loss += loss.item() / len(batch)
+                    del outputs
+                    del batch
+
                     if i != 0 and i % num_of_batches_before_logging == 0:
                         training_loss = running_loss / num_of_batches_before_logging
                         logger.info(
@@ -348,11 +356,14 @@ class NERTrainer:
         test_loss = 0
         with torch.no_grad():
             for batch in self.test_loader_:
-                # data, target = data.to(self.device_), target.to(self.device_)
+                batch = {key: value.to(self.device_) for key, value in batch.items()}
                 outputs = self.model_(**batch)
                 predictions = outputs.logits.argmax(dim=-1)
                 labels = batch["labels"]
-                test_loss += outputs.loss.item()
+                test_loss += float(outputs.loss)
+
+                del outputs
+                del batch
 
                 true_predictions, true_labels = self.postprocess(predictions, labels)
                 self.metric_.add_batch(
@@ -434,6 +445,7 @@ def run(args):
         epochs=args.epochs,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
+        batch_size=args.batch_size,
     )
     trainer.execute(args.checkpoint)
 

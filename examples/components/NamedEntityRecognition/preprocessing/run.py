@@ -6,6 +6,7 @@ from transformers import AutoTokenizer
 from datasets import load_dataset
 import mlflow
 
+
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
 
@@ -43,7 +44,7 @@ def align_labels_with_tokens(labels, word_ids):
     Args:
         labels (list): a list of label_id for a sentence
         word_ids (list): a list of word ids
-    
+
     Returns:
         list: a list of labels after alignment
     """
@@ -70,12 +71,12 @@ def align_labels_with_tokens(labels, word_ids):
 
 
 def tokenize_and_align_labels(examples):
-    """Tokenize a sentence and then align labels. 
-    By default, it uses the 'bert-base-cased' tokenizer. 
+    """Tokenize a sentence and then align labels.
+    By default, it uses the 'bert-base-cased' tokenizer.
 
     Args:
         examples (dict): Contains tokens, tags as keys.
-    
+
     Returns:
         dict: tokenized sentences with their corresponding labels
     """
