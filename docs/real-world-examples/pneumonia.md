@@ -34,7 +34,7 @@ The goal of this phase is to upload to Azure ML 3 distinct datasets (one per sil
 ```bash
   az ad sp create-for-rbac --name "<service-principal-name>" --role contributor --scopes /subscriptions/<subscription-id>/resourceGroups/<your-resource-group-name> --sdk-auth
 ```
-2. Create a GitHub secret in your _forked_ repository. Name it AZURE_CREDENTIALS_DATAPREP and copy and paste the output of the above command to the Value field of the secret.
+2. Create a [GitHub secret](https://github.com/Azure/actions-workflow-samples/blob/master/assets/create-secrets-for-GitHub-workflows.md) in your _forked_ repository. Name it AZURE_CREDENTIALS_DATAPREP and copy and paste the output of the above command to the Value field of the secret.
 3. Add the following secrets to your repository with corresponding values:
   - KAGGLE_USERNAME: your Kaggle username.
   - KAGGLE_KEY: your Kaggle API key. More info [here](https://www.kaggle.com/docs/api).
