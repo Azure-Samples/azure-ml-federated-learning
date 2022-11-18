@@ -47,13 +47,6 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--model_name",
-    type=str,
-    required=True,
-    help="Name of the model to use",
-)
-
-parser.add_argument(
     "--subscription_id",
     type=str,
     required=False,
@@ -86,9 +79,8 @@ args = parser.parse_args()
 YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
-COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "../../../")
-
-MODEL_NAME = args.model_name
+COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "../../components/CCFRAUD")
+MODEL_NAME = YAML_CONFIG.training_parameters.model_name
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -142,7 +134,7 @@ training_component = load_component(
 
 aggregate_component = load_component(
     source=os.path.join(
-        "../MNIST", "aggregatemodelweights", "aggregatemodelweights.yaml"
+        "../../components/MNIST", "aggregatemodelweights", "aggregatemodelweights.yaml"
     )
 )
 

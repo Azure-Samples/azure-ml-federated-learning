@@ -50,3 +50,4 @@ training_parameters:
   epochs: 5
   lr: 1e-3
   batch_size: 1000
+  model_name: SimpleLinear

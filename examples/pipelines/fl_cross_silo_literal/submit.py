@@ -51,7 +51,7 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=False,
-    choices=["MNIST", "HELLOWORLD", "CreditCardFraud"],
+    choices=["MNIST", "HELLOWORLD"],
     default="MNIST",
     help="dataset name",
 )
@@ -306,11 +306,7 @@ def fl_cross_silo_internal_basic():
             ] = silo_training_step.outputs.model
 
         # aggregate all silo models into one
-        aggregate_weights_step = aggregate_component(
-            **silo_weights_outputs,
-            # Config that may contain extra parameters
-            # config=silo_config,
-        )
+        aggregate_weights_step = aggregate_component(**silo_weights_outputs)
         # this is done in the orchestrator compute
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
