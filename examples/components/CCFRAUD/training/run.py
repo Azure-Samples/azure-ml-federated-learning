@@ -226,7 +226,6 @@ class CCFraudTrainer:
                     # Compute loss
                     loss = self.criterion_(predictions, labels.type(torch.float))
                     if net_loss is not None:
-                        # Make the criterion magnitude more important than possible network loss
                         loss += net_loss * 1e-5
 
                     # Compute gradients and adjust learning weights
@@ -315,8 +314,7 @@ class CCFraudTrainer:
                 ).to(self.device_)
                 loss = self.criterion_(predictions, labels.type(torch.float)).item()
                 if net_loss is not None:
-                    # Make the criterion magnitude more important than possible network loss
-                    loss = loss * 10 + net_loss
+                        loss += net_loss * 1e-5
 
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
