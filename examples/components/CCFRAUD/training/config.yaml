@@ -1,11 +1,11 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: train_in_silo
-version: 0.1.21
+version: 0.1.26
 display_name: Train (in silo)
 type: command
 description: Component to train a model within a FL silo.
-is_deterministic: true
+is_deterministic: false
 
 inputs:
   train_data:
@@ -46,7 +46,7 @@ inputs:
   batch_size:
     type: integer
     description: batch size
-    default: 10000
+    default: 100
     optional: true
   runtime_args:
     type: string
@@ -64,7 +64,7 @@ command: >-
   python run.py
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
-  --model ${{outputs.model}}
+  --model_path ${{outputs.model}}
   --model_name ${{inputs.model_name}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--iteration_name ${{inputs.iteration_name}}]]
