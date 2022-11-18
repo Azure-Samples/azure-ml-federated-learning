@@ -25,7 +25,7 @@ federated_learning:
     datastore: "datastore_tp_orch"
 
   silos: # silos are provided as a list
-    - compute: arc-localdisk-2 # name of the compute for silo X
+    - compute: arc-localdisk-4 # name of the compute for silo X
       datastore: datastore_st_ext_silo # name of the datastore for silo X
       # training inputs are specified below
       # NOTE: in this demo, we're using public data from a url instead

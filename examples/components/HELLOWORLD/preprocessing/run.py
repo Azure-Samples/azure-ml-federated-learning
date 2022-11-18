@@ -48,27 +48,11 @@ def test_output(path):
         f.write("Hello World!")
 
 def test_local_input_for_external_silos():
-    print("Path at terminal when executing this file")
-    print(os.getcwd() + "\n")
-
-    print("This file path, relative to os.getcwd()")
-    print(__file__ + "\n")
-
     print("This file full path (following symlinks)")
     full_path = os.path.realpath(__file__)
     print(full_path + "\n")
 
-    print("This file directory and name")
-    path, filename = os.path.split(full_path)
-    print(path + ' --> ' + filename + "\n")
-
-    print("This file directory only")
-    print(os.path.dirname(full_path))
-
-    # with open('/localdata/data_file.txt') as f:
-    #     lines = f.readlines()
-    # print("Contents of local input file:")
-    # print(lines)
+    
 
     dir_path = "/"
 
@@ -79,8 +63,13 @@ def test_local_input_for_external_silos():
         res.extend(file_names)
     print("Directories:")
     print(res_dir)
-    print("Files:")
-    print(res)
+    # print("Files:")
+    # print(res)
+
+    with open('/localdata/data_file.txt') as f:
+        lines = f.readlines()
+    print("Contents of local input file:")
+    print(lines)
 
 
 def main(cli_args=None):
