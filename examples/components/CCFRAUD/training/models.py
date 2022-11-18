@@ -39,7 +39,7 @@ class SimpleLinear(nn.Module):
                 m.bias.data.fill_(0.01)
 
     def forward(self, x):
-        return None, self.model(x).squeeze()
+        return self.model(x).squeeze(), None
 
 
 class SimpleLSTM(nn.Module):
@@ -69,6 +69,7 @@ class SimpleLSTM(nn.Module):
             nn.Linear(8, 4),
             nn.ReLU(),
             nn.Linear(4, 1),
+            nn.Sigmoid(),
         )
         self._init_weights()
 
@@ -83,8 +84,8 @@ class SimpleLSTM(nn.Module):
     def forward(self, x):
         x, _ = self.lstm(x)
         x = self.dropout(x)
-        x = self.denseseq(x).squeeze(2)
-        return None, F.sigmoid(x)
+        x = self.denseseq(x).squeeze()
+        return x, None
 
 
 class SimpleVAE(nn.Module):
