@@ -2,7 +2,7 @@ import os
 import argparse
 import logging
 import sys
-import json
+import numpy as np
 
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
@@ -15,6 +15,7 @@ from azureml.core import Run, Workspace
 ENCODERS = {}
 SCALERS = {}
 STATES_REGIONS = {}
+
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -49,14 +50,15 @@ def apply_transforms(df):
 
     useful_props = [
         "amt",
-        "cc_num",
+        "age",
+        # "cc_num",
         "merch_lat",
         "merch_long",
         "category",
         "region",
         "gender",
         "state",
-        "zip",
+        # "zip",
         "lat",
         "long",
         "city_pop",
@@ -64,28 +66,44 @@ def apply_transforms(df):
         # "dob",
         "trans_date_trans_time",
         "is_fraud",
-        "age",
     ]
     categorical = ["category", "region", "gender", "state", "job"]
-    datetimes = ["trans_date_trans_time"] # "dob"
-    normalize = ["age", "merch_lat", "merch_long", "lat", "long", "city_pop", "trans_date_trans_time", "amt"]
+    datetimes = ["trans_date_trans_time"]  # "dob"
+    normalize = [
+        "age",
+        "merch_lat",
+        "merch_long",
+        "lat",
+        "long",
+        "city_pop",
+        "trans_date_trans_time",
+        "amt",
+    ]
 
-    df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta('1y')
+    df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta(
+        "1y"
+    )
 
     # Filter only useful columns
     df = df[useful_props]
-    
+
     for column in categorical:
         if column not in ENCODERS:
             print(f"Creating encoder for column: {column}")
             # Simply set all zeros if the category is unseen
             encoder = OneHotEncoder(handle_unknown="ignore")
-            encoder.fit(df[column].values.reshape(-1,1))
+            encoder.fit(df[column].values.reshape(-1, 1))
             ENCODERS[column] = encoder
 
         encoder = ENCODERS.get(column)
-        encoded_data = encoder.transform(df[column].values.reshape(-1,1)).toarray()
-        encoded_df = pd.DataFrame(encoded_data, columns = [column + "_" + "_".join(x.split("_")[1:]) for x in encoder.get_feature_names()])
+        encoded_data = encoder.transform(df[column].values.reshape(-1, 1)).toarray()
+        encoded_df = pd.DataFrame(
+            encoded_data,
+            columns=[
+                column + "_" + "_".join(x.split("_")[1:])
+                for x in encoder.get_feature_names()
+            ],
+        )
         encoded_df.index = df.index
         df = df.join(encoded_df).drop(column, axis=1)
 
@@ -96,12 +114,11 @@ def apply_transforms(df):
             print(f"Creating encoder for column: {column}")
             # Simply set all zeros if the category is unseen
             scaler = StandardScaler()
-            scaler.fit(df[column].values.reshape(-1,1))
+            scaler.fit(df[column].values.reshape(-1, 1))
             SCALERS[column] = scaler
 
         scaler = SCALERS.get(column)
-        df.loc[:, column] = scaler.transform(df[column].values.reshape(-1,1))
-        # df.loc[:, column] = (df[column] - df[column].min())/(df[column].max() - df[column].min())
+        df.loc[:, column] = scaler.transform(df[column].values.reshape(-1, 1))
 
     return df
 
@@ -129,7 +146,7 @@ def preprocess_data(
         f"Raw Training Data path: {raw_training_data}, Raw Testing Data path: {raw_testing_data}, Processed Training Data dir path: {train_data_dir}, Processed Testing Data dir path: {test_data_dir}"
     )
 
-    logger.debug("Loading regions from \"us_regions.csv\"")
+    logger.debug('Loading regions from "us_regions.csv"')
     global STATES_REGIONS
     df_states_regions = pd.read_csv(hydra.utils.get_original_cwd() + "/us_regions.csv")
     STATES_REGIONS = {
@@ -137,28 +154,38 @@ def preprocess_data(
     }
     REGIONS = list(df_states_regions["Region"].unique())
 
-
     logger.debug(f"Loading data...")
-    train_data = pd.read_csv(raw_training_data)
-    test_data = pd.read_csv(raw_testing_data)
+    train_df = pd.read_csv(raw_training_data)
+    test_df = pd.read_csv(raw_testing_data)
+    train_df.loc[:, "region"] = train_df["state"].map(STATES_REGIONS)
+    test_df.loc[:, "region"] = test_df["state"].map(STATES_REGIONS)
 
-    logger.debug(f"Filtering regions...")
-    logger.debug(f"Train data samples before: {len(train_data)}, Region: {config.region}")
-    train_data.loc[:, "region"] = train_data["state"].map(STATES_REGIONS)
-    train_data = train_data[train_data["region"].str.match(config.region)]
-    logger.debug(f"Train data samples before: {len(train_data)}")
-    test_data.loc[:, "region"] = test_data["state"].map(STATES_REGIONS)
-    test_data = test_data[test_data["region"].str.match(config.region)]
+    fraud_weight = (
+        train_df["is_fraud"].value_counts()[0] / train_df["is_fraud"].value_counts()[1]
+    )
+    logger.debug(f"Fraud weight: {fraud_weight}")
 
     logger.debug(f"Applying transformations...")
-    train_data = apply_transforms(train_data)
-    test_data = apply_transforms(test_data)
+    train_data = apply_transforms(train_df)
+    test_data = apply_transforms(test_df)
 
-    logger.info(
-        f"Saving processed data to {train_data_dir} and {test_data_dir}"
+    logger.debug(f"Filtering regions...")
+    logger.debug(
+        f"Train data samples before: {len(train_data)}, Region: {config.region}"
     )
-    train_data.to_csv(train_data_dir + "/data.csv")
-    test_data.to_csv(test_data_dir + "/data.csv")
+    train_data = train_data[train_df["region"].str.match(config.region)]
+    logger.debug(f"Train data samples after: {len(train_data)}")
+    logger.debug(f"Test data samples before: {len(test_data)}, Region: {config.region}")
+    test_data = test_data[test_df["region"].str.match(config.region)]
+    logger.debug(f"Test data samples after: {len(test_data)}")
+
+    train_data = train_data.sort_values(by="trans_date_trans_time")
+    test_data = test_data.sort_values(by="trans_date_trans_time")
+
+    logger.info(f"Saving processed data to {train_data_dir} and {test_data_dir}")
+    train_data.to_csv(train_data_dir + "/data.csv", index=False)
+    np.savetxt(train_data_dir + "/fraud_weight.txt", np.array([fraud_weight]))
+    test_data.to_csv(test_data_dir + "/data.csv", index=False)
 
     # Mlflow logging
     log_metadata(train_data, test_data, metrics_prefix)
@@ -199,9 +226,13 @@ def main(cli_args=None):
 
     # Get runtime specific configuration
     run: Run = Run.get_context()
-    compute_target = run.get_details()['target']
+    compute_target = run.get_details()["target"]
     logger.info(f"Compute target: {compute_target}")
-    config_name = "default" if compute_target + ".yaml" not in os.listdir("./config") else compute_target
+    config_name = (
+        "default"
+        if compute_target + ".yaml" not in os.listdir("./config")
+        else compute_target
+    )
     logger.info(f"Loading config: {config_name}.yaml")
     sys.argv = sys.argv[:1]
 

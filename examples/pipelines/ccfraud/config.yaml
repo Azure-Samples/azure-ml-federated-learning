@@ -48,5 +48,5 @@ federated_learning:
 training_parameters:
   num_of_iterations: 4
   epochs: 5
-  lr: 1e-5
-  batch_size: 10000
+  lr: 1e-3
+  batch_size: 1000

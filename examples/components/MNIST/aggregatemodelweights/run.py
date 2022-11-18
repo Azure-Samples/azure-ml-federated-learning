@@ -65,7 +65,9 @@ class PyTorchStateDictFedAvg:
         """
         if self.avg_state_dict is None:
             # no model yet, nothing to average
-            self.avg_state_dict = torch.load(model_path)
+            self.avg_state_dict = torch.load(
+                model_path, map_location=torch.device("cpu")
+            )
             self.model_class = self.avg_state_dict.__class__.__name__
 
             if self.model_class != "OrderedDict":
@@ -82,7 +84,7 @@ class PyTorchStateDictFedAvg:
 
         else:
             # load the new model
-            model_to_add = torch.load(model_path)
+            model_to_add = torch.load(model_path, map_location=torch.device("cpu"))
             assert (
                 model_to_add.__class__.__name__ == self.model_class
             ), f"Model class mismatch: {model_to_add.__class__.__name__} != {self.model_class}"

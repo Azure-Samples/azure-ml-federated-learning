@@ -1,11 +1,11 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: preprocessing_in_silo
-version: 0.1.3
+version: 0.1.12
 display_name: Pre-Processing (in silo)
 type: command
 description: Component for preprocessing raw data in a given silo. The dataset is downloaded and stored in the blob storage
-is_deterministic: false
+is_deterministic: true
 
 inputs:
   raw_training_data:
