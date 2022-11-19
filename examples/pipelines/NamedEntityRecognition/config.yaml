@@ -27,12 +27,36 @@ federated_learning:
   silos: # silos are provided as a list
     - compute: cpu-silo0-westus # name of the compute for silo X
       datastore: datastore_silo0_westus # name of the datastore for silo X
+      training_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo0_westus/paths/multinerd/train/
+      testing_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo0_westus/paths/multinerd/test/
 
     - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
       datastore: datastore_silo1_francecentral
+      training_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo1_francecentral/paths/multinerd/train/
+      testing_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo1_francecentral/paths/multinerd/test/
 
     - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
       datastore: datastore_silo2_brazilsouth
+      training_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/multinerd/train/
+      testing_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/multinerd/test/
 
 # Training parameters
 training_parameters:
@@ -42,4 +66,4 @@ training_parameters:
   # then typical training parameters
   epochs: 3 # number of epochs per iteration (in-silo training) 
   lr: 0.01 # learning rate
-  batch_size: 64 # batch size
+  batch_size: 16 # batch size

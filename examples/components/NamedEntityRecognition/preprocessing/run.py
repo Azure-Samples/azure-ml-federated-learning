@@ -3,7 +3,7 @@ import logging
 import sys
 
 from transformers import AutoTokenizer
-from datasets import load_dataset
+from datasets import load_from_disk, DatasetDict
 import mlflow
 
 
@@ -24,18 +24,33 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
+    parser.add_argument("--raw_training_data", type=str, required=True, help="")
+    parser.add_argument("--raw_testing_data", type=str, required=True, help="")
     parser.add_argument("--train_output", type=str, required=True, help="")
     parser.add_argument("--test_output", type=str, required=True, help="")
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-    parser.add_argument(
-        "--total_num_of_silos", type=int, required=False, help="Total number of silos"
-    )
-    parser.add_argument(
-        "--silo_num", type=int, required=False, help="Silo number/index"
-    )
     return parser
+
+
+def load_dataset(train_data_dir, test_data_dir):
+    """Load dataset from {train_data_dir} and {test_data_dir}
+
+    Args:
+        train_data_dir(str, optional): Training data directory path
+        test_data_dir(str, optional): Testing data directory path
+
+    Returns:
+        DatasetDict: Contains train and test datasets
+    """
+    logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
+
+    df = DatasetDict()
+    df["train"] = load_from_disk(train_data_dir)
+    df["test"] = load_from_disk(test_data_dir)
+
+    return df
 
 
 def align_labels_with_tokens(labels, word_ids):
@@ -96,11 +111,11 @@ def tokenize_and_align_labels(examples):
 
 
 def preprocess_data(
+    raw_train_data_dir,
+    raw_test_data_dir,
     train_data_dir="./",
     test_data_dir="./",
     metrics_prefix="default-prefix",
-    total_num_of_silos=3,
-    silo_num=0,
 ):
     """Preprocess the data and save the processed data to train_data_dir and test_data_dir.
 
@@ -114,15 +129,8 @@ def preprocess_data(
         None
     """
 
-    # Load dataset from the huggingface dataset hub
-    df = load_dataset("tner/multinerd", "en", split="test")
-    df = df.shuffle(seed=42)
-
-    # partititon dataset
-    df = df.shard(num_shards=total_num_of_silos, index=silo_num)
-
-    # train test split
-    df = df.train_test_split(test_size=0.1)
+    # load dataset
+    df = load_dataset(raw_train_data_dir, raw_test_data_dir)
 
     # tokenize and align labels
     tokenized_datasets = df.map(
@@ -177,11 +185,11 @@ def run(args):
     """
 
     preprocess_data(
+        args.raw_training_data,
+        args.raw_testing_data,
         args.train_output,
         args.test_output,
         args.metrics_prefix,
-        args.total_num_of_silos,
-        args.silo_num,
     )
 
 
