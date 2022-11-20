@@ -93,6 +93,8 @@ az k8s-extension create --name <extension-name> --extension-type Microsoft.Azure
 ```
 where `<extension-name>` can be chosen arbitrarily.
 
+> Note: if you're using an AKS cluster (as opposed to a local k8s cluster), you'll need to change the `--cluster-type` parameter value from `connectedClusters` to `managedClusters`.
+
 The deployment can be verified by the following.
 ```bash
 az k8s-extension show --name <extension-name> --cluster-type connectedClusters --cluster-name <Azure-Arc-enabled-k8s-resource-name> --resource-group <connected-cluster-resource-group>
