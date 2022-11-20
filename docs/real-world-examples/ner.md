@@ -23,11 +23,11 @@ The steps to upload data to various datastores are as follows:
 
 Note: This is not required if you've already uploaded the data into their respective datastores.
 
-1. Make sure the train and test paths in the `./examples/components/NAMEDENTITYRECOGNITION/upload_data_to_silos/spec.yaml` and `./examples/components/NAMEDENTITYRECOGNITION/preprocessing/spec.yaml` files are the same. 
+1. Make sure the train and test paths in the `./examples/components/NER/upload_data_to_silos/spec.yaml` and `./examples/components/NER/preprocessing/spec.yaml` files are the same. 
 
 2. Run the below command to create a job in Azure ML that uploads data to datastores. (Note: This may take a few minutes to finish.)
    ```bash
-   az ml job create --file ./examples/components/NAMEDENTITYRECOGNITION/upload_data_to_silos/spec.yaml --workspace-name <workspace-name> --resource-group <resource-group-name>
+   az ml job create --file ./examples/components/NER/upload_data_to_silos/spec.yaml --workspace-name <workspace-name> --resource-group <resource-group-name>
    ```
 
 3. Verify if the data is successfully uploaded. (Go to AML Studio ->  Data -> DataStores -> (datastore-name) -> Browse)
@@ -37,15 +37,15 @@ Note: This is not required if you've already uploaded the data into their respec
 
 1. Create a conda environment for _submitting_ the job, and activate it.
    ```bash
-   conda env create --file ./examples/pipelines/namedentityrecognition/environment.yml
+   conda env create --file ./examples/pipelines/ner/environment.yml
    conda activate fl_ner_env
    ```
 
-2. Adjust the `./examples/pipelines/namedentityrecognition/config.yaml` file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
+2. Adjust the `./examples/pipelines/ner/config.yaml` file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
 
 3. Submit the experiment.
    ```bash
-   python ./examples/pipelines/namedentityrecognition/submit.py --submit
+   python ./examples/pipelines/ner/submit.py --submit
    ```
 
 #### References
