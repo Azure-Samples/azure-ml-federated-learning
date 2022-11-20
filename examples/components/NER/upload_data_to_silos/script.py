@@ -46,6 +46,11 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
+    # validation
+    assert len(args.train_data_paths) == len(
+        args.test_data_paths
+    ), "number of train and test data paths must be equal"
+
     df = load_dataset("tner/multinerd", "en", split="test")
     df = df.shuffle(seed=42)
 

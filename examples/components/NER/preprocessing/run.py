@@ -90,10 +90,10 @@ def tokenize_and_align_labels(examples):
     By default, it uses the 'bert-base-cased' tokenizer.
 
     Args:
-        examples (dict): Contains tokens, tags as keys.
+        examples (dict): Contains tokens and tags as keys.
 
     Returns:
-        dict: tokenized sentences with their corresponding labels
+        dict: Tokenized sentences with their corresponding labels
     """
     model_checkpoint = "bert-base-cased"
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)

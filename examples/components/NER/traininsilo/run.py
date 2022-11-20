@@ -146,7 +146,7 @@ class NERTrainer:
             run_id (str): Run ID
             key (str): metrics x-axis label
             value (float): metrics y-axis values
-            pipeline_level (bool): whether the metrics is loggin at the pipeline or the job level
+            pipeline_level (bool): whether the metrics is logged at the pipeline or the job level
 
         Returns:
             None
@@ -203,7 +203,7 @@ class NERTrainer:
             labels (Tensor): Actual labels
 
         Returns:
-            list[list]: True labels after removing padded tokens
+            list[list]: Actual/True labels after removing padded tokens
             list[list]: Predicted labels after removing padded tokens
         """
 
@@ -329,7 +329,7 @@ class NERTrainer:
                         metric_results[f"overall_{key}"],
                     )
 
-            # log metrics for each train iteration
+            # log metrics for each FL iteration
             self.log_metrics(
                 mlflow_client,
                 root_run_id,
@@ -351,7 +351,7 @@ class NERTrainer:
                 )
 
     def test(self):
-        """Test the trained model and report test loss and accuracy"""
+        """Test the trained model and report test loss and metrics"""
         self.model_.eval()
         test_loss = 0
         with torch.no_grad():
