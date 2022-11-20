@@ -37,4 +37,4 @@ environment:
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
 
-compute: azureml:gpu-cluster-eastus
+compute: azureml:cpu-orchestrator
