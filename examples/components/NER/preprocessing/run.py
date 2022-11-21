@@ -8,6 +8,7 @@ import mlflow
 
 tokenizer_name = None
 
+
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
 
@@ -100,7 +101,7 @@ def tokenize_and_align_labels(examples):
         dict: Tokenized sentences with their corresponding labels
     """
     global tokenizer_name
-    
+
     tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     tokenized_inputs = tokenizer(
         examples["tokens"], truncation=True, is_split_into_words=True
@@ -190,7 +191,7 @@ def run(args):
     """
     global tokenizer_name
     tokenizer_name = args.tokenizer_name
-    
+
     preprocess_data(
         args.raw_training_data,
         args.raw_testing_data,

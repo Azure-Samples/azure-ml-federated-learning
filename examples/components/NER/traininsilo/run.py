@@ -433,9 +433,7 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--tokenizer_name", type=str, required=False, help="Tokenizer model name"
     )
-    parser.add_argument(
-        "--model_name", type=str, required=False, help="Model name"
-    )
+    parser.add_argument("--model_name", type=str, required=False, help="Model name")
     return parser
 
 
