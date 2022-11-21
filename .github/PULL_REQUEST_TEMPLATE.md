@@ -2,6 +2,13 @@
 <!-- Describe the intention of the changes being proposed. What problem does it solve or functionality does it add? -->
 * ...
 
+## What is the expected review turnaround time?
+<!-- Feel free to add more precisions about the urgency of this PR. -->
+Urgency:
+- [ ] High (needs review today)
+- [ ] Medium (needs review within a few days - most common)
+- [ ] Low (can wait a week)
+
 ## Does this introduce a breaking change?
 <!-- Mark one with an "x". -->
 ```
