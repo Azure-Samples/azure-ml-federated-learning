@@ -23,7 +23,7 @@ The steps to upload data to various datastores are as follows:
 
 Note: This is not required if you've already uploaded the data into their respective datastores.
 
-1. Make sure the train and test paths in the `./examples/components/NER/upload_data_to_silos/spec.yaml` and `./examples/components/NER/preprocessing/spec.yaml` files are the same. 
+1. Make sure the train and test paths in the `./examples/components/NER/upload_data_to_silos/spec.yaml` and `./examples/pipelines/ner/config.yaml` files are the same. 
 
 2. Run the below command to create a job in Azure ML that uploads data to datastores. (Note: This may take a few minutes to finish.)
    ```bash
