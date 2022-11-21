@@ -314,7 +314,7 @@ class CCFraudTrainer:
                 ).to(self.device_)
                 loss = self.criterion_(predictions, labels.type(torch.float)).item()
                 if net_loss is not None:
-                        loss += net_loss * 1e-5
+                    loss += net_loss * 1e-5
 
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
