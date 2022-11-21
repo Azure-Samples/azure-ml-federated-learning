@@ -44,8 +44,8 @@ The goal of this phase is to upload to Azure ML 3 distinct datasets (one per sil
 
 1. Create a conda environment for _submitting_ the job, and activate it.
    ```bash
-   conda env create --file ./examples/pipelines/pneumonia/environment.yml
-   conda activate fl_pneumonia_env
+   conda env create --file ./examples/pipelines/environment.yml
+   conda activate fl_experiment_conda_env
    ```
 2. Adjust config file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
 3. Submit the experiment.
