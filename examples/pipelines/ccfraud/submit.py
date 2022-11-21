@@ -129,7 +129,7 @@ preprocessing_component = load_component(
 )
 
 training_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "training", "config.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "config.yaml")
 )
 
 aggregate_component = load_component(
