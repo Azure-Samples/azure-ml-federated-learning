@@ -50,4 +50,8 @@ training_parameters:
   epochs: 5
   lr: 1e-3
   batch_size: 1000
+  # Property model_name defines model to be used for training and 
+  # must be one of the models defined in the traininsilo/model.py 
+  # file for the CCFRAUD component. Options include: 
+  # SimpleLinear, SimpleLSTM, SimpleVAE
   model_name: SimpleLinear

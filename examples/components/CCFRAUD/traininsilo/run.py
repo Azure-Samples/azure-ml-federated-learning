@@ -78,6 +78,7 @@ class CCFraudTrainer:
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
+            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE
             train_data_dir(str, optional): Training data directory path
             test_data_dir(str, optional): Testing data directory path
             lr (float, optional): Learning rate. Defaults to 0.01

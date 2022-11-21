@@ -4,9 +4,10 @@ Federated Learning (FL) is an approach where we train a single ML models on a di
 
 Therefore, we came up with and example how an institutions like a banks or credit card companies can train a model for fraud detection in federating learning fashion.
 
-:warning: Please familiarize yourself with basics and remarks mentioned in the [**documentation**](../../../README.md) file in the root of the repository.
-
 :warning: This is an example for demonstration purposes only and the authors of this repository do not take any responsibility for loss or harm made by its usage
+
+
+> To make setup of this example easier we will only provision an _open_ setup. Do not upload sensitive data to it! 
 
 # Data
 
@@ -14,11 +15,18 @@ As for the source of the data for this example we have used Kaggle dataset, [**C
 
 # Getting started
 
-## Prerequisites
-- Properly set up AzureML environment in accordance to the tutorial in the [**documentation**](../../../README.md) in the root of the repository
+### Provisioning
+Please follow the instructions in the [quickstart](../quickstart.md) to provision an open sandbox. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
+
+### Model choice
+Please update [**config**](../../examples/pipelines/ccfraud/config.yaml), field `model_name` in the `training_parameters` section, to reflect desired model to be trained, options include: SimpleLinear, SimpleLSTM, SimpleVAE
+
+- **SimpleLinear** - model fully composed of `torch.Linear` layers with `ReLU` activations, takes data as-is sample-by-sample
+- **SimpleLSTM** - model composed by 4 LSTM layers connected to linear head with architecture similar to **SimpleLinear**, takes data ordered by time in sequences that overlap each other
+- **SimpleVAE** - model composed of 2 encoder LSTM layers and 2 decoder LSTM layers that tries to recreate consumed sequence of transactions, the latent space created by encoder is consumed by a linear layer to perform prediction, takes data ordered by time in sequences that overlap each other
 
 ## Running example
-- Update [**config**](./config.yaml) to reflect your AML FL orchestration setup
+- Update [**config**](../../examples/pipelines/ccfraud/config.yaml) to reflect your AML FL orchestration setup
 - Update configuration names in the `preprocessing/config` folder to reflect names of the computer in your own AML FL orchestration setup
 - Run the example by running `submit.py` file using python environment from the `pipelines` folder
 
