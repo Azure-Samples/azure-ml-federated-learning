@@ -183,11 +183,11 @@ SHARED_COMPONENTS_FOLDER = os.path.join(
 
 # Loading the component from their yaml specifications
 preprocessing_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
 )
 
 training_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
 )
 
 aggregate_component = load_component(
