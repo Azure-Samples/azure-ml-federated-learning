@@ -124,10 +124,10 @@ class PyTorchStateDictFedAvg:
             torch.save(self.avg_state_dict, model_path)
         else:
             self.logger.info(f"Saving model object to path={model_path}")
-            if not(self.model_object is None):
+            if not (self.model_object is None):
                 self.model_object.load_state_dict(self.avg_state_dict)
                 torch.save(self.model_object, model_path)
-            else: # for dummy HELLOWORLD example, just write a simple text file
+            else:  # for dummy HELLOWORLD example, just write a simple text file
                 with open(model_path, "w") as f:
                     f.write("Hello World!")
 
