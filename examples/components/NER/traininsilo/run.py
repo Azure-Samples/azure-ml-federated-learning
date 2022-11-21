@@ -22,6 +22,8 @@ import torch
 class NERTrainer:
     def __init__(
         self,
+        tokenizer_name,
+        model_name,
         train_data_dir="./",
         test_data_dir="./",
         model_path=None,
@@ -31,9 +33,11 @@ class NERTrainer:
         experiment_name="default-experiment",
         iteration_num=1,
     ):
-        """NER Trainer trains BERT-base model on the MultiNERD dataset.
+        """NER Trainer trains BERT-base model (default) on the MultiNERD dataset.
 
         Args:
+            tokenizer_name(str): Tokenizer name
+            model_name(str): Model name
             train_data_dir(str, optional): Training data directory path
             test_data_dir(str, optional): Testing data directory path
             model_path (str, optional): Model path. Defaults to None
@@ -44,7 +48,7 @@ class NERTrainer:
             iteration_num (int, optional): Iteration number. Defaults to 1
 
         Attributes:
-            model_: Huggingface bert-base pretrained model
+            model_: Huggingface bert-base (default) pretrained model
             optimizer_: Stochastic gradient descent
             train_loader_: Training DataLoader
             test_loader_: Testing DataLoader
@@ -66,8 +70,7 @@ class NERTrainer:
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # tokenizer
-        model_name = "bert-base-cased"
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
         # dataset and data loader
         data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
@@ -427,6 +430,12 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--tokenizer_name", type=str, required=False, help="Tokenizer model name"
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=False, help="Model name"
+    )
     return parser
 
 
@@ -438,6 +447,8 @@ def run(args):
     """
 
     trainer = NERTrainer(
+        tokenizer_name=args.tokenizer_name,
+        model_name=args.model_name,
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,
         model_path=args.model + "/model.pt",

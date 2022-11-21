@@ -43,6 +43,16 @@ inputs:
     description: batch size
     default: 64
     optional: true
+  tokenizer_name:
+    type: string
+    description: Tokenizer model name
+    default: "bert-base-cased"
+    optional: true
+  model_name:
+    type: string
+    description: Model name
+    default: "bert-base-cased"
+    optional: true
 
 outputs:
   model:
@@ -52,7 +62,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
+  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]] $[[--tokenizer_name ${{inputs.tokenizer_name}}]] $[[--model_name ${{inputs.model_name}}]]
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04

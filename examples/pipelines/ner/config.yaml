@@ -64,6 +64,8 @@ training_parameters:
   num_of_iterations: 2
   
   # then typical training parameters
+  tokenizer_name: "bert-base-cased" # Tokenizer name
+  model_name: "bert-base-cased" # Pre-trained Model name
   epochs: 3 # number of epochs per iteration (in-silo training) 
   lr: 0.01 # learning rate
   batch_size: 16 # batch size

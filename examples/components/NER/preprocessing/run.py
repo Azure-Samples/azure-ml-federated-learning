@@ -6,6 +6,7 @@ from transformers import AutoTokenizer
 from datasets import load_from_disk, DatasetDict
 import mlflow
 
+tokenizer_name = None
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -30,6 +31,9 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_output", type=str, required=True, help="")
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
+    )
+    parser.add_argument(
+        "--tokenizer_name", type=str, required=False, help="Tokenizer model name"
     )
     return parser
 
@@ -95,8 +99,9 @@ def tokenize_and_align_labels(examples):
     Returns:
         dict: Tokenized sentences with their corresponding labels
     """
-    model_checkpoint = "bert-base-cased"
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+    global tokenizer_name
+    
+    tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
     tokenized_inputs = tokenizer(
         examples["tokens"], truncation=True, is_split_into_words=True
     )
@@ -183,7 +188,9 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-
+    global tokenizer_name
+    tokenizer_name = args.tokenizer_name
+    
     preprocess_data(
         args.raw_training_data,
         args.raw_testing_data,

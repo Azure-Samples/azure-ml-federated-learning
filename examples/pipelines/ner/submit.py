@@ -210,6 +210,7 @@ def fl_cross_silo_internal_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
+            tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
             metrics_prefix=silo_config.compute,
         )
 
@@ -271,6 +272,10 @@ def fl_cross_silo_internal_basic():
                 metrics_prefix=silo_config.compute,
                 # Iteration number
                 iteration_num=iteration,
+                # Tokenizer name
+                tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
