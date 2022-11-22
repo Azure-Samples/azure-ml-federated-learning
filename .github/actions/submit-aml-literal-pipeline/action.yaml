@@ -44,7 +44,7 @@ runs:
 
     - name: Install python dependencies
       shell: bash
-      run: pip install -r examples/pipelines/fl_cross_silo_literal/requirements.txt
+      run: pip install -r examples/pipelines/requirements.txt
 
     - name: Submit fl_cross_silo_literal pipeline
       shell: bash
