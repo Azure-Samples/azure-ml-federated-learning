@@ -85,6 +85,10 @@ COMPONENTS_FOLDER = os.path.join(
     os.path.dirname(__file__), "..", "..", "components", "NER"
 )
 
+# path to the shared components
+SHARED_COMPONENTS_FOLDER = os.path.join(
+    os.path.dirname(__file__), "..", "..", "components", "utils"
+)
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -137,7 +141,7 @@ training_component = load_component(
 )
 
 aggregate_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
+    source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
 
