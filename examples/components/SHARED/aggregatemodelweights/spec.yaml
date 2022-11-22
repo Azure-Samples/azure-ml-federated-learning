@@ -1,0 +1,59 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: aggregate_model_weights
+version: 0.3.0
+display_name: Aggregate PyTorch Model Weights (from all silos)
+type: command
+description: Component for aggregating pytorch model weights.
+is_deterministic: true
+
+inputs:
+  input_silo_1:
+    type: uri_folder
+    description: input from silo 1 (e.g., model weights, or gradient updates)
+    optional: false
+  input_silo_2:
+    type: uri_folder
+    description: input from silo 2 (e.g., model weights, or gradient updates)
+    optional: true
+  input_silo_3:
+    type: uri_folder
+    description: input from silo 3 (e.g., model weights, or gradient updates)
+    optional: true
+  input_silo_4:
+    type: uri_folder
+    description: input from silo 4 (e.g., model weights, or gradient updates)
+    optional: true
+  input_silo_5:
+    type: uri_folder
+    description: input from silo 5 (e.g., model weights, or gradient updates)
+    optional: true
+  ancillary_files:
+    type: boolean
+    description: Whether ancillary files need to be copied
+    optional: true
+  out_checkpoint_name:
+    type: string
+    description: the name of the output checkpoint, e.g. model, finetuned_state_dict
+    optional: true
+
+
+outputs:
+  aggregated_output:
+    type: uri_folder
+    description: the aggregated model or gradiants, residing in the orchestrator compute.
+
+code: .
+
+command: >-
+  python run.py --output ${{outputs.aggregated_output}} 
+  --extension pt 
+  --checkpoints ${{inputs.input_silo_1}} 
+  $[[${{inputs.input_silo_2}}]] 
+  $[[${{inputs.input_silo_3}}]] 
+  $[[${{inputs.input_silo_4}}]] 
+  $[[${{inputs.input_silo_5}}]] 
+  $[[--ancillary_files ${{inputs.ancillary_files}}]] 
+  $[[--out_checkpoint_name ${{inputs.out_checkpoint_name}}]] 
+environment:
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
