@@ -31,7 +31,7 @@ outputs:
 code: .
 
 command: >-
-  python ./script.py --train_data_paths ${{outputs.silo0_train_data}} ${{outputs.silo1_train_data}} ${{outputs.silo2_train_data}} --test_data_paths ${{outputs.silo0_test_data}} ${{outputs.silo1_test_data}} ${{outputs.silo2_test_data}}
+  python ./run.py --train_data_paths ${{outputs.silo0_train_data}} ${{outputs.silo1_train_data}} ${{outputs.silo2_train_data}} --test_data_paths ${{outputs.silo0_test_data}} ${{outputs.silo1_test_data}} ${{outputs.silo2_test_data}}
 
 environment: 
   conda_file: ./conda.yaml
