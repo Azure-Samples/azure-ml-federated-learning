@@ -1,4 +1,4 @@
-name: mnist_agg_conda_env
+name: agg_conda_env
 channels:
   - defaults
   - pytorch
