@@ -76,7 +76,7 @@ In this section, we'll use a sample python script to submit a federated learning
 1. Create a conda environment with all the python dependencies, then activate it.
     
     ```bash
-    conda env create --file ./examples/pipelines/fl_cross_silo_literal/environment.yml
+    conda env create --file ./examples/pipelines/environment.yml
     conda activate fl_experiment_conda_env
     ```
 
