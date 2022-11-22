@@ -87,7 +87,7 @@ COMPONENTS_FOLDER = os.path.join(
 
 # path to the shared components
 SHARED_COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", "SHARED"
+    os.path.dirname(__file__), "..", "..", "components", "utils"
 )
 
 
