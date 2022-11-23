@@ -134,7 +134,7 @@ training_component = load_component(
 
 aggregate_component = load_component(
     source=os.path.join(
-        "../../components/MNIST", "aggregatemodelweights", "aggregatemodelweights.yaml"
+        "../../components/utils", "aggregatemodelweights", "aggregatemodelweights.yaml"
     )
 )
 
