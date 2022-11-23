@@ -1,6 +1,6 @@
-# Tutorial: Read local data in an on-premises Kubernetes silo
+# Read local data in an on-premises Kubernetes silo
 
-:construction: This tutorial is a work in progress. :construction:
+:construction: This page is a work in progress. :construction:
 
 To-dos:
 - Introduce an argument for the data path
@@ -10,8 +10,8 @@ To-dos:
 ## Background
 In many Federated Learning (FL) applications, the silos (compute + user data) need to be located on-premises. Azure ML can accommodate such external silos, provided they are running in a Kubernetes (k8s) cluster. When the user data are physically located on the same machine that holds the k8s cluster, the Azure ML job running in the k8s cluster needs access to the local file system. 
 
-## Objective and contents of the tutorial
-This tutorial will show you how to access, within an Azure ML job running on an on-premises k8s cluster, some data in the local file system. First, we will explain how to create the k8s cluster using [kind](https://kind.sigs.k8s.io/), and how to configure it properly with [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/). Then, we will create an external silo based on this k8s cluster. Finally, we will run a simple test job to prove that an Azure ML job running on the k8s cluster can indeed access the local file system.
+## Objective and contents
+This document will show you how to access, within an Azure ML job running on an on-premises k8s cluster, some data in the local file system. First, we will explain how to create the k8s cluster using [kind](https://kind.sigs.k8s.io/), and how to configure it properly with [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/). Then, we will create an external silo based on this k8s cluster. Finally, we will run a simple test job to prove that an Azure ML job running on the k8s cluster can indeed access the local file system.
 
 ## Prerequisites
 For creating the k8s cluster:
