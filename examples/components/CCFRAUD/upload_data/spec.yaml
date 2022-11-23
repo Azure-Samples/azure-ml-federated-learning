@@ -22,18 +22,12 @@ outputs:
     description: the output CC Fraud raw testing data for a given silo
 
 outputs:
-  silo_1_data:
+  raw_train_data:
     type: uri_folder
-    mode: mount
-    path: azureml://datastores/datastore_silo0_westus/paths/cc_fraud
-  silo_2_data:
+    description: the output raw training data for given silo
+  raw_test_data:
     type: uri_folder
-    mode: mount
-    path: azureml://datastores/datastore_northus/paths/cc_fraud
-  silo_3_data:
-    type: uri_folder
-    mode: mount
-    path: azureml://datastores/datastore_southus/paths/cc_fraud
+    description: the output raw training data for given silo
 
 code: .
 
