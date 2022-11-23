@@ -1,10 +1,24 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 
+outputs:
+  silo_1_data:
+    type: uri_folder
+    mode: mount
+    path: azureml://datastores/datastore_silo0_westus/paths/cc_fraud
+  silo_2_data:
+    type: uri_folder
+    mode: mount
+    path: azureml://datastores/datastore_northus/paths/cc_fraud
+  silo_3_data:
+    type: uri_folder
+    mode: mount
+    path: azureml://datastores/datastore_southus/paths/cc_fraud
+
 code: .
 
 command: >-
-  python run.py --target_ds stfldemodm0silo0westus,stfldemodm0silo0northus,stfldemodm0silo0southus
+  python run.py --silo_1_data ${{outputs.silo_1_data}} --silo_2_data ${{outputs.silo_2_data}} --silo_3_data ${{outputs.silo_3_data}}
 
 environment: 
   conda_file: ./conda.yaml
