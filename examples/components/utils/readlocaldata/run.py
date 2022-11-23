@@ -47,16 +47,15 @@ def test_output(path):
     with open(os.path.join(path, "output.txt"), "w") as f:
         f.write("Hello World!")
 
+
 def test_local_input_for_external_silos():
     print("This file full path (following symlinks)")
     full_path = os.path.realpath(__file__)
     print(full_path + "\n")
 
-    
-
     dir_path = "/"
 
-    res=[]
+    res = []
     res_dir = []
     for (dir_path, dir_names, file_names) in os.walk(dir_path):
         res_dir.extend(dir_names)
@@ -66,7 +65,7 @@ def test_local_input_for_external_silos():
     # print("Files:")
     # print(res)
 
-    with open('/mnt/localdata/data_file.txt') as f:
+    with open("/mnt/localdata/data_file.txt") as f:
         lines = f.readlines()
     print("Contents of local input file:")
     print(lines)
