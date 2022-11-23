@@ -1,0 +1,13 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+
+code: .
+
+command: >-
+  python run.py --target_ds stfldemodm0silo0westus,stfldemodm0silo0northus,stfldemodm0silo0southus
+
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+
+compute: azureml:cpu-data-loader
