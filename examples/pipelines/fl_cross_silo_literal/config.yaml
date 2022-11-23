@@ -69,3 +69,4 @@ training_parameters:
   epochs: 3 # number of epochs per iteration (in-silo training) 
   lr: 0.01 # learning rate
   batch_size: 64 # batch size
+  
