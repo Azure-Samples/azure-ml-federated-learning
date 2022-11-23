@@ -1,8 +1,0 @@
-name: fl-demo-env-py38
-
-dependencies:
-
-- python=3.8
-- pip=22.1.2
-- pip:
-  - -r requirements.txt
