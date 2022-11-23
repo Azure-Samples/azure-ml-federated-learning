@@ -6,17 +6,10 @@ import os
 
 import pandas as pd
 
-import azure.ai.ml.identity as identity
-
 from zipfile import ZipFile
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
 from azure.ai.ml import MLClient
-from azure.ai.ml.entities import Data
-from azure.ai.ml.constants import AssetTypes, InputOutputModes
-from azure.ai.ml.identity import AzureMLOnBehalfOfCredential
-from azure.identity import ManagedIdentityCredential
-from azure.keyvault.secrets import SecretClient
 
 SPLITS = {
     1: [["Midwest", "Northeast", "South", "West"]],
@@ -24,10 +17,6 @@ SPLITS = {
     3: [["South"], ["Midwest"], ["West", "Northeast"]],
     4: [["South"], ["West"], ["Midwest"], ["Northeast"]],
 }
-
-
-def get_azure_credential() -> AzureMLOnBehalfOfCredential:
-    return AzureMLOnBehalfOfCredential()
 
 
 def get_kaggle_client(kv: Keyvault):
@@ -42,14 +31,10 @@ def get_kaggle_client(kv: Keyvault):
     return api
 
 
-def get_workspace() -> Workspace:
+def get_key_vault() -> Keyvault:
     run: Run = Run.get_context()
     logging.info(f"Got run context: {run}")
     workspace: Workspace = run.experiment.workspace
-    return workspace
-
-
-def get_key_vault(workspace) -> Keyvault:
     return workspace.get_default_keyvault()
 
 
@@ -78,24 +63,19 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    split_count = sum(
-        [0 if getattr(args, f"silo_{i}_data", None) is None else 1 for i in range(1, 5)]
-    )
-
-    if split_count < 1 or split_count > 4:
+    if args.silo_count < 1 or args.silo_count > 4:
         raise Exception("Number of splits/silos must be between 1 and 4 (included)!")
 
-    ws = get_workspace()
-    kv = get_key_vault(ws)
+    kv = get_key_vault()
     kaggle_client = get_kaggle_client(kv)
     download_kaggle_dataset(kaggle_client, "./dataset")
 
     with ZipFile("./dataset/fraud-detection.zip", "r") as zObject:
         zObject.extractall("./dataset/extracted")
 
-    df_train = pd.read_csv("./dataset/extracted/fraudTrain.csv")
+    df_train = pd.read_csv("./dataset/extracted/fraudTrain.csv", index_col=0)
     print(f"Loaded train dataset with {len(df_train)} rows")
-    df_test = pd.read_csv("./dataset/extracted/fraudTrain.csv")
+    df_test = pd.read_csv("./dataset/extracted/fraudTest.csv", index_col=0)
     print(f"Loaded test dataset with {len(df_train)} rows")
     regions_df = pd.read_csv("./us_regions.csv")
     state_region = {row.StateCode: row.Region for row in regions_df.itertuples()}
@@ -105,20 +85,19 @@ def run(args):
     df_test.loc[:, "region"] = df_test["state"].map(state_region)
 
     os.makedirs("./dataset/filtered/")
-    for i, regions in enumerate(SPLITS[split_count]):
+    regions = SPLITS[args.silo_count][args.silo_index]
 
-        print(f"Filtering regions: {regions}")
-        data_path = getattr(args, f"silo_{i + 1}_data", None)
-        train_path = f"{data_path}/train.csv"
-        test_path = f"{data_path}/test.csv"
+    print(f"Filtering regions: {regions}")
+    train_path = f"{args.raw_train_data}/train.csv"
+    test_path = f"{args.raw_test_data}/test.csv"
 
-        df_train_filtered = df_train[df_train["region"].isin(regions)]
-        df_test_filtered = df_test[df_test["region"].isin(regions)]
-        print(f"Filtered train dataset has {len(df_train_filtered)} rows")
-        print(f"Filtered test dataset has {len(df_test_filtered)} rows")
+    df_train_filtered = df_train[df_train["region"].isin(regions)]
+    df_test_filtered = df_test[df_test["region"].isin(regions)]
+    print(f"Filtered train dataset has {len(df_train_filtered)} rows")
+    print(f"Filtered test dataset has {len(df_test_filtered)} rows")
 
-        df_train_filtered.to_csv(train_path, index=False)
-        df_test_filtered.to_csv(test_path, index=False)
+    df_train_filtered.to_csv(train_path, index=False)
+    df_test_filtered.to_csv(test_path, index=False)
 
 
 def get_arg_parser(parser=None):
@@ -139,31 +118,28 @@ def get_arg_parser(parser=None):
         parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument(
-        "--silo_1_data",
+        "--silo_count",
+        type=int,
+        required=True,
+        help="Number of silos",
+    )
+    parser.add_argument(
+        "--silo_index",
+        type=int,
+        required=True,
+        help="Index of the current silo",
+    )
+    parser.add_argument(
+        "--raw_train_data",
         type=str,
         required=True,
-        help="Output folder for silo 1",
+        help="Output folder for train data",
     )
     parser.add_argument(
-        "--silo_2_data",
+        "--raw_test_data",
         type=str,
-        required=False,
-        default=None,
-        help="Output folder for silo 2",
-    )
-    parser.add_argument(
-        "--silo_3_data",
-        type=str,
-        required=False,
-        default=None,
-        help="Output folder for silo 3",
-    )
-    parser.add_argument(
-        "--silo_4_data",
-        type=str,
-        required=False,
-        default=None,
-        help="Output folder for silo 4",
+        required=True,
+        help="Output folder for test data",
     )
     return parser
 

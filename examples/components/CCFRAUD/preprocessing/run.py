@@ -14,7 +14,6 @@ from azureml.core import Run, Workspace
 
 ENCODERS = {}
 SCALERS = {}
-STATES_REGIONS = {}
 
 
 def get_arg_parser(parser=None):
@@ -146,19 +145,9 @@ def preprocess_data(
         f"Raw Training Data path: {raw_training_data}, Raw Testing Data path: {raw_testing_data}, Processed Training Data dir path: {train_data_dir}, Processed Testing Data dir path: {test_data_dir}"
     )
 
-    logger.debug('Loading regions from "us_regions.csv"')
-    global STATES_REGIONS
-    df_states_regions = pd.read_csv(hydra.utils.get_original_cwd() + "/us_regions.csv")
-    STATES_REGIONS = {
-        row.StateCode: row.Region for row in df_states_regions.itertuples()
-    }
-    REGIONS = list(df_states_regions["Region"].unique())
-
     logger.debug(f"Loading data...")
-    train_df = pd.read_csv(raw_training_data)
-    test_df = pd.read_csv(raw_testing_data)
-    train_df.loc[:, "region"] = train_df["state"].map(STATES_REGIONS)
-    test_df.loc[:, "region"] = test_df["state"].map(STATES_REGIONS)
+    train_df = pd.read_csv(raw_training_data + f"/train.csv")
+    test_df = pd.read_csv(raw_testing_data + f"/test.csv")
 
     fraud_weight = (
         train_df["is_fraud"].value_counts()[0] / train_df["is_fraud"].value_counts()[1]
@@ -169,15 +158,8 @@ def preprocess_data(
     train_data = apply_transforms(train_df)
     test_data = apply_transforms(test_df)
 
-    logger.debug(f"Filtering regions...")
-    logger.debug(
-        f"Train data samples before: {len(train_data)}, Region: {config.region}"
-    )
-    train_data = train_data[train_df["region"].str.match(config.region)]
-    logger.debug(f"Train data samples after: {len(train_data)}")
-    logger.debug(f"Test data samples before: {len(test_data)}, Region: {config.region}")
-    test_data = test_data[test_df["region"].str.match(config.region)]
-    logger.debug(f"Test data samples after: {len(test_data)}")
+    logger.debug(f"Train data samples: {len(train_data)}")
+    logger.debug(f"Test data samples: {len(test_data)}")
 
     train_data = train_data.sort_values(by="trans_date_trans_time")
     test_data = test_data.sort_values(by="trans_date_trans_time")
@@ -228,16 +210,8 @@ def main(cli_args=None):
     run: Run = Run.get_context()
     compute_target = run.get_details()["target"]
     logger.info(f"Compute target: {compute_target}")
-    config_name = (
-        "default"
-        if compute_target + ".yaml" not in os.listdir("./config")
-        else compute_target
-    )
-    logger.info(f"Loading config: {config_name}.yaml")
-    sys.argv = sys.argv[:1]
 
-    @hydra.main(config_path="config", config_name=config_name)
-    def run(runtime_config):
+    def run():
         """Run script with arguments (the core of the component).
 
         Args:
@@ -250,7 +224,6 @@ def main(cli_args=None):
             args.train_output,
             args.test_output,
             args.metrics_prefix,
-            config=runtime_config,
         )
 
     run()
