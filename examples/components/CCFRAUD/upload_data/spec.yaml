@@ -21,6 +21,20 @@ outputs:
     type: uri_folder
     description: the output CC Fraud raw testing data for a given silo
 
+outputs:
+  silo_1_data:
+    type: uri_folder
+    mode: mount
+    path: azureml://datastores/datastore_silo0_westus/paths/cc_fraud
+  silo_2_data:
+    type: uri_folder
+    mode: mount
+    path: azureml://datastores/datastore_northus/paths/cc_fraud
+  silo_3_data:
+    type: uri_folder
+    mode: mount
+    path: azureml://datastores/datastore_southus/paths/cc_fraud
+
 code: .
 
 command: >-
