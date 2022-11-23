@@ -25,12 +25,18 @@ Note: This is not required if you've already uploaded the data into their respec
 
 1. Make sure the train and test paths in the `./examples/components/NER/upload_data_to_silos/spec.yaml` and `./examples/pipelines/ner/config.yaml` files are the same. 
 
-2. Run the below command to create a job in Azure ML that uploads data to datastores. (Note: This may take a few minutes to finish.)
+2. Create a compute that has access to the silos' storage accounts.
    ```bash
-   az ml job create --file ./examples/components/NER/upload_data_to_silos/spec.yaml --workspace-name <workspace-name> --resource-group <resource-group-name>
+   az deployment group create --template-file ./examples/components/NER/upload_data_to_silos/create_compute.bicep --resource-group "<resource-group-name>"  --parameters computeName="cpu-upload-data" machineLearningName="<workspace-name>" storageAccountNames="(\"<storage-acc-name-1>\", \"<storage-acc-name-2>\", \"<storage-acc-name-3>\")"
+   ```
+   Note: Provide the name of the resource group, the AML workspace, and the storage accounts of the silos. Default `compute-name` is "`cpu-upload-data`"
+
+3. Run the below command to create a job in Azure ML that uploads data to datastores. (Note: This may take a few minutes to finish.)
+   ```bash
+   az ml job create --file ./examples/components/NER/upload_data_to_silos/spec.yaml --workspace-name "<workspace-name>" --resource-group "<resource-group-name>"
    ```
 
-3. Verify if the data is successfully uploaded. (Go to AML Studio ->  Data -> DataStores -> (datastore-name) -> Browse)
+4. Verify if the data is successfully uploaded. (Go to AML Studio ->  Data -> DataStores -> (datastore-name) -> Browse)
 
 
 ### Run the FL job

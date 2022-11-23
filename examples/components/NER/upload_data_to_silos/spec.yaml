@@ -3,29 +3,29 @@ $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 outputs:
   silo0_train_data:
     type: uri_folder
-    mode: mount
+    mode: upload
     path: azureml://datastores/datastore_silo0_westus/paths/multinerd/train/
   silo0_test_data:
     type: uri_folder
-    mode: mount
+    mode: upload
     path: azureml://datastores/datastore_silo0_westus/paths/multinerd/test/
 
   silo1_train_data:
     type: uri_folder
-    mode: mount
+    mode: upload
     path: azureml://datastores/datastore_silo1_francecentral/paths/multinerd/train/
   silo1_test_data:
     type: uri_folder
-    mode: mount
+    mode: upload
     path: azureml://datastores/datastore_silo1_francecentral/paths/multinerd/test/
 
   silo2_train_data:
     type: uri_folder
-    mode: mount
+    mode: upload
     path: azureml://datastores/datastore_silo2_brazilsouth/paths/multinerd/train/
   silo2_test_data:
     type: uri_folder
-    mode: mount
+    mode: upload
     path: azureml://datastores/datastore_silo2_brazilsouth/paths/multinerd/test/
 
 code: .
@@ -37,4 +37,4 @@ environment:
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
 
-compute: azureml:cpu-orchestrator
+compute: azureml:cpu-upload-data
