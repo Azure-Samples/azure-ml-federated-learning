@@ -47,30 +47,6 @@ def test_output(path):
     with open(os.path.join(path, "output.txt"), "w") as f:
         f.write("Hello World!")
 
-def test_local_input_for_external_silos():
-    print("This file full path (following symlinks)")
-    full_path = os.path.realpath(__file__)
-    print(full_path + "\n")
-
-    
-
-    dir_path = "/"
-
-    res=[]
-    res_dir = []
-    for (dir_path, dir_names, file_names) in os.walk(dir_path):
-        res_dir.extend(dir_names)
-        res.extend(file_names)
-    print("Directories:")
-    print(res_dir)
-    # print("Files:")
-    # print(res)
-
-    with open('/mnt/localdata/data_file.txt') as f:
-        lines = f.readlines()
-    print("Contents of local input file:")
-    print(lines)
-
 
 def main(cli_args=None):
     """Component main function.
@@ -91,8 +67,6 @@ def main(cli_args=None):
     test_input(args.raw_testing_data)
     test_output(args.train_output)
     test_output(args.test_output)
-
-    test_local_input_for_external_silos()
 
 
 if __name__ == "__main__":
