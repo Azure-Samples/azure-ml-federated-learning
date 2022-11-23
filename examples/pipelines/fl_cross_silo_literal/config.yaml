@@ -20,13 +20,13 @@ aml:
 federated_learning:
   orchestrator:
     # name of compute for orchestrator
-    compute: "cpu-cluster-tp-orch"
+    compute: "cpu-orchestrator"
     # name of datastore for orchestrator (saving model weights + aggregate)
-    datastore: "datastore_tp_orch"
+    datastore: "datastore_orchestrator"
 
   silos: # silos are provided as a list
-    - compute: arc-localdisk-4 # name of the compute for silo X
-      datastore: datastore_st_ext_silo # name of the datastore for silo X
+    - compute: cpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus # name of the datastore for silo X
       # training inputs are specified below
       # NOTE: in this demo, we're using public data from a url instead
       training_data:
@@ -38,27 +38,27 @@ federated_learning:
         mode: 'download'
         path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
-    # - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
-    #   datastore: datastore_silo1_francecentral
-    #   training_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
-    #   testing_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
+    - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
-    # - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
-    #   datastore: datastore_silo2_brazilsouth
-    #   training_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
-    #   testing_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
+    - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
 # Training parameters
 training_parameters:
