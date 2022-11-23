@@ -1,0 +1,26 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: postprocessing
+version: 0.1.0
+display_name: PostProcessing
+type: command
+description: Mock component for displaying a diagram.
+is_deterministic: true
+
+inputs:
+  input_data:
+    type: uri_folder
+    description: the input data - 01
+    optional: true
+
+outputs:
+  results:
+    type: uri_folder
+    description: the output data
+
+code: .
+
+command: >-
+  python run.py --results ${{outputs.results} $[[--input_data ${{inputs.input_data}}]]
+
+environment: azureml:AzureML-sklearn-0.24-ubuntu18.04-py37-cpu@latest

@@ -73,10 +73,11 @@ We will provision:
 
 In this section, we'll use a sample python script to submit a federated learning experiment to Azure ML. The script will need to connect to your newly created Azure ML workspace first.
 
-1. Install the python dependencies
+1. Create a conda environment with all the python dependencies, then activate it.
     
     ```bash
-    python -m pip install -r ./examples/pipelines/fl_cross_silo_literal/requirements.txt
+    conda env create --file ./examples/pipelines/environment.yml
+    conda activate fl_experiment_conda_env
     ```
 
 2. To connect to your newly created Azure ML workspace, you'll need to provide the following info in the sample python script as CLI arguments.

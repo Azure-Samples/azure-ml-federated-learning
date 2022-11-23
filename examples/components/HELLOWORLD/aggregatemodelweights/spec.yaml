@@ -1,0 +1,37 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: aggregate_model_weights
+version: 0.1.0
+display_name: Aggregate Model Weights (from all silos)
+type: command
+description: Component for aggreating model weights.
+is_deterministic: true
+
+inputs:
+  input_silo_1:
+    type: uri_folder
+    description: input from silo 1 (e.g., model weights, or gradient updates)
+    optional: false
+  input_silo_2:
+    type: uri_folder
+    description: input from silo 2 (e.g., model weights, or gradient updates)
+    optional: true
+  input_silo_3:
+    type: uri_folder
+    description: input from silo 3 (e.g., model weights, or gradient updates)
+    optional: true
+
+outputs:
+  aggregated_output:
+    type: uri_folder
+    description: the aggregated model or gradiants, residing in the orchestrator compute.
+
+code: .
+
+command: >-
+  python run.py --aggregated_output ${{outputs.aggregated_output}}
+  --input_silo_1 ${{inputs.input_silo_1}}
+  $[[--input_silo_2 ${{inputs.input_silo_2}}]]
+  $[[--input_silo_3 ${{inputs.input_silo_3}}]]
+
+environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:30
