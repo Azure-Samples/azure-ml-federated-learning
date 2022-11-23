@@ -66,7 +66,7 @@ def test_local_input_for_external_silos():
     # print("Files:")
     # print(res)
 
-    with open('/localdata/data_file.txt') as f:
+    with open('/mnt/localdata/data_file.txt') as f:
         lines = f.readlines()
     print("Contents of local input file:")
     print(lines)
