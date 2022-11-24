@@ -1,8 +1,6 @@
 # Finance example for Federated Learning in Azure ML
 
-Federated Learning (FL) is an approach where we train a single ML models on a distinct datasets, usually in distinct location which cannot be gathered in one central location for reasons like compliance, security or many others. This is more concern in financial field than most probably in any other as this data contain highly sensitive information about either people or institutions.
-
-Therefore, we came up with and example how an institutions like a banks or credit card companies can train a model for fraud detection in federating learning fashion.
+This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for credit card fraud detection in federating learning fashion while using variety of models. This is common scenario for credit card companies, banks and othe similar financial institutions.
 
 :warning: This is an example for demonstration purposes only and the authors of this repository do not take any responsibility for loss or harm made by its usage
 
@@ -17,6 +15,11 @@ As for the source of the data for this example we have used Kaggle dataset, [**C
 
 ### Provisioning
 Please follow the instructions in the [quickstart](../quickstart.md) to provision an open sandbox. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
+
+### Kaggle credentials
+In the resource group, provisioned in the next step, lookup the Key Vault and open "Secrets" tab. Here we will need to create two plian text secrets with following names and contents:
+- **kaggleusername** - specifies your kaggle user name
+- **kagglekey** - this is API key that can be obtained from your profile on the kaggle
 
 ### Model choice
 Please update [**config**](../../examples/pipelines/ccfraud/config.yaml), field `model_name` in the `training_parameters` section, to reflect desired model to be trained, options include: SimpleLinear, SimpleLSTM, SimpleVAE
