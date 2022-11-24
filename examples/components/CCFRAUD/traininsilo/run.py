@@ -214,6 +214,7 @@ class CCFraudTrainer:
             )
             for epoch in range(1, self._epochs + 1):
                 self.model_.train()
+                train_metrics.reset_global()
 
                 for i, batch in enumerate(self.train_loader_):
                     data, labels = batch[0].to(self.device_), batch[1].to(self.device_)
@@ -275,6 +276,14 @@ class CCFraudTrainer:
                 ]
 
                 # log test metrics after each epoch
+                for name, value in train_metrics.get_global().items():
+                    log_message.append(f"{name}: {value}")
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                    )
                 for name, value in test_metrics.get_global().items():
                     log_message.append(f"{name}: {value}")
                     self.log_metrics(
@@ -285,18 +294,30 @@ class CCFraudTrainer:
                     )
                 logger.info(", ".join(log_message))
 
-                # log metrics at the pipeline level
-                for name, value in train_metrics.get_global().items():
-                    log_message.append(f"{name}: {value}")
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        name,
-                        value,
-                        pipeline_level=True,
-                    )
+            log_message = [
+                f"End of training",
+            ]
+            # log metrics at the pipeline level
+            for name, value in train_metrics.get_global().items():
+                log_message.append(f"{name}: {value}")
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    name,
+                    value,
+                    pipeline_level=True,
+                )
 
-                train_metrics.reset_global()
+            for name, value in test_metrics.get_global().items():
+                log_message.append(f"{name}: {value}")
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    name,
+                    value,
+                    pipeline_level=True,
+                )
+            logger.info(", ".join(log_message))
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
