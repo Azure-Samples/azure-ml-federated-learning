@@ -146,9 +146,7 @@ upload_data_component = load_component(
 ########################
 
 
-def custom_fl_data_path(
-    datastore_name, output_name, iteration_num=None
-):
+def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
     """Produces a path to store the data during FL training.
 
     Args:
@@ -159,7 +157,9 @@ def custom_fl_data_path(
     Returns:
         data_path (str): direct url to the data path to store the data
     """
-    data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/"
+    data_path = (
+        f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/"
+    )
     if iteration_num:
         data_path += f"iteration_{iteration_num}/"
 

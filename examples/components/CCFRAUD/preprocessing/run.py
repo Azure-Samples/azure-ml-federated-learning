@@ -55,7 +55,7 @@ def apply_transforms(df):
         "trans_date_trans_time",
         "amt",
     ]
-    
+
     for column in datetimes:
         df.loc[:, column] = pd.to_datetime(df[column]).view("int64")
     for column in normalize:
