@@ -1,4 +1,4 @@
-"""Federated Learning Cross-Silo basic pipeline.
+"""Federated Learning Cross-Silo basic pipeline for Credit Card Fraud example.
 
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
