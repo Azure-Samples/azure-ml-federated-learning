@@ -79,7 +79,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
 }
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/fl_pairs/open_compute_storage_pair.bicep' = {
+module orchestrator './modules/fl_pairs/open_multiple_computes_storage.bicep' = {
   name: '${demoBaseName}-openpair-orchestrator'
   scope: resourceGroup()
   params: {
@@ -91,9 +91,11 @@ module orchestrator './modules/fl_pairs/open_compute_storage_pair.bicep' = {
 
     pairBaseName: '${demoBaseName}-orch'
 
-    computeName: 'cpu-orchestrator' // let's not use demo base name in cluster name
-    computeSKU: cpuComputeSKU
-    computeNodes: 4
+    computeName: 'orchestrator' // let's not use demo base name in cluster name
+    cpuComputeSKU: cpuComputeSKU
+    cpuComputeNodes: 4
+    gpuComputeSKU: gpuComputeSKU
+    gpuComputeNodes: 4
     datastoreName: 'datastore_orchestrator' // let's not use demo base name
 
     // identity for permissions model
@@ -121,10 +123,9 @@ module silos './modules/fl_pairs/open_multiple_computes_storage.bicep' = [for i 
 
     pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
 
-    cpuComputeName: 'cpu-silo${i}-${siloRegions[i]}' // let's not use demo base name
+    computeName: 'silo${i}-${siloRegions[i]}' // let's not use demo base name
     cpuComputeSKU: cpuComputeSKU
     cpuComputeNodes: 4
-    gpuComputeName: 'gpu-silo${i}-${siloRegions[i]}' // let's not use demo base name
     gpuComputeSKU: gpuComputeSKU
     gpuComputeNodes: 4
     datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name

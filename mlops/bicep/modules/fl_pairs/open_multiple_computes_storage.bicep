@@ -26,17 +26,14 @@ param storageAccountName string = replace('st${pairBaseName}','-','') // replace
 @description('Name of the datastore for attaching the storage to the AzureML workspace.')
 param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 
-@description('Name of the default cpu compute cluster for the pair')
-param cpuComputeName string = 'cpu-cluster-${pairBaseName}'
+@description('Prefix of the default compute clusters for the pair')
+param computeName string = 'cluster-${pairBaseName}'
 
 @description('VM size for the cpu compute cluster')
 param cpuComputeSKU string = 'Standard_DS3_v2'
 
 @description('VM nodes for the cpu compute cluster')
 param cpuComputeNodes int = 4
-
-@description('Name of the default gpu compute cluster for the pair')
-param gpuComputeName string = 'gpu-cluster-${pairBaseName}'
 
 @description('VM size for the gpu compute cluster')
 param gpuComputeSKU string = 'Standard_NC6'
@@ -48,10 +45,7 @@ param gpuComputeNodes int = 4
 param identityType string = 'UserAssigned'
 
 @description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
-param cpuUaiName string = 'uai-${pairBaseName}-cpu'
-
-@description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
-param gpuUaiName string = 'uai-${pairBaseName}-gpu'
+param uaiName string = 'uai-${pairBaseName}'
 
 @description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
 param applyDefaultPermissions bool = true
@@ -75,71 +69,42 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
 }
 
 // create new Azure ML compute
-module cpuComputeDeployment '../computes/open_new_aml_compute.bicep' = {
-  name: '${pairBaseName}-cpu-open-aml-compute'
+module computeDeployment '../computes/open_new_aml_cpu_gpu_computes.bicep' = {
+  name: '${pairBaseName}-open-aml-compute'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
     machineLearningRegion: machineLearningRegion
-    computeName: cpuComputeName
+    computeName: computeName
     computeRegion: pairRegion
-    computeSKU: cpuComputeSKU
-    computeNodes: cpuComputeNodes
+    cpuComputeSKU: cpuComputeSKU
+    cpuComputeNodes: cpuComputeNodes
+    gpuComputeSKU: gpuComputeSKU
+    gpuComputeNodes: gpuComputeNodes
     computeIdentityType: identityType
-    computeUaiName: cpuUaiName
-    tags: tags
-  }
-}
-
-// create new Azure ML compute
-module gpuComputeDeployment '../computes/open_new_aml_compute.bicep' = {
-  name: '${pairBaseName}-gpu-open-aml-compute'
-  scope: resourceGroup()
-  params: {
-    machineLearningName: machineLearningName
-    machineLearningRegion: machineLearningRegion
-    computeName: gpuComputeName
-    computeRegion: pairRegion
-    computeSKU: gpuComputeSKU
-    computeNodes: gpuComputeNodes
-    computeIdentityType: identityType
-    computeUaiName: gpuUaiName
+    computeUaiName: uaiName
     tags: tags
   }
 }
 
 // Set R/W permissions for orchestrator UAI towards orchestrator storage
 module pairInternalPermissionsCpu '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
-  name: '${pairBaseName}-cpu-internal-rw-perms'
+  name: '${pairBaseName}-internal-rw-perms'
   scope: resourceGroup()
   params: {
     storageAccountName: storageDeployment.outputs.storageName
-    identityPrincipalId: cpuComputeDeployment.outputs.identityPrincipalId
+    identityPrincipalId: computeDeployment.outputs.identityPrincipalId
   }
   dependsOn: [
     storageDeployment
-    cpuComputeDeployment
-  ]
-}
-
-// Set R/W permissions for orchestrator UAI towards orchestrator storage
-module pairInternalPermissionsGpu '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
-  name: '${pairBaseName}-gpu-internal-rw-perms'
-  scope: resourceGroup()
-  params: {
-    storageAccountName: storageDeployment.outputs.storageName
-    identityPrincipalId: gpuComputeDeployment.outputs.identityPrincipalId
-  }
-  dependsOn: [
-    storageDeployment
-    gpuComputeDeployment
+    computeDeployment
   ]
 }
 
 // output the pair config for next actions (permission model)
-output identityPrincipalId string = cpuComputeDeployment.outputs.identityPrincipalId
+output identityPrincipalId string = computeDeployment.outputs.identityPrincipalId
 output storageName string = storageDeployment.outputs.storageName
 output storageServiceId string = storageDeployment.outputs.storageId
-output cpuComputeName string = cpuComputeDeployment.outputs.compute
-output gpuComputeName string = gpuComputeDeployment.outputs.compute
+output cpuComputeName string = computeDeployment.outputs.cpuCompute
+output gpuComputeName string = computeDeployment.outputs.gpuCompute
 output region string = pairRegion
