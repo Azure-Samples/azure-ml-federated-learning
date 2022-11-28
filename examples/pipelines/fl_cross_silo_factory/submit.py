@@ -399,5 +399,6 @@ if args.submit:
         print(f"Job finished with status {status}")
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
+
 else:
     print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
