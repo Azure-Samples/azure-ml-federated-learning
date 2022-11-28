@@ -1,10 +1,10 @@
-"""Federated Learning Cross-Silo basic pipeline.
+"""Federated Learning Cross-Silo pipeline for uploading the data
 
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
 2) reads the components from a given folder,
 3) builds a flexible pipeline depending on the config,
-4) configures each step of this pipeline to read/write from the right silo.
+4) configures each step of this pipeline to write to the right storage.
 """
 import os
 import argparse
@@ -13,13 +13,12 @@ import string
 import datetime
 import webbrowser
 import time
-import json
 import sys
 
 # Azure ML sdk v2 imports
 import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azure.ai.ml import MLClient, Input, Output
+from azure.ai.ml import MLClient, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
@@ -147,47 +146,27 @@ upload_data_component = load_component(
 
 
 def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
-    """Produces a path to store the data during FL training.
+    """Produces a path to store the data.
 
     Args:
         datastore_name (str): name of the Azure ML datastore
         output_name (str): a name unique to this output
-        iteration_num (str): an iteration number if relevant
 
     Returns:
         data_path (str): direct url to the data path to store the data
     """
-    data_path = (
+    return (
         f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/"
     )
-    if iteration_num:
-        data_path += f"iteration_{iteration_num}/"
-
-    return data_path
-
-
-def getUniqueIdentifier(length=8):
-    """Generates a random string and concatenates it with today's date
-
-    Args:
-        length (int): length of the random string (default: 8)
-
-    """
-    str = string.ascii_lowercase
-    date = datetime.date.today().strftime("%Y_%m_%d_")
-    return date + "".join(random.choice(str) for i in range(length))
-
-
-pipeline_identifier = getUniqueIdentifier()
 
 
 @pipeline(
-    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
+    description=f"FL cross-silo upload data pipeline.",
 )
 def fl_cross_silo_upload_data():
 
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
-        # run the pre-processing component once
+        # create step for upload component
         silo_upload_data_step = upload_data_component(
             silo_count=len(YAML_CONFIG.federated_learning.silos), silo_index=silo_index
         )
