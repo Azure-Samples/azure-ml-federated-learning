@@ -4,7 +4,6 @@ import logging
 import sys
 import numpy as np
 
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import mlflow
@@ -12,7 +11,6 @@ import hydra
 
 from azureml.core import Run, Workspace
 
-ENCODERS = {}
 SCALERS = {}
 
 
@@ -44,29 +42,8 @@ def get_arg_parser(parser=None):
 
 
 def apply_transforms(df):
-    global ENCODERS
     global SCALERS
 
-    useful_props = [
-        "amt",
-        "age",
-        # "cc_num",
-        "merch_lat",
-        "merch_long",
-        "category",
-        "region",
-        "gender",
-        "state",
-        # "zip",
-        "lat",
-        "long",
-        "city_pop",
-        "job",
-        # "dob",
-        "trans_date_trans_time",
-        "is_fraud",
-    ]
-    categorical = ["category", "region", "gender", "state", "job"]
     datetimes = ["trans_date_trans_time"]  # "dob"
     normalize = [
         "age",
@@ -78,34 +55,7 @@ def apply_transforms(df):
         "trans_date_trans_time",
         "amt",
     ]
-
-    df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta(
-        "1y"
-    )
-
-    # Filter only useful columns
-    df = df[useful_props]
-
-    for column in categorical:
-        if column not in ENCODERS:
-            print(f"Creating encoder for column: {column}")
-            # Simply set all zeros if the category is unseen
-            encoder = OneHotEncoder(handle_unknown="ignore")
-            encoder.fit(df[column].values.reshape(-1, 1))
-            ENCODERS[column] = encoder
-
-        encoder = ENCODERS.get(column)
-        encoded_data = encoder.transform(df[column].values.reshape(-1, 1)).toarray()
-        encoded_df = pd.DataFrame(
-            encoded_data,
-            columns=[
-                column + "_" + "_".join(x.split("_")[1:])
-                for x in encoder.get_feature_names()
-            ],
-        )
-        encoded_df.index = df.index
-        df = df.join(encoded_df).drop(column, axis=1)
-
+    
     for column in datetimes:
         df.loc[:, column] = pd.to_datetime(df[column]).view("int64")
     for column in normalize:

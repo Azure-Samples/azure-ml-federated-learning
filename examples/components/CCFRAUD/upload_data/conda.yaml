@@ -9,5 +9,6 @@ dependencies:
     - azure-keyvault
     - azureml-core
     - azure-ai-ml
+    - scikit-learn
     - kaggle
     - pandas

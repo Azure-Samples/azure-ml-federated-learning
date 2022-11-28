@@ -194,7 +194,7 @@ class CCFraudTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-            num_of_batches_before_logging = 50
+            num_of_batches_before_logging = 5
 
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()

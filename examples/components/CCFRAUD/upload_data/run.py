@@ -6,6 +6,7 @@ import os
 
 import pandas as pd
 
+from sklearn.preprocessing import OneHotEncoder
 from zipfile import ZipFile
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
@@ -17,6 +18,8 @@ SPLITS = {
     3: [["South"], ["Midwest"], ["West", "Northeast"]],
     4: [["South"], ["West"], ["Midwest"], ["Northeast"]],
 }
+CATEGORICAL_PROPS = ["category", "region", "gender", "state", "job"]
+ENCODERS = {}
 
 
 def get_kaggle_client(kv: Keyvault):
@@ -29,6 +32,65 @@ def get_kaggle_client(kv: Keyvault):
     api = KaggleApi()
     api.authenticate()
     return api
+
+
+def fit_encoders(df):
+    global ENCODERS
+
+    for column in CATEGORICAL_PROPS:
+        if column not in ENCODERS:
+            print(f"Creating encoder for column: {column}")
+            # Simply set all zeros if the category is unseen
+            encoder = OneHotEncoder(handle_unknown="ignore")
+            encoder.fit(df[column].values.reshape(-1, 1))
+            ENCODERS[column] = encoder
+
+
+def preprocess_data(df):
+    global ENCODERS
+
+    useful_props = [
+        "amt",
+        "age",
+        # "cc_num",
+        "merch_lat",
+        "merch_long",
+        "category",
+        "region",
+        "gender",
+        "state",
+        # "zip",
+        "lat",
+        "long",
+        "city_pop",
+        "job",
+        # "dob",
+        "trans_date_trans_time",
+        "is_fraud",
+    ]
+    categorical = ["category", "region", "gender", "state", "job"]
+
+    df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta(
+        "1y"
+    )
+
+    # Filter only useful columns
+    df = df[useful_props]
+
+    for column in categorical:
+        encoder = ENCODERS.get(column)
+        encoded_data = encoder.transform(df[column].values.reshape(-1, 1)).toarray()
+        encoded_df = pd.DataFrame(
+            encoded_data,
+            columns=[
+                column + "_" + "_".join(x.split("_")[1:])
+                for x in encoder.get_feature_names()
+            ],
+        )
+        encoded_df.index = df.index
+        df = df.join(encoded_df).drop(column, axis=1)
+
+    return df
 
 
 def get_key_vault() -> Keyvault:
@@ -84,6 +146,9 @@ def run(args):
     df_train.loc[:, "region"] = df_train["state"].map(state_region)
     df_test.loc[:, "region"] = df_test["state"].map(state_region)
 
+    # Create categorical encoder before any further preprocessing/reduction
+    fit_encoders(df_train)
+
     os.makedirs("./dataset/filtered/")
     regions = SPLITS[args.silo_count][args.silo_index]
 
@@ -91,13 +156,16 @@ def run(args):
     train_path = f"{args.raw_train_data}/train.csv"
     test_path = f"{args.raw_test_data}/test.csv"
 
-    df_train_filtered = df_train[df_train["region"].isin(regions)]
-    df_test_filtered = df_test[df_test["region"].isin(regions)]
-    print(f"Filtered train dataset has {len(df_train_filtered)} rows")
-    print(f"Filtered test dataset has {len(df_test_filtered)} rows")
+    train_data_filtered = df_train[df_train["region"].isin(regions)]
+    test_data_filtered = df_test[df_test["region"].isin(regions)]
+    print(f"Filtered train dataset has {len(train_data_filtered)} rows")
+    print(f"Filtered test dataset has {len(test_data_filtered)} rows")
 
-    df_train_filtered.to_csv(train_path, index=False)
-    df_test_filtered.to_csv(test_path, index=False)
+    train_data_filtered = preprocess_data(train_data_filtered)
+    test_data_filtered = preprocess_data(test_data_filtered)
+
+    train_data_filtered.to_csv(train_path, index=False)
+    test_data_filtered.to_csv(test_path, index=False)
 
 
 def get_arg_parser(parser=None):
