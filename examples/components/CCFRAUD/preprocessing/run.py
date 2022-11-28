@@ -42,6 +42,15 @@ def get_arg_parser(parser=None):
 
 
 def apply_transforms(df):
+    """Applies transformation for datetime and numerical columns
+
+    Args:
+        df (pd.DataFrame):
+        dataframe to transform
+
+    Returns:
+        pd.DataFrame: transformed dataframe
+    """
     global SCALERS
 
     datetimes = ["trans_date_trans_time"]  # "dob"
@@ -78,7 +87,6 @@ def preprocess_data(
     train_data_dir="./",
     test_data_dir="./",
     metrics_prefix="default-prefix",
-    config=None,
 ):
     """Preprocess the raw_training_data and raw_testing_data and save the processed data to train_data_dir and test_data_dir.
 

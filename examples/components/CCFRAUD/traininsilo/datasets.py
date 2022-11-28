@@ -29,7 +29,7 @@ class FraudDataset(Dataset):
 
 
 class FraudTimeDataset(Dataset):
-    """FraudDataset Dataset - combination of features and labels
+    """FraudTimeDataset Dataset - combination of features and labels retrieved sequentially
 
     Args:
         feature: Transaction detail tensors

@@ -4,6 +4,13 @@ import torch.nn.functional as F
 
 
 class SimpleLinear(nn.Module):
+    """Model composed of only Linear model interleaved with ReLU activations
+
+    Args:
+        input_dim (int):
+        number of features to be consumed by the model
+    """
+
     def __init__(self, input_dim) -> None:
         super().__init__()
 
@@ -43,6 +50,16 @@ class SimpleLinear(nn.Module):
 
 
 class SimpleLSTM(nn.Module):
+    """Model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
+
+    Args:
+        input_dim (int):
+        number of features to be consumed by the model
+
+    Note:
+        Input must be 3D such that it contains time-dependent sequences
+    """
+
     def __init__(self, input_dim) -> None:
         super().__init__()
 
@@ -89,6 +106,16 @@ class SimpleLSTM(nn.Module):
 
 
 class SimpleVAE(nn.Module):
+    """LSTM based VAE with head composed of Linear layers interleaved by ReLU activations
+
+    Args:
+        input_dim (int):
+        number of features to be consumed by the model
+
+    Note:
+        Input must be 3D such that it contains time-dependent sequences
+    """
+
     def __init__(self, input_dim) -> None:
         super().__init__()
 
@@ -169,11 +196,6 @@ class SimpleVAE(nn.Module):
         return kl
 
     def forward(self, x):
-        """
-        x : bsz * seq_len
-
-        hidden_encoder: ( num_lstm_layers * bsz * hidden_size, num_lstm_layers * bsz * hidden_size)
-        """
         # Get Embeddings
         hidden_encoder = None
 
@@ -183,6 +205,7 @@ class SimpleVAE(nn.Module):
         # Decoder
         x_hat = self.decoder(z, x.shape[1])
 
+        # Compute architecture loss (difference between input/output + difference between predicted distribution and Gaussian distribution)
         reconstruction_loss = F.mse_loss(x_hat.reshape(-1), x.reshape(-1))
         kl_loss = self.kl_loss(mu, log_var)
 

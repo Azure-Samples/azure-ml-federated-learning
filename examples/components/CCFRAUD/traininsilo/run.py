@@ -29,20 +29,29 @@ class RunningMetrics:
         self._prefix = "" if prefix is None else prefix
 
     def add_metric(self, name: str, value: float):
+        """Add measurement to the set
+
+        Args:
+            name: name of the metrics
+            value: value of the metrics
+        """
         if name not in self._allowed_metrics:
             raise ValueError(f"Metric with name '{name}' not in logged metrics")
         self._running_step_metrics[name] += value
         self._running_global_metrics[name] += value
 
     def step(self):
+        """Increases number of measurements taken. Must be called after every batch"""
         self._batch_count_step += 1
         self._batch_count_global += 1
 
     def reset_step(self):
+        """Soft reset of the counter. Only reset counter for subset of batches."""
         self._batch_count_step = 0
         self._running_step_metrics = {name: 0 for name in self._running_step_metrics}
 
     def reset_global(self):
+        """Reset all counters and steps"""
         self.reset_step()
         self._batch_count_global = 0
         self._running_global_metrics = {
@@ -50,12 +59,14 @@ class RunningMetrics:
         }
 
     def get_step(self):
+        """Provide average value for every metric since last `reset_step` call"""
         return {
             f"{self._prefix}_{name}": value / self._batch_count_step
             for name, value in self._running_step_metrics.items()
         }
 
     def get_global(self):
+        """Provide average value for every metric since last `reset_global` call"""
         return {
             f"{self._prefix}_{name}": value / self._batch_count_global
             for name, value in self._running_global_metrics.items()
@@ -125,8 +136,9 @@ class CCFraudTrainer:
         """Load dataset from {train_data_dir} and {test_data_dir}
 
         Args:
-            train_data_dir(str, optional): Training data directory path
-            test_data_dir(str, optional): Testing data directory path
+            train_data_dir(str): Training data directory path
+            test_data_dir(str): Testing data directory path
+            model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
         self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()

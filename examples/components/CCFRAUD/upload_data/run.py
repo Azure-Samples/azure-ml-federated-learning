@@ -23,6 +23,11 @@ ENCODERS = {}
 
 
 def get_kaggle_client(kv: Keyvault):
+    """Gets the Kaggle client
+
+    Args:
+        kv (Keyvault): keyvault to use for retrieving Kaggle credentials
+    """
 
     os.environ["KAGGLE_USERNAME"] = kv.get_secret("kaggleusername")
     os.environ["KAGGLE_KEY"] = kv.get_secret("kagglekey")
@@ -35,6 +40,12 @@ def get_kaggle_client(kv: Keyvault):
 
 
 def fit_encoders(df):
+    """Creates one-hot encodings for categorical data
+
+    Args:
+        df (pd.DataFrame): Pandas dataframe to use to provide us with all unique value for each categorical column
+    """
+
     global ENCODERS
 
     for column in CATEGORICAL_PROPS:
@@ -47,6 +58,11 @@ def fit_encoders(df):
 
 
 def preprocess_data(df):
+    """Filter dataframe to include only useful features and apply categorical one hot encoders
+
+    Args:
+        df (pd.DataFrame): Pandas dataframe to apply transforms to
+    """
     global ENCODERS
 
     useful_props = [
@@ -94,6 +110,7 @@ def preprocess_data(df):
 
 
 def get_key_vault() -> Keyvault:
+    """Retreives keyvault from current run"""
     run: Run = Run.get_context()
     logging.info(f"Got run context: {run}")
     workspace: Workspace = run.experiment.workspace
@@ -101,6 +118,11 @@ def get_key_vault() -> Keyvault:
 
 
 def get_ml_client(credential, workspace) -> MLClient:
+    """Gets MLClient based on provided credential and workspace
+
+    Args:
+        cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
+    """
     subscription_id = workspace.subscription_id
     resource_group = workspace.resource_group
     workspace_name = workspace.name
@@ -115,6 +137,12 @@ def get_ml_client(credential, workspace) -> MLClient:
 
 
 def download_kaggle_dataset(kaggle_client, path):
+    """Downloads datasets to specified location
+
+    Args:
+        kaggle_client (KaggleApi): Instance of KaggleApi to use for retrieving the dataset
+        path(str): location where to store downloaded dataset
+    """
     kaggle_client.dataset_download_files("kartik2112/fraud-detection", path=path)
 
 
