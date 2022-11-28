@@ -1,8 +1,8 @@
 # Finance example for Federated Learning in Azure ML
 
-This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for credit card fraud detection in federating learning fashion while using variety of models. This is common scenario for credit card companies, banks and othe similar financial institutions.
+This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for credit card fraud detection in federating learning fashion. The example utilizes multitude of model architectures to demonstrate versatility of the proposed solution. We have chosen this scenario because we believe it is very common for credit card companies, banks and other similar financial institutions.
 
-:warning: This is an example for demonstration purposes only and the authors of this repository do not take any responsibility for loss or harm made by its usage
+:warning: This is an example for demonstration purposes only and the authors of this repository do not take any responsibility for loss or harm made by its usage.
 
 
 > To make setup of this example easier we will only provision an _open_ setup. Do not upload sensitive data to it! 
@@ -17,7 +17,7 @@ As for the source of the data for this example we have used Kaggle dataset, [**C
 Please follow the instructions in the [quickstart](../quickstart.md) to provision an open sandbox. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
 
 ### Kaggle credentials
-In the resource group, provisioned in the next step, lookup the Key Vault and open "Secrets" tab. Here we will need to create two plian text secrets with following names and contents:
+In the resource group, provisioned in the previous step, lookup the Key Vault and open "Secrets" tab. Here we will need to create two plian text secrets with following names and contents:
 - **kaggleusername** - specifies your kaggle user name
 - **kagglekey** - this is API key that can be obtained from your profile on the kaggle
 
