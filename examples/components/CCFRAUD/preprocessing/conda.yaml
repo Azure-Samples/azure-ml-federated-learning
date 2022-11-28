@@ -1,4 +1,4 @@
-name: finance_preprocess_conda_env
+name: ccfraud_preprocess_conda_env
 channels:
   - defaults
   - pytorch
