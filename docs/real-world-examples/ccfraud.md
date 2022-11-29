@@ -27,7 +27,7 @@ Before we dive deep into training the model we need to upload the data from Kagg
 - Navigate to: `examples/pipelines/utils/upload_data/` folder
 - Run `submit.py --submit` command
 
-:warning: Proceed to next step only one the pipeline finishes.
+:warning: Proceed to the next step only once the pipeline finishes.
 
 ### Model choice
 Please update [**config**](../../examples/pipelines/ccfraud/config.yaml), field `model_name` in the `training_parameters` section, to reflect desired model to be trained, options include: SimpleLinear, SimpleLSTM, SimpleVAE
