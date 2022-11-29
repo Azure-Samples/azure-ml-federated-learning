@@ -34,7 +34,7 @@ federated_learning:
         mode: 'download'
         path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/raw_test_data
     - compute: cpu-silo2-brazilsouth
-      datastore: datastore_southus
+      datastore: datastore_silo2_brazilsouth
       training_data:
         type: uri_file
         mode: 'download'
