@@ -25,6 +25,7 @@ No time to read? Get directly to the [**quickstart**](./quickstart.md) to provis
 
 A step-by-step guide for performing a Federated Learning experiment can be found [**here**](./guide.md).
 
+
 ## Why should you consider Federated Learning?
 
 Let's take the example of a data scientist working in a hospital to classify medical images to detect a specific patient condition. The team at the hospital _already_ has a deep learning model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance by partnering with other hospitals. Federated Learning will enable them to collaborate on the model training while keeping control of the hospital's own data, complying with their local regulations and privacy obligations, while enabling better quality models for the benefit of their patients.
@@ -57,6 +58,11 @@ The complete tutorial can be found [**here**](./literal-factory-tutorial.md)
 ## Real-world examples
 
 In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [factory](../examples/pipelines/fl_cross_silo_factory/) sample experiments, we also provide examples based on real-world applications.
+
+| Medical Imaging | Named Entity Recognition | Fraud Detection |
+| :-: | :-: | :-: |
+| [![](./pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![](./pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![](./pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
+| [pneumonia.md](./docs/real-world-examples/pneumonia.md) | [ner.md](./docs/real-world-examples/ner.md) | [ccfraud.md](./docs/real-world-examples/ccfraud.md) |
 
 ### Pneumonia detection from chest radiographs
 In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on a dataset from the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._ See [here](./real-world-examples/pneumonia.md) for detailed instructions on how to run this example.
