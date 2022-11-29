@@ -25,7 +25,6 @@ No time to read? Get directly to the [**quickstart**](./quickstart.md) to provis
 
 A step-by-step guide for performing a Federated Learning experiment can be found [**here**](./guide.md).
 
-
 ## Why should you consider Federated Learning?
 
 Let's take the example of a data scientist working in a hospital to classify medical images to detect a specific patient condition. The team at the hospital _already_ has a deep learning model trained in a centralized fashion with their own patient data. The model achieved reasonable performance. Now the hospital wants to further improve the model's performance by partnering with other hospitals. Federated Learning will enable them to collaborate on the model training while keeping control of the hospital's own data, complying with their local regulations and privacy obligations, while enabling better quality models for the benefit of their patients.

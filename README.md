@@ -16,8 +16,7 @@ This repo provides some code samples for running a federated learning pipeline i
 
 ### :zap: Getting Started
 
-No time to read? Get directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own 
-subscription.
+No time to read? Get directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
 
 ### Real world examples
 
