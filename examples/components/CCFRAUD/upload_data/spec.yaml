@@ -1,0 +1,32 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: upload_data
+version: 0.0.1
+display_name: Upload data (to silo storage)
+type: command
+is_deterministic: true
+
+inputs:
+  silo_count:
+    type: number
+    optional: false
+  silo_index:
+    type: number
+    optional: false
+
+outputs:
+  raw_train_data:
+    type: uri_folder
+    description: the output raw training data for given silo
+  raw_test_data:
+    type: uri_folder
+    description: the output raw training data for given silo
+
+code: .
+
+command: >-
+  python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_train_data ${{outputs.raw_train_data}} --raw_test_data ${{outputs.raw_test_data}}
+
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04

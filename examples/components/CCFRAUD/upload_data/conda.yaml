@@ -1,0 +1,14 @@
+name: ccfraud_upload_data_conda_env
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - pip=22.2.2
+  - pip:
+    - azure-identity
+    - azure-keyvault
+    - azureml-core
+    - azure-ai-ml
+    - scikit-learn
+    - kaggle
+    - pandas
