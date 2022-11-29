@@ -17,7 +17,14 @@ As for the source of the data for this example we have used Kaggle dataset, [**C
 Please follow the instructions in the [quickstart](../quickstart.md) to provision an open sandbox. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
 
 ### Kaggle credentials
-In the resource group, provisioned in the previous step, lookup the Key Vault and open "Secrets" tab. Here we will need to create two plian text secrets with following names and contents:
+In the resource group, provisioned in the previous step we need create two secrets in order for Kaggle API to be able to download the dataset. First we need to assign current user the access policies to be able to create secrets:
+- Open "Access Policies" tab in the newly created keyvault
+- Click "Create" button in the top
+- Select "Select all" right under "Secret Management Operations" and press "Next"
+- Lookup currently logged in user (using user id or an email), select it and press "Next"
+- Press "Next" and "Create" in the next screens
+
+Afterwards we are able to create the secrets. Start by opening "Secrets" tab. Here we will need to create two plain text secrets with following names and contents:
 - **kaggleusername** - specifies your kaggle user name
 - **kagglekey** - this is API key that can be obtained from your profile on the kaggle
 
