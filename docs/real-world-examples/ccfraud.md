@@ -2,9 +2,6 @@
 
 This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for credit card fraud detection in federating learning fashion. The example utilizes multitude of model architectures to demonstrate versatility of the proposed solution. We have chosen this scenario because we believe it is very common for credit card companies, banks and other similar financial institutions.
 
-:warning: This is an example for demonstration purposes only and the authors of this repository do not take any responsibility for loss or harm made by its usage.
-
-
 > To make setup of this example easier we will only provision an _open_ setup. Do not upload sensitive data to it! 
 
 # Data
@@ -44,7 +41,9 @@ Please update [**config**](../../examples/pipelines/ccfraud/config.yaml), field 
 - **SimpleVAE** - model composed of 2 encoder LSTM layers and 2 decoder LSTM layers that tries to recreate consumed sequence of transactions, the latent space created by encoder is consumed by a linear layer to perform prediction, takes data ordered by time in sequences that overlap each other
 
 ## Running example
-- Update [**config**](../../examples/pipelines/ccfraud/config.yaml) to reflect your AML FL orchestration setup
+- Update [**config**](../../examples/pipelines/ccfraud/config.yaml) to reflect your environment and AML FL orchestration setup:
+    - Subscription ID (subscription_id), Redource Group Name (resource_group_name), Workspace Name (workspace_name)
+    - Names of the clusters in different regions and their corresponding datastores (no need for update if running default setup)
 - Update configuration names in the `preprocessing/config` folder to reflect names of the computer in your own AML FL orchestration setup
 - Run the example by running `submit.py` file using python environment from the `pipelines` folder
 
