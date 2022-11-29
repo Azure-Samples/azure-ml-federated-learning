@@ -21,6 +21,14 @@ In the resource group, provisioned in the previous step, lookup the Key Vault an
 - **kaggleusername** - specifies your kaggle user name
 - **kagglekey** - this is API key that can be obtained from your profile on the kaggle
 
+### Data provisioning
+Before we dive deep into training the model we need to upload the data from Kaggle dataset into the silo datastores in corresponding geolocations. This can all be performed with ease using **data provisioning pipeline**. To run it follow these steps:
+
+- Navigate to: `examples/pipelines/utils/upload_data/` folder
+- Run `submit.py --submit` command
+
+:warning: Proceed to next step only one the pipeline finishes.
+
 ### Model choice
 Please update [**config**](../../examples/pipelines/ccfraud/config.yaml), field `model_name` in the `training_parameters` section, to reflect desired model to be trained, options include: SimpleLinear, SimpleLSTM, SimpleVAE
 
