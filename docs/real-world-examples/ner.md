@@ -37,8 +37,8 @@ Note: This is not required if you've already uploaded the data into their respec
 
 1. Create a conda environment for _submitting_ the job, and activate it.
    ```bash
-   conda env create --file ./examples/pipelines/ner/environment.yml
-   conda activate fl_ner_env
+   conda env create --file ./examples/pipelines/environment.yml
+   conda activate fl_experiment_conda_env
    ```
 
 2. Adjust the `./examples/pipelines/ner/config.yaml` file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
