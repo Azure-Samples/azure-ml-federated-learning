@@ -62,8 +62,8 @@ In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [
 
 | Medical Imaging | Named Entity Recognition | Fraud Detection |
 | :-: | :-: | :-: |
-| [![](./pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![](./pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![](./pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
-| [pneumonia.md](./docs/real-world-examples/pneumonia.md) | [ner.md](./docs/real-world-examples/ner.md) | [ccfraud.md](./docs/real-world-examples/ccfraud.md) |
+| [![](./pics/industry-medical-imaging.png)](./real-world-examples/pneumonia.md) | [![](./pics/industry-ner.png)](./real-world-examples/ner.md) | [![](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) |
+| [pneumonia.md](./real-world-examples/pneumonia.md) | [ner.md](./real-world-examples/ner.md) | [ccfraud.md](./real-world-examples/ccfraud.md) |
 
 ### Pneumonia detection from chest radiographs
 In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on a dataset from the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._ See [here](./real-world-examples/pneumonia.md) for detailed instructions on how to run this example.
