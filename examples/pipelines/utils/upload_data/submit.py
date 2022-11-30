@@ -1,5 +1,4 @@
 """Federated Learning Cross-Silo pipeline for uploading the data
-
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
 2) reads the components from a given folder,
@@ -50,7 +49,7 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=False,
-    choices=["CCFRAUD"],
+    choices=["CCFRAUD", "NER"],
     default="CCFRAUD",
     help="dataset name",
 )
