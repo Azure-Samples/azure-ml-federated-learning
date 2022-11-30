@@ -64,7 +64,7 @@ In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [
 In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on a dataset from the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._ See [here](./real-world-examples/pneumonia.md) for detailed instructions on how to run this example.
 
 ### Named Entity Recognition using MultiNERD dataset
-This example shows how to train a federated model for the Named Entity Recognition task. This tutorial uses the [MutliNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. See [here](./real-world-examples/ner.md) for detailed instructions on how to run this example.
+This example shows how to train a federated model for the Named Entity Recognition task. This tutorial uses the [MultiNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. See [here](./real-world-examples/ner.md) for detailed instructions on how to run this example.
 
 ### Credit card fraud detection using synthetic transactional data
 This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud.md) for detailed instructions on how to run this example.
