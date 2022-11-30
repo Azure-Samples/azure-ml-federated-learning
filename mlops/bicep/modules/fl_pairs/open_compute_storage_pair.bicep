@@ -27,7 +27,7 @@ param storageAccountName string = replace('st${pairBaseName}','-','') // replace
 param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 
 @description('Name of the default compute cluster for the pair')
-param computeName string = 'cpu-cluster-${pairBaseName}'
+param computeName string = 'cpu-${pairBaseName}'
 
 @description('VM size for the compute cluster')
 param computeSKU string = 'Standard_DS3_v2'
@@ -38,11 +38,21 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
-@description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
-param uaiName string = 'uai-${pairBaseName}'
 
 @description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
 param applyDefaultPermissions bool = true
+
+@description('Flag whether to create a gpu compute or not')
+param gpu bool = false
+
+@description('The gpu VM used for creating compute clusters in orchestrator and silos.')
+param gpuComputeSKU string = 'Standard_NC6'
+
+@description('Name of the default compute cluster for the pair')
+param gpuComputeName string = 'gpu-${pairBaseName}'
+
+@description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
+param computeUaiName string = 'uai-${pairBaseName}-${computeName}'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -62,6 +72,13 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
   }
 }
 
+// provision a user assigned identify for a compute
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
+  name: computeUaiName
+  location: pairRegion
+  tags: tags
+}
+
 // create new Azure ML compute
 module computeDeployment '../computes/open_new_aml_compute.bicep' = {
   name: '${pairBaseName}-open-aml-compute'
@@ -74,7 +91,24 @@ module computeDeployment '../computes/open_new_aml_compute.bicep' = {
     computeSKU: computeSKU
     computeNodes: computeNodes
     computeIdentityType: identityType
-    computeUaiName: uaiName
+    computeUaiName: uai.name
+    tags: tags
+  }
+}
+
+// create new Azure ML gpu compute
+module gpuComputeDeployment '../computes/open_new_aml_compute.bicep' = if(gpu) {
+  name: '${pairBaseName}-open-aml-gpu-compute'
+  scope: resourceGroup()
+  params: {
+    machineLearningName: machineLearningName
+    machineLearningRegion: machineLearningRegion
+    computeName: gpuComputeName
+    computeRegion: pairRegion
+    computeSKU: gpuComputeSKU
+    computeNodes: computeNodes
+    computeIdentityType: identityType
+    computeUaiName: uai.name
     tags: tags
   }
 }
