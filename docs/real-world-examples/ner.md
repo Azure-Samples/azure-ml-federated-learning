@@ -3,7 +3,6 @@
 **Scenario** - This example shows how to train a federated model for the Named Entity Recognition task. We mimic a real-world FL scenario where multiple institutions share labelled data for NER, but do not want to share the data with each other or with a central entity.  
 The model will be trained in a federated manner, where each entity will train a model on its own data, and the models will be aggregated to produce a final model.
 
-
 **Dataset** - This tutorial uses the [MutliNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. To simulate an FL scenario, we split the dataset randomly into distinct parts, each on a distinct silo.
 
 ## Install the required dependencies

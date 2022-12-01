@@ -5,7 +5,6 @@ The model will be trained in a federated manner, where each entity will train a 
 
 **Dataset** - The model is trained the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._.
 
-
 ## Install the required dependencies
 
 You'll need python to submit experiments to AzureML. You can install the required dependencies by running:
