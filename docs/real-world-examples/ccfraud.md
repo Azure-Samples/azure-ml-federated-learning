@@ -13,6 +13,12 @@ conda env create --file ./examples/pipelines/environment.yml
 conda activate fl_experiment_conda_env
 ```
 
+Alternatively, you can just install the required dependencies:
+
+```bash
+python -m pip install -r ./examples/pipelines/requirements.txt
+```
+
 ## Provision an FL sandbox workspace
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
