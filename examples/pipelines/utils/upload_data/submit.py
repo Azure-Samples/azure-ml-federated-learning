@@ -194,7 +194,6 @@ def fl_cross_silo_upload_data():
                 mode="mount",
                 path=custom_fl_data_path(silo_config.datastore, "raw_test_data"),
             )
-        
 
 
 pipeline_job = fl_cross_silo_upload_data()
