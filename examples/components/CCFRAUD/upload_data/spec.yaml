@@ -1,4 +1,3 @@
-
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: upload_data
 version: 0.0.1
@@ -17,10 +16,10 @@ inputs:
 outputs:
   raw_train_data:
     type: uri_folder
-    description: the output raw training data for given silo
+    description: the output raw training data for a given silo
   raw_test_data:
     type: uri_folder
-    description: the output raw training data for given silo
+    description: the output raw testing data for a given silo
 
 code: .
 
