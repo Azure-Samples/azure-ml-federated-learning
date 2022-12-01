@@ -3,6 +3,7 @@ name: upload_data
 version: 0.0.1
 display_name: Upload data (to silo storage)
 type: command
+description: Component that downloads the pneumonia dataset from Kaggle, partitions it, and then uploads each partition to one of the silos' storages.
 is_deterministic: true
 
 inputs:
@@ -14,17 +15,14 @@ inputs:
     optional: false
 
 outputs:
-  raw_train_data:
+  raw_data_folder:
     type: uri_folder
-    description: the output raw training data for a given silo
-  raw_test_data:
-    type: uri_folder
-    description: the output raw testing data for a given silo
+    description: the output folder where the raw data will be written
 
 code: .
 
 command: >-
-  python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_train_data ${{outputs.raw_train_data}} --raw_test_data ${{outputs.raw_test_data}}
+  python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_data_folder ${{outputs.raw_data_folder}}
 
 environment: 
   conda_file: ./conda.yaml

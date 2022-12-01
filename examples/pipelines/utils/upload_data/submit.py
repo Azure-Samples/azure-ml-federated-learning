@@ -1,4 +1,4 @@
-"""Federated Learning Cross-Silo pipeline for uploading the data
+"""Federated Learning Cross-Silo pipeline for uploading data to the silos' storages.
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
 2) reads the components from a given folder,
@@ -49,7 +49,7 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=False,
-    choices=["CCFRAUD", "NER"],
+    choices=["CCFRAUD", "NER", "PNEUMONIA"],
     default="CCFRAUD",
     help="dataset name",
 )
@@ -177,16 +177,23 @@ def fl_cross_silo_upload_data():
         silo_upload_data_step.compute = silo_config.compute
 
         # make sure the data is written in the right datastore
-        silo_upload_data_step.outputs.raw_train_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=custom_fl_data_path(silo_config.datastore, "raw_train_data"),
-        )
-        silo_upload_data_step.outputs.raw_test_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=custom_fl_data_path(silo_config.datastore, "raw_test_data"),
-        )
+        if args.example == "PNEUMONIA":
+            silo_upload_data_step.outputs.raw_data_folder = Output(
+                type=AssetTypes.URI_FOLDER,
+                mode="mount",
+                path=custom_fl_data_path(silo_config.datastore, "pneumonia"),
+            )
+        else:
+            silo_upload_data_step.outputs.raw_train_data = Output(
+                type=AssetTypes.URI_FOLDER,
+                mode="mount",
+                path=custom_fl_data_path(silo_config.datastore, "raw_train_data"),
+            )
+            silo_upload_data_step.outputs.raw_test_data = Output(
+                type=AssetTypes.URI_FOLDER,
+                mode="mount",
+                path=custom_fl_data_path(silo_config.datastore, "raw_test_data"),
+            )
 
 
 pipeline_job = fl_cross_silo_upload_data()
