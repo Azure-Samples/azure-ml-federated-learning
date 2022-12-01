@@ -1,4 +1,4 @@
-# Finance example for Federated Learning in Azure ML
+# Federated cross-geo credit card fraud detection
 
 **Scenario** - This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for credit card fraud detection in federating learning fashion. The example utilizes multitude of model architectures to demonstrate versatility of the proposed solution on a typical use case for the finance indutry. We have simulated a FL scenario by splitting the data into **distinct geo-location**. The sample provides a simple implementation  for **preprocessing** on **tabular data**.
 

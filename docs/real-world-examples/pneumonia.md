@@ -1,4 +1,4 @@
-# Pneumonia detection from chest radiographs
+# Federated medical imaging : radiographs classification
 
 **Scenario** - In this example, we train a federated learning model to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
 The model will be trained in a federated manner, where each entity will train a model on its own data, and the models will be aggregated to produce a final model.
