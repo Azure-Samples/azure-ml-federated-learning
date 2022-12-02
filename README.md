@@ -18,6 +18,15 @@ This repo provides some code samples for running a federated learning pipeline i
 
 No time to read? Get directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
 
+### Real world examples
+
+Please also check our industry use cases below.
+
+| Medical Imaging | Named Entity Recognition | Fraud Detection |
+| :-: | :-: | :-: |
+| [![](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
+| [pneumonia.md](./docs/real-world-examples/pneumonia.md) | [ner.md](./docs/real-world-examples/ner.md) | [ccfraud.md](./docs/real-world-examples/ccfraud.md) |
+
 ### Documentation
 
 Please find a full documentation of this project [**here**](docs/README.md).

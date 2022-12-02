@@ -1,0 +1,18 @@
+name: ner_train_conda_env
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.7.11
+  - pip=22.1.2
+  - pytorch=1.12.1
+  - cudatoolkit=11.3
+  - pip:
+    - azureml-mlflow
+    - azure-ai-ml==0.1.0b6
+    - pandas
+    - transformers
+    - evaluate
+    - numpy
+    - datasets
+    - seqeval

@@ -8,6 +8,9 @@ import glob
 import torch
 
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
 
@@ -65,7 +68,7 @@ class PyTorchStateDictFedAvg:
         """
         if self.avg_state_dict is None:
             # no model yet, nothing to average
-            self.avg_state_dict = torch.load(model_path)
+            self.avg_state_dict = torch.load(model_path, map_location=device)
             self.model_class = self.avg_state_dict.__class__.__name__
 
             if self.model_class != "OrderedDict":
@@ -82,7 +85,7 @@ class PyTorchStateDictFedAvg:
 
         else:
             # load the new model
-            model_to_add = torch.load(model_path)
+            model_to_add = torch.load(model_path, map_location=device)
             assert (
                 model_to_add.__class__.__name__ == self.model_class
             ), f"Model class mismatch: {model_to_add.__class__.__name__} != {self.model_class}"

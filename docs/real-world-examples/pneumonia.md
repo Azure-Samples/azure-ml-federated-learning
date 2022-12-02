@@ -25,30 +25,29 @@ The procedure to run this example  has three phases:
 Each phase is described in the subsections below.
 
 ### Provisioning
-This phase is easy. Just follow the instructions in the [quickstart](../quickstart.md) to provision an open sandbox. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
+This phase is easy. Just follow the instructions in the [quickstart](../quickstart.md) to provision an open sandbox with 3 silos. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
 
 ### Data preparation
-The goal of this phase is to upload to Azure ML 3 distinct datasets (one per silo), each subdivided into train, test, and validation. This is achieved by running a GitHub action that will download the dataset from [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia), split it evenly between the silos, and upload the 3 data assets. We will need to first create an Azure Service Principal with enough permissions to create the data assets in Azure ML. The whole procedure is explained below, and closely follows [the one](https://github.com/Azure/medical-imaging/blob/main/federated-learning/README.md#1-prepare-your-experiment) developed by Harmke Alkemade _et al_ .
+The goal of this phase is to upload to the 3 silos' storages 3 distinct datasets (one per silo), each subdivided into train, test, and validation. This is achieved by running a simple pipeline job in Azure ML. This simple job is made up of 3 independent jobs, which will each run in a given silo compute. Each job will download the full [pneumonia dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle, partition it, and write one partition to the silo's storage.
 
-1. Create a service principal with contributor access to your resource group by running the following Azure CLI command.
-```bash
-  az ad sp create-for-rbac --name "<service-principal-name>" --role contributor --scopes /subscriptions/<subscription-id>/resourceGroups/<your-resource-group-name> --sdk-auth
-```
-2. Create a [GitHub secret](https://github.com/Azure/actions-workflow-samples/blob/master/assets/create-secrets-for-GitHub-workflows.md) in your _forked_ repository. Name it AZURE_CREDENTIALS_DATAPREP and copy and paste the output of the above command to the Value field of the secret.
-3. Add the following secrets to your repository with corresponding values:
-  - KAGGLE_USERNAME: your Kaggle username.
-  - KAGGLE_KEY: your Kaggle API key. More info [here](https://www.kaggle.com/docs/api).
-4. Navigate to the GitHub Actions tab, and run the workflow with the name *FL data preparation - pneumonia example*. Provide the names of your workspace and resource group. This will register the datasets required for your experiment in your workspace.
+1. First, you'll need to store your Kaggle user name and API key in a key vault, so the Azure ML job can use these secrets to authenticate to the Kaggle API.
+    - Start by locating the key vault associated with your Azure ML workspace in the [Azure portal](https://portal.azure.com). It should be named like your Azure ML workspace, but starting with '`kv-`' instead of '`aml-`'.
+    - Once you have located the key vault in the Azure portal, open the "Access Policies" tab. You're going to create a new access policy to give yourself the permissions to manage secrets. To do so, click on "Create", select all "Secret Management Operations", and click "Next". Select your user id, click "Next" twice, then "Create".
+    - You should now be able to create secrets. Navigate to the "Secrets" tab and create the 2 following secrets, with these exact names:
+      - _kaggleusername_: your Kaggle username.
+      - _kagglekey_: your Kaggle API key. More info [here](https://www.kaggle.com/docs/api).
+2. Then, you will need to run the `upload_data` pipeline. First, make sure the compute and datastore names in the `./examples/pipelines/utils/upload_data/config.yaml` and `./examples/pipelines/pneumonia/config.yaml` files are the same (they should match those created by the [quickstart](../quickstart.md) provisioning). Then, adjust the workspace name, resource group, and subscription Id in `./examples/pipelines/utils/upload_data/config.yaml`. Finally, run the following commands to create a conda environment, activate it, and submit the pipeline.
+    ```bash
+    conda env create --file ./examples/pipelines/environment.yml
+    conda activate fl_experiment_conda_env
+    python ./examples/pipelines/utils/upload_data/submit.py --example PNEUMONIA --submit
+    ```
+3. Once the pipeline has completed, you can move on to the next phase. 
 
 ### Run the FL job
 
-1. Create a conda environment for _submitting_ the job, and activate it.
-   ```bash
-   conda env create --file ./examples/pipelines/environment.yml
-   conda activate fl_experiment_conda_env
-   ```
-2. Adjust config file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
-3. Submit the experiment.
+1. Adjust the config file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
+2. Submit the experiment (from the `fl_experiment_conda_env` conda environment like in the previous phase).
    ```bash
    python ./examples/pipelines/pneumonia/pneumonia_submit.py --submit
    ```
