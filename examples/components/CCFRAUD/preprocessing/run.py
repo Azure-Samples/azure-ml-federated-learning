@@ -8,8 +8,6 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import mlflow
 
-from azureml.core import Run, Workspace
-
 SCALERS = {}
 
 
@@ -162,11 +160,6 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
     logger.info(f"Running script with arguments: {args}")
-
-    # Get runtime specific configuration
-    run: Run = Run.get_context()
-    compute_target = run.get_details()["target"]
-    logger.info(f"Compute target: {compute_target}")
 
     def run():
         """Run script with arguments (the core of the component).

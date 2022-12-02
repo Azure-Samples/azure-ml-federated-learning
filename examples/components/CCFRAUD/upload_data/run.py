@@ -10,7 +10,6 @@ from sklearn.preprocessing import OneHotEncoder
 from zipfile import ZipFile
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
-from azure.ai.ml import MLClient
 
 SPLITS = {
     1: [["Midwest", "Northeast", "South", "West"]],
@@ -115,25 +114,6 @@ def get_key_vault() -> Keyvault:
     logging.info(f"Got run context: {run}")
     workspace: Workspace = run.experiment.workspace
     return workspace.get_default_keyvault()
-
-
-def get_ml_client(credential, workspace) -> MLClient:
-    """Gets MLClient based on provided credential and workspace
-
-    Args:
-        cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
-    """
-    subscription_id = workspace.subscription_id
-    resource_group = workspace.resource_group
-    workspace_name = workspace.name
-
-    ml_client = MLClient(
-        credential=credential,
-        subscription_id=subscription_id,
-        resource_group_name=resource_group,
-        workspace_name=workspace_name,
-    )
-    return ml_client
 
 
 def download_kaggle_dataset(kaggle_client, path):
