@@ -27,7 +27,7 @@ outputs:
     description: the output raw training data for given silo
   raw_test_data:
     type: uri_folder
-    description: the output raw testing data for a given silo
+    description: the output CC Fraud raw testing data for a given silo
 
 code: .
 
