@@ -30,9 +30,9 @@ To run this example, you will need to provision an AzureML workspace ready for F
 
 This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
 
-1. In this repository, navigate in the folder `examples/pipelines/utils/upload_data`
+1. In this repository, navigate in the folder `examples/pipelines/utils/upload_data/`
 
-2. If you are not using the quickstart setup, check the config file under ...
+2. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
 
 3. Submit the experiment by running:
 
@@ -48,7 +48,7 @@ TODO
 
 ## Run the demo experiment
 
-1. If you are not using the quickstart setup, adjust the config file under ...
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ner/` to match your setup.
 
 2. Submit the FL experiment by running:
 
