@@ -26,11 +26,11 @@ To run this example, you will need to provision an AzureML workspace ready for F
 
 :notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
 
-## Add your kaggle credentials to the workspace keyvault
+## Add your Kaggle credentials to the workspace keyvault
 
-We propose to run a job in the AzureML workspace that will unpack this demo dataset into each of your silos.
+In the next section, we will run a job in the AzureML workspace that will unpack the demo dataset from Kaggle into each of your silos.
 
-Since the dataset is from Kaggle, we will first store your username/password in the workspace keyvault. This will allow the job to download the dataset from Kaggle directly.
+Kaggle required username and a developer key, so we will first store safely those credentials in the workspace keyvault.
 
 1. In your workspace resource group (provisioned in the previous step), open "Access Policies" tab in the newly keyvault.
 
@@ -44,8 +44,8 @@ Since the dataset is from Kaggle, we will first store your username/password in 
 
 5. Open the "Secrets" tab. Create two plain text secrets:
     
-    - **kaggleusername** - specifies your kaggle user name
-    - **kagglekey** - this is API key that can be obtained from your profile on the kaggle
+    - **kaggleusername** - specifies your Kaggle user name
+    - **kagglekey** - this is API key that can be obtained from your account page on the Kaggle website.
 
 ## Run a job to download and store the dataset in each silo
 

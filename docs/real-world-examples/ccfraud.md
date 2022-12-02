@@ -25,11 +25,11 @@ To run this example, you will need to provision an AzureML workspace ready for F
 
 :notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
 
-## Add your kaggle credentials to the workspace keyvault
+## Add your Kaggle credentials to the workspace keyvault
 
-We propose to run a job in the AzureML workspace that will unpack this demo dataset into each of your silos.
+In the next section, we will run a job in the AzureML workspace that will unpack the demo dataset from Kaggle into each of your silos.
 
-Since the dataset is from Kaggle, we will first store your username/password in the workspace keyvault. This will allow the job to download the dataset from Kaggle directly.
+Kaggle required username and a developer key, so we will first store safely those credentials in the workspace keyvault.
 
 1. In your workspace resource group (provisioned in the previous step), open "Access Policies" tab in the newly keyvault.
 
@@ -43,8 +43,8 @@ Since the dataset is from Kaggle, we will first store your username/password in 
 
 5. Open the "Secrets" tab. Create two plain text secrets:
     
-    - **kaggleusername** - specifies your kaggle user name
-    - **kagglekey** - this is API key that can be obtained from your profile on the kaggle
+    - **kaggleusername** - specifies your Kaggle user name
+    - **kagglekey** - this is API key that can be obtained from your account page on the Kaggle website.
 
 ## Run a job to download and store the dataset in each silo
 
@@ -78,10 +78,10 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 ## Beyond the experiment
 
-This sample experiment provides multiple models you can try.
+This sample experiment provides multiple models you can try:
 
-Please update [**config**](../../examples/pipelines/ccfraud/config.yaml), field `model_name` in the `training_parameters` section, to reflect desired model to be trained, options include: SimpleLinear, SimpleLSTM, SimpleVAE
+- **SimpleLinear** : a model fully composed of `torch.Linear` layers with `ReLU` activations, takes data as-is sample-by-sample
+- **SimpleLSTM** : a model composed by 4 LSTM layers connected to linear head with architecture similar to **SimpleLinear**, takes data ordered by time in sequences that overlap each other
+- **SimpleVAE** : a model composed of 2 encoder LSTM layers and 2 decoder LSTM layers that tries to recreate consumed sequence of transactions, the latent space created by encoder is consumed by a linear layer to perform prediction, takes data ordered by time in sequences that overlap each other
 
-- **SimpleLinear** - model fully composed of `torch.Linear` layers with `ReLU` activations, takes data as-is sample-by-sample
-- **SimpleLSTM** - model composed by 4 LSTM layers connected to linear head with architecture similar to **SimpleLinear**, takes data ordered by time in sequences that overlap each other
-- **SimpleVAE** - model composed of 2 encoder LSTM layers and 2 decoder LSTM layers that tries to recreate consumed sequence of transactions, the latent space created by encoder is consumed by a linear layer to perform prediction, takes data ordered by time in sequences that overlap each other
+To switch between models, please update the `config.yaml` file in `examples/pipelines/ccfraud/`. Look for the field `model_name` in the `training_parameters` section (use `SimpleLinear`, `SimpleLSTM`, or `SimpleVAE`).

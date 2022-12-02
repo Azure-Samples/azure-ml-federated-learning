@@ -44,8 +44,6 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
-TODO
-
 ## Run the demo experiment
 
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ner/` to match your setup.
