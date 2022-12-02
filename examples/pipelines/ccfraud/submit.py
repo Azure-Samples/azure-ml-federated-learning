@@ -79,8 +79,14 @@ args = parser.parse_args()
 YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
-COMPONENTS_FOLDER = os.path.join(os.path.dirname(__file__), "../../components/CCFRAUD")
-MODEL_NAME = YAML_CONFIG.training_parameters.model_name
+COMPONENTS_FOLDER = os.path.join(
+    os.path.dirname(__file__), "..", "..", "components", "CCFRAUD"
+)
+
+# path to the shared components
+SHARED_COMPONENTS_FOLDER = os.path.join(
+    os.path.dirname(__file__), "..", "..", "components", "utils"
+)
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -93,7 +99,7 @@ def connect_to_aml():
         # Check if given credential can get token successfully.
         credential.get_token("https://management.azure.com/.default")
     except Exception as ex:
-        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
+        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential does not work
         credential = InteractiveBrowserCredential()
 
     # Get a handle to workspace
@@ -133,7 +139,7 @@ training_component = load_component(
 )
 
 aggregate_component = load_component(
-    source=os.path.join("../../components/utils", "aggregatemodelweights", "spec.yaml")
+    source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
 
@@ -181,7 +187,7 @@ pipeline_identifier = getUniqueIdentifier()
 @pipeline(
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
-def fl_cross_silo_internal_basic():
+def fl_ccfraud_basic():
     ######################
     ### PRE-PROCESSING ###
     ######################
@@ -267,7 +273,8 @@ def fl_cross_silo_internal_basic():
                 metrics_prefix=silo_config.compute,
                 # Iteration name
                 iteration_name=f"Iteration-{iteration}",
-                model_name=MODEL_NAME,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -319,7 +326,7 @@ def fl_cross_silo_internal_basic():
     return {"final_aggregated_model": running_checkpoint}
 
 
-pipeline_job = fl_cross_silo_internal_basic()
+pipeline_job = fl_ccfraud_basic()
 
 # Inspect built pipeline
 print(pipeline_job)
@@ -328,7 +335,7 @@ if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_dev"
+        pipeline_job, experiment_name="fl_demo_ccfraud"
     )
 
     print("The url to see your live job running is returned by the sdk:")

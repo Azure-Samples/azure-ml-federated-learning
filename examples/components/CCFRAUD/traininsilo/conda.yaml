@@ -9,7 +9,6 @@ dependencies:
   - torchvision=0.13.1
   - cudatoolkit=11.3
   - pip:
-    - azureml-mlflow
-    - azure-ai-ml==0.1.0b6
-    - pandas
-    - torchmetrics
+    - azureml-mlflow==1.47.0
+    - pandas==1.3.5
+    - torchmetrics==0.10.3

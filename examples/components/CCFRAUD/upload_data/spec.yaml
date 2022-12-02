@@ -1,7 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: upload_data
-version: 0.0.1
-display_name: Upload data (to silo storage)
+name: ccfraud_upload_data
+version: 0.3.0
+display_name: Download CC Fraud data from Kaggle and upload to silo storage
 type: command
 is_deterministic: true
 
@@ -16,10 +16,10 @@ inputs:
 outputs:
   raw_train_data:
     type: uri_folder
-    description: the output raw training data for a given silo
+    description: the output CC Fraud raw training data for a given silo
   raw_test_data:
     type: uri_folder
-    description: the output raw testing data for a given silo
+    description: the output CC Fraud raw testing data for a given silo
 
 code: .
 
@@ -28,4 +28,4 @@ command: >-
 
 environment: 
   conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
