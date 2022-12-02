@@ -186,12 +186,16 @@ def fl_cross_silo_upload_data():
             silo_upload_data_step.outputs.raw_train_data = Output(
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
-                path=custom_fl_data_path(silo_config.datastore, f"{args.example.lower()}/raw_train_data"),
+                path=custom_fl_data_path(
+                    silo_config.datastore, f"{args.example.lower()}/raw_train_data"
+                ),
             )
             silo_upload_data_step.outputs.raw_test_data = Output(
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
-                path=custom_fl_data_path(silo_config.datastore, f"{args.example.lower()}/raw_test_data"),
+                path=custom_fl_data_path(
+                    silo_config.datastore, f"{args.example.lower()}/raw_test_data"
+                ),
             )
 
 
