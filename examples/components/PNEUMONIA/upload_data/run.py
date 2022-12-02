@@ -11,7 +11,7 @@ import splitfolders
 
 
 def get_kaggle_client(kv: Keyvault):
-    """Gets a Kaggle client using the secrets in a key vault to authenticate.
+    """Gets a Kaggle client using the secrets in a key vault to authenticate..
 
     Args:
         kv (Keyvault): key vault to use for retrieving the Kaggle credentials. The Kaggle user name secret needs to be named 'kaggleusername', while the Kaggle API key secret needs to be named 'kagglekey'.
