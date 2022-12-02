@@ -1,52 +1,60 @@
-# Named Entity Recognition using MultiNERD dataset
+# Federated Named Entity Recognition
 
-## Background
-This example shows how to train a federated model for the Named Entity Recognition task. This tutorial uses the [MutliNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset.  
-The steps listed below describe a step-by-step process for carrying out this experiment, including provisioning resources, uploading data, creating training scripts, etc. Any NLP work can be carried out in a federated fashion using this example as a template.
+**Scenario** - This example shows how to train a federated model for the Named Entity Recognition task. We mimic a real-world FL scenario where multiple institutions share labelled data for NER, but do not want to share the data with each other or with a central entity.  
+The model will be trained in a federated manner, where each entity will train a model on its own data, and the models will be aggregated to produce a final model.
 
-> For the sake of simplicity, we will only provision an _open_ setup. Do not upload sensitive data to it! 
-## Prerequisites
-To enjoy this tutorial, you will need to:
-- have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
-- have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
-  - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
-- [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
+**Dataset** - This tutorial uses the [MutliNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. To simulate an FL scenario, we split the dataset randomly into distinct parts, each on a distinct silo.
 
-## Procedure
-Please follow the below instructions to provision resources, upload data, and then run the experiment:
+## Install the required dependencies
 
-### Provision Resources
-The instructions are provided in the [quickstart](../quickstart.md) to provision an open sandbox. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
+You'll need python to submit experiments to AzureML. You can install the required dependencies by running:
 
-### Upload Data
-The steps to upload data to various datastores are as follows:
+```bash
+conda env create --file ./examples/pipelines/environment.yml
+conda activate fl_experiment_conda_env
+```
 
-Note: This is not required if you've already uploaded the data into their respective datastores.
+Alternatively, you can just install the required dependencies:
 
-1. Make sure the compute and datastore names in the `./examples/pipelines/utils/upload_data/config.yaml` and `./examples/pipelines/ner/config.yaml` files are the same. 
+```bash
+python -m pip install -r ./examples/pipelines/requirements.txt
+```
 
-2. Run the below command to create a pipeline in Azure ML that uploads data to datastores. (Note: This may take a few minutes to finish.)
+## Provision an FL sandbox workspace
+
+To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
+
+:notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
+
+## Run a job to download and store the dataset in each silo
+
+This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
+
+1. In this repository, navigate in the folder `examples/pipelines/utils/upload_data/`
+
+2. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
+
+3. Submit the experiment by running:
+
    ```bash
-   python ./examples/pipelines/utils/upload_data/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>" --example NER
+   python ./examples/pipelines/utils/upload_data/submit.py --submit --example NER --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
-3. Verify if the data is successfully uploaded. (Go to AML Studio ->  Data -> DataStores -> (datastore-name) -> Browse)
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
+:warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
-### Run the FL job
+## Run the demo experiment
 
-1. Create a conda environment for _submitting_ the job, and activate it.
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ner/` to match your setup.
+
+2. Submit the FL experiment by running:
+
    ```bash
-   conda env create --file ./examples/pipelines/environment.yml
-   conda activate fl_experiment_conda_env
+   python ./examples/pipelines/ner/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
-2. Adjust the `./examples/pipelines/ner/config.yaml` file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
-
-3. Submit the experiment.
-   ```bash
-   python ./examples/pipelines/ner/submit.py --submit
-   ```
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
 #### References
 
