@@ -2,18 +2,18 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: train_in_silo
 version: 0.1.26
-display_name: Train (in silo)
+display_name: CC Fraud Train (in silo)
 type: command
-description: Component to train a model within a FL silo.
+description: Component to train a model to classify CC Fraud.
 is_deterministic: false
 
 inputs:
   train_data:
     type: uri_folder
-    description: the input training data
+    description: the input training data (preprocessed)
   test_data:
     type: uri_folder
-    description: the input testing data
+    description: the input testing data (preprocessed)
   metrics_prefix:
     type: string
     description: Metrics prefix

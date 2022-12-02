@@ -1,7 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: upload_data
-version: 0.0.1
-display_name: Upload data (to silo storage)
+name: ner_upload_data
+version: 0.3.0
+display_name: Download MultiNERD data and upload to silo storage
 type: command
 is_deterministic: true
 

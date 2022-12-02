@@ -1,7 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: upload_data
-version: 0.0.1
-display_name: Upload data (to silo storage)
+name: pneumonia_upload_data
+version: 0.3.0
+display_name: Download Chest dataset and upload to silo storage
 type: command
 description: Component that downloads the pneumonia dataset from Kaggle, partitions it, and then uploads each partition to one of the silos' storages.
 is_deterministic: true

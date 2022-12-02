@@ -1,10 +1,10 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: train_in_silo
-version: 0.1.0
-display_name: Train (in silo)
+name: pneumonia_train_in_silo
+version: 0.3.0
+display_name: Pneumonia Train (in silo)
 type: command
-description: Component to train a model within a FL silo.
+description: Component to train a pneumonia detection model on chest radiographs
 is_deterministic: true
 
 inputs:

@@ -1,19 +1,19 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: preprocessing_in_silo
-version: 0.1.0
-display_name: Pre-Processing (in silo)
+name: ner_preprocessing_in_silo
+version: 0.3.0
+display_name: MultiNERD Pre-Processing (in silo)
 type: command
-description: Component to preprocess raw data in a given silo.
+description: Component to preprocess the MultiNERD raw data
 is_deterministic: true
 
 inputs:
   raw_training_data:
     type: uri_folder
-    description: the raw training data in a given silo
+    description: the raw MultiNERD training data
   raw_testing_data:
     type: uri_folder
-    description: the raw testing data in a given silo
+    description: the raw MultiNERD testing data
   tokenizer_name:
     type: string
     description: Tokenizer model name
