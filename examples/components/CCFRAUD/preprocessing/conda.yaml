@@ -13,4 +13,3 @@ dependencies:
     - azureml-core
     - pandas
     - scikit-learn
-    - hydra-core

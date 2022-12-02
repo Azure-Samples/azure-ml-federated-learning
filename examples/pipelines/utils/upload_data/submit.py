@@ -48,9 +48,8 @@ parser.add_argument(
 
 parser.add_argument(
     "--example",
-    required=False,
+    required=True,
     choices=["CCFRAUD", "NER", "PNEUMONIA"],
-    default="CCFRAUD",
     help="dataset name",
 )
 
@@ -181,18 +180,18 @@ def fl_cross_silo_upload_data():
             silo_upload_data_step.outputs.raw_data_folder = Output(
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
-                path=custom_fl_data_path(silo_config.datastore, "pneumonia"),
+                path=custom_fl_data_path(silo_config.datastore, args.example.lower()),
             )
         else:
             silo_upload_data_step.outputs.raw_train_data = Output(
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
-                path=custom_fl_data_path(silo_config.datastore, "raw_train_data"),
+                path=custom_fl_data_path(silo_config.datastore, f"{args.example.lower()}/raw_train_data"),
             )
             silo_upload_data_step.outputs.raw_test_data = Output(
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
-                path=custom_fl_data_path(silo_config.datastore, "raw_test_data"),
+                path=custom_fl_data_path(silo_config.datastore, f"{args.example.lower()}/raw_test_data"),
             )
 
 
@@ -205,7 +204,7 @@ if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_dev_upload_data"
+        pipeline_job, experiment_name="fl_demo_upload_data"
     )
 
     print("The url to see your live job running is returned by the sdk:")

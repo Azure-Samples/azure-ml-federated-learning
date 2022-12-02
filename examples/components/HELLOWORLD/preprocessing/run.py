@@ -4,7 +4,6 @@ import logging
 import sys
 import glob
 
-
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
 
@@ -62,6 +61,18 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
+    print(os.system('df -k /'))
+
+    import shutil
+
+    total, used, free = shutil.disk_usage("/")
+
+    print("Total: %d GiB" % (total // (2**30)))
+    print("Used: %d GiB" % (used // (2**30)))
+    print("Free: %d GiB" % (free // (2**30)))
+
+    import psutil
+    print(psutil.virtual_memory())
     print(f"Running script with arguments: {args}")
     test_input(args.raw_training_data)
     test_input(args.raw_testing_data)

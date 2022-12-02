@@ -27,4 +27,4 @@ command: >-
   python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_train_data ${{outputs.raw_train_data}} --raw_test_data ${{outputs.raw_test_data}}
 environment: 
   conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
