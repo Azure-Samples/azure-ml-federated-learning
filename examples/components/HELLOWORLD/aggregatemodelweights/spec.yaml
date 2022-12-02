@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: aggregate_model_weights
+name: helloworld_aggregate_model_weights
 version: 0.3.0
 display_name: Aggregate Model Weights (from all silos)
 type: command
