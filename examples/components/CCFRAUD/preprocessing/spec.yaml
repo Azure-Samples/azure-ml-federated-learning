@@ -4,7 +4,7 @@ name: ccfraud_preprocessing_in_silo
 version: 0.3.0
 display_name: CC Fraud Pre-Processing (in silo)
 type: command
-description: Component for preprocessing raw data from the ccfraud dataset.
+description: Component for preprocessing raw data from silo's blob storage
 is_deterministic: true
 
 inputs:
