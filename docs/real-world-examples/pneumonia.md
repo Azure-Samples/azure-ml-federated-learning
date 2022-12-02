@@ -24,6 +24,8 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
 
+:notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
+
 ## Add your kaggle credentials to the workspace keyvault
 
 We propose to run a job in the AzureML workspace that will unpack this demo dataset into each of your silos.
@@ -59,9 +61,9 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    python ./examples/pipelines/utils/upload_data/submit.py --submit --example PNEUMONIA --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
-:warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
-TODO
+:warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
 ## Run the demo experiment
 
@@ -70,5 +72,7 @@ TODO
 2. Submit the FL experiment by running:
 
    ```bash
-   python ./examples/pipelines/pneumonia/submit.py --submit
+   python ./examples/pipelines/pneumonia/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.

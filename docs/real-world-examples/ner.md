@@ -24,6 +24,8 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
 
+:notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
+
 ## Run a job to download and store the dataset in each silo
 
 This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
@@ -38,6 +40,8 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    python ./examples/pipelines/utils/upload_data/submit.py --submit --example NER --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
+
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
 TODO
@@ -49,8 +53,10 @@ TODO
 2. Submit the FL experiment by running:
 
    ```bash
-   python ./examples/pipelines/ner/submit.py --submit
+   python ./examples/pipelines/ner/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
 #### References
 
