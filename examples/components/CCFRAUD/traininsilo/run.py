@@ -170,7 +170,9 @@ class CCFraudTrainer:
         # Build model
         self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
         if self._distributed:
-            self.model_ = DDP(self.model_, device_ids=[self._rank], output_device=self._rank)
+            self.model_ = DDP(
+                self.model_, device_ids=[self._rank], output_device=self._rank
+            )
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
