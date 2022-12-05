@@ -133,7 +133,7 @@ class CCFraudTrainer:
         )
         logger.info(f"Using device: {self.device_}")
 
-        if distributed:
+        if self._distributed:
             self._rank = device_id
             logger.info(f"Rank: {self._rank}")
         else:
@@ -143,7 +143,7 @@ class CCFraudTrainer:
             train_data_dir, test_data_dir, model_name
         )
 
-        if distributed:
+        if self._distributed:
             self.train_sampler_ = torch.utils.data.distributed.DistributedSampler(
                 self.train_dataset_
             )
@@ -169,7 +169,7 @@ class CCFraudTrainer:
 
         # Build model
         self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
-        if distributed:
+        if self._distributed:
             self.model_ = DDP(self.model_, device_ids=[self._rank], output_device=self._rank)
         self._model_path = model_path
 
@@ -323,8 +323,7 @@ class CCFraudTrainer:
                                     name,
                                     value,
                                 )
-                        if not self._distributed or self._rank == 0:
-                            logger.info(", ".join(log_message))
+                        logger.info(", ".join(log_message))
                         train_metrics.reset_step()
 
                 test_metrics = self.test()
@@ -352,8 +351,7 @@ class CCFraudTrainer:
                             name,
                             value,
                         )
-                if not self._distributed or self._rank == 0:
-                    logger.info(", ".join(log_message))
+                logger.info(", ".join(log_message))
 
             log_message = [
                 f"End of training",
@@ -380,8 +378,7 @@ class CCFraudTrainer:
                         value,
                         pipeline_level=True,
                     )
-            if not self._distributed or self._rank == 0:
-                logger.info(", ".join(log_message))
+            logger.info(", ".join(log_message))
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
@@ -526,6 +523,7 @@ def run_parallel(rank, world_size, args):
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
         device_id=rank,
+        distributed=True,
     )
     trainer.execute(args.checkpoint)
 
@@ -547,20 +545,6 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    sp = subprocess.Popen(
-        ["nvidia-smi", "-q"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    lines = sp.communicate()[0].decode("utf-8").split("\n")
-    for line in lines:
-        print(line)
-
-    sp = subprocess.Popen(
-        ["ipcs", "-lm"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
-    lines = sp.communicate()[0].decode("utf-8").split("\n")
-    for line in lines:
-        print(line)
-
     print(f"Running script with arguments: {args}")
     print(f"CUDA available: {torch.cuda.is_available()}")
     cuda_count = torch.cuda.device_count()
@@ -574,5 +558,5 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-    
+
     main()
