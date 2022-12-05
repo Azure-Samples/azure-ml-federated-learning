@@ -2,13 +2,18 @@
 import argparse
 import logging
 import sys
+import os
 import copy
+import subprocess
 
 import mlflow
 import torch
 import pandas as pd
 import numpy as np
 from torch import nn
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
@@ -17,6 +22,8 @@ from mlflow import log_metric, log_param
 from typing import List
 import models as models
 import datasets as datasets
+
+logger = None
 
 
 class RunningMetrics:
@@ -85,16 +92,20 @@ class CCFraudTrainer:
         batch_size=10,
         experiment_name="default-experiment",
         iteration_name="default-iteration",
+        device_id=None,
+        distributed=False,
     ):
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
             model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE
-            train_data_dir(str, optional): Training data directory path
-            test_data_dir(str, optional): Testing data directory path
-            lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 1
+            train_data_dir(str, optional): Training data directory path.
+            test_data_dir(str, optional): Testing data directory path.
+            lr (float, optional): Learning rate. Defaults to 0.01.
+            epochs (int, optional): Epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            device_id (int, optional): Device id to run training on. Default to None.
+            distributed (bool, optional): Whether to run distributed training. Default to False.
 
         Attributes:
             model_: Model
@@ -112,21 +123,54 @@ class CCFraudTrainer:
         self._batch_size = batch_size
         self._experiment_name = experiment_name
         self._iteration_name = iteration_name
+        self._distributed = distributed
 
-        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device_ = (
+            torch.device("cuda", device_id)
+            # torch.cuda.device(device_id)
+            if device_id is not None
+            else torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        )
+        logger.info(f"Using device: {self.device_}")
+
+        if distributed:
+            self._rank = device_id
+            logger.info(f"Rank: {self._rank}")
+        else:
+            self._rank = None
 
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
             train_data_dir, test_data_dir, model_name
         )
+
+        if distributed:
+            self.train_sampler_ = torch.utils.data.distributed.DistributedSampler(
+                self.train_dataset_
+            )
+            self.test_sampler_ = torch.utils.data.distributed.DistributedSampler(
+                self.test_dataset_
+            )
+        else:
+            self.train_sampler_ = None
+            self.test_sampler_ = None
+
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_size=batch_size, shuffle=True
+            self.train_dataset_,
+            batch_size=batch_size,
+            shuffle=(self.train_sampler_ is None),
+            sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_size=batch_size, shuffle=True
+            self.test_dataset_,
+            batch_size=batch_size,
+            shuffle=False,
+            sampler=self.test_sampler_,
         )
 
         # Build model
         self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
+        if distributed:
+            self.model_ = DDP(self.model_, device_ids=[self._rank], output_device=self._rank)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
@@ -275,13 +319,15 @@ class CCFraudTrainer:
 
                         for name, value in train_metrics.get_step().items():
                             log_message.append(f"{name}: {value}")
-                            self.log_metrics(
-                                mlflow_client,
-                                root_run_id,
-                                name,
-                                value,
-                            )
-                        logger.info(", ".join(log_message))
+                            if not self._distributed or self._rank == 0:
+                                self.log_metrics(
+                                    mlflow_client,
+                                    root_run_id,
+                                    name,
+                                    value,
+                                )
+                        if not self._distributed or self._rank == 0:
+                            logger.info(", ".join(log_message))
                         train_metrics.reset_step()
 
                 test_metrics = self.test()
@@ -293,21 +339,24 @@ class CCFraudTrainer:
                 # log test metrics after each epoch
                 for name, value in train_metrics.get_global().items():
                     log_message.append(f"{name}: {value}")
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        name,
-                        value,
-                    )
+                    if not self._distributed or self._rank == 0:
+                        self.log_metrics(
+                            mlflow_client,
+                            root_run_id,
+                            name,
+                            value,
+                        )
                 for name, value in test_metrics.get_global().items():
                     log_message.append(f"{name}: {value}")
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        name,
-                        value,
-                    )
-                logger.info(", ".join(log_message))
+                    if not self._distributed or self._rank == 0:
+                        self.log_metrics(
+                            mlflow_client,
+                            root_run_id,
+                            name,
+                            value,
+                        )
+                if not self._distributed or self._rank == 0:
+                    logger.info(", ".join(log_message))
 
             log_message = [
                 f"End of training",
@@ -315,24 +364,27 @@ class CCFraudTrainer:
             # log metrics at the pipeline level
             for name, value in train_metrics.get_global().items():
                 log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
+                if not self._distributed or self._rank == 0:
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                        pipeline_level=True,
+                    )
 
             for name, value in test_metrics.get_global().items():
                 log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
-            logger.info(", ".join(log_message))
+                if not self._distributed or self._rank == 0:
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                        pipeline_level=True,
+                    )
+            if not self._distributed or self._rank == 0:
+                logger.info(", ".join(log_message))
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
@@ -376,9 +428,10 @@ class CCFraudTrainer:
         logger.debug("Start training")
         self.local_train(checkpoint)
 
-        logger.debug("Save model")
-        torch.save(self.model_.state_dict(), self._model_path)
-        logger.info(f"Model saved to {self._model_path}")
+        if not self._distributed or self._rank == 0:
+            logger.debug("Save model")
+            torch.save(self.model_.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
 
 
 def get_arg_parser(parser=None):
@@ -423,13 +476,25 @@ def get_arg_parser(parser=None):
     return parser
 
 
+def create_logger():
+    global logger
+    # Set logging to sys.out
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+
+
 def run(args):
     """Run script with arguments (the core of the component).
 
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-
+    create_logger()
     trainer = CCFraudTrainer(
         model_name=args.model_name,
         train_data_dir=args.train_data,
@@ -442,6 +507,32 @@ def run(args):
         iteration_name=args.iteration_name,
     )
     trainer.execute(args.checkpoint)
+
+
+def run_parallel(rank, world_size, args):
+    os.environ["MASTER_ADDR"] = "localhost"
+    os.environ["MASTER_PORT"] = "12355"
+    os.environ["WORLD_SIZE"] = str(world_size)
+    os.environ["RANK"] = str(rank)
+
+    # initialize the process group
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    create_logger()
+    trainer = CCFraudTrainer(
+        model_name=args.model_name,
+        train_data_dir=args.train_data,
+        test_data_dir=args.test_data,
+        model_path=args.model_path + "/model.pt",
+        lr=args.lr,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        experiment_name=args.metrics_prefix,
+        iteration_name=args.iteration_name,
+        device_id=rank,
+    )
+    trainer.execute(args.checkpoint)
+
+    dist.destroy_process_group()
 
 
 def main(cli_args=None):
@@ -459,19 +550,32 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
+    sp = subprocess.Popen(
+        ["nvidia-smi", "-q"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    lines = sp.communicate()[0].decode("utf-8").split("\n")
+    for line in lines:
+        print(line)
+
+    sp = subprocess.Popen(
+        ["ipcs", "-lm"], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    lines = sp.communicate()[0].decode("utf-8").split("\n")
+    for line in lines:
+        print(line)
+
     print(f"Running script with arguments: {args}")
-    run(args)
+    print(f"CUDA available: {torch.cuda.is_available()}")
+    cuda_count = torch.cuda.device_count()
+    print(f"Found CUDA devices: {cuda_count}")
+
+    if torch.cuda.device_count() > 1:
+        print("Running DDP training to utilize multiple GPUs.")
+        mp.spawn(run_parallel, args=(cuda_count, args), nprocs=cuda_count, join=True)
+    else:
+        run(args)
 
 
 if __name__ == "__main__":
-
-    # Set logging to sys.out
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(log_format)
-    logger.addHandler(handler)
-
+    
     main()
