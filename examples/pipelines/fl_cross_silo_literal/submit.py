@@ -33,7 +33,7 @@ from omegaconf import OmegaConf
 ############################
 
 parser = argparse.ArgumentParser(description=__doc__)
- 
+  
 parser.add_argument(
     "--config",
     type=str,
