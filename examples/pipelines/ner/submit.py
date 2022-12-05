@@ -1,4 +1,4 @@
-"""Federated Learning Cross-Silo basic pipeline for pneumonia detection on chest xrays.
+"""Federated Learning Cross-Silo basic pipeline for a Named Entity Recognition task (MultiNERD dataset)
 
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
@@ -80,7 +80,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", "PNEUMONIA"
+    os.path.dirname(__file__), "..", "..", "components", "NER"
 )
 
 # path to the shared components
@@ -130,6 +130,10 @@ ML_CLIENT = connect_to_aml()
 ####################################
 
 # Loading the component from their yaml specifications
+preprocessing_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
+)
+
 training_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
 )
@@ -181,9 +185,64 @@ pipeline_identifier = getUniqueIdentifier()
 
 
 @pipeline(
-    description=f'FL cross-silo basic pipeline for pneumonia detection. The unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
+    description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
-def fl_pneumonia_basic():
+def fl_ner_basic():
+    ######################
+    ### PRE-PROCESSING ###
+    ######################
+
+    # once per silo, we're running a pre-processing step
+
+    silo_preprocessed_train_data = (
+        []
+    )  # list of preprocessed train datasets for each silo
+    silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
+
+    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+        # run the pre-processing component once
+        silo_pre_processing_step = preprocessing_component(
+            raw_training_data=Input(
+                type=silo_config.training_data.type,
+                mode=silo_config.training_data.mode,
+                path=silo_config.training_data.path,
+            ),
+            raw_testing_data=Input(
+                type=silo_config.testing_data.type,
+                mode=silo_config.testing_data.mode,
+                path=silo_config.testing_data.path,
+            ),
+            tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
+            metrics_prefix=silo_config.compute,
+        )
+
+        # add a readable name to the step
+        silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
+
+        # make sure the compute corresponds to the silo
+        silo_pre_processing_step.compute = silo_config.compute
+
+        # make sure the data is written in the right datastore
+        silo_pre_processing_step.outputs.processed_train_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=custom_fl_data_path(silo_config.datastore, "train_data"),
+        )
+        silo_pre_processing_step.outputs.processed_test_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=custom_fl_data_path(silo_config.datastore, "test_data"),
+        )
+
+        # store a handle to the train data for this silo
+        silo_preprocessed_train_data.append(
+            silo_pre_processing_step.outputs.processed_train_data
+        )
+        # store a handle to the test data for this silo
+        silo_preprocessed_test_data.append(
+            silo_pre_processing_step.outputs.processed_test_data
+        )
+
     ################
     ### TRAINING ###
     ################
@@ -200,21 +259,25 @@ def fl_pneumonia_basic():
             # we're using training component here
             silo_training_step = training_component(
                 # with the train_data from the pre_processing step
-                dataset_name=Input(
-                    type=silo_config.silo_data.type,
-                    mode=silo_config.silo_data.mode,
-                    path=silo_config.silo_data.path,
-                ),
+                train_data=silo_preprocessed_train_data[silo_index],
+                # with the test_data from the pre_processing step
+                test_data=silo_preprocessed_test_data[silo_index],
                 # and the checkpoint from previous iteration (or None if iteration == 1)
                 checkpoint=running_checkpoint,
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
                 epochs=YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
                 metrics_prefix=silo_config.compute,
                 # Iteration number
                 iteration_num=iteration,
+                # Tokenizer name
+                tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -266,7 +329,7 @@ def fl_pneumonia_basic():
     return {"final_aggregated_model": running_checkpoint}
 
 
-pipeline_job = fl_pneumonia_basic()
+pipeline_job = fl_ner_basic()
 
 # Inspect built pipeline
 print(pipeline_job)
@@ -275,7 +338,7 @@ if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_demo_pneumonia"
+        pipeline_job, experiment_name="fl_demo_ner"
     )
 
     print("The url to see your live job running is returned by the sdk:")

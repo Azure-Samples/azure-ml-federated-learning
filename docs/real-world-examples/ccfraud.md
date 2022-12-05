@@ -1,9 +1,8 @@
-# Federated medical imaging : radiographs classification
+# Federated cross-geo credit card fraud detection
 
-**Scenario** - In this example, we train a federated learning model to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
-The model will be trained in a federated manner, where each entity will train a model on its own data, and the models will be aggregated to produce a final model.
+**Scenario** - This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for credit card fraud detection in federating learning fashion. The example utilizes multitude of model architectures to demonstrate versatility of the proposed solution on a typical use case for the finance indutry. We have simulated a FL scenario by splitting the data into **distinct geo-location**. The sample provides a simple implementation  for **preprocessing** on **tabular data**.
 
-**Dataset** - The model is trained the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._.
+**Dataset** - This example is trained using the Kaggle dataset [**Credit Card Transactions Fraud Detection Dataset**](https://www.kaggle.com/datasets/kartik2112/fraud-detection?datasetId=817870&sortBy=voteCount&types=competitions). This dataset is generated using a simulation that contains both genuine and fraudulent transactions. 
 
 ## Install the required dependencies
 
@@ -58,7 +57,7 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 3. Submit the experiment by running:
 
    ```bash
-   python ./examples/pipelines/utils/upload_data/submit.py --submit --example PNEUMONIA --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/utils/upload_data/submit.py --submit --example CCFRAUD --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
@@ -67,12 +66,22 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 ## Run the demo experiment
 
-1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/pneumonia/` to match your setup.
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ccfraud/` to match your setup.
 
 2. Submit the FL experiment by running:
 
    ```bash
-   python ./examples/pipelines/pneumonia/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/ccfraud/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
+
+## Beyond the experiment
+
+This sample experiment provides multiple models you can try:
+
+- **SimpleLinear** : a model fully composed of `torch.Linear` layers with `ReLU` activations, takes data as-is sample-by-sample
+- **SimpleLSTM** : a model composed by 4 LSTM layers connected to linear head with architecture similar to **SimpleLinear**, takes data ordered by time in sequences that overlap each other
+- **SimpleVAE** : a model composed of 2 encoder LSTM layers and 2 decoder LSTM layers that tries to recreate consumed sequence of transactions, the latent space created by encoder is consumed by a linear layer to perform prediction, takes data ordered by time in sequences that overlap each other
+
+To switch between models, please update the `config.yaml` file in `examples/pipelines/ccfraud/`. Look for the field `model_name` in the `training_parameters` section (use `SimpleLinear`, `SimpleLSTM`, or `SimpleVAE`).

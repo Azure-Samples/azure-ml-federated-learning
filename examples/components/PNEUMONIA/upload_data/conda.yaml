@@ -1,0 +1,12 @@
+name: pneumonia_upload_data_conda_env
+channels:
+  - defaults
+dependencies:
+  - python=3.8
+  - pip=22.2.2
+  - pip:
+    - azure-identity==1.12.0
+    - azure-keyvault==4.2.0
+    - azureml-core==1.47.0
+    - kaggle==1.5.12
+    - split-folders==0.5.1

@@ -1,9 +1,14 @@
-name: agg_conda_env
+name: ccfraud_train_conda_env
 channels:
   - defaults
   - pytorch
 dependencies:
   - python=3.7.11
+  - pip=20.0
   - pytorch=1.12.1
   - torchvision=0.13.1
   - cudatoolkit=11.3
+  - pip:
+    - azureml-mlflow==1.47.0
+    - pandas==1.3.5
+    - torchmetrics==0.10.3
