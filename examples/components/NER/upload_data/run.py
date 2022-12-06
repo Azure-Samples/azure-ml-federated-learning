@@ -29,7 +29,7 @@ def run(args):
 
 
 def get_arg_parser(parser=None):
-    """Parse the command line arguments for merge using argparse.
+    """Parse the command line arguments for merge using argparse..
     Args:
         parser (argparse.ArgumentParser or CompliantArgumentParser):
         an argument parser instance

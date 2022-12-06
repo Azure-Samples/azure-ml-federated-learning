@@ -192,27 +192,6 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-    - name: Install azure ml latest extension
-      shell: bash
-      run: |
-        az extension remove -n azure-cli-ml || echo "azure-cli-ml extension is not installed."
-        az extension remove -n ml || echo "ml extension is not installed."
-        az extension add -n ml -y
-
-    - name: Set kaggle credentials in the Azure key vault
-      shell: bash
-      run: |
-        az keyvault set-policy -n kv-${{ secrets.AML_WORKSPACE_NAME }} --secret-permissions list set delete --object-id ${{ secrets.CI_CD_SP_OBJECT_ID }}
-        az keyvault secret set --name kaggleusername --vault-name kv-${{ secrets.AML_WORKSPACE_NAME }} --value ${{ secrets.KAGGLE_USERNAME }}
-        az keyvault secret set --name kagglekey --vault-name kv-${{ secrets.AML_WORKSPACE_NAME }} --value ${{ secrets.KAGGLE_API_TOKEN }}
-
     - name: Submit the PNEUMONIA data upload pipeline
       uses: ./.github/actions/submit-data-upload-pipeline
       with:
