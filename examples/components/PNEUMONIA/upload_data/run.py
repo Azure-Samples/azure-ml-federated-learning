@@ -38,7 +38,7 @@ def get_key_vault() -> Keyvault:
 def download_unzip_kaggle_dataset(
     kaggle_client, path, dataset_name="paultimothymooney/chest-xray-pneumonia"
 ):
-    """Download a dataset to a specified location and unzip it
+    """Download a dataset to a specified location and unzip it..
 
     Args:
         kaggle_client (KaggleApi): Instance of KaggleApi to use for retrieving the dataset
