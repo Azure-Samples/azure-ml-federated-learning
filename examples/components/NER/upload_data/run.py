@@ -11,7 +11,7 @@ def run(args):
     """Run script with arguments (the core of the component).
 
     Args:
-        args (argparse.namespace): command line arguments provided to script.
+        args (argparse.namespace): command line arguments provided to script
     """
 
     df = load_dataset("tner/multinerd", "en", split="test")

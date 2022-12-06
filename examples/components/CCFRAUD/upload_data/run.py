@@ -26,7 +26,7 @@ def get_kaggle_client(kv: Keyvault):
     """Gets the Kaggle client
 
     Args:
-        kv (Keyvault): keyvault to use for retrieving Kaggle credentials..
+        kv (Keyvault): keyvault to use for retrieving Kaggle credentials
     """
 
     os.environ["KAGGLE_USERNAME"] = kv.get_secret("kaggleusername")
