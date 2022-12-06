@@ -210,6 +210,7 @@ jobs:
       shell: bash
       run: |
         export OBJECT_ID=$(az ad signed-in-user show | jq ".id")
+        echo $OBJECT_ID
         az keyvault set-policy -n kv-${{ secrets.AML_WORKSPACE_NAME }} --secret-permissions list set delete --object-id $OBJECT_ID
         az keyvault secret set --name kaggleusername --vault-name kv-${{ secrets.AML_WORKSPACE_NAME }} --value ${{ secrets.KAGGLE_USERNAME }}
         az keyvault secret set --name kagglekey --vault-name kv-${{ secrets.AML_WORKSPACE_NAME }} --value ${{ secrets.KAGGLE_API_TOKEN }}
