@@ -80,7 +80,7 @@ def run(args):
     classes = ["PNEUMONIA", "NORMAL"]
     for stage in stages:
         for class_ in classes:
-            os.makedirs(os.path.join(output_path, stage, class_))
+            os.makedirs(os.path.join(output_path, stage, class_), exist_ok=True)
 
     # copy extracted jpeg files to output directory
     index = 0

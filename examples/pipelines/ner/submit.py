@@ -13,11 +13,9 @@ import string
 import datetime
 import webbrowser
 import time
-import json
 import sys
 
 # Azure ML sdk v2 imports
-import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
@@ -101,7 +99,7 @@ def connect_to_aml():
         # Check if given credential can get token successfully.
         credential.get_token("https://management.azure.com/.default")
     except Exception as ex:
-        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential not work
+        # Fall back to InteractiveBrowserCredential in case DefaultAzureCredential does not work
         credential = InteractiveBrowserCredential()
 
     # Get a handle to workspace
@@ -189,7 +187,7 @@ pipeline_identifier = getUniqueIdentifier()
 @pipeline(
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
-def fl_cross_silo_internal_basic():
+def fl_ner_basic():
     ######################
     ### PRE-PROCESSING ###
     ######################
@@ -331,7 +329,7 @@ def fl_cross_silo_internal_basic():
     return {"final_aggregated_model": running_checkpoint}
 
 
-pipeline_job = fl_cross_silo_internal_basic()
+pipeline_job = fl_ner_basic()
 
 # Inspect built pipeline
 print(pipeline_job)
@@ -340,7 +338,7 @@ if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_dev"
+        pipeline_job, experiment_name="fl_demo_ner"
     )
 
     print("The url to see your live job running is returned by the sdk:")

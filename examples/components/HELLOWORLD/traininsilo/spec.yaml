@@ -1,7 +1,7 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: train_in_silo
-version: 0.1.0
+name: helloworld_train_in_silo
+version: 0.3.0
 display_name: Train (in silo)
 type: command
 description: Component to train a model within a FL silo.

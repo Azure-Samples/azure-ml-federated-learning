@@ -1,19 +1,19 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: train_in_silo
-version: 0.1.26
-display_name: Train (in silo)
+name: ccfraud_train_in_silo
+version: 0.3.0
+display_name: CC Fraud Train (in silo)
 type: command
-description: Component to train a model within a FL silo.
+description: Component to train a model to classify CC Fraud.
 is_deterministic: false
 
 inputs:
   train_data:
     type: uri_folder
-    description: the input training data
+    description: the input training data (preprocessed)
   test_data:
     type: uri_folder
-    description: the input testing data
+    description: the input testing data (preprocessed)
   metrics_prefix:
     type: string
     description: Metrics prefix
@@ -74,4 +74,4 @@ command: >-
   $[[--batch_size ${{inputs.batch_size}}]]
 environment: 
   conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

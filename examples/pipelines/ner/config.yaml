@@ -30,33 +30,33 @@ federated_learning:
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/raw_train_data/
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/raw_test_data/
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ner/raw_test_data/
 
     - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
       datastore: datastore_silo1_francecentral
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/raw_train_data/
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/raw_test_data/
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ner/raw_test_data/
 
     - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
       datastore: datastore_silo2_brazilsouth
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/raw_train_data/
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/raw_test_data/
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ner/raw_test_data/
 
 # Training parameters
 training_parameters:
