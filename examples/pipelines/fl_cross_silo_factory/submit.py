@@ -45,8 +45,6 @@ from omegaconf import OmegaConf
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
 
-sys.exit(1)
-
 # Note: This code is using subgraphs (a.k.a. pipeline component) which is currently a PrivatePreview feature subject to change.
 # For an FL experience relying only on GA features, please refer to the literal version of the code.
 os.environ["AZURE_ML_CLI_PRIVATE_FEATURES_ENABLED"] = "true"
@@ -397,7 +395,11 @@ if args.submit:
 
             # check status after every 100 sec.
             time.sleep(100)
-            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            try:
+                pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            except azure.identity._exceptions.CredentialUnavailableError as e:
+                print(f"Token expired or Credentials unavailable: {e}")
+                sys.exit(5)
             status = pipeline_job.status
 
         print(f"Job finished with status {status}")
