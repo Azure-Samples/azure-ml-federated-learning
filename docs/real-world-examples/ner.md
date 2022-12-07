@@ -24,7 +24,7 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
 
-:warning: **Please provision GPU computes as the example will not work with the `STANDARD_DS3_V2` CPU compute. To do so, simply adjust (either via the command line, or in the one-click deployment UI) the `computeSKU` parameter in the quickstart to a GPU SKU, for instance `Standard_NC12s_v3`. An overview of the GPU SKU's available in Azure can be found [here](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu).
+:warning: **Please provision GPU computes as the example will not work with the `STANDARD_DS3_V2` CPU compute. To do so, simply adjust (either via the command line, or in the one-click deployment UI) the `computeSKU` parameter in the quickstart to a GPU SKU, for instance `Standard_NC12s_v3`.** An overview of the GPU SKU's available in Azure can be found [here](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu).
 
 :notebook: Take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
 
