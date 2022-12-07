@@ -33,7 +33,7 @@ class NERTrainer:
         experiment_name="default-experiment",
         iteration_num=1,
     ):
-        """NER Trainer trains BERT-base model (default) on the MultiNERD dataset.
+        """NER Trainer trains BERT-base model (default) on the MultiNERD dataset..
 
         Args:
             tokenizer_name(str): Tokenizer name
