@@ -45,6 +45,7 @@ from omegaconf import OmegaConf
 # local imports
 from fl_factory import FederatedLearningPipelineFactory
 
+sys.exit(5)
 
 # Note: This code is using subgraphs (a.k.a. pipeline component) which is currently a PrivatePreview feature subject to change.
 # For an FL experience relying only on GA features, please refer to the literal version of the code.
