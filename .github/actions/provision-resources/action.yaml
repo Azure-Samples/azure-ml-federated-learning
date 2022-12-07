@@ -48,3 +48,10 @@ runs:
     - name: Deploy the demo resources in your resource group
       shell: bash
       run: az deployment group create --template-file ${{ inputs.deployment-file-path }} --resource-group ${{ inputs.resource-group }} --parameters demoBaseName=${{ inputs.demo-base-name }} --name ${{ inputs.deployment-name }}
+
+    - name: Set kaggle credentials in the Azure key vault
+      shell: bash
+      run: |
+        az keyvault set-policy -n kv-${{ inputs.demo-base-name }} --secret-permissions list set delete --object-id ${{ secrets.CI_CD_SP_OBJECT_ID }}
+        az keyvault secret set --name kaggleusername --vault-name kv-${{ inputs.demo-base-name }} --value ${{ secrets.KAGGLE_USERNAME }}
+        az keyvault secret set --name kagglekey --vault-name kv-${{ inputs.demo-base-name }} --value ${{ secrets.KAGGLE_API_TOKEN }}
