@@ -29,7 +29,7 @@ To run this example, you will need to provision an AzureML workspace ready for F
 
 In the next section, we will run a job in the AzureML workspace that will unpack the demo dataset from Kaggle into each of your silos.
 
-Kaggle required username and a developer key, so we will first store safely those credentials in the workspace key vault.
+Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api#api-credentials), so we will first store safely those credentials in the workspace key vault.
 
 ### Option 1: using Azure CLI
 
@@ -51,15 +51,15 @@ az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --val
 ```bash
 az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
 ```
-> Make sure to provide the *Kaggle API Token*.
+> Make sure to provide the *[Kaggle API Token]((https://github.com/Kaggle/kaggle-api#api-credentials))*.
 
 ### Option 2: using Azure UI
 
-1. In your workspace resource group (provisioned in the previous step), open "Access Policies" tab in the newly key vault.
+1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the newly created key vault and click "Create".
 
 2. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
 
-3. Click "Create" button in the top. Lookup currently logged in user (using user id or an email), select it and press "Next". 
+3. Lookup currently logged in user (using user id or an email), select it and press "Next". 
 
 4. Press "Next" and "Create" in the next screens.
 
@@ -68,17 +68,15 @@ az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <k
 5. Open the "Secrets" tab. Create two plain text secrets:
     
     - **kaggleusername** - specifies your Kaggle user name
-    - **kagglekey** - this is API key that can be obtained from your account page on the Kaggle website.
+    - **kagglekey** - this is the API key that can be obtained from your account page on the Kaggle website.
 
 ## Run a job to download and store the dataset in each silo
 
 This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
 
-1. In this repository, navigate in the folder `examples/pipelines/utils/upload_data/`
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
 
-2. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
-
-3. Submit the experiment by running:
+2. Submit the experiment by running:
 
    ```bash
    python ./examples/pipelines/utils/upload_data/submit.py --submit --example CCFRAUD --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
