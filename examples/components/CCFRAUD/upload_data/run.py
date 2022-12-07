@@ -42,7 +42,7 @@ def fit_encoders(df):
     """Creates one-hot encodings for categorical data
 
     Args:
-        df (pd.DataFrame): Pandas dataframe to use to provide us with all unique value for each categorical column.
+        df (pd.DataFrame): Pandas dataframe to use to provide us with all unique value for each categorical column
     """
 
     global ENCODERS
