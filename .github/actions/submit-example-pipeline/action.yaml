@@ -17,7 +17,7 @@ inputs:
     description: Workspace name
     required: true
   example:
-    description: Example pipline to run
+    description: Example pipeline to run
     required: true
 
 runs:
