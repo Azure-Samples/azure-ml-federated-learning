@@ -31,6 +31,30 @@ In the next section, we will run a job in the AzureML workspace that will unpack
 
 Kaggle required username and a developer key, so we will first store safely those credentials in the workspace keyvault.
 
+### Using Azure CLI
+
+1. Get the signed-in user's object ID. 
+```bash
+az ad signed-in-user show | jq ".id"
+```
+2. Grant permissions to *list, set & delete* secrets by setting a keyvault policy. 
+```bash
+az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
+```
+> Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
+3. Create a secret to store the `kaggleusername`. 
+```bash
+az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
+```
+> Make sure to provide your *Kaggle Username*.
+4. Create a secret to store the `kagglekey`.
+```bash
+az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
+```
+> Make sure to provide the *Kaggle API Token*.
+
+### Using Azure UI
+
 1. In your workspace resource group (provisioned in the previous step), open "Access Policies" tab in the newly keyvault.
 
 2. Select "Select all" right under "Secret Management Operations" and press "Next".
