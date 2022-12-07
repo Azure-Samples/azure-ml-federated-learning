@@ -51,11 +51,9 @@ Kaggle required username and a developer key, so we will first store safely thos
 
 This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
 
-1. In this repository, navigate in the folder `examples/pipelines/utils/upload_data/`
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
 
-2. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
-
-3. Submit the experiment by running:
+2. Submit the experiment by running:
 
    ```bash
    python ./examples/pipelines/utils/upload_data/submit.py --submit --example PNEUMONIA --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
