@@ -33,7 +33,7 @@ class NERTrainer:
         experiment_name="default-experiment",
         iteration_num=1,
     ):
-        """NER Trainer trains BERT-base model (default) on the MultiNERD dataset..
+        """NER Trainer trains BERT-base model (default) on the MultiNERD dataset.
 
         Args:
             tokenizer_name(str): Tokenizer name
@@ -65,8 +65,7 @@ class NERTrainer:
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
         self._model_path = model_path
-        x=0
-        
+
         # device
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
