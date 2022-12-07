@@ -1,5 +1,5 @@
-name: Submit data upload pipeline
-description: Submit data upload pipeline in AML
+name: Submit upload data pipeline
+description: Submit upload data pipeline in AML
 inputs:
   client-id:
     description: Client ID of the service principal
