@@ -30,13 +30,13 @@ To run this example, you will need to provision an AzureML workspace ready for F
 
 In the next section, we will run a job in the AzureML workspace that will unpack the demo dataset from Kaggle into each of your silos.
 
-Kaggle required username and a developer key, so we will first store safely those credentials in the workspace key vault.
+Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api#api-credentials), so we will first store safely those credentials in the workspace key vault.
 
-1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the newly key vault.
+1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the key vault. Click the "Create" button at the top. 
 
-2. Select "Select all" right under "Secret Management Operations" and press "Next".
+2. Select "Select all" right under "Secret Management Operations" (middle column) and press "Next".
 
-3. Click "Create" button in the top. Lookup currently logged in user (using user id or an email), select it and press "Next". 
+3. Lookup currently logged in user (using user id or an email), select it and press "Next". 
 
 4. Press "Next" and "Create" in the next screens.
 
