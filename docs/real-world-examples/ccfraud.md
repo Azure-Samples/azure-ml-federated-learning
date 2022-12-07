@@ -25,19 +25,19 @@ To run this example, you will need to provision an AzureML workspace ready for F
 
 :notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
 
-## Add your Kaggle credentials to the workspace keyvault
+## Add your Kaggle credentials to the workspace key vault
 
 In the next section, we will run a job in the AzureML workspace that will unpack the demo dataset from Kaggle into each of your silos.
 
-Kaggle required username and a developer key, so we will first store safely those credentials in the workspace keyvault.
+Kaggle required username and a developer key, so we will first store safely those credentials in the workspace key vault.
 
 ### Option 1: using Azure CLI
 
-1. In this section, we'll create an access policy for yourself, by using your AAD identifier (object id). 
+1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step. 
 ```bash
 az ad signed-in-user show | jq ".id"
 ```
-2. Create a new keyvault policy for yourself, and grant permissions to list, set & delete secrets.
+2. Create a new key vault policy for yourself, and grant permissions to list, set & delete secrets.
 ```bash
 az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
 ```
@@ -55,7 +55,7 @@ az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <k
 
 ### Option 2: using Azure UI
 
-1. In your workspace resource group (provisioned in the previous step), open "Access Policies" tab in the newly keyvault.
+1. In your workspace resource group (provisioned in the previous step), open "Access Policies" tab in the newly key vault.
 
 2. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
 
@@ -63,7 +63,7 @@ az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <k
 
 4. Press "Next" and "Create" in the next screens.
 
-    We are now able to create a secret in the keyvault.
+    We are now able to create a secret in the key vault.
 
 5. Open the "Secrets" tab. Create two plain text secrets:
     
