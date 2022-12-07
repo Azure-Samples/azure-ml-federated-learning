@@ -31,9 +31,33 @@ In the next section, we will run a job in the AzureML workspace that will unpack
 
 Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api#api-credentials), so we will first store safely those credentials in the workspace key vault.
 
-1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the key vault. Click the "Create" button at the top. 
+### Option 1: using Azure CLI
 
-2. Select "Select all" right under "Secret Management Operations" (middle column) and press "Next".
+1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step. 
+```bash
+az ad signed-in-user show | jq ".id"
+```
+2. Create a new key vault policy for yourself, and grant permissions to list, set & delete secrets.
+```bash
+az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
+```
+> Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
+3. With your newly created permissions, you can now create a secret to store the `kaggleusername`. 
+```bash
+az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
+```
+> Make sure to provide your *Kaggle Username*.
+4. Create a secret to store the `kagglekey`.
+```bash
+az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
+```
+> Make sure to provide the *[Kaggle API Token]((https://github.com/Kaggle/kaggle-api#api-credentials))*.
+
+### Option 2: using Azure UI
+
+1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the newly created key vault and click "Create".
+
+2. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
 
 3. Lookup currently logged in user (using user id or an email), select it and press "Next". 
 
@@ -44,7 +68,7 @@ Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api
 5. Open the "Secrets" tab. Create two plain text secrets:
     
     - **kaggleusername** - specifies your Kaggle user name
-    - **kagglekey** - this is API key that can be obtained from your account page on the Kaggle website.
+    - **kagglekey** - this is the API key that can be obtained from your account page on the Kaggle website.
 
 ## Run a job to download and store the dataset in each silo
 
