@@ -24,13 +24,15 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
 
-:notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
+:warning: **Please provision GPU computes as the example will not work with the `STANDARD_DS3_V2` CPU compute. To do so, simply adjust (either via the command line, or in the one-click deployment UI) the `computeSKU` parameter in the quickstart to a GPU SKU, for instance `Standard_NC12s_v3`. An overview of the GPU SKU's available in Azure can be found [here](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu).
+
+:notebook: Take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
 
 ## Run a job to download and store the dataset in each silo
 
 This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
 
-1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup. You might need to change the computes and datastores names to those of your GPU's.
 
 2. Submit the experiment by running:
 
@@ -44,7 +46,7 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 ## Run the demo experiment
 
-1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ner/` to match your setup.
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ner/` to match your setup. You might need to change the compute and datastore names to those of your GPU's, and also to modify the data paths accordingly.
 
 2. Submit the FL experiment by running:
 
