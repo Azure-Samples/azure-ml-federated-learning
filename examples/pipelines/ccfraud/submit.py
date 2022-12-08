@@ -16,6 +16,7 @@ import time
 import sys
 
 # Azure ML sdk v2 imports
+import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
@@ -352,7 +353,11 @@ if args.submit:
 
             # check status after every 100 sec.
             time.sleep(100)
-            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            try:
+                pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            except azure.identity._exceptions.CredentialUnavailableError as e:
+                print(f"Token expired or Credentials unavailable: {e}")
+                sys.exit(5)
             status = pipeline_job.status
 
         print(f"Job finished with status {status}")
