@@ -20,11 +20,11 @@ During deployment, you may encounter the following exception:
     "code": "InvalidTemplateDeployment",
     "message": "The template deployment 'open_sandbox_setup' is not valid according to the validation procedure. The tracking id is 'f6e64397-6b33-4990-a7b3-48b4ba92c4c8'. See inner errors for details."
 }
-Inner Errors: {
+"Inner Errors": {
     "code": "PreflightValidationCheckFailed",
     "message": "Preflight validation failed. Please refer to the details for the specific errors."
 }
-Inner Errors: {
+"Inner Errors": {
     "code": "StorageAccountAlreadyTaken",
     "target": "stamlfldemofghjk4",
     "message": "The storage account named stamlfldemofghjk4 is already taken."
@@ -71,7 +71,7 @@ During an experiment, if you encounter the following exception:
 
 ```json
 {
-    "NonCompliant":"DataAccessError(ConnectionFailure { source: Some(Custom { kind: TimedOut, error: "Request timeout" }) })"
+    "NonCompliant":"DataAccessError(ConnectionFailure { source: Some(Custom { kind: TimedOut, error: 'Request timeout' }) })"
 }
 {
     "code": "data-capability.UriMountSession.PyFuseError",
@@ -80,11 +80,11 @@ During an experiment, if you encounter the following exception:
     "error_details": [
         {
             "key": "NonCompliantReason",
-            "value": "DataAccessError(ConnectionFailure { source: Some(Custom { kind: TimedOut, error: "Request timeout" }) })"
+            "value": "DataAccessError(ConnectionFailure { source: Some(Custom { kind: TimedOut, error: 'Request timeout' }) })"
         },
         {
             "key": "StackTrace",
-            "value": " File "/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/data_capability/capability_session.py", line 70, in start\n (data_path, sub_data_path) = session.start()\n\n File "/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/data_capability/data_sessions.py", line 386, in start\n options=mnt_options\n\n File "/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/azureml/dataprep/fuse/dprepfuse.py", line 696, in rslex_uri_volume_mount\n raise e\n\n File "/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/azureml/dataprep/fuse/dprepfuse.py", line 690, in rslex_uri_volume_mount\n mount_context = RslexDirectURIMountContext(mount_point, uri, options)\n"
+            "value": " File '/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/data_capability/capability_session.py', line 70, in start\n (data_path, sub_data_path) = session.start()\n\n File '/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/data_capability/data_sessions.py', line 386, in start\n options=mnt_options\n\n File '/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/azureml/dataprep/fuse/dprepfuse.py', line 696, in rslex_uri_volume_mount\n raise e\n\n File '/opt/miniconda/envs/data-capability/lib/python3.7/site-packages/azureml/dataprep/fuse/dprepfuse.py, line 690, in rslex_uri_volume_mount\n mount_context = RslexDirectURIMountContext(mount_point, uri, options)\n"
         }
     ]
 }
