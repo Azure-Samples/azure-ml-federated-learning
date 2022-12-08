@@ -80,7 +80,7 @@ Dataset initialization failed: AzureMLException:
 }
 ```
 
-**Root cause**: This occurs usually in the training phase of our tutorials when the silo compute tries to mount write the orchestrator storage, but doesn't have the permisssions to do so. In some of our tutorials, it happens routinely if, after provisioning a silo or orchestrator, you skipped the section of the tutorial to set the RBAC R/W permissions (example [for open silo](./provisioning/silo_open.md#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)). This can also happen for other reasons, but what this exception indicates is that the compute's identity doesn't have the required permissions to access/mount the data on the given datastore.
+**Root cause**: This occurs usually in the training phase of our tutorials when the silo compute tries to mount the orchestrator storage, but doesn't have the permissions to do so. In some of our tutorials, it happens routinely if, after provisioning a silo or orchestrator, you skipped the section of the tutorial to set the RBAC R/W permissions (example [for open silo](./provisioning/silo_open.md#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)). This can also happen for other reasons, but what this exception indicates is that the compute's identity doesn't have the required permissions to access/mount the data on the given datastore.
 
 **Fix**: Follow the instructions to set the permissions right for this compute to access the orchestrator storage. In particular, set the RBAC roles for the user assigned identity towards the storage account (example [for open silo](./provisioning/silo_open.md#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)).
 
