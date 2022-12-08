@@ -25,6 +25,7 @@ Click on the buttons below depending on your goal. It will open in Azure Portal 
 
 > Notes:
 > - If someone already provisioned a demo with the same name in your subscription, change **Demo Base Name** parameter to a unique value.
+> - If you need to provision GPU's instead of CPU's, you can just use a GPU SKU value for the "Compute SKU" parameter, `Standard_NC12s_v3` for instance. An overview of the GPU SKU's available in Azure can be found [here](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu). Beware though, SKU availability may vary depending on the region you choose, so you may have to use different Azure regions instead of the default ones.
 
 ### Option 2: Step by step tutorial
 
@@ -78,6 +79,12 @@ In this section, we'll use a sample python script to submit a federated learning
     ```bash
     conda env create --file ./examples/pipelines/environment.yml
     conda activate fl_experiment_conda_env
+    ```
+
+    Alternatively, you can install the dependencies directly:
+
+    ```bash
+    python -m pip install -r ./examples/pipelines/requirements.txt
     ```
 
 2. To connect to your newly created Azure ML workspace, you'll need to provide the following info in the sample python script as CLI arguments.

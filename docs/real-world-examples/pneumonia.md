@@ -1,54 +1,100 @@
-# Pneumonia detection from chest radiographs
+# Federated medical imaging : radiographs classification
 
-## Background
-In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on a dataset of chest radiographs from the [NIH Chest X-ray dataset](https://www.kaggle.com/nih-chest-xrays/data). This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._, that is relying on NVFlare
+**Scenario** - In this example, we train a federated learning model to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
+The model will be trained in a federated manner, where each entity will train a model on its own data, and the models will be aggregated to produce a final model.
 
-We mimic a real-world scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity. The model will be trained in a federated manner, where each hospital will train a model on its own data, and the models will be aggregated to produce a final model.
+**Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._.
 
-> For the sake of simplicity, we will only provision an _open_ setup. Do not upload sensitive data to it! 
+## Install the required dependencies
 
-## Prerequisites
-To enjoy this tutorial, you will need to:
-- have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
-- have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
-  - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
-- [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli),
-- have a way to run bash scripts;
-- **fork** this repository (_fork_ as opposed to _clone_ because you will need to create GitHub secrets and run GitHub actions to prepare the data).
+You'll need python to submit experiments to AzureML. You can install the required dependencies by running:
 
-## Procedure
-The procedure to run this example  has three phases:
-- provision the Azure resources;
-- prepare the data;
-- run the job.
-
-Each phase is described in the subsections below.
-
-### Provisioning
-This phase is easy. Just follow the instructions in the [quickstart](../quickstart.md) to provision an open sandbox. Make note of the name of the resource group you provisioned, as well as the name of the workspace.
-
-### Data preparation
-The goal of this phase is to upload to Azure ML 3 distinct datasets (one per silo), each subdivided into train, test, and validation. This is achieved by running a GitHub action that will download the dataset from [Kaggle](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia), split it evenly between the silos, and upload the 3 data assets. We will need to first create an Azure Service Principal with enough permissions to create the data assets in Azure ML. The whole procedure is explained below, and closely follows [the one](https://github.com/Azure/medical-imaging/blob/main/federated-learning/README.md#1-prepare-your-experiment) developed by Harmke Alkemade _et al_ .
-
-1. Create a service principal with contributor access to your resource group by running the following Azure CLI command.
 ```bash
-  az ad sp create-for-rbac --name "<service-principal-name>" --role contributor --scopes /subscriptions/<subscription-id>/resourceGroups/<your-resource-group-name> --sdk-auth
+conda env create --file ./examples/pipelines/environment.yml
+conda activate fl_experiment_conda_env
 ```
-2. Create a [GitHub secret](https://github.com/Azure/actions-workflow-samples/blob/master/assets/create-secrets-for-GitHub-workflows.md) in your _forked_ repository. Name it AZURE_CREDENTIALS_DATAPREP and copy and paste the output of the above command to the Value field of the secret.
-3. Add the following secrets to your repository with corresponding values:
-  - KAGGLE_USERNAME: your Kaggle username.
-  - KAGGLE_KEY: your Kaggle API key. More info [here](https://www.kaggle.com/docs/api).
-4. Navigate to the GitHub Actions tab, and run the workflow with the name *FL data preparation - pneumonia example*. Provide the names of your workspace and resource group. This will register the datasets required for your experiment in your workspace.
 
-### Run the FL job
+Alternatively, you can just install the required dependencies:
 
-1. Create a conda environment for _submitting_ the job, and activate it.
+```bash
+python -m pip install -r ./examples/pipelines/requirements.txt
+```
+
+## Provision an FL sandbox workspace
+
+To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
+
+:notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
+
+## Add your Kaggle credentials to the workspace key vault
+
+In the next section, we will run a job in the AzureML workspace that will unpack the demo dataset from Kaggle into each of your silos.
+
+Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api#api-credentials), so we will first store safely those credentials in the workspace key vault.
+
+### Option 1: using Azure CLI
+
+1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step. 
+```bash
+az ad signed-in-user show | jq ".id"
+```
+2. Create a new key vault policy for yourself, and grant permissions to list, set & delete secrets.
+```bash
+az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
+```
+> Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
+3. With your newly created permissions, you can now create a secret to store the `kaggleusername`. 
+```bash
+az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
+```
+> Make sure to provide your *Kaggle Username*.
+4. Create a secret to store the `kagglekey`.
+```bash
+az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
+```
+> Make sure to provide the *[Kaggle API Token]((https://github.com/Kaggle/kaggle-api#api-credentials))*.
+
+### Option 2: using Azure UI
+
+1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the newly created key vault and click "Create".
+
+2. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
+
+3. Lookup currently logged in user (using user id or an email), select it and press "Next". 
+
+4. Press "Next" and "Create" in the next screens.
+
+    We are now able to create a secret in the key vault.
+
+5. Open the "Secrets" tab. Create two plain text secrets:
+    
+    - **kaggleusername** - specifies your Kaggle user name
+    - **kagglekey** - this is the API key that can be obtained from your account page on the Kaggle website.
+
+## Run a job to download and store the dataset in each silo
+
+This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
+
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
+
+2. Submit the experiment by running:
+
    ```bash
-   conda env create --file ./examples/pipelines/environment.yml
-   conda activate fl_experiment_conda_env
+   python ./examples/pipelines/utils/upload_data/submit.py --submit --example PNEUMONIA --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
-2. Adjust config file (if you kept everything default you'll only have to adjust subscription id, resource group, and workspace name)
-3. Submit the experiment.
+
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
+
+:warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
+
+## Run the demo experiment
+
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/pneumonia/` to match your setup.
+
+2. Submit the FL experiment by running:
+
    ```bash
-   python ./examples/pipelines/pneumonia/pneumonia_submit.py --submit
+   python ./examples/pipelines/pneumonia/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+
+    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.

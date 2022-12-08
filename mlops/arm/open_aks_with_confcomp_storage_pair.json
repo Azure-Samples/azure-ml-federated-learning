@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.12.1.58429",
-      "templateHash": "16454367035248089744"
+      "version": "0.13.1.58284",
+      "templateHash": "5678382791404020981"
     }
   },
   "parameters": {
@@ -162,8 +162,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.12.1.58429",
-              "templateHash": "15695720227000711530"
+              "version": "0.13.1.58284",
+              "templateHash": "11798981346718210369"
             }
           },
           "parameters": {
@@ -428,8 +428,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.12.1.58429",
-              "templateHash": "14513633552874658395"
+              "version": "0.13.1.58284",
+              "templateHash": "8000057263460132084"
             }
           },
           "parameters": {
@@ -612,8 +612,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.12.1.58429",
-                      "templateHash": "8007756182546678148"
+                      "version": "0.13.1.58284",
+                      "templateHash": "12397032780376065267"
                     }
                   },
                   "parameters": {
@@ -807,8 +807,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.12.1.58429",
-                      "templateHash": "13536683662660053364"
+                      "version": "0.13.1.58284",
+                      "templateHash": "1995068142375426165"
                     }
                   },
                   "parameters": {
@@ -941,8 +941,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.12.1.58429",
-              "templateHash": "15885661083233540174"
+              "version": "0.13.1.58284",
+              "templateHash": "8496672138142568903"
             }
           },
           "parameters": {
