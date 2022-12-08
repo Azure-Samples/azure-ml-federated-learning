@@ -16,6 +16,16 @@ jobs:
       components-mnist: ${{ steps.filter.outputs.components-mnist }}
       literal: ${{ steps.filter.outputs.literal }}
       factory: ${{ steps.filter.outputs.factory }}
+      components-pneumonia: ${{ steps.filter.outputs.components-pneumonia }}
+      components-ner: ${{ steps.filter.outputs.components-ner }}
+      components-ccfraud: ${{ steps.filter.outputs.components-ccfraud }}
+      pneumonia: ${{ steps.filter.outputs.pneumonia }}
+      ner: ${{ steps.filter.outputs.ner }}
+      ccfraud: ${{ steps.filter.outputs.ccfraud }}
+      utils-upload-data: ${{ steps.filter.outputs.utils-upload-data }}
+      pneumonia-upload-data: ${{ steps.filter.outputs.pneumonia-upload-data }}
+      ner-upload-data: ${{ steps.filter.outputs.ner-upload-data }}
+      ccfraud-upload-data: ${{ steps.filter.outputs.ccfraud-upload-data }}
     steps:
     - uses: actions/checkout@v2
     - uses: dorny/paths-filter@v2
@@ -36,6 +46,26 @@ jobs:
             - 'examples/pipelines/fl_cross_silo_literal/**'
           factory:
             - 'examples/pipelines/fl_cross_silo_factory/**'
+          components-pneumonia:
+            - 'examples/components/PNEUMONIA/**'
+          components-ner:
+            - 'examples/components/NER/**'
+          components-ccfraud:
+            - 'examples/components/CCFRAUD/**'
+          pneumonia:
+            - 'examples/pipelines/pneumonia/**'
+          ner:
+            - 'examples/pipelines/ner/**'
+          ccfraud:
+            - 'examples/pipelines/ccfraud/**'
+          utils-upload-data:
+            - 'examples/pipelines/utils/upload_data/**'
+          pneumonia-upload-data:
+            - 'examples/components/PNEUMONIA/upload_data/**'
+          ner-upload-data:
+            - 'examples/components/NER/upload_data/**'
+          ccfraud-upload-data:
+            - 'examples/components/CCFRAUD/upload_data/**'
 
   open-sandbox-test:
     runs-on: ubuntu-latest
@@ -155,3 +185,90 @@ jobs:
         resource-group: ${{ secrets.RESOURCE_GROUP }}
         workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
         example: MNIST
+
+  pneumonia-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.pneumonia-upload-data == 'true') || (needs.paths-filter.outputs.components-pneumonia == 'true') || (needs.paths-filter.outputs.pneumonia == 'true') }} 
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit the PNEUMONIA upload data pipeline
+      uses: ./.github/actions/submit-upload-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: PNEUMONIA
+
+    - name: Submit the PNEUMONIA example pipeline
+      uses: ./.github/actions/submit-example-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: pneumonia
+
+  ner-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ner-upload-data == 'true') || (needs.paths-filter.outputs.components-ner == 'true') || (needs.paths-filter.outputs.ner == 'true') }} 
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit the NER upload data pipeline
+      uses: ./.github/actions/submit-upload-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: NER
+
+    - name: Submit the NER example pipeline
+      uses: ./.github/actions/submit-example-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: ner
+
+  ccfraud-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ccfraud-upload-data == 'true') || (needs.paths-filter.outputs.components-ccfraud == 'true') || (needs.paths-filter.outputs.ccfraud == 'true') }} 
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit the CCFRAUD upload data pipeline
+      uses: ./.github/actions/submit-upload-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: CCFRAUD
+
+    - name: Submit the CCFRAUD example pipeline
+      uses: ./.github/actions/submit-example-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: ccfraud
