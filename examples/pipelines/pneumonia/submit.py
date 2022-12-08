@@ -16,6 +16,7 @@ import time
 import sys
 
 # Azure ML sdk v2 imports
+import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
