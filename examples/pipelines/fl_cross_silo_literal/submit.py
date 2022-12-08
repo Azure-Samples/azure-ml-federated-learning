@@ -132,8 +132,6 @@ def connect_to_aml():
     return ML_CLIENT
 
 
-ML_CLIENT = connect_to_aml()
-
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
 ####################################
@@ -340,7 +338,7 @@ print(pipeline_job)
 
 if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
-
+    ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_dev"
     )
