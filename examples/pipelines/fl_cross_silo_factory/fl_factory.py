@@ -557,15 +557,22 @@ class FederatedLearningPipelineFactory:
         if data_def._data is not None:
             # if data is an internal reference inside the graph
             self.logger.debug(
-                f"{_path}: job i/o key={data_key} is an internal reference to pipeline level data name={data_def._data._name}"
+                f"{_path}: job i/o key={data_key} is an internal reference to parent level data name={data_def._data._name}"
             )
 
             if data_def._data._data is not None:
                 # if that reference is a direct link with a path, return it
-                return data_def._data._data.type, data_def._data._data.path
+                if "path" in data_def._data._data.__dict__:
+                    self.logger.debug(
+                        f"{_path}: job i/o key={data_key} is a direct link to path={data_def._data._data.path}"
+                    )
+                    return data_def._data._data.type, data_def._data._data.path
 
-            # if not, we need to look it up in the context of the job
-            ref_key = data_def._data._name
+                # if not, it is a reference to a parent level data that we'll look up in the context
+                ref_key = data_def._data._data._name
+            else:
+                # if data is None, we need to look it up in the context of the job
+                ref_key = data_def._data._name
 
             # we try as an input or output first
             if ref_key in inputs_map:
