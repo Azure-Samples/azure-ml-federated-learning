@@ -5,6 +5,7 @@
     - [Issue: The storage account named staml... is already taken](#issue-the-storage-account-named-staml-is-already-taken)
     - [Issue: A vault with the same name already exists in deleted state](#issue-a-vault-with-the-same-name-already-exists-in-deleted-state)
 - [Experiment failures](#experiment-failures)
+    - [Issue: Dataset initialization failed DataAccessError(PermissionDenied)](#issue-dataset-initialization-failed-dataaccesserrorpermissiondenied)
     - [Issue: DataAccessError in an isolated environment](#issue-dataaccesserror-in-an-isolated-environment)
 
 ## Deployment failures
@@ -65,7 +66,7 @@ During deployment, you may encounter the following exception, even if you cannot
 
 ### Issue: Dataset initialization failed DataAccessError(PermissionDenied)
 
-During an experiment, if you encounter the following exception:
+During an experiment, you may encounter the following exception:
 
 ```
 Dataset initialization failed: AzureMLException:
