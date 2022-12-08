@@ -107,14 +107,6 @@ def connect_to_aml():
 
     # Get a handle to workspace
     try:
-        # tries to connect using local config.json
-        ML_CLIENT = MLClient.from_config(credential=credential)
-
-    except Exception as ex:
-        print(
-            "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
-        )
-
         # tries to connect using cli args if provided else using config.yaml
         ML_CLIENT = MLClient(
             subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
@@ -123,6 +115,12 @@ def connect_to_aml():
             workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
             credential=credential,
         )
+
+    except Exception as ex:
+        print("Could not find either cli args or config.yaml.")
+        # tries to connect using local config.json
+        ML_CLIENT = MLClient.from_config(credential=credential)
+
     return ML_CLIENT
 
 
