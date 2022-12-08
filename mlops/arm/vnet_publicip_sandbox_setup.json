@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "1022860272171178359"
+      "templateHash": "4265595502608897807"
     }
   },
   "parameters": {
@@ -457,7 +457,7 @@
             "value": "10.0.0.0/24"
           },
           "useStorageStaticIP": {
-            "value": "[equals(parameters('orchestratorAccess'), 'Disabled')]"
+            "value": "[equals(parameters('orchestratorAccess'), 'private')]"
           },
           "storagePLEStaticIP": {
             "value": "10.0.0.50"
