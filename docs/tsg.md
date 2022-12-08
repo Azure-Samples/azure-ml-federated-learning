@@ -63,6 +63,27 @@ During deployment, you may encounter the following exception, even if you cannot
 
 ## Experiment failures
 
+### Issue: Dataset initialization failed DataAccessError(PermissionDenied)
+
+During an experiment, if you encounter the following exception:
+
+```
+Dataset initialization failed: AzureMLException:
+	Message: DataAccessError(PermissionDenied)
+	InnerException None
+	ErrorResponse
+{
+    "error": {
+        "message": "DataAccessError(PermissionDenied)"
+    }
+}
+```
+
+**Root cause**: This occurs usually in the training phase of our tutorials when the silo compute tries to mount write the orchestrator storage, but doesn't have the permisssions to do so. In some of our tutorials, it happens routinely if, after provisioning a silo or orchestrator, you skipped the section of the tutorial to set the RBAC R/W permissions (example [for open silo](./provisioning/silo_open.md#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)). This can also happen for other reasons, but what this exception indicates is that the compute's identity doesn't have the required permissions to access/mount the data on the given datastore.
+
+**Fix**: Follow the instructions to set the permissions right for this compute to access the orchestrator storage. In particular, set the RBAC roles for the user assigned identity towards the storage account (example [for open silo](./provisioning/silo_open.md#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)).
+
+
 ### Issue: DataAccessError in an isolated environment
 
 Referenced in [issue 195](https://github.com/Azure-Samples/azure-ml-federated-learning/issues/195).
