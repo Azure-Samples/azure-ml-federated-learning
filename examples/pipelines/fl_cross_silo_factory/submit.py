@@ -149,7 +149,7 @@ def connect_to_aml():
 
     except Exception as ex:
         print(
-            "Could not find config.json, using config.yaml refs to Azure ML workspace instead.."
+            "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
         )
 
         # tries to connect using cli args if provided else using config.yaml
