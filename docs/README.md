@@ -94,6 +94,10 @@ This example shows how to train a federated model for the Named Entity Recogniti
 This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud.md) for detailed instructions on how to run this example.
 
 
+## Troubleshooting guide
+
+If you experience an issue using this repository, please check the [**troubleshooting guide**](./tsg.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
+
 ## Glossary
 
 The complete glossary list can be seen [**here**](./glossary.md).
