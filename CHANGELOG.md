@@ -4,20 +4,20 @@
 
 We are excited to announce the release of the November iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
 
-Here are the new features.
+Here below we list all the new features. The most significant ones are the addition of 3 industry-relevant examples ([credit card fraud detection](./docs/real-world-examples/ccfraud.md), [named entity recognition](./docs/real-world-examples/ner.md), [pneumonia detection](./docs/real-world-examples/pneumonia.md)), and the introduction of a [Troubleshooting Guide](./docs/tsg.md).
 
 <!-- ### Provisioning
 -  -->
 
-### Documentation
-- We have introduced a new [Troubleshooting Guide](./docs/tsg.md) to help you troubleshoot common issues. We will keep adding to it as we become aware of more common issues.
-
 ### FL Experience
-- We fixed a bug causing the contents of the `config.json` file to take precedence over the CLI arguments (subscription id, resource group, workspace name) when submitting a job. Now, the CLI arguments takes precedence over the `config.yaml` file, which itself takes precedence over the `config.json` file.
 - We have added 3 industry-relevant examples. The examples include 2 jobs. The first one (generic) downloads some public data, partitions them, and uploads them to the silos. The second job (example-specific) trains a model using FL. The 3 examples address the following topics:
   - [credit card fraud detection](./docs/real-world-examples/ccfraud.md) (finance example);
   - [named entity recognition](./docs/real-world-examples/ner.md) (NLP example);
   - [pneumonia detection](./docs/real-world-examples/pneumonia.md) (medical imaging example). 
+- We fixed a bug causing the contents of the `config.json` file to take precedence over the CLI arguments (subscription id, resource group, workspace name) when submitting a job. Now, the CLI arguments takes precedence over the `config.yaml` file, which itself takes precedence over the `config.json` file.
+
+### Documentation
+- We have introduced a new [Troubleshooting Guide](./docs/tsg.md) to help you troubleshoot common issues. We will keep adding to it as we become aware of more common issues.
 
 ### Repository structure
 - We improved the [documentation home page](./docs/README.md) by adding some pictures and introducing the industry-relevant examples.
