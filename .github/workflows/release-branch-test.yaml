@@ -86,6 +86,9 @@ jobs:
         deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
         deployment-name: open_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
+        github-sp-object-id: ${{ secrets.CI_CD_SP_OBJECT_ID }}
+        kaggle-username: ${{ secrets.KAGGLE_USERNAME }}
+        kaggle-api-token: ${{ secrets.KAGGLE_API_TOKEN }}
 
   vnet-sandbox-test:
     runs-on: ubuntu-latest
@@ -107,6 +110,9 @@ jobs:
         deployment-file-path: ./mlops/bicep/vnet_publicip_sandbox_setup.bicep
         deployment-name: vnet_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl2${{ github.run_attempt }}${{ github.run_id }}
+        github-sp-object-id: ${{ secrets.CI_CD_SP_OBJECT_ID }}
+        kaggle-username: ${{ secrets.KAGGLE_USERNAME }}
+        kaggle-api-token: ${{ secrets.KAGGLE_API_TOKEN }}
 
   literal-helloworld-test:
     runs-on: ubuntu-latest
