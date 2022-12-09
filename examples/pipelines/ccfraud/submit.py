@@ -16,6 +16,7 @@ import time
 import sys
 
 # Azure ML sdk v2 imports
+import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
@@ -104,14 +105,6 @@ def connect_to_aml():
 
     # Get a handle to workspace
     try:
-        # tries to connect using local config.json
-        ML_CLIENT = MLClient.from_config(credential=credential)
-
-    except Exception as ex:
-        print(
-            "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
-        )
-
         # tries to connect using cli args if provided else using config.yaml
         ML_CLIENT = MLClient(
             subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
@@ -120,10 +113,14 @@ def connect_to_aml():
             workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
             credential=credential,
         )
+
+    except Exception as ex:
+        print("Could not find either cli args or config.yaml.")
+        # tries to connect using local config.json
+        ML_CLIENT = MLClient.from_config(credential=credential)
+
     return ML_CLIENT
 
-
-ML_CLIENT = connect_to_aml()
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -341,6 +338,7 @@ print(pipeline_job)
 if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
 
+    ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_demo_ccfraud"
     )
@@ -359,7 +357,11 @@ if args.submit:
 
             # check status after every 100 sec.
             time.sleep(100)
-            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            try:
+                pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            except azure.identity._exceptions.CredentialUnavailableError as e:
+                print(f"Token expired or Credentials unavailable: {e}")
+                sys.exit(5)
             status = pipeline_job.status
 
         print(f"Job finished with status {status}")

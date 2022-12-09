@@ -22,6 +22,15 @@ inputs:
   demo-base-name:
     description: Demo base name (it should be unique)
     required: true
+  github-sp-object-id:
+    description: GitHub Service Principal Object ID
+    required: true
+  kaggle-username:
+    description: Kaggle Username
+    required: true
+  kaggle-api-token:
+    description: Kaggle API Token
+    required: true
   region:
     description: Region of the resource group
     required: false
@@ -48,3 +57,10 @@ runs:
     - name: Deploy the demo resources in your resource group
       shell: bash
       run: az deployment group create --template-file ${{ inputs.deployment-file-path }} --resource-group ${{ inputs.resource-group }} --parameters demoBaseName=${{ inputs.demo-base-name }} --name ${{ inputs.deployment-name }}
+
+    - name: Set kaggle credentials in the Azure key vault
+      shell: bash
+      run: |
+        az keyvault set-policy -n kv-${{ inputs.demo-base-name }} --secret-permissions list set delete --object-id ${{ inputs.github-sp-object-id }}
+        az keyvault secret set --name kaggleusername --vault-name kv-${{ inputs.demo-base-name }} --value ${{ inputs.kaggle-username }}
+        az keyvault secret set --name kagglekey --vault-name kv-${{ inputs.demo-base-name }} --value ${{ inputs.kaggle-api-token }}
