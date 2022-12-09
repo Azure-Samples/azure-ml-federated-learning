@@ -8,6 +8,8 @@ aml:
 
 # federated learning parameters
 federated_learning:
+  run_data_analysis: true
+  
   orchestrator:
     compute: cpu-orchestrator
     datastore: datastore_orchestrator
@@ -43,6 +45,9 @@ federated_learning:
         type: uri_file
         mode: 'download'
         path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_test_data
+
+data_analysis_parameters:
+  onehot_columns_prefix: category_,gender_,street_,city_,state_,job_,region_
 
 # training parameters
 training_parameters:

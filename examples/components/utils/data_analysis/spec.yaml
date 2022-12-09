@@ -18,6 +18,10 @@ inputs:
     type: string
     description: Names of categorical columns
     optional: true
+  onehot_columns_prefix:
+    type: string
+    description: PRefixes of one-hot encoded columns
+    optional: true
   metrics_prefix:
     type: string
     description: Metrics prefix
@@ -28,9 +32,10 @@ code: .
 
 command: >-
   python run.py 
-  --training_data ${{inputs.raw_training_data}} 
-  --testing_data ${{inputs.raw_testing_data}} 
+  --training_data ${{inputs.training_data}} 
+  --testing_data ${{inputs.testing_data}} 
   $[[--categorical_columns ${{inputs.categorical_columns}}]] 
+  $[[--onehot_columns_prefix ${{inputs.onehot_columns_prefix}}]] 
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
 
 # NOTE: using one of Azure ML's curated environments
