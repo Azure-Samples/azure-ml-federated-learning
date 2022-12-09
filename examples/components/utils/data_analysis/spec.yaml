@@ -1,0 +1,38 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: ccfraud_data_analysis_in_silo
+version: 0.0.1
+display_name: CC Fraud Data-analysis (in silo)
+type: command
+description: Component for data-analysis of tabular data from silo's blob storage
+is_deterministic: true
+
+inputs:
+  training_data:
+    type: uri_file
+    description: training data in a given silo
+  testing_data:
+    type: uri_file
+    description: testing data in a given silo
+  categorical_columns:
+    type: string
+    description: Names of categorical columns
+    optional: true
+  metrics_prefix:
+    type: string
+    description: Metrics prefix
+    default: Default-prefix
+    optional: true
+
+code: .
+
+command: >-
+  python run.py 
+  --training_data ${{inputs.raw_training_data}} 
+  --testing_data ${{inputs.raw_testing_data}} 
+  $[[--categorical_columns ${{inputs.categorical_columns}}]] 
+  $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+
+# NOTE: using one of Azure ML's curated environments
+# which has all the dependencies needed for this job
+environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest
