@@ -4,6 +4,7 @@ import argparse
 import logging
 import sys
 import glob
+import shutil
 
 import torch
 
@@ -13,14 +14,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
-
     Args:
         parser (argparse.ArgumentParser or CompliantArgumentParser):
         an argument parser instance
-
     Returns:
         ArgumentParser: the argument parser instance
-
     Notes:
         if parser is None, creates a new parser instance
     """
@@ -38,6 +36,10 @@ def get_arg_parser(parser=None):
     parser.add_argument("--extension", type=str, default="pt", help="model extension")
     parser.add_argument(
         "--output", type=str, required=True, help="where to write the averaged model"
+    )
+    parser.add_argument("--ancillary_files", type=bool, default=False, help="Wether ancillary files need to be copied")
+    parser.add_argument("--out_checkpoint_name", type=str, default = "model",
+        help=" the name of the output checkpoint, e.g. model, finetuned_state_dict"
     )
 
     return parser
@@ -62,7 +64,6 @@ class PyTorchStateDictFedAvg:
 
     def add_model(self, model_path: str):
         """Add one model to the average.
-
         Args:
             model_path (str): path to the model to add
         """
@@ -118,7 +119,6 @@ class PyTorchStateDictFedAvg:
 
     def save_model(self, model_path: str):
         """Save the averaged model.
-
         Args:
             model_path (str): path to save the model to
         """
@@ -137,9 +137,7 @@ class PyTorchStateDictFedAvg:
 
 def main(cli_args=None):
     """Component main function.
-
     It parses arguments and executes run() with the right arguments.
-
     Args:
         cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
     """
@@ -165,7 +163,20 @@ def main(cli_args=None):
     for model_path in model_paths:
         model_handler.add_model(model_path)
 
-    model_handler.save_model(os.path.join(args.output, f"model.{args.extension}"))
+    # check if meta data needed, coppy the whole dir
+    if args.ancillary_files:
+        for src in os.listdir(args.checkpoints[0]):
+            src_path = os.path.join(args.checkpoints[0],src)
+            if os.path.isfile(src_path):
+                shutil.copy(src_path, f"{args.output}/{src}")
+            else:
+                shutil.copytree(src_path, f"{args.output}/{src}")
+
+        # remove the checkpoint, it's from single silo
+        out_checkpoint_pth = os.path.join(args.output,f"{args.out_checkpoint_name}.{args.extension}" )
+        os.remove(out_checkpoint_pth)
+       
+    model_handler.save_model(os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}"))
 
 
 if __name__ == "__main__":
