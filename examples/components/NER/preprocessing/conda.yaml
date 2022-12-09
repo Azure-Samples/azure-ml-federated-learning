@@ -3,12 +3,12 @@ channels:
   - defaults
   - pytorch
 dependencies:
-  - python=3.7.11
+  - python=3.8
   - pip=22.1.2
   - pytorch=1.12.1
   - cudatoolkit=11.3
   - pip:
-    - azureml-mlflow
-    - pandas
-    - transformers
-    - datasets
+    - azureml-mlflow==1.48.0
+    - pandas==1.5.2
+    - transformers==4.25.1
+    - datasets==2.7.1

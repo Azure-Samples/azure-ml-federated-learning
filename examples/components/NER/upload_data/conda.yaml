@@ -3,7 +3,7 @@ channels:
   - defaults
   - pytorch
 dependencies:
-  - python=3.7.11
+  - python=3.8
   - pip=22.1.2
   - pip:
     - datasets==2.7.1

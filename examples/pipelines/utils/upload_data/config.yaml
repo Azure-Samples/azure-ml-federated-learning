@@ -2,9 +2,9 @@
 
 # References to Azure ML workspace (use cli args to override)
 aml:
-  subscription_id: "<SUBSCRIPTION_ID>"
-  resource_group_name: "<RESOURCE_GROUP>"
-  workspace_name: "<AML_WORKSPACE_NAME>"
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
 
 # Parameters to generate the FL graph
 federated_learning:
