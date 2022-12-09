@@ -139,7 +139,10 @@ aggregate_component = load_component(
     source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
-if hasattr(YAML_CONFIG.federated_learning, "run_data_analysis") and YAML_CONFIG.federated_learning.run_data_analysis:
+if (
+    hasattr(YAML_CONFIG.federated_learning, "run_data_analysis")
+    and YAML_CONFIG.federated_learning.run_data_analysis
+):
     data_analysis_component = load_component(
         source=os.path.join(SHARED_COMPONENTS_FOLDER, "data_analysis", "spec.yaml")
     )
@@ -209,7 +212,7 @@ def fl_ccfraud_basic():
                     path=silo_config.testing_data.path + f"/test.csv",
                 ),
                 metrics_prefix=silo_config.compute,
-                **YAML_CONFIG.data_analysis_parameters
+                **YAML_CONFIG.data_analysis_parameters,
             )
 
             # add a readable name to the step
