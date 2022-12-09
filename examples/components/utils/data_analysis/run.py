@@ -90,7 +90,9 @@ def analyze_numerical_column(df, column_name, metrics_prefix):
     column_description = {
         str(k): str(v) for k, v in dict(df[column_name].describe()).items()
     }
-    mlflow.log_dict(column_description, f"{metrics_prefix}/{column_name}/column_description.json")
+    mlflow.log_dict(
+        column_description, f"{metrics_prefix}/{column_name}/column_description.json"
+    )
 
     fig, ax = plt.subplots()
     ax = df[column_name].plot(
@@ -98,18 +100,21 @@ def analyze_numerical_column(df, column_name, metrics_prefix):
     )
     mlflow.log_figure(fig, f"{metrics_prefix}/{column_name}/density.png")
 
+
 def merge_onehot(df, onehot_columns_prefix):
     for prefix in onehot_columns_prefix:
         cols = [col for col in df.columns if col.startswith(prefix)]
-        if len(cols) <= 1: continue
+        if len(cols) <= 1:
+            continue
 
         df[prefix[:-1]] = [None] * len(df)
-        
+
         for col in cols:
-            val = col[len(prefix):]
+            val = col[len(prefix) :]
             df.loc[df[col] == 1, prefix[:-1]] = val
         df = df.drop(cols, axis=1)
     return df
+
 
 def run_tabular_data_analysis(
     training_data,
