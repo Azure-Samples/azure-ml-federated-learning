@@ -128,14 +128,14 @@ module silos './modules/fl_pairs/open_compute_storage_pair.bicep' = [for i in ra
 
     pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
 
-    compute1Name: 'silo${i}-${siloRegions[i]}-01' // let's not use demo base name
+    compute1Name: 'silo${i}-01' // let's not use demo base name
     compute1SKU: compute1SKU
     computeNodes: 4
     compute2: compute2
     compute2SKU: compute2SKU
-    compute2Name: 'silo${i}-${siloRegions[i]}-02'
+    compute2Name: 'silo${i}-02'
 
-    datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
+    datastoreName: 'datastore_silo${i}' // let's not use demo base name
 
     // identity for permissions model
     identityType: identityType
