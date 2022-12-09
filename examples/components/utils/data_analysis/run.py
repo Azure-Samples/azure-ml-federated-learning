@@ -35,16 +35,27 @@ def get_arg_parser(parser=None):
         "--categorical_columns",
         type=str,
         required=False,
-        help="Categorical column names split by comma(,)",
+        help="Categorical column names separated by comma(,)",
     )
     parser.add_argument(
-        "--metrics_prefix", type=str, required=False, help="Metrics prefix"
+        "--onehot_columns_prefix",
+        type=str,
+        required=False,
+        help="One hot encoded columns prefixes separated by comma(,), prefixes cannot contain underscores in the middle and must end with underscore",
+    )
+    parser.add_argument(
+        "--metrics_prefix",
+        type=str,
+        required=False,
+        help="Metrics prefix",
+        default="default-prefix",
     )
     return parser
 
 
 def get_corr_fig(df):
     fig, ax = plt.subplots()
+    fig.set_figwidth(min(30, df.shape[1] * 2))
     corr = df.corr()
     cax = ax.matshow(corr)
     ax.set_xticks(range(len(corr.columns)))
@@ -52,28 +63,34 @@ def get_corr_fig(df):
     ax.set_xticklabels(corr.columns.to_list(), rotation=45)
     ax.set_yticklabels(corr.columns.to_list())
     fig.colorbar(cax)
+    fig.tight_layout()
     return fig
 
 
 def analyze_categorical_column(df, column_name, metrics_prefix):
-    for k, v in dict(df[column_name].value_counts()).items():
-        mlflow.log_metric(
-            key=f"{metrics_prefix}/{column_name}/value_counts/{k}",
-            value=v,
-        )
+    value_counts = {
+        str(k): str(v) for k, v in dict(df[column_name].value_counts()).items()
+    }
+    mlflow.log_dict(value_counts, f"{metrics_prefix}/{column_name}/value_counts.json")
 
-    fig, ax = plt.subplots()
-    ax = df[column_name].value_counts().plot(kind="bar")
-    mlflow.log_figure(fig, f"{metrics_prefix}/{column_name}/density.png")
+    # Having figure larger than 30 inches is undesirable
+    if len(value_counts) <= 60:
+        fig, ax = plt.subplots()
+        fig.set_figwidth(len(value_counts) / 2)
+        ax = df[column_name].value_counts().plot(kind="bar")
+        ax.set_xticklabels(list(value_counts), rotation=45)
+        mlflow.log_figure(fig, f"{metrics_prefix}/{column_name}/density.png")
+    else:
+        logger.info(
+            f"Skipping plotting due too many unique values for column: {column_name}"
+        )
 
 
 def analyze_numerical_column(df, column_name, metrics_prefix):
-    for k, v in dict(df[column_name].describe()).items():
-        k = k.replace("%", "-percentile")
-        mlflow.log_metric(
-            key=f"{metrics_prefix}/{column_name}/{k}",
-            value=v,
-        )
+    column_description = {
+        str(k): str(v) for k, v in dict(df[column_name].describe()).items()
+    }
+    mlflow.log_dict(column_description, f"{metrics_prefix}/{column_name}/column_description.json")
 
     fig, ax = plt.subplots()
     ax = df[column_name].plot(
@@ -81,11 +98,24 @@ def analyze_numerical_column(df, column_name, metrics_prefix):
     )
     mlflow.log_figure(fig, f"{metrics_prefix}/{column_name}/density.png")
 
+def merge_onehot(df, onehot_columns_prefix):
+    for prefix in onehot_columns_prefix:
+        cols = [col for col in df.columns if col.startswith(prefix)]
+        if len(cols) <= 1: continue
+
+        df[prefix[:-1]] = [None] * len(df)
+        
+        for col in cols:
+            val = col[len(prefix):]
+            df.loc[df[col] == 1, prefix[:-1]] = val
+        df = df.drop(cols, axis=1)
+    return df
 
 def run_tabular_data_analysis(
     training_data,
     testing_data,
     categorical_columns,
+    onehot_columns_prefix,
     metrics_prefix="default-prefix",
 ):
     """Run exploratory data analysis on training and test data.
@@ -103,13 +133,13 @@ def run_tabular_data_analysis(
 
     # Start MLFlow run
     logger.debug(f"Setting up MLFlow...")
-    mlflow.set_experiment("exploratory-data-analysis")
+    # mlflow.set_experiment("exploratory-data-analysis")
     mlflow_run = mlflow.start_run()
     # root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
 
     logger.debug(f"Loading data...")
-    train_df = pd.read_csv(training_data, index_col=0)
-    test_df = pd.read_csv(testing_data, index_col=0)
+    train_df = pd.read_csv(training_data)
+    test_df = pd.read_csv(testing_data)
 
     mlflow.log_metric(
         key=f"{metrics_prefix}/train/Number of datapoints",
@@ -121,34 +151,36 @@ def run_tabular_data_analysis(
         value=f"{test_df.shape[0]}",
     )
 
+    # We are merging one hot encoded columns and creating categorical columns
+    categorical_columns.extend([prefix[:-1] for prefix in onehot_columns_prefix])
+
     logger.debug(f"Train data analysis...")
+    train_df = merge_onehot(train_df, onehot_columns_prefix)
     mlflow.log_figure(get_corr_fig(train_df), f"{metrics_prefix}/train/correlation.png")
+
     for column in train_df.columns:
+        logger.info(f"Processing training dataset column: {column}")
         if column in categorical_columns:
-            analyze_categorical_column(
-                train_df, column, f"{metrics_prefix}/train"
-            )
+            analyze_categorical_column(train_df, column, f"{metrics_prefix}/train")
         elif is_numeric_dtype(train_df[column]):
-            analyze_numerical_column(
-                train_df, column, f"{metrics_prefix}/train"
-            )
+            analyze_numerical_column(train_df, column, f"{metrics_prefix}/train")
         else:
             logger.info(f"Skipping analysis for column: {column}")
+    plt.close()
 
     logger.debug(f"Test data analysis...")
+    test_df = merge_onehot(test_df, onehot_columns_prefix)
     mlflow.log_figure(get_corr_fig(test_df), f"{metrics_prefix}/test/correlation.png")
+
     for column in test_df.columns:
+        logger.info(f"Processing test dataset column: {column}")
         if column in categorical_columns:
-            analyze_categorical_column(
-                test_df, column, f"{metrics_prefix}/test"
-            )
+            analyze_categorical_column(test_df, column, f"{metrics_prefix}/test")
         elif is_numeric_dtype(test_df[column]):
-            analyze_numerical_column(
-                test_df, column, f"{metrics_prefix}/test"
-            )
+            analyze_numerical_column(test_df, column, f"{metrics_prefix}/test")
         else:
             logger.info(f"Skipping analysis for column: {column}")
-
+    plt.close()
     # End MLFlow run
     mlflow.end_run()
 
@@ -180,7 +212,10 @@ def main(cli_args=None):
             categorical_columns=args.categorical_columns.split(",")
             if args.categorical_columns
             else [],
-            metrics_prefix=args.metrics_prefix if args.metrics_prefix else "default-prefix",
+            onehot_columns_prefix=args.onehot_columns_prefix.split(",")
+            if args.onehot_columns_prefix
+            else [],
+            metrics_prefix=args.metrics_prefix,
         )
 
     run()
