@@ -1,0 +1,12 @@
+name: pneumonia_train_conda_env
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python=3.8
+  - pip=22.1.2
+  - pytorch=1.12.1
+  - torchvision=0.13.1
+  - cudatoolkit=11.3
+  - pip:
+    - azureml-mlflow==1.48.0

@@ -93,6 +93,11 @@ COMPONENTS_FOLDER = os.path.join(
     os.path.dirname(__file__), "..", "..", "components", args.example
 )
 
+# path to the shared components
+SHARED_COMPONENTS_FOLDER = os.path.join(
+    os.path.dirname(__file__), "..", "..", "components", "utils"
+)
+
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -110,14 +115,6 @@ def connect_to_aml():
 
     # Get a handle to workspace
     try:
-        # tries to connect using local config.json
-        ML_CLIENT = MLClient.from_config(credential=credential)
-
-    except Exception as ex:
-        print(
-            "Could not find config.json, using config.yaml refs to Azure ML workspace instead."
-        )
-
         # tries to connect using cli args if provided else using config.yaml
         ML_CLIENT = MLClient(
             subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
@@ -126,10 +123,14 @@ def connect_to_aml():
             workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
             credential=credential,
         )
+
+    except Exception as ex:
+        print("Could not find either cli args or config.yaml.")
+        # tries to connect using local config.json
+        ML_CLIENT = MLClient.from_config(credential=credential)
+
     return ML_CLIENT
 
-
-ML_CLIENT = connect_to_aml()
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -137,17 +138,15 @@ ML_CLIENT = connect_to_aml()
 
 # Loading the component from their yaml specifications
 preprocessing_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "preprocessing.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
 )
 
 training_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "traininsilo.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
 )
 
 aggregate_component = load_component(
-    source=os.path.join(
-        COMPONENTS_FOLDER, "aggregatemodelweights", "aggregatemodelweights.yaml"
-    )
+    source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
 
@@ -339,7 +338,7 @@ print(pipeline_job)
 
 if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
-
+    ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_dev"
     )
@@ -356,9 +355,13 @@ if args.submit:
         while status not in ["Failed", "Completed", "Canceled"]:
             print(f"Job current status is {status}")
 
-            # check status after every 100 sec.
+            # check status after every 100 sec
             time.sleep(100)
-            pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            try:
+                pipeline_job = ML_CLIENT.jobs.get(name=job_name)
+            except azure.identity._exceptions.CredentialUnavailableError as e:
+                print(f"Token expired or Credentials unavailable: {e}")
+                sys.exit(5)
             status = pipeline_job.status
 
         print(f"Job finished with status {status}")
