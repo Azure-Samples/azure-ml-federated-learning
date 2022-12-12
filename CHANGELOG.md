@@ -1,5 +1,33 @@
 # FL Accelerator Changelog
 
+##  November 2022 release
+
+We are excited to announce the release of the November iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
+
+Here below we list all the new features. The most significant ones are the addition of 3 industry-relevant examples ([credit card fraud detection](./docs/real-world-examples/ccfraud.md), [named entity recognition](./docs/real-world-examples/ner.md), [pneumonia detection](./docs/real-world-examples/pneumonia.md)), and the introduction of a [Troubleshooting Guide](./docs/tsg.md).
+
+<!-- ### Provisioning
+-  -->
+
+### FL Experience
+- Added 3 industry-relevant examples. The examples include 2 jobs. The first one (generic) downloads some public data, partitions them, and uploads them to the silos. The second job (example-specific) trains a model using FL. The 3 examples address the following topics:
+  - [credit card fraud detection](./docs/real-world-examples/ccfraud.md) (finance example);
+  - [named entity recognition](./docs/real-world-examples/ner.md) (NLP example);
+  - [pneumonia detection](./docs/real-world-examples/pneumonia.md) (medical imaging example). 
+- Fixed a bug causing the contents of the `config.json` file to take precedence over the CLI arguments (subscription id, resource group, workspace name) when submitting a job. Now, the CLI arguments takes precedence over the `config.yaml` file, which itself takes precedence over the `config.json` file.
+
+### Documentation
+- Introduced a new [Troubleshooting Guide](./docs/tsg.md) to help you troubleshoot common issues. We will keep adding to it as we become aware of more common issues.
+
+### Repository structure
+- Improved the [documentation home page](./docs/README.md) by adding some pictures and introducing the industry-relevant examples.
+- Revisited our CI/CD processes for better agility (enable concurrent jobs, accommodate token expiration issue).
+
+To get started, go [here](./docs/quickstart.md)!
+
+If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
+
+
 ##  October 2022 release
 
 We are excited to announce the release of the October iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
@@ -21,11 +49,6 @@ Here are the new features.
 
 ### Repository structure
 - Enabled CI/CD on the repo to ensure nothing breaks.
-
-To get started, go [here](./docs/quickstart.md)!
-
-If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
-
 
 ##  September 2022 release
 

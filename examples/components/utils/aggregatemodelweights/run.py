@@ -14,11 +14,14 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
+
     Args:
         parser (argparse.ArgumentParser or CompliantArgumentParser):
         an argument parser instance
+
     Returns:
         ArgumentParser: the argument parser instance
+
     Notes:
         if parser is None, creates a new parser instance
     """
@@ -137,7 +140,9 @@ class PyTorchStateDictFedAvg:
 
 def main(cli_args=None):
     """Component main function.
+
     It parses arguments and executes run() with the right arguments.
+
     Args:
         cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
     """

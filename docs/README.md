@@ -23,6 +23,8 @@ In those contexts, the data cannot be gathered in a central location, as is usua
 
 No time to read? Get directly to the [**quickstart**](./quickstart.md) to provision a demo within minutes in your own subscription.
 
+To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./provisioning/README.md). 
+
 A step-by-step guide for performing a Federated Learning experiment can be found [**here**](./guide.md).
 
 ## Why should you consider Federated Learning?
@@ -74,6 +76,10 @@ This example shows how to train a federated model for the Named Entity Recogniti
 ### Credit card fraud detection using synthetic transactional data
 This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud.md) for detailed instructions on how to run this example.
 
+
+## Troubleshooting guide
+
+If you experience an issue using this repository, please check the [**troubleshooting guide**](./tsg.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
 
 ## Glossary
 
