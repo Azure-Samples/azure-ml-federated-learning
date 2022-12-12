@@ -23,6 +23,8 @@ In those contexts, the data cannot be gathered in a central location, as is usua
 
 No time to read? Get directly to the [**quickstart**](./quickstart.md) to provision a demo within minutes in your own subscription.
 
+To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./provisioning/README.md). 
+
 A step-by-step guide for performing a Federated Learning experiment can be found [**here**](./guide.md).
 
 ## Why should you consider Federated Learning?

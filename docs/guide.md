@@ -23,6 +23,8 @@ If all the data live in __one__ AAD (Azure Active Directory) tenant, we could si
 
 To quickly provision resources for your Federated Learning experiment setup, follow the steps given [here](./quickstart.md/#deploy-demo-resources-in-azure).
 
+Please visit the provisioning [**cookbook**](./provisioning/README.md) to learn more about the resource provisioning alternatives that are available.
+
 ## How to validate an FL job:
 
 1. Upload the provided data to each silo’s storage. 
