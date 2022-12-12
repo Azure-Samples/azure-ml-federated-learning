@@ -40,9 +40,17 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--output", type=str, required=True, help="where to write the averaged model"
     )
-    parser.add_argument("--ancillary_files", type=bool, default=False, help="Wether ancillary files need to be copied")
-    parser.add_argument("--out_checkpoint_name", type=str, default = "model",
-        help=" the name of the output checkpoint, e.g. model for CCFRAUD/MNIST/NER/PNEUMONIA, finetuned_state_dict for Babel models"
+    parser.add_argument(
+        "--ancillary_files",
+        type=bool,
+        default=False,
+        help="Wether ancillary files need to be copied",
+    )
+    parser.add_argument(
+        "--out_checkpoint_name",
+        type=str,
+        default="model",
+        help=" the name of the output checkpoint, e.g. model for CCFRAUD/MNIST/NER/PNEUMONIA, finetuned_state_dict for Babel models",
     )
 
     return parser
@@ -171,17 +179,21 @@ def main(cli_args=None):
     # check if meta data needed, coppy the whole dir
     if args.ancillary_files:
         for src in os.listdir(args.checkpoints[0]):
-            src_path = os.path.join(args.checkpoints[0],src)
+            src_path = os.path.join(args.checkpoints[0], src)
             if os.path.isfile(src_path):
                 shutil.copy(src_path, f"{args.output}/{src}")
             else:
                 shutil.copytree(src_path, f"{args.output}/{src}")
 
         # remove the checkpoint, it's from single silo
-        out_checkpoint_pth = os.path.join(args.output,f"{args.out_checkpoint_name}.{args.extension}" )
+        out_checkpoint_pth = os.path.join(
+            args.output, f"{args.out_checkpoint_name}.{args.extension}"
+        )
         os.remove(out_checkpoint_pth)
-       
-    model_handler.save_model(os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}"))
+
+    model_handler.save_model(
+        os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
+    )
 
 
 if __name__ == "__main__":
