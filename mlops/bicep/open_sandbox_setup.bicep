@@ -38,17 +38,17 @@ param identityType string = 'UserAssigned'
 param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
-// param siloRegions array = [
-//   'westus'
-//   'francecentral'
-//   'brazilsouth'
-// ]
-
 param siloRegions array = [
-  'australiaeast'
-  'eastus'
-  'westeurope'
+  'westus'
+  'francecentral'
+  'brazilsouth'
 ]
+
+// param siloRegions array = [
+//   'australiaeast'
+//   'eastus'
+//   'westeurope'
+// ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param compute1SKU string = 'Standard_DS3_v2'
