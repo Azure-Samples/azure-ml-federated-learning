@@ -57,7 +57,7 @@ param compute1SKU string = 'Standard_DS3_v2'
 param compute2 bool = false
 
 @description('The VM used for creating a second compute cluster in orchestrator and silos.')
-param compute2SKU string = 'Standard_NC6'
+param compute2SKU string = 'STANDARD_DS4_V2'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {
