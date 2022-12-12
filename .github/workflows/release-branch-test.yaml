@@ -293,7 +293,7 @@ jobs:
   #       subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
   #       resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
   #       workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
-        example: HELLOWORLD
+        # example: HELLOWORLD
 
   # vnet-sandbox-literal-mnist-test:
   #   needs: vnet-sandbox-literal-helloworld-test
