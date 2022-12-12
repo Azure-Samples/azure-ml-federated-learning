@@ -44,9 +44,8 @@ runs:
 
     - name: Install python dependencies
       shell: bash
-      run: pip install -r examples/pipelines/fl_cross_silo_factory/requirements.txt
+      run: pip install -r examples/pipelines/requirements.txt
 
     - name: Submit fl_cross_silo_factory pipeline
       shell: bash
-      run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --example ${{ inputs.example }} --submit --ignore_validation --wait
-
+      run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --example ${{ inputs.example }} --submit --ignore_validation --wait || [ $? == 5 ]

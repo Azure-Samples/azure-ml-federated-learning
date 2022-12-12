@@ -1,0 +1,29 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: pneumonia_upload_data
+version: 0.3.0
+display_name: Download Chest dataset and upload to silo storage
+type: command
+description: Component that downloads the pneumonia dataset from Kaggle, partitions it, and then uploads each partition to one of the silos' storages.
+is_deterministic: true
+
+inputs:
+  silo_count:
+    type: number
+    optional: false
+  silo_index:
+    type: number
+    optional: false
+
+outputs:
+  raw_data_folder:
+    type: uri_folder
+    description: the output folder where the raw data will be written
+
+code: .
+
+command: >-
+  python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_data_folder ${{outputs.raw_data_folder}}
+
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

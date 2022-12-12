@@ -1,0 +1,71 @@
+# EXAMPLE CONFIG FILE
+
+# This file is intended to help contain all the parameters required
+# to orchestrate our sample federated learning experiments.
+# It is by no means necessary to run an FL experiment, just helpful.
+# See submit.py for details on how to consume this file in python.
+
+# This should work out of the box when running an experiment
+# on one of our sandbox environments.
+
+# Follow the instructions in the comments to adapt to your settings.
+
+# References to Azure ML workspace (use cli args to override)
+aml:
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
+
+# Parameters to generate the FL graph
+federated_learning:
+  orchestrator:
+    # name of compute for orchestrator
+    compute: "cpu-orchestrator"
+    # name of datastore for orchestrator (saving model weights + aggregate)
+    datastore: "datastore_orchestrator"
+
+  silos: # silos are provided as a list
+    - compute: cpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus # name of the datastore for silo X
+      training_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ner/raw_train_data/
+      testing_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ner/raw_test_data/
+
+    - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
+      training_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ner/raw_train_data/
+      testing_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ner/raw_test_data/
+
+    - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
+      training_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ner/raw_train_data/
+      testing_data:
+        type: uri_folder
+        mode: download
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ner/raw_test_data/
+
+# Training parameters
+training_parameters:
+  # how many loops of scatter-gather to run
+  num_of_iterations: 2
+  
+  # then typical training parameters
+  tokenizer_name: "bert-base-cased" # Tokenizer name
+  model_name: "bert-base-cased" # Pre-trained Model name
+  epochs: 3 # number of epochs per iteration (in-silo training) 
+  lr: 0.01 # learning rate
+  batch_size: 16 # batch size

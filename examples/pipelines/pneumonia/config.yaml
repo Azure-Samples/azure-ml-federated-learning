@@ -1,0 +1,39 @@
+# example yaml config
+
+# using this to store references to Azure ML
+aml:
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
+
+# federated learning parameters
+federated_learning:
+  orchestrator:
+    compute: "cpu-orchestrator"
+    datastore: "datastore_orchestrator"
+
+  silos:
+    - compute: cpu-silo0-westus
+      datastore: datastore_silo0_westus
+      silo_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/pneumonia
+    - compute: cpu-silo1-francecentral
+      datastore: datastore_silo1_francecentral
+      silo_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/pneumonia
+    - compute: cpu-silo2-brazilsouth
+      datastore: datastore_silo2_brazilsouth
+      silo_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/pneumonia
+
+# training parameters
+training_parameters:
+  num_of_iterations: 2
+  epochs: 5
+  lr: 0.01
