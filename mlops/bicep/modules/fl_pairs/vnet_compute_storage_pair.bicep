@@ -130,7 +130,7 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
 
 // create new Azure ML compute
 module computeDeployment1 '../computes/vnet_new_aml_compute.bicep' = {
-  name: '${pairBaseName}-vnet-aml-compute'
+  name: '${pairBaseName}-vnet-aml-compute-01'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
@@ -162,7 +162,7 @@ module computeDeployment1 '../computes/vnet_new_aml_compute.bicep' = {
 
 // create new second Azure ML compute
 module computeDeployment2 '../computes/vnet_new_aml_compute.bicep' = if(compute2) {
-  name: '${pairBaseName}-vnet-aml-compute'
+  name: '${pairBaseName}-vnet-aml-compute-02'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
