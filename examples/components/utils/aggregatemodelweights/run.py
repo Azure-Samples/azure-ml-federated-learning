@@ -39,7 +39,7 @@ def get_arg_parser(parser=None):
     )
     parser.add_argument("--ancillary_files", type=bool, default=False, help="Wether ancillary files need to be copied")
     parser.add_argument("--out_checkpoint_name", type=str, default = "model",
-        help=" the name of the output checkpoint, e.g. model, finetuned_state_dict"
+        help=" the name of the output checkpoint, e.g. model for CCFRAUD/MNIST/NER/PNEUMONIA, finetuned_state_dict for Babel models"
     )
 
     return parser
