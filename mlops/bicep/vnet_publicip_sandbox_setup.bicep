@@ -53,7 +53,7 @@ param siloRegions array = [
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param computeSKU string = 'Standard_DS3_v2'
+param compute1SKU string = 'Standard_DS3_v2'
 
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = false
@@ -106,7 +106,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
     pairBaseName: '${demoBaseName}-orch'
 
     computeName: 'cpu-orchestrator' // let's not use demo base name in cluster name
-    computeSKU: computeSKU
+    computeSKU: compute1SKU
     computeNodes: 4
 
     storageAccountName: orchestratorStorageAccountCleanName
@@ -164,7 +164,7 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
     pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
 
     computeName: 'cpu-silo${i}-${siloRegions[i]}' // let's not use demo base name
-    computeSKU: computeSKU
+    computeSKU: compute1SKU
     computeNodes: 4
     datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
 
