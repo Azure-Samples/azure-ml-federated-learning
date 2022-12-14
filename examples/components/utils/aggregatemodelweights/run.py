@@ -5,7 +5,7 @@ import logging
 import sys
 import glob
 import shutil
-
+from distutils.util import strtobool
 import torch
 
 
@@ -42,9 +42,9 @@ def get_arg_parser(parser=None):
     )
     parser.add_argument(
         "--ancillary_files",
-        type=bool,
+        type=strtobool,
         default=False,
-        help="Wether ancillary files need to be copied",
+        help="Whether ancillary files need to be copied",
     )
     parser.add_argument(
         "--out_checkpoint_name",
@@ -176,7 +176,7 @@ def main(cli_args=None):
     for model_path in model_paths:
         model_handler.add_model(model_path)
 
-    # check if meta data needed, coppy the whole dir
+    # check if meta data needed, copy the whole dir
     if args.ancillary_files:
         for src in os.listdir(args.checkpoints[0]):
             src_path = os.path.join(args.checkpoints[0], src)

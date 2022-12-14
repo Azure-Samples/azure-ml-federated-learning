@@ -52,8 +52,8 @@ command: >-
   $[[${{inputs.input_silo_3}}]] 
   $[[${{inputs.input_silo_4}}]] 
   $[[${{inputs.input_silo_5}}]] 
-  --ancillary_files $[[${{inputs.ancillary_files}}]] 
-  --out_checkpoint_name $[[${{inputs.out_checkpoint_name}}]] 
+  $[[--ancillary_files ${{inputs.ancillary_files}}]] 
+  $[[--out_checkpoint_name ${{inputs.out_checkpoint_name}}]] 
 environment:
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
