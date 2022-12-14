@@ -81,6 +81,40 @@ param blobPrivateDNSZoneLocation string = 'global'
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
+// Virtual network and network security group
+module nsg '../networking/nsg.bicep' = { 
+  name: '${nsgResourceName}-deployment'
+  params: {
+    location: pairRegion
+    nsgName: nsgResourceName
+    tags: tags
+  }
+}
+
+module vnet '../networking/vnet.bicep' = { 
+  name: '${vnetResourceName}-deployment'
+  params: {
+    location: pairRegion
+    virtualNetworkName: vnetResourceName
+    networkSecurityGroupId: nsg.outputs.id
+    vnetAddressPrefix: vnetAddressPrefix
+    subnets: [
+      {
+        name: subnetName
+        addressPrefix: subnetPrefix
+      }
+    ]
+    tags: tags
+  }
+}
+
+// provision a user assigned identify for this compute
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
+  name: uaiName
+  location: pairRegion
+  tags: tags
+}
+
 // create new Azure ML compute
 module computeDeployment '../computes/vnet_new_aml_compute.bicep' = {
   name: '${pairBaseName}-vnet-aml-compute'
@@ -97,14 +131,11 @@ module computeDeployment '../computes/vnet_new_aml_compute.bicep' = {
 
     // identity
     computeIdentityType: identityType
-    computeUaiName: uaiName
+    computeUaiName: uai.name
 
     // networking
-    nsgResourceName: nsgResourceName
-    vnetResourceName: vnetResourceName
-    vnetAddressPrefix: vnetAddressPrefix
-    subnetPrefix: subnetPrefix
     subnetName: subnetName
+    subnetId: vnet.outputs.id
     enableNodePublicIp: enableNodePublicIp
 
     tags: tags
@@ -136,8 +167,8 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     resourceServiceId: storageDeployment.outputs.storageId
     resourceName: storageDeployment.outputs.storageName
     pleRootName: 'ple-remoteaccount-${existingStorageAccountName}-to-${pairBaseName}-st-blob'
-    virtualNetworkId: computeDeployment.outputs.vnetId
-    subnetId: '${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'
+    virtualNetworkId: vnet.outputs.id
+    subnetId: '${vnet.outputs.id}/subnets/${computeDeployment.outputs.subnetName}'
     privateDNSZoneName: blobPrivateDNSZoneName
     privateDNSZoneLocation: blobPrivateDNSZoneLocation
     groupId: 'blob'
@@ -153,6 +184,6 @@ output storageName string = storageDeployment.outputs.storageName
 output storageServiceId string = storageDeployment.outputs.storageId
 output computeName string = computeDeployment.outputs.compute
 output region string = pairRegion
-output vnetName string = computeDeployment.outputs.vnetName
-output vnetId string = computeDeployment.outputs.vnetId
-output subnetId string = computeDeployment.outputs.subnetId
+output vnetName string = vnet.outputs.name
+output vnetId string = vnet.outputs.id
+output subnetId string = '${vnet.outputs.id}/subnets/${computeDeployment.outputs.subnetName}'
