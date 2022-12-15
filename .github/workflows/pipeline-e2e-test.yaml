@@ -338,6 +338,7 @@ jobs:
   paths-filter:
     runs-on: ubuntu-latest
     outputs:
+      components-utils: ${{ steps.filter.outputs.components-utils }}
       components-pneumonia: ${{ steps.filter.outputs.components-pneumonia }}
       components-ner: ${{ steps.filter.outputs.components-ner }}
       components-ccfraud: ${{ steps.filter.outputs.components-ccfraud }}
@@ -354,6 +355,8 @@ jobs:
       id: filter
       with:
         filters: |
+          components-utils:
+            - 'examples/components/utils/**'
           components-pneumonia:
             - 'examples/components/PNEUMONIA/**'
           components-ner:
@@ -378,7 +381,7 @@ jobs:
   pneumonia-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.pneumonia-upload-data == 'true') || (needs.paths-filter.outputs.components-pneumonia == 'true') || (needs.paths-filter.outputs.pneumonia == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.pneumonia-upload-data == 'true') || (needs.paths-filter.outputs.components-pneumonia == 'true') || (needs.paths-filter.outputs.pneumonia == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -407,7 +410,7 @@ jobs:
   ner-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ner-upload-data == 'true') || (needs.paths-filter.outputs.components-ner == 'true') || (needs.paths-filter.outputs.ner == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ner-upload-data == 'true') || (needs.paths-filter.outputs.components-ner == 'true') || (needs.paths-filter.outputs.ner == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -436,7 +439,7 @@ jobs:
   ccfraud-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ccfraud-upload-data == 'true') || (needs.paths-filter.outputs.components-ccfraud == 'true') || (needs.paths-filter.outputs.ccfraud == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ccfraud-upload-data == 'true') || (needs.paths-filter.outputs.components-ccfraud == 'true') || (needs.paths-filter.outputs.ccfraud == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
     permissions:
       id-token: write
     steps:
