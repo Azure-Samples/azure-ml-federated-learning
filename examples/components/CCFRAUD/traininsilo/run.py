@@ -126,8 +126,9 @@ class CCFraudTrainer:
         self._distributed = distributed
 
         self.device_ = (
-            torch.device("cuda", device_id)
-            # torch.cuda.device(device_id)
+            torch.device(
+                torch.device("cuda", device_id) if torch.cuda.is_available() else "cpu"
+            )
             if device_id is not None
             else torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         )
@@ -318,13 +319,12 @@ class CCFraudTrainer:
 
                         for name, value in train_metrics.get_step().items():
                             log_message.append(f"{name}: {value}")
-                            if not self._distributed or self._rank == 0:
-                                self.log_metrics(
-                                    mlflow_client,
-                                    root_run_id,
-                                    name,
-                                    value,
-                                )
+                            self.log_metrics(
+                                mlflow_client,
+                                root_run_id,
+                                name,
+                                value,
+                            )
                         logger.info(", ".join(log_message))
                         train_metrics.reset_step()
 
@@ -337,22 +337,20 @@ class CCFraudTrainer:
                 # log test metrics after each epoch
                 for name, value in train_metrics.get_global().items():
                     log_message.append(f"{name}: {value}")
-                    if not self._distributed or self._rank == 0:
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            name,
-                            value,
-                        )
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                    )
                 for name, value in test_metrics.get_global().items():
                     log_message.append(f"{name}: {value}")
-                    if not self._distributed or self._rank == 0:
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            name,
-                            value,
-                        )
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                    )
                 logger.info(", ".join(log_message))
 
             log_message = [
@@ -472,25 +470,20 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def create_logger():
-    global logger
-    # Set logging to sys.out
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(log_format)
-    logger.addHandler(handler)
-
-
 def run(args):
     """Run script with arguments (the core of the component).
 
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
-    create_logger()
+
+    logger.info(f"Distributed process rank: {os.environ['RANK']}")
+    logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
+
+    if torch.cuda.is_available():
+        dist.init_process_group(
+            "nccl", rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"])
+        )
     trainer = CCFraudTrainer(
         model_name=args.model_name,
         train_data_dir=args.train_data,
@@ -501,31 +494,8 @@ def run(args):
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
-    )
-    trainer.execute(args.checkpoint)
-
-
-def run_parallel(rank, world_size, args):
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "12355"
-    os.environ["WORLD_SIZE"] = str(world_size)
-    os.environ["RANK"] = str(rank)
-
-    # initialize the process group
-    dist.init_process_group("nccl", rank=rank, world_size=world_size)
-    create_logger()
-    trainer = CCFraudTrainer(
-        model_name=args.model_name,
-        train_data_dir=args.train_data,
-        test_data_dir=args.test_data,
-        model_path=args.model_path + "/model.pt",
-        lr=args.lr,
-        epochs=args.epochs,
-        batch_size=args.batch_size,
-        experiment_name=args.metrics_prefix,
-        iteration_name=args.iteration_name,
-        device_id=rank,
-        distributed=True,
+        device_id=int(os.environ["RANK"]),
+        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
 
@@ -547,18 +517,22 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    print(f"Running script with arguments: {args}")
-    print(f"CUDA available: {torch.cuda.is_available()}")
-    cuda_count = torch.cuda.device_count()
-    print(f"Found CUDA devices: {cuda_count}")
+    logger.info(f"Running script with arguments: {args}")
+    logger.info(f"CUDA available: {torch.cuda.is_available()}")
+    logger.info(f"CUDA devices count: {torch.cuda.device_count()}")
 
-    if torch.cuda.device_count() > 1:
-        print("Running DDP training to utilize multiple GPUs.")
-        mp.spawn(run_parallel, args=(cuda_count, args), nprocs=cuda_count, join=True)
-    else:
-        run(args)
+    run(args)
 
 
 if __name__ == "__main__":
+
+    # Set logging to sys.out
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
 
     main()
