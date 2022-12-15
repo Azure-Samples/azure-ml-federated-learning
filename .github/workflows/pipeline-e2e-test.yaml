@@ -183,8 +183,6 @@ jobs:
         workspace-name: aml-fl1${{ github.run_attempt }}${{ github.run_id }}
         example: pneumonia
 
-
-
   open-sandbox-ner-test:
     runs-on: ubuntu-latest
     needs: open-sandbox-literal-helloworld-test

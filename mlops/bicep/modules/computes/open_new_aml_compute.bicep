@@ -36,7 +36,7 @@ param computeIdentityType string = 'UserAssigned'
 param tags object = {}
 
 
-// provision a user assigned identify for this compute
+// get an existing user assigned identify for this compute
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
   name: computeUaiName
 }

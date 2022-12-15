@@ -38,7 +38,6 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
-
 @description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
 param applyDefaultPermissions bool = true
 
@@ -46,13 +45,13 @@ param applyDefaultPermissions bool = true
 param compute2 bool = false
 
 @description('The second VM used for creating compute clusters in orchestrator and silos.')
-param compute2SKU string = 'Standard_NC6'
+param compute2SKU string = 'Standard_DS3_v2'
 
 @description('Name of the default compute cluster for the pair')
 param compute2Name string = '${pairBaseName}-02'
 
 @description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
-param computeUaiName string = 'uai-${pairBaseName}-${compute1Name}'
+param computeUaiName string = 'uai-${pairBaseName}'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}

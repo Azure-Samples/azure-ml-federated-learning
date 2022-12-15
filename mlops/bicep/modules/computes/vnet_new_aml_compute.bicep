@@ -30,18 +30,6 @@ param computeIdentityType string = 'UserAssigned'
 @description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
 param computeUaiName string
 
-// @description('Name of the Network Security Group resource')
-// param nsgResourceName string = 'nsg-${computeName}'
-
-// @description('Name of the vNET resource')
-// param vnetResourceName string = 'vnet-${computeName}'
-
-// @description('Virtual network address prefix')
-// param vnetAddressPrefix string = '10.0.0.0/16'
-
-// @description('Subnet address prefix')
-// param subnetPrefix string = '10.0.0.0/24'
-
 @description('Subnet ID')
 param subnetId string
 
@@ -54,41 +42,7 @@ param enableNodePublicIp bool = true
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
-// // Virtual network and network security group
-// module nsg '../networking/nsg.bicep' = { 
-//   name: '${nsgResourceName}-deployment'
-//   params: {
-//     location: computeRegion
-//     nsgName: nsgResourceName
-//     tags: tags
-//   }
-// }
-
-// module vnet '../networking/vnet.bicep' = { 
-//   name: '${vnetResourceName}-deployment'
-//   params: {
-//     location: computeRegion
-//     virtualNetworkName: vnetResourceName
-//     networkSecurityGroupId: nsg.outputs.id
-//     vnetAddressPrefix: vnetAddressPrefix
-//     subnets: [
-//       {
-//         name: subnetName
-//         addressPrefix: subnetPrefix
-//       }
-//     ]
-//     tags: tags
-//   }
-// }
-
-// // provision a user assigned identify for this compute
-// resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (computeIdentityType == 'UserAssigned') {
-//   name: computeUaiName
-//   location: computeRegion
-//   tags: tags
-// }
-
-// provision a user assigned identify for this compute
+// get an existing user assigned identify for this compute
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
   name: computeUaiName
 }

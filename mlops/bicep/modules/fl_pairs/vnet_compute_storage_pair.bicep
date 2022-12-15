@@ -38,9 +38,9 @@ param computeNodes int = 4
 param compute2 bool = false
 
 @description('The second VM used for creating compute clusters in orchestrator and silos.')
-param compute2SKU string = 'Standard_NC6'
+param compute2SKU string = 'Standard_DS3_v2'
 
-@description('Name of the default compute cluster for the pair')
+@description('Name of the second compute cluster for the pair')
 param compute2Name string = '${pairBaseName}-02'
 
 @allowed(['UserAssigned','SystemAssigned'])
@@ -147,10 +147,6 @@ module computeDeployment1 '../computes/vnet_new_aml_compute.bicep' = {
     computeUaiName: uai.name
 
     // networking
-    // nsgResourceName: nsgResourceName
-    // vnetResourceName: vnetResourceName
-    // vnetAddressPrefix: vnetAddressPrefix
-    // subnetPrefix: subnetPrefix
     subnetName: subnetName
     subnetId: vnet.outputs.id
     enableNodePublicIp: enableNodePublicIp
@@ -179,10 +175,6 @@ module computeDeployment2 '../computes/vnet_new_aml_compute.bicep' = if(compute2
     computeUaiName: uai.name
 
     // networking
-    // nsgResourceName: nsgResourceName
-    // vnetResourceName: vnetResourceName
-    // vnetAddressPrefix: vnetAddressPrefix
-    // subnetPrefix: subnetPrefix
     subnetName: subnetName
     subnetId: vnet.outputs.id
     enableNodePublicIp: enableNodePublicIp
