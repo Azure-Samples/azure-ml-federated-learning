@@ -1,10 +1,10 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: preprocessing_in_silo
-version: 0.1.0
-display_name: Pre-Processing (in silo)
+name: mnist_preprocessing_in_silo
+version: 0.3.0
+display_name: MNIST Pre-Processing (in silo)
 type: command
-description: Component for preprocessing raw data in a given silo. The images are transformed using random affine keeping the center invariant, then normalized.
+description: Component for preprocessing MNIST data in a given silo. The images are transformed using random affine keeping the center invariant, then normalized.
 is_deterministic: true
 
 inputs:
@@ -36,4 +36,4 @@ command: >-
 
 environment: 
   conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
