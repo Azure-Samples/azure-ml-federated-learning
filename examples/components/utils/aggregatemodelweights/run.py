@@ -12,7 +12,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def get_arg_parser(parser=None):
-    """Parse the command line arguments for merge using argparse.
+    """Parse the command line arguments for merge using argparse..
 
     Args:
         parser (argparse.ArgumentParser or CompliantArgumentParser):
