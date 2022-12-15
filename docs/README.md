@@ -80,8 +80,7 @@ This example shows how to train a federated model for credit card fraud detectio
 Besides the full end-to-end real-world examples, we also provide targeted tutorials for specific scenarios.
 
 ### Read local data in an on-premises Kubernetes silo
-This tutorial will show you how to access, within an Azure ML job running on an on-premises Kubernetes (k8s) cluster, some data in the local file system. It will guide you through the entire process: k8s cluster creation and configuration, attachment to Azure ML as an external silo, and finally test job. See [here](./real-world-examples/read-local-data-in-k8s-silo.md) for detailed instructions.
-<!-- TO-DO: move the document and adjust the link above. -->
+This tutorial will show you how to access, within an Azure ML job running on an on-premises Kubernetes (k8s) cluster, some data in the local file system. It will guide you through the entire process: k8s cluster creation and configuration, attachment to Azure ML as an external silo, and finally test job. See [here](./targeted-tutorials/read-local-data-in-k8s-silo.md) for detailed instructions.
 
 
 ## Troubleshooting guide
