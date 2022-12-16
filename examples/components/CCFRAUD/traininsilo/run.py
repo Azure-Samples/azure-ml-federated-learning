@@ -20,6 +20,7 @@ from typing import List
 import models as models
 import datasets as datasets
 
+
 class RunningMetrics:
     def __init__(self, metrics: List[str], prefix: str = None) -> None:
         self._allowed_metrics = copy.deepcopy(metrics)
@@ -170,7 +171,9 @@ class CCFraudTrainer:
         self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
         if self._distributed:
             self.model_ = DDP(
-                self.model_, device_ids=[self._rank], output_device=self._rank
+                self.model_,
+                device_ids=[self._rank] if self._rank is not None else None,
+                output_device=self._rank,
             )
         self._model_path = model_path
 
@@ -248,7 +251,11 @@ class CCFraudTrainer:
         """
 
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            if self._distributed:
+                # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+                self.model_.module.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            else:
+                self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
             num_of_batches_before_logging = 5
@@ -420,9 +427,14 @@ class CCFraudTrainer:
         logger.debug("Start training")
         self.local_train(checkpoint)
 
-        if not self._distributed or self._rank == 0:
+        if not self._distributed:
             logger.debug("Save model")
             torch.save(self.model_.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
+        elif self._rank == 0:
+            # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+            logger.debug("Save model")
+            torch.save(self.model_.module.state_dict(), self._model_path)
             logger.info(f"Model saved to {self._model_path}")
 
 
@@ -478,10 +490,15 @@ def run(args):
     logger.info(f"Distributed process rank: {os.environ['RANK']}")
     logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
 
-    if torch.cuda.is_available():
+    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
         dist.init_process_group(
-            "nccl", rank=int(os.environ["RANK"]), world_size=int(os.environ["WORLD_SIZE"])
+            "nccl",
+            rank=int(os.environ["RANK"]),
+            world_size=int(os.environ["WORLD_SIZE"]),
         )
+    elif int(os.environ["WORLD_SIZE"]) > 1:
+        dist.init_process_group("gloo")
+
     trainer = CCFraudTrainer(
         model_name=args.model_name,
         train_data_dir=args.train_data,
@@ -497,7 +514,7 @@ def run(args):
     )
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available():
+    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
         dist.destroy_process_group()
 
 
