@@ -4,7 +4,6 @@ import logging
 import sys
 import os
 import copy
-import subprocess
 
 import mlflow
 import torch
@@ -17,14 +16,9 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Dataset
-from mlflow import log_metric, log_param
 from typing import List
 import models as models
 import datasets as datasets
-
-logger = None
-
 
 class RunningMetrics:
     def __init__(self, metrics: List[str], prefix: str = None) -> None:
