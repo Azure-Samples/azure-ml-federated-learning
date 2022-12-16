@@ -95,7 +95,7 @@ module computeDeployment1 '../computes/open_new_aml_compute.bicep' = {
   }
 }
 
-// create new Azure ML compute2
+// create new second Azure ML compute
 module computeDeployment2 '../computes/open_new_aml_compute.bicep' = if(compute2) {
   name: '${pairBaseName}-open-aml-compute-02'
   scope: resourceGroup()
