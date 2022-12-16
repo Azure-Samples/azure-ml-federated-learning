@@ -22,6 +22,7 @@ For common FL terms such as **silo** or **orchestrator**, please refer to the [g
 ## Prerequisites
 - **Some Kubernetes (k8s) cluster** (at least one) with version <= 1.24.6, either on-premises, or in Azure (in a different tenant from that of the orchestrator). The cluster should have a minimum of 4 vCPU cores and 8-GB memory.
   - For creating a k8s cluster on-premises one can use [Kind](https://kind.sigs.k8s.io/), for instance.
+    - If you want your k8s cluster to have access to _local_ data that reside on the same machine, you can create your cluster following [this tutorial](../targeted-tutorials/read-local-data-in-k8s-silo.md).
   - For creating a k8s cluster in Azure (in a different tenant otherwise we'd be dealing with _internal_ silos), one can use [Azure Kubernetes Service (AKS)](https://portal.azure.com/#create/microsoft.aks).
 - **FL Admin** needs to have **Owner** role in the subscription, or at least in the resource group where the Azure ML workspace will be created. This is because some Role Assignments will have to be created.
 - **Silo Admin** must be given (temporary) Contributor role to the subscription, or at least the [Azure Arc Onboarding](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles#kubernetes-cluster---azure-arc-onboarding) built-in role. This is because one step will require access to both the orchestrator subscription, and to the k8s cluster. It assumed that _the FL Admin shouldn't have direct access to the k8s cluster_.
