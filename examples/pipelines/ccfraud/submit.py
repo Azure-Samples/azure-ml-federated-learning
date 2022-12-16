@@ -267,6 +267,12 @@ def fl_ccfraud_basic():
                 if silo_compute_info is not None and silo_compute_info.gpus >= 1:
                     silo_processes = silo_compute_info.gpus
 
+            # We need to reload component because otherwise all the instances will share same
+            # value for process_count_per_instance 
+            training_component = load_component(
+                source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
+            )
+
             # we're using training component here
             silo_training_step = training_component(
                 # with the train_data from the pre_processing step
@@ -296,13 +302,7 @@ def fl_ccfraud_basic():
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
             silo_training_step.distribution.process_count_per_instance = silo_processes
-
-            # We need to reload component because otherwise all the instances will share same
-            # value for process_count_per_instance 
-            training_component = load_component(
-                source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
-            )
-
+                
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
                 type=AssetTypes.URI_FOLDER,

@@ -145,6 +145,7 @@ class CCFraudTrainer:
         )
 
         if self._distributed:
+            logger.info("Setting up distributed samplers.")
             self.train_sampler_ = torch.utils.data.distributed.DistributedSampler(
                 self.train_dataset_
             )
@@ -167,6 +168,9 @@ class CCFraudTrainer:
             shuffle=False,
             sampler=self.test_sampler_,
         )
+
+        logger.info(f"Train loader steps: {len(self.train_loader_)}")
+        logger.info(f"Test loader steps: {len(self.test_loader_)}")
 
         # Build model
         self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
@@ -502,7 +506,8 @@ def run(args):
     )
     trainer.execute(args.checkpoint)
 
-    dist.destroy_process_group()
+    if torch.cuda.is_available():
+        dist.destroy_process_group()
 
 
 def main(cli_args=None):
