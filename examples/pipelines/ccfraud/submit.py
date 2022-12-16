@@ -217,6 +217,8 @@ def fl_ccfraud_basic():
 
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
+        
+        # assign instance type for AKS, if available
         if hasattr(silo_config, "instance_type"):
             silo_pre_processing_step.resources = {
                 "instance_type": silo_config.instance_type
@@ -256,12 +258,6 @@ def fl_ccfraud_basic():
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
-            train_compute = (
-                silo_config.train_compute
-                if hasattr(silo_config, "train_compute")
-                else silo_config.compute
-            )
-
             # we're using training component here
             silo_training_step = training_component(
                 # with the train_data from the pre_processing step
@@ -277,7 +273,7 @@ def fl_ccfraud_basic():
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
-                metrics_prefix=train_compute,
+                metrics_prefix=silo_config.compute,
                 # Iteration name
                 iteration_name=f"Iteration-{iteration}",
                 # Model name
@@ -287,8 +283,9 @@ def fl_ccfraud_basic():
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
-            silo_training_step.compute = train_compute
+            silo_training_step.compute = silo_config.compute
 
+            # assign instance type for AKS, if available
             if hasattr(silo_config, "instance_type"):
                 silo_training_step.resources = {
                     "instance_type": silo_config.instance_type
@@ -317,6 +314,11 @@ def fl_ccfraud_basic():
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            aggregate_weights_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
         # add a readable name to the step
         aggregate_weights_step.name = f"iteration_{iteration}_aggregation"
 
