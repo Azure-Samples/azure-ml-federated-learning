@@ -219,6 +219,12 @@ def fl_pneumonia_basic():
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.compute
 
+            # assign instance type for AKS, if available
+            if hasattr(silo_config, "instance_type"):
+                silo_training_step.resources = {
+                    "instance_type": silo_config.instance_type
+                }
+
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
                 type=AssetTypes.URI_FOLDER,
@@ -242,6 +248,11 @@ def fl_pneumonia_basic():
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            aggregate_weights_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
         # add a readable name to the step
         aggregate_weights_step.name = f"iteration_{iteration}_aggregation"
 
