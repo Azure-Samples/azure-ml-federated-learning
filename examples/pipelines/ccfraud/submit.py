@@ -217,7 +217,7 @@ def fl_ccfraud_basic():
 
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
-        
+
         # assign instance type for AKS, if available
         if hasattr(silo_config, "instance_type"):
             silo_pre_processing_step.resources = {
