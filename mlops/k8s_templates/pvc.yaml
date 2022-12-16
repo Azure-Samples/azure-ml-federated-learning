@@ -8,7 +8,7 @@ metadata:
     app: demolocaldata
     ml.azure.com/pvc: "true"
   annotations:
-    ml.azure.com/mountpath: "/mnt/localdata" # The path from which the local data will be accessed during the Azure ML job.
+    ml.azure.com/mountpath: "/mnt/localdata" # The path from which the local data will be accessed during the Azure ML job. You can change that to a different path if you want.
 spec:
   storageClassName: manual
   accessModes:
