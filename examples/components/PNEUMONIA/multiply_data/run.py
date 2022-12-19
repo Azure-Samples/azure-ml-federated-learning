@@ -55,11 +55,15 @@ def multiply_files(file_paths, source, target, multiplication_factor):
                 full_output_dir = os.path.join(target, rel_dir)
 
                 # create a name for the output file
-                output_file_path = os.path.join(full_output_dir, file_name.stem + f"_{i}" + file_name.suffix)
+                output_file_path = os.path.join(
+                    full_output_dir, file_name.stem + f"_{i}" + file_name.suffix
+                )
 
                 # create output dir
                 if not os.path.isdir(full_output_dir):
-                    logging.getLogger(__name__).info(f"Creating output subfolder {full_output_dir}")
+                    logging.getLogger(__name__).info(
+                        f"Creating output subfolder {full_output_dir}"
+                    )
                     os.makedirs(full_output_dir, exist_ok=True)
 
                 if not os.path.isfile(output_file_path):
@@ -79,13 +83,17 @@ def run(args):
     # MLFLOW: initialize mlflow (once in entire script)
     mlflow.start_run()
 
-    all_files_list = list(glob.glob(os.path.join(args.input, "**", "*"), recursive=True))
+    all_files_list = list(
+        glob.glob(os.path.join(args.input, "**", "*"), recursive=True)
+    )
 
     logger.info(f"Total file list len={len(all_files_list)}")
 
     mlflow.log_metric("total_files_count", len(all_files_list))
 
-    files_created = multiply_files(all_files_list, args.input, args.output, args.multiply)
+    files_created = multiply_files(
+        all_files_list, args.input, args.output, args.multiply
+    )
     mlflow.log_metric("files_created", files_created)
 
     mlflow.end_run()

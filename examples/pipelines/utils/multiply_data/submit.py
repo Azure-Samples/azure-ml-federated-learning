@@ -163,8 +163,8 @@ def fl_cross_silo_upload_data():
         # create step for multiplying component
         silo_multiply_data_step = multiply_data_component(
             input_folder=custom_fl_data_path(
-                    silo_config.datastore, f"{args.example.lower()}"
-                )
+                silo_config.datastore, f"{args.example.lower()}"
+            )
         )
 
         # add a readable name to the step
@@ -177,7 +177,9 @@ def fl_cross_silo_upload_data():
         silo_multiply_data_step.outputs.output_folder = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
-            path=custom_fl_data_path(silo_config.datastore, f"{args.example.lower()}/multiplied_data"),
+            path=custom_fl_data_path(
+                silo_config.datastore, f"{args.example.lower()}/multiplied_data"
+            ),
         )
 
 

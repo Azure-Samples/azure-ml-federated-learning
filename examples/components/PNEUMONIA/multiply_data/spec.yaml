@@ -20,7 +20,7 @@ inputs:
 outputs:
   output_folder: # Multiplied data directory path
     type: uri_folder
-    optional: false
+    description: Output directory path
 
 code: .
 
