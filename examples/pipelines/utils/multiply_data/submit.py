@@ -17,7 +17,7 @@ import sys
 # Azure ML sdk v2 imports
 import azure
 from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
-from azure.ai.ml import MLClient, Output
+from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
@@ -155,15 +155,21 @@ def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
 
 
 @pipeline(
-    description=f"FL cross-silo upload data pipeline.",
+    description=f"FL cross-silo multiply data pipeline.",
 )
-def fl_cross_silo_upload_data():
+def fl_cross_silo_multiply_data():
 
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # create step for multiplying component
+        data_path = custom_fl_data_path(
+            silo_config.datastore, f"{args.example.lower()}"
+        )
+        print(data_path)
         silo_multiply_data_step = multiply_data_component(
-            input_folder=custom_fl_data_path(
-                silo_config.datastore, f"{args.example.lower()}"
+            input_folder=Input(
+                type=AssetTypes.URI_FOLDER,
+                mode="download",
+                path=data_path,
             )
         )
 
@@ -183,7 +189,7 @@ def fl_cross_silo_upload_data():
         )
 
 
-pipeline_job = fl_cross_silo_upload_data()
+pipeline_job = fl_cross_silo_multiply_data()
 
 # Inspect built pipeline
 print(pipeline_job)
