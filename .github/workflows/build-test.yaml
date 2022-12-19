@@ -31,7 +31,6 @@ jobs:
 
   pneumonia-multiply-data-test:
     runs-on: ubuntu-latest
-    needs: paths-filter
     permissions:
       id-token: write
     steps:
