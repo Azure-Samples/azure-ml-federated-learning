@@ -28,3 +28,31 @@ jobs:
     
     - name: Validate fl_cross_silo_literal pipeline
       run: python examples/pipelines/fl_cross_silo_literal/submit.py
+
+  pneumonia-multiply-data-test:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit the PNEUMONIA upload data pipeline
+      uses: ./.github/actions/submit-upload-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: PNEUMONIA
+
+    - name: Submit the PNEUMONIA multiply data pipeline
+      uses: ./.github/actions/submit-multiply-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: PNEUMONIA
