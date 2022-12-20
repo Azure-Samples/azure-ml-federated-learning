@@ -6,3 +6,4 @@ dependencies:
   - pip=22.2.2
   - pip:
     - azureml-mlflow==1.48.0
+    - tqdm
