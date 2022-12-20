@@ -161,18 +161,13 @@ def fl_cross_silo_multiply_data():
 
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # create step for multiplying component
-        # data_path = custom_fl_data_path(
-        #     silo_config.datastore, f"{args.example.lower()}"
-        # )
-        # print(data_path)
         silo_multiply_data_step = multiply_data_component(
             input_folder=Input(
-                    type=silo_config.input_silo_data.type,
-                    mode=silo_config.input_silo_data.mode,
-                    path=silo_config.input_silo_data.path,
+                    type=silo_config.input_data.type,
+                    mode=silo_config.input_data.mode,
+                    path=silo_config.input_data.path,
             ),
         )
-
         # add a readable name to the step
         silo_multiply_data_step.name = f"silo_{silo_index}_multiply_data"
 
@@ -181,9 +176,9 @@ def fl_cross_silo_multiply_data():
 
         # make sure the data is written in the right datastore
         silo_multiply_data_step.outputs.output_folder = Output(
-            type=silo_config.output_silo_data.type,
-            mode=silo_config.output_silo_data.mode,
-            path=silo_config.output_silo_data.path,
+            type=silo_config.output_data.type,
+            mode=silo_config.output_data.mode,
+            path=silo_config.output_data.path,
         )
 
 
