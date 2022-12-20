@@ -12,7 +12,7 @@ inputs:
     description: Input directory path
     optional: false
   multiply: 
-    type: number
+    type: integer
     description: Multiplication factor
     default: 100
     optional: true
