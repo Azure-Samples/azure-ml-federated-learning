@@ -163,9 +163,9 @@ def fl_cross_silo_multiply_data():
         # create step for multiplying component
         silo_multiply_data_step = multiply_data_component(
             input_folder=Input(
-                    type=silo_config.input_data.type,
-                    mode=silo_config.input_data.mode,
-                    path=silo_config.input_data.path,
+                type=silo_config.input_data.type,
+                mode=silo_config.input_data.mode,
+                path=silo_config.input_data.path,
             ),
         )
         # add a readable name to the step
