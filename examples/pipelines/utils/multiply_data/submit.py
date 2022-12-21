@@ -1,4 +1,4 @@
-"""Federated Learning Cross-Silo pipeline for uploading data to the silos' storages.
+"""Federated Learning Cross-Silo pipeline for artificially multiplying data to the silos' storages.
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
 2) reads the components from a given folder,
@@ -49,7 +49,7 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=True,
-    choices=["CCFRAUD", "NER", "PNEUMONIA"],
+    choices=["PNEUMONIA"],
     help="dataset name",
 )
 
@@ -191,7 +191,7 @@ if args.submit:
     print("Submitting the pipeline job to your AzureML workspace...")
     ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_demo_upload_data"
+        pipeline_job, experiment_name="fl_demo_multiply_data"
     )
 
     print("The url to see your live job running is returned by the sdk:")
