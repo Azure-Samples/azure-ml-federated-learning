@@ -14,7 +14,7 @@ inputs:
   multiply: 
     type: integer
     description: Multiplication factor
-    default: 100
+    default: 10
     optional: true
 
 outputs:

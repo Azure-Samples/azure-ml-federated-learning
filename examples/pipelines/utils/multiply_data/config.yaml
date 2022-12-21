@@ -17,8 +17,8 @@ federated_learning:
         path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
       output_data:
         type: uri_folder
-        mode: 'mount'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia/multiplied_data
+        mode: 'upload'
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
     # - compute: silo1-01 # we are repeating over the same config for silo 2
     #   datastore: datastore_silo1
     #   input_data:
