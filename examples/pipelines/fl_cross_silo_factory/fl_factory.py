@@ -50,17 +50,17 @@ class FederatedLearningPipelineFactory:
         """
         self.orchestrator = {"compute": compute, "datastore": datastore}
 
-    def add_silo(self, compute: str, datastore: str, **custom_input_args):
+    def add_silo(self, computes: list, datastore: str, **custom_input_args):
         """Add a silo to the internal configuration of the builder.
 
         Args:
-            compute (str): name of the compute target
+            computes (list): list of silo's computes
             datastore (str): name of the datastore
             **custom_input_args: any of those will be passed to the preprocessing step as-is
         """
         self.silos.append(
             {
-                "compute": compute,
+                "computes": computes,
                 "datastore": datastore,
                 "custom_input_args": custom_input_args or {},
             }
@@ -285,7 +285,8 @@ class FederatedLearningPipelineFactory:
 
                 # reserved scatter inputs
                 scatter_arguments["iteration_num"] = iteration_num
-                scatter_arguments["scatter_compute"] = silo_config["compute"]
+                scatter_arguments["scatter_compute1"] = silo_config["computes"][0]
+                scatter_arguments["scatter_compute2"] = silo_config["computes"][1] if len(silo_config["computes"])>1 else silo_config["computes"][0]
                 scatter_arguments["scatter_datastore"] = silo_config["datastore"]
                 scatter_arguments["gather_datastore"] = self.orchestrator["datastore"]
 
@@ -295,7 +296,7 @@ class FederatedLearningPipelineFactory:
                 # every step within the silo_subgraph_step needs to be anchored in the SILO
                 self.anchor_step_in_silo(
                     silo_subgraph_step,
-                    compute=silo_config["compute"],
+                    compute=silo_config["computes"][0], # by default, only first silo's compute will be used
                     output_datastore=silo_config["datastore"],
                     _path="silo_subgraph_step",  # to help with debug logging
                 )
@@ -430,32 +431,33 @@ class FederatedLearningPipelineFactory:
 
         # silo permissions
         for silo in self.silos:
-            self.set_affinity(
-                silo["compute"], silo["datastore"], self.OPERATION_READ, True
-            )
-            self.set_affinity(
-                silo["compute"], silo["datastore"], self.OPERATION_WRITE, True
-            )
+            for silo_compute in silo["computes"]:
+                self.set_affinity(
+                    silo_compute, silo["datastore"], self.OPERATION_READ, True
+                )
+                self.set_affinity(
+                    silo_compute, silo["datastore"], self.OPERATION_WRITE, True
+                )
 
-            # it's actually ok to read from anywhere?
-            self.set_affinity(
-                silo["compute"], self.DATASTORE_UNKNOWN, self.OPERATION_READ, True
-            )
+                # it's actually ok to read from anywhere?
+                self.set_affinity(
+                    silo_compute, self.DATASTORE_UNKNOWN, self.OPERATION_READ, True
+                )
 
-            self.set_affinity(
-                silo["compute"],
-                self.orchestrator["datastore"],
-                self.OPERATION_READ,
-                True,
-                data_type=AssetTypes.CUSTOM_MODEL,
-            )  # OK to get a model our of the orchestrator
-            self.set_affinity(
-                silo["compute"],
-                self.orchestrator["datastore"],
-                self.OPERATION_WRITE,
-                True,
-                data_type=AssetTypes.CUSTOM_MODEL,
-            )  # OK to write a model into the orchestrator
+                self.set_affinity(
+                    silo_compute,
+                    self.orchestrator["datastore"],
+                    self.OPERATION_READ,
+                    True,
+                    data_type=AssetTypes.CUSTOM_MODEL,
+                )  # OK to get a model our of the orchestrator
+                self.set_affinity(
+                    silo_compute,
+                    self.orchestrator["datastore"],
+                    self.OPERATION_WRITE,
+                    True,
+                    data_type=AssetTypes.CUSTOM_MODEL,
+                )  # OK to write a model into the orchestrator
 
             self.set_affinity(
                 self.orchestrator["compute"],
@@ -820,7 +822,7 @@ class FederatedLearningPipelineFactory:
             )
 
         # check if there's overlap in the configured computes
-        silo_computes_names = set([_silo["compute"] for _silo in self.silos])
+        silo_computes_names = set([silo_compute for _silo in self.silos for silo_compute in _silo["computes"]])
         if len(silo_computes_names) == 0:
             soft_validation_report.append("No silo computes have been configured.")
         elif len(silo_computes_names) < len(self.silos):
