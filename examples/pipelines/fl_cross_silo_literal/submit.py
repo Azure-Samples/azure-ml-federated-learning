@@ -219,14 +219,14 @@ def fl_cross_silo_internal_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
-            metrics_prefix=silo_config.compute,
+            metrics_prefix=silo_config.computes[0],
         )
 
         # add a readable name to the step
         silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
         # make sure the compute corresponds to the silo
-        silo_pre_processing_step.compute = silo_config.compute
+        silo_pre_processing_step.compute = silo_config.computes[0]
 
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
@@ -277,7 +277,7 @@ def fl_cross_silo_internal_basic():
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
-                metrics_prefix=silo_config.compute,
+                metrics_prefix=silo_config.computes[1],
                 # Iteration number
                 iteration_num=iteration,
             )
@@ -285,7 +285,7 @@ def fl_cross_silo_internal_basic():
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
-            silo_training_step.compute = silo_config.compute
+            silo_training_step.compute = silo_config.computes[1]
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
