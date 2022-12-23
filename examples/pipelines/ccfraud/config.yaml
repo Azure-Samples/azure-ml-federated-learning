@@ -54,4 +54,4 @@ training_parameters:
   # must be one of the models defined in the traininsilo/model.py 
   # file for the CCFRAUD component. Options include: 
   # SimpleLinear, SimpleLSTM, SimpleVAE
-  model_name: SimpleLSTM
+  model_name: SimpleLinear
