@@ -2,13 +2,11 @@ name: ccfraud_train_conda_env
 channels:
   - defaults
   - pytorch
-  - nvidia
-  - conda-forge
 dependencies:
   - python=3.8
   - pip=22.2.2
-  - pytorch==1.13.0
-  - pytorch-cuda=11.6
+  - pytorch=1.12.1
+  - cudatoolkit=11.3
   - pip:
     - azureml-mlflow==1.48.0
     - pandas==1.5.2
