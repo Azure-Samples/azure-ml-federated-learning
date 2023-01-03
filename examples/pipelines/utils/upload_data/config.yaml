@@ -11,6 +11,7 @@ federated_learning:
   silos: # silos are provided as a list
     - compute: cpu-silo0-westus # name of the compute for silo X
       datastore: datastore_silo0_westus # name of the datastore for silo X
+      additional_unfiltered_data: true
 
     - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
       datastore: datastore_silo1_francecentral

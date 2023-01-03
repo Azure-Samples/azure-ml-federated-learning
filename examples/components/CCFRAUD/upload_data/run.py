@@ -3,6 +3,7 @@ import argparse
 import logging
 import sys
 import os
+from distutils.util import strtobool
 
 import pandas as pd
 
@@ -164,8 +165,8 @@ def run(args):
     train_path = f"{args.raw_train_data}/train.csv"
     test_path = f"{args.raw_test_data}/test.csv"
 
-    train_data_filtered = df_train[df_train["region"].isin(regions)]
-    test_data_filtered = df_test[df_test["region"].isin(regions)]
+    train_data_filtered = df_train[df_train["region"].isin(regions)].copy()
+    test_data_filtered = df_test[df_test["region"].isin(regions)].copy()
     print(f"Filtered train dataset has {len(train_data_filtered)} rows")
     print(f"Filtered test dataset has {len(test_data_filtered)} rows")
 
@@ -174,6 +175,24 @@ def run(args):
 
     train_data_filtered.to_csv(train_path, index=False)
     test_data_filtered.to_csv(test_path, index=False)
+
+    del train_data_filtered, test_data_filtered
+
+    if args.additional_unfiltered_data:
+        train_path = f"{args.raw_train_data}/train_unfiltered.csv"
+        test_path = f"{args.raw_test_data}/test_unfiltered.csv"
+
+        train_data_unfiltered = df_train
+        test_data_unfiltered = df_test
+        print(f"Unfiltered train dataset has {len(train_data_unfiltered)} rows")
+        print(f"Unfiltered test dataset has {len(test_data_unfiltered)} rows")
+
+        train_data_unfiltered = preprocess_data(train_data_unfiltered)
+        test_data_unfiltered = preprocess_data(test_data_unfiltered)
+
+        train_data_unfiltered.to_csv(train_path, index=False)
+        test_data_unfiltered.to_csv(test_path, index=False)
+
 
 
 def get_arg_parser(parser=None):
@@ -216,6 +235,12 @@ def get_arg_parser(parser=None):
         type=str,
         required=True,
         help="Output folder for test data",
+    )
+    parser.add_argument(
+        "--additional_unfiltered_data",
+        type=strtobool,
+        required=False,
+        help="Whether to store also unfiltered data",
     )
     return parser
 

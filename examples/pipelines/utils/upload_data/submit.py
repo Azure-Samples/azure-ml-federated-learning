@@ -162,7 +162,9 @@ def fl_cross_silo_upload_data():
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # create step for upload component
         silo_upload_data_step = upload_data_component(
-            silo_count=len(YAML_CONFIG.federated_learning.silos), silo_index=silo_index
+            silo_count=len(YAML_CONFIG.federated_learning.silos), 
+            silo_index=silo_index,
+            additional_unfiltered_data=silo_config.get("additional_unfiltered_data", False)
         )
 
         # add a readable name to the step
