@@ -31,23 +31,6 @@ def get_arg_parser(parser=None):
     )
     return parser
 
-
-def test_input(path):
-    file_list = glob.glob(os.path.join(path, "*.*"), recursive=True)
-    print(f"Found {len(file_list)} files in {path}")
-
-    print(f"Reading files from {path}")
-    for file in file_list:
-        print(f" -- Reading {file}")
-        with open(file, "r") as f:
-            f.read()
-
-
-def test_output(path):
-    with open(os.path.join(path, "output.txt"), "w") as f:
-        f.write("Hello World!")
-
-
 def test_local_input_for_external_silos():
     print("This file full path (following symlinks)")
     full_path = os.path.realpath(__file__)
