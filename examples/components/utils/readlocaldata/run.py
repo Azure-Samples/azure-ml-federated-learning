@@ -22,37 +22,27 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--raw_training_data", type=str, required=True, help="")
-    parser.add_argument("--raw_testing_data", type=str, required=True, help="")
-    parser.add_argument("--train_output", type=str, required=True, help="")
-    parser.add_argument("--test_output", type=str, required=True, help="")
-    parser.add_argument(
-        "--metrics_prefix", type=str, required=False, help="Metrics prefix"
-    )
+    parser.add_argument("--local_data_path_input", type=str, required=True, help="")
+    parser.add_argument("--preprocessed_local_data_output", type=str, required=True, help="")
     return parser
 
-def test_local_input_for_external_silos():
-    print("This file full path (following symlinks)")
-    full_path = os.path.realpath(__file__)
-    print(full_path + "\n")
 
-    dir_path = "/"
-
-    res = []
-    res_dir = []
-    for (dir_path, dir_names, file_names) in os.walk(dir_path):
-        res_dir.extend(dir_names)
-        res.extend(file_names)
-    print("Directories:")
-    print(res_dir)
-    # print("Files:")
-    # print(res)
-
-    with open("/mnt/localdata/data_file.txt") as f:
-        lines = f.readlines()
+def run(args):
+    """Component run function. This will read the local data, preproces them, and write the preprocessed data to the output."""
+    # Read the contents of the local data file
+    with open(os.path.join(args.local_data_path_input, "data_file.txt")) as in_f:
+        lines = in_f.readlines()
     print("Contents of local input file:")
-    print(lines)
+    print(lines) # Be careful here, you don't want to print sensitive user data!
 
+    # "preprocess" the data (simple conversion to lower case)
+    preprocessed_lines = [line.lower() for line in lines]
+    print("Preprocessed data:")
+    print(preprocessed_lines) # Be careful here, you don't want to print sensitive user data!
+
+    # write the preprocessed data to the output
+    with open(os.path.join(args.preprocessed_local_data_output, "data_file.txt")) as out_f:
+        out_f.writelines(preprocessed_lines)
 
 def main(cli_args=None):
     """Component main function.
@@ -67,14 +57,8 @@ def main(cli_args=None):
 
     # run the parser on cli args
     args = parser.parse_args(cli_args)
-
     print(f"Running script with arguments: {args}")
-    test_input(args.raw_training_data)
-    test_input(args.raw_testing_data)
-    test_output(args.train_output)
-    test_output(args.test_output)
-
-    test_local_input_for_external_silos()
+    run(args)
 
 
 if __name__ == "__main__":
