@@ -262,7 +262,7 @@ module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(
     existingVirtualNetworkNameSource: silos[i].outputs.vnetName
     existingVirtualNetworkNameTarget: orchestrator.outputs.vnetName
     existingVirtualNetworkNameTargetResourceGroupName: resourceGroup().name
-    useGatewayFromSourceToTarget: true
+    useGatewayFromSourceToTarget: false
   }
   dependsOn: [
     orchestrator
