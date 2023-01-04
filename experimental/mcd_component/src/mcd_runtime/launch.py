@@ -4,7 +4,7 @@ import logging
 
 # Create and configure logger
 logging.basicConfig(
-    filename="outputs/mcd_runtime.log",
+    # filename="outputs/mcd_runtime.log",
     format="[%(asctime)s] [%(levelname)s] - %(message)s",
     filemode='w'
 )
