@@ -1,0 +1,38 @@
+# shared inputs for this job
+inputs:
+  lr: 0.01
+  epochs_per_iteration: 3
+  batch_size: 64
+
+# shared outputs for this job
+# outputs:
+#   checkpoints:
+#     path: azureml://datastores/datastore_silo0_westus/paths/mcd/dev/
+
+head:
+  compute: azureml:cpu-orchestrator
+  inputs:
+    foo: bar
+  command: >
+    python run.py
+  code: "./head"
+  environment: multi-compute-distributed@latest
+
+workers:
+  westus:
+    inputs:
+      name: "westus"
+    compute: azureml:cpu-silo0-eastus2
+    command: >
+      python run.py
+    code: "./worker"
+    environment: multi-compute-distributed@latest
+
+  eastus:
+    inputs:
+      name: "eastus"
+    compute: azureml:cpu-silo1-eastus2
+    command: >
+      python run.py
+    code: "./worker"
+    environment: multi-compute-distributed@latest
