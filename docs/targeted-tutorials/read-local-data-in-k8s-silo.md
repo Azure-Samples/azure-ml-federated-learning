@@ -13,11 +13,13 @@ In many Federated Learning (FL) applications, the silos (compute + user data) ne
 ## Objective and contents
 This tutorial will show you how to access, within an Azure ML job running on an on-premises k8s cluster, some data in the local file system. First, we will explain how to create the k8s cluster using [kind](https://kind.sigs.k8s.io/), and how to configure it properly with [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/). Then, we will create an external silo based on this k8s cluster. Finally, we will run a simple test job to prove that an Azure ML job running on the k8s cluster can indeed access the local file system.
 
+> **Note**:
+> To mimic _in the cloud_ an on-premises silo, one can create the k8s cluster in an Azure VM instead of a local machine. The steps described in this tutorial still apply.
+
 ## Prerequisites
 For creating the k8s cluster:
 - a machine with mock data located at `/path/to/data/data_file.txt`;
 - [kind](https://kind.sigs.k8s.io/) with version >= 0.16.0 (the current tutorial was made using that version)
-- Anything else???
 
 For creating an external silo based on the k8s cluster:
 - see the prerequisites listed [over there](../provisioning/external-silos.md).
@@ -72,5 +74,5 @@ For a description of the example FL pipelines available in the current repositor
 ## Additional resources
 - The [Quickstart](../quickstart.md) document in the current repository. It might be useful to go through that Quickstart tutorial first to get acquainted with the various Azure resources and terminology.
 - The [instructions on how to add an external silo](../provisioning/external-silos.md) to your FL setup (from the current repository).
-- The doc [targeted tutorials](../README.md/#targeted-tutorials) in the current repository. 
+- The document on [targeted tutorials](../README.md/#targeted-tutorials) in the current repository. 
 - That [other repository](https://github.com/Azure/AML-Kubernetes) on Kubernetes + Azure Machine Learning, which contains a lot of information for those who want to dig deeper.
