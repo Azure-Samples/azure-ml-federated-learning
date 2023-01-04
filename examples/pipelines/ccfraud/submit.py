@@ -316,9 +316,10 @@ def fl_ccfraud_basic():
             silo_training_step.distribution.process_count_per_instance = silo_processes
 
             # set number of instances to distribute training across
-            silo_training_step.resources = {
-                "instance_count": silo_config.instance_count
-            }
+            if hasattr(silo_config, "instance_count"):
+                silo_training_step.resources = {
+                    "instance_count": silo_config.instance_count
+                }
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
