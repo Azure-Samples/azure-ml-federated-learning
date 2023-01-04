@@ -152,6 +152,23 @@ aggregate_component = load_component(
 ########################
 
 
+def get_gpus_count(compute_name):
+    ws_compute = ML_CLIENT.compute.get(compute_name)
+    if hasattr(ws_compute, "size"):
+        silo_compute_size_name = ws_compute.size
+        silo_compute_info = next(
+            (
+                x
+                for x in COMPUTE_SIZES
+                if x.name.lower() == silo_compute_size_name.lower()
+            ),
+            None,
+        )
+        if silo_compute_info is not None and silo_compute_info.gpus >= 1:
+            return silo_compute_info.gpus
+    return 1
+
+
 def custom_fl_data_path(
     datastore_name, output_name, unique_id="${{name}}", iteration_num=None
 ):
@@ -260,20 +277,7 @@ def fl_ccfraud_basic():
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
             # Determine number of processes to deploy on a given compute cluster node
-            ws_compute = ML_CLIENT.compute.get(silo_config.compute)
-            silo_processes = 1
-            if hasattr(ws_compute, "size"):
-                silo_compute_size_name = ws_compute.size
-                silo_compute_info = next(
-                    (
-                        x
-                        for x in COMPUTE_SIZES
-                        if x.name.lower() == silo_compute_size_name.lower()
-                    ),
-                    None,
-                )
-                if silo_compute_info is not None and silo_compute_info.gpus >= 1:
-                    silo_processes = silo_compute_info.gpus
+            silo_processes = get_gpus_count(silo_config.compute)
 
             # We need to reload component because otherwise all the instances will share same
             # value for process_count_per_instance
@@ -310,6 +314,11 @@ def fl_ccfraud_basic():
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
             silo_training_step.distribution.process_count_per_instance = silo_processes
+
+            # set number of instances to distribute training across
+            silo_training_step.resources = {
+                "instance_count": silo_config.instance_count
+            }
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
