@@ -22,17 +22,17 @@ workers:
   westus:
     inputs:
       name: "westus"
-    compute: azureml:cpu-silo0-eastus2
+    compute: azureml:cpu-silo0-westus
     command: >
       python run.py
     code: "./worker"
     environment: multi-compute-distributed@latest
 
-  eastus:
-    inputs:
-      name: "eastus"
-    compute: azureml:cpu-silo1-eastus2
-    command: >
-      python run.py
-    code: "./worker"
-    environment: multi-compute-distributed@latest
+  # eastus:
+  #   inputs:
+  #     name: "eastus"
+  #   compute: azureml:cpu-silo1-eastus2
+  #   command: >
+  #     python run.py
+  #   code: "./worker"
+  #   environment: multi-compute-distributed@latest
