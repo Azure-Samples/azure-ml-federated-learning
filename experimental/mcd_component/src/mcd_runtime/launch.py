@@ -84,6 +84,7 @@ except BaseException as e:
     MCD_HOST_LOGGER.critical("MCD RUNTIME ERROR: {}".format(e))
     raise e
 
+
 MCD_HOST_LOGGER.info("****************** MCD RUNTIME RUN ******************")
 
 import subprocess
@@ -95,6 +96,11 @@ try:
     mcd_env["MCD_RUN_ID"] = str(MCD_RUN_ID)
     mcd_env["MCD_WORKERS"] = ",".join(worker_ip_list)
     mcd_env["MCD_HEAD"] = str(head_ip)
+
+    with(open("/etc/hosts", "a")) as f:
+        f.write(str(head_ip)+"\thead\n")
+        for index, ip in enumerate(worker_ip_list):
+            f.write(str(ip)+f"\tworker-{index}\n")
 
     subprocess.check_call(" ".join(MCD_COMMAND), shell=True, env=mcd_env)
     # proc = subprocess.check_call(

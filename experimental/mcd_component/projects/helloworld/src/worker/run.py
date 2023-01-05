@@ -12,6 +12,11 @@ import pythonping
 
 print("Pinging head node")
 print("Head node address: {}".format(os.environ["MCD_HEAD"]))
-response_list = pythonping.ping(os.environ["MCD_HEAD"], count=100)
+response_list = pythonping.ping(os.environ["MCD_HEAD"], count=5)
+for response in response_list:
+    print(response)
+
+print("Head node hostname: head")
+response_list = pythonping.ping("head", count=5)
 for response in response_list:
     print(response)

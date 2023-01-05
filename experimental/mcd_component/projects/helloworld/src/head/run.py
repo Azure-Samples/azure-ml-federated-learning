@@ -12,8 +12,13 @@ import pythonping
 
 print("Pinging worker nodes")
 
-for worker_ip in os.environ["MCD_WORKERS"].split(","):
+for index, worker_ip in enumerate(os.environ["MCD_WORKERS"].split(",")):
     print("Worker node address: {}".format(worker_ip))
-    response_list = pythonping.ping(worker_ip, count=100)
+    response_list = pythonping.ping(worker_ip, count=5)
+    for response in response_list:
+        print(response)
+
+    print(f"Worker host address: worker-{index}")
+    response_list = pythonping.ping(f"worker-{index}", count=5)
     for response in response_list:
         print(response)
