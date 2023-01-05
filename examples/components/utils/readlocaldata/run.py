@@ -2,7 +2,6 @@ import os
 import argparse
 import logging
 import sys
-import glob
 
 
 def get_arg_parser(parser=None):
@@ -45,9 +44,8 @@ def run(args):
     )  # Be careful here, you don't want to print sensitive user data!
 
     # write the preprocessed data to the output
-    os.makedirs(args.preprocessed_local_data_output, exist_ok=True)
     with open(
-        os.path.join(args.preprocessed_local_data_output, "data_file.txt")
+        os.path.join(args.preprocessed_local_data_output, "data_file.txt"), "w"
     ) as out_f:
         out_f.writelines(preprocessed_lines)
 
