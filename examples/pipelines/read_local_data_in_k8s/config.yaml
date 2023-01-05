@@ -8,56 +8,9 @@ aml:
   resource_group_name: "<RESOURCE_GROUP>"
   workspace_name: "<AML_WORKSPACE_NAME>"
 
-# Parameters to generate the degenerate FL graph
+# Parameters to create the degenerate FL graph
 federated_learning:
-  # orchestrator:
-  #   # name of compute for orchestrator
-  #   compute: "cpu-cluster-tp-orch"
-  #   # name of datastore for orchestrator (saving model weights + aggregate)
-  #   datastore: "datastore_tp_orch"
-
   silos: # silos are provided as a list, but in this basic example we have just one silo
     - compute: arc-localdisk-4 # name of the attached Azure ML compute for the external silo - you will need to adjust this to match the one you created
       datastore: datastore_st_ext_silo # name of the datastore for the external silo - you will need to adjust this to match the one you created
-      # training inputs are specified below
       local_data_path: /mnt/localdata # the path at which the local data are accessed by the Azure Ml job.
-      # training_data:
-      #   type: uri_file
-      #   mode: 'download'
-      #   path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
-      # testing_data:
-      #   type: uri_file
-      #   mode: 'download'
-      #   path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
-
-    # - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
-    #   datastore: datastore_silo1_francecentral
-    #   training_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
-    #   testing_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
-
-    # - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
-    #   datastore: datastore_silo2_brazilsouth
-    #   training_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv
-    #   testing_data:
-    #     type: uri_file
-    #     mode: 'download'
-    #     path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
-
-# # Training parameters
-# training_parameters:
-#   # how many loops of scatter-gather to run
-#   num_of_iterations: 2
-  
-#   # then typical training parameters
-#   epochs: 3 # number of epochs per iteration (in-silo training) 
-#   lr: 0.01 # learning rate
-#   batch_size: 64 # batch size
