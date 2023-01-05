@@ -22,7 +22,7 @@ MCD_SIZE = int(sys.argv[3])
 MCD_HOST_LOGGER.info("MCD_RANK={}".format(MCD_RANK))
 MCD_HOST_LOGGER.info("MCD_SIZE={}".format(MCD_SIZE))
 MCD_HOST_LOGGER.info("MCD_RUN_ID={}".format(MCD_RUN_ID))
-MCD_COMMAND = " ".join(sys.argv[4:])
+MCD_COMMAND = sys.argv[4:]
 MCD_HOST_LOGGER.info("MCD_COMMAND='{}'".format(MCD_COMMAND))
 
 import socket
@@ -43,6 +43,7 @@ sb_comm = ServiceBusMPILikeDriver(
     allowed_tags=[
         "IP",
         "CONFIG",
+        "RUN",
         "KILL"
     ],
 )
@@ -62,6 +63,10 @@ try:
 
         for rank in range(1, MCD_SIZE):
             MCD_HOST_LOGGER.info("Sending workers config to worker {}...".format(rank))
+            sb_comm.send({"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG")
+
+        for rank in range(1, MCD_SIZE):
+            MCD_HOST_LOGGER.info("Sending workers order to start to worker {}...".format(rank))
             sb_comm.send({"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG")
 
     else:
@@ -86,7 +91,20 @@ try:
     mcd_env["MCD_WORKERS"] = ",".join(worker_ip_list)
     mcd_env["MCD_HEAD"] = str(head_ip)
 
-    subprocess.check_call(MCD_COMMAND, shell=True, env=mcd_env)
+    subprocess.check_call(" ".join(MCD_COMMAND), shell=True, env=mcd_env)
+    # proc = subprocess.check_call(
+    #     MCD_COMMAND,
+    #     shell=True,
+    #     env=mcd_env,
+    #     # stdout=subprocess.PIPE,
+    #     # stderr=subprocess.STDOUT
+    # )
+    # while proc.poll() is None:
+    #     output = proc.stdout.readline()
+    #     print(output)
+    # for line in iter(p.stdout.readline, b''):
+    #     print(">>> " + line.rstrip())
+
 except subprocess.CalledProcessError as e:
     MCD_HOST_LOGGER.critical("MCD RUNTIME ERROR: {}".format(e))
     sys.exit(e.returncode)
