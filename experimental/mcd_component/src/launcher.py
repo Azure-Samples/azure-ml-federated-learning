@@ -234,7 +234,10 @@ class MultiComputeLauncher:
         job.display_name = self.run_id + "_head"
         # submit the command
         self.logger.debug("Submitting job {}".format(job))
-        returned_job = self.ml_client.jobs.create_or_update(job)
+        returned_job = self.ml_client.jobs.create_or_update(
+            job,
+            experiment_name=os.environ.get("AZUREML_ARM_PROJECT_NAME", "mcd_dev"),
+        )
         # get a URL for the status of the job
         print(returned_job.studio_url)
         self.jobs.append(returned_job)
