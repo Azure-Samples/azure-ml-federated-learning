@@ -13,7 +13,7 @@ from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 from azure.ai.ml import command
 from azure.ai.ml import Input, Output
-from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
+from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential, ManagedIdentityCredential
 from azure.ai.ml import MLClient
 
 
@@ -59,15 +59,27 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def get_ml_client(args):
-    credential = DefaultAzureCredential()
-    if args.workspace_name:
-        logging.info("Workspace name provided, using cli args to connect")
+def connect_to_aml(
+    subscription_id: str = None, resource_group: str = None, workspace_name: str = None
+):
+    credential = ManagedIdentityCredential(
+        client_id=os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
+    )
+    if subscription_id:
+        logging.info("Workspace references provided as arguments")
         ml_client = MLClient(
-            credential, args.subscription_id, args.resource_group, args.workspace_name
+            credential, subscription_id, resource_group, workspace_name
+        )
+    elif "AZUREML_ARM_WORKSPACE_NAME" in os.environ:
+        logging.info("Workspace references found in os.environ")
+        ml_client = MLClient(
+            credential,
+            os.environ.get("AZUREML_ARM_SUBSCRIPTION", None),
+            os.environ.get("AZUREML_ARM_RESOURCEGROUP", None),
+            os.environ.get("AZUREML_ARM_WORKSPACE_NAME", None),
         )
     else:
-        logging.info("No workspace name provided, using local config")
+        logging.info("No workspace references provided, using local config")
         ml_client = MLClient.from_config(credential)
 
     return ml_client
@@ -241,7 +253,10 @@ class MultiComputeLauncher:
             job.display_name = self.run_id + f"_worker_{worker_key}"
             # submit the command
             self.logger.debug(f"Submitting job f{worker_key}={job}")
-            returned_job = self.ml_client.jobs.create_or_update(job)
+            returned_job = self.ml_client.jobs.create_or_update(
+                job,
+                experiment_name=os.environ.get("AZUREML_ARM_PROJECT_NAME", "mcd_dev"),
+            )
             # get a URL for the status of the job
             print(returned_job.studio_url)
             self.jobs.append(returned_job)
@@ -261,7 +276,10 @@ def run(args: argparse.Namespace):
     if not os.path.isdir(args.source):
         raise Exception(f"Source directory {args.source} is not a directory")
 
-    ml_client = get_ml_client(args)
+    ml_client = connect_to_aml(
+        args.subscription_id, args.resource_group, args.workspace_name
+    )
+
     # Parse the config file and launch sequence
     launcher = MultiComputeLauncher(
         config_path=args.config, source_dir=args.source, ml_client=ml_client
