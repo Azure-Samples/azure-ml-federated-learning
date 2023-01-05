@@ -45,6 +45,7 @@ def run(args):
     )  # Be careful here, you don't want to print sensitive user data!
 
     # write the preprocessed data to the output
+    os.makedirs(args.preprocessed_local_data_output, exist_ok=True)
     with open(
         os.path.join(args.preprocessed_local_data_output, "data_file.txt")
     ) as out_f:
