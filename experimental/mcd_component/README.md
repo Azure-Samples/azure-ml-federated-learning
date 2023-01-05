@@ -42,21 +42,9 @@ WORK IN PROGRESS
 
 ## What to expect
 
-This will create a pipeline in AzureML with 2 jobs in different locations. The first one is a head node in the orchestrator vnet (ip `1.0.0.*`). The second one is a worker on a silo vnet (ip `10.0.1.*`).
+This will create a job in AzureML, this job will submit 4 other jobs, one in the orchestrator and 3 in each silo. Each job will be given environment variables containing the IP adressed of the other jobs.
 
-The first node online will wait for the other nodes to start. Once all nodes are online, the head node will send its IP address to all the workers.
+Those jobs will have different logs:
 
-Logs for both jobs are full of debug logs by design. Look out in the worker node (`sb_rank=2`) for a section like below where the job will display all the IP addresses of the worker node, and will show ping from the worker to the head node, proving network connectivity between those 2.
-
-```logs
-INFO : root : IFADDR: {2: [{'addr': '10.0.1.10', 'netmask': '255.255.255.0', 'broadcast': '10.0.1.255'}]}
-INFO : root : Pinging head node
-INFO : root : Head node address: 10.0.0.7
-INFO : root : Reply from 10.0.0.7, 29 bytes in 67.06ms
-INFO : root : Reply from 10.0.0.7, 29 bytes in 64.75ms
-INFO : root : Reply from 10.0.0.7, 29 bytes in 64.71ms
-INFO : root : Reply from 10.0.0.7, 29 bytes in 64.94ms
-INFO : root : Reply from 10.0.0.7, 29 bytes in 65.01ms
-```
-
-The worker node then waits for the head node to complete. The head node enters into a sleeping mode for 10 minutes and completes, triggering all workers to complete as well.
+- `outputs/mcd_runtime.log` : are the logs of the runtime that operates the multi-cloud distribution setup
+- `user_logs/std_log.txt` : the regular logs of the job being run
