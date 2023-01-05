@@ -44,6 +44,13 @@ WORK IN PROGRESS
 
 This will create a job in AzureML, this job will submit 4 other jobs, one in the orchestrator and 3 in each silo. Each job will be given environment variables containing the IP adressed of the other jobs.
 
+The jobs are taken from the `projects/` folder:
+
+- `projects/helloworld/config.yaml` contains the definition of the jobs
+- `projects/helloworld/src/` contains the code for all jobs
+- `projects/helloworld/src/head/` contains the head node code
+- `projects/helloworld/src/worker/` contains the worker node code
+
 Those jobs will have different logs:
 
 - `outputs/mcd_runtime.log` : are the logs of the runtime that operates the multi-cloud distribution setup
