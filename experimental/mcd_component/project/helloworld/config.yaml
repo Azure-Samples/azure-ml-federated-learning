@@ -28,11 +28,20 @@ workers:
     code: "./worker"
     environment: multi-compute-distributed@latest
 
-  # eastus:
-  #   inputs:
-  #     name: "eastus"
-  #   compute: azureml:cpu-silo1-eastus2
-  #   command: >
-  #     python run.py
-  #   code: "./worker"
-  #   environment: multi-compute-distributed@latest
+  francecentral:
+    inputs:
+      name: "eastus"
+    compute: azureml:cpu-silo1-francecentral
+    command: >
+      python run.py
+    code: "./worker"
+    environment: multi-compute-distributed@latest
+
+  brazilsouth:
+    inputs:
+      name: "eastus"
+    compute: azureml:cpu-silo2-brazilsouth
+    command: >
+      python run.py
+    code: "./worker"
+    environment: multi-compute-distributed@latest

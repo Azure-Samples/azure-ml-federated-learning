@@ -4,9 +4,9 @@ import logging
 
 # Create and configure logger
 logging.basicConfig(
-    # filename="outputs/mcd_runtime.log",
+    filename="outputs/mcd_runtime.log",
     format="[%(asctime)s] [%(levelname)s] - %(message)s",
-    filemode='w'
+    filemode='a'
 )
 MCD_HOST_LOGGER = logging.getLogger()
 MCD_HOST_LOGGER.setLevel(logging.DEBUG)
@@ -42,7 +42,8 @@ sb_comm = ServiceBusMPILikeDriver(
     auth_method="ConnectionString",
     allowed_tags=[
         "IP",
-        "CONFIG"
+        "CONFIG",
+        "KILL"
     ],
 )
 try:
@@ -69,7 +70,6 @@ try:
         worker_ip_list = mcd_config["workers"]
         head_ip = mcd_config["head"]
 
-    sb_comm.finalize()
 except BaseException as e:
     MCD_HOST_LOGGER.critical("MCD RUNTIME ERROR: {}".format(e))
     raise e
@@ -92,3 +92,21 @@ except subprocess.CalledProcessError as e:
     sys.exit(e.returncode)
 
 MCD_HOST_LOGGER.info("****************** MCD RUNTIME TEARDOWN ******************")
+
+try:
+    if MCD_RANK == 0:
+        head_ip = LOCAL_IP
+        worker_ip_list = []
+        MCD_HOST_LOGGER.info("Sending KILL signal to workers...")
+        for rank in range(1, MCD_SIZE):
+            sb_comm.send("KILL", target=rank, tag="KILL")
+
+    else:
+        MCD_HOST_LOGGER.info("Waiting for KILL signal from head...")
+        sb_comm.recv(source=0, tag="KILL")
+
+    sb_comm.finalize()
+
+except BaseException as e:
+    MCD_HOST_LOGGER.critical("MCD RUNTIME ERROR: {}".format(e))
+    raise e
