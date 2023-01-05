@@ -58,13 +58,16 @@ Now we are going to create a [Persistent Volume](https://kubernetes.io/docs/conc
 
 
 ### 2. Create an external silo based on your k8s cluster
-At this point, you should have a properly configured k8s cluster. You now need to create an **external silo** (on-premises) based on your k8s. Do so by following [these instructions](../provisioning/external-silos.md).
+At this point, you should have a properly configured k8s cluster. You now need to create an **external silo** (on-premises) based on your k8s. Do so by following [these instructions](../provisioning/external-silos.md). Make note of the Azure ML compute and datastore names for your newly created silo.
 
 ### 3. Configure and run a test job
-- Clone this repo if you haven't already
-- Explain how to adjust config file (workspace config, + compute name)
-- Explain how to point to the data (either through the command line, or through the config file)
-
+- Clone this repo if you haven't already, and stay at the root.
+- Modify the config file [config.yaml](../../examples/pipelines/read_local_data_in_k8s/config.yaml) to point to your Azure ML workspace and to your external silo Azure ML compute and datastore. If you changed the `ml.azure.com/mountpath` in [pvc.yaml](../../mlops/k8s_templates/pvc.yaml) during step 1, you will need to adjust `local_data_path` accordingly. 
+- Run the test job with the following command.
+    ```bash 
+    python .\examples\pipelines\read_local_data_in_k8s\submit.py --submit
+    ```
+> **Note**: Please remember the initial prerequisite that the local data should be located in a file named: `data_file.txt`.  This file name is hard-coded in the [run.py](../../examples/components/utils/readlocaldata/run.py) component script, so if you want to use a different file name, you will need to modify that script.
 
 ## Next steps
 Now that you have proven that Azure ML jobs running on the k8s cluster can indeed access local data, you can use your newly attached silo in a FL job. You will need to adjust the code in the _readlocaldata_ component to the type of data you are reading, then use that component in your own FL pipeline.
