@@ -4,25 +4,27 @@ Current known limits:
 - if job fails, you might have to cancel it manually
 - ManagedIdentity is consistently failing on the provisioned nodes.
 
-## Provision using vnet peering
+## Provision a workspace with requirements
 
-```bash
-# connect to azure
-az login
-az account set --name "your subscription name"
+1. Provision using vnet peering
 
-# create resource group
-az group create -n nvflare-devbox-rg -l eastus
+    ```bash
+    # connect to azure
+    az login
+    az account set --name "your subscription name"
 
-# deploy vnet peered sandbox
-az deployment group create --template-file .\mlops\bicep\vnet_publicip_sandbox_setup.bicep --resource-group nvflare-devbox-rg --parameters demoBaseName="nvflaredev1" applyVNetPeering=true
-```
+    # create resource group
+    az group create -n nvflare-devbox-rg -l eastus
 
-## Provision a Service Bus
+    # deploy vnet peered sandbox
+    az deployment group create --template-file .\mlops\bicep\vnet_publicip_sandbox_setup.bicep --resource-group nvflare-devbox-rg --parameters demoBaseName="nvflaredev1" applyVNetPeering=true
+    ```
 
-1. Use Azure Portal to provision a Service Bus resource in the same resource group. Use Standard pricing tier. Name it `fldevsb` for instance.
+2. Use Azure Portal to provision a Service Bus resource in the same resource group. Use Standard pricing tier. Name it `fldevsb` for instance.
 
-2. Create a Topic `mcd`, set time to live to 1h.
+3. In this service bus, create a Topic `mcd`.
+
+WORK IN PROGRESS
 
 ## Run sample
 
@@ -35,11 +37,8 @@ az deployment group create --template-file .\mlops\bicep\vnet_publicip_sandbox_s
 2. Run the sample using az cli v2, check instructions about authentification method in the yaml file
 
     ```bash
-    az ml job create --file ./pipeline.yaml -w WORKSPACE -g GROUP
+    az ml job create --file ./mcd_job.yaml -w WORKSPACE -g GROUP
     ```
-
-3. To run script locally, install requirements `python -m pip install -r requirements.txt`.
-
 
 ## What to expect
 

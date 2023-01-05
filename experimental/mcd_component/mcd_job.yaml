@@ -1,7 +1,7 @@
-$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 type: command
 
-description: "Run a job distributed accross multiple computes (for FL sync)."
+description: "Run a job distributed accross multiple computes (for FL in-sync)."
 display_name: Multi-Compute Distributed Job (FL experimental)
 
 inputs:
@@ -16,12 +16,12 @@ inputs:
 code: ./src/
 
 command: >-
-  python launcher.py
-  --config ${{inputs.config}}
-  --source ${{inputs.source}}
+  python launcher.py 
+  --config ${{inputs.config}} 
+  --source ${{inputs.source}} 
 
 environment:
   build:
-    path: ./environments/mcd_launcher/context/
+    path: ./environments/mcd_runtime/context/
 
 compute: azureml:cpu-orchestrator

@@ -59,30 +59,6 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def get_key_vault(args):
-    """Retrieves key vault from current run"""
-    if args.workspace_name:
-        logging.info("Workspace name provided, using remote key vault")
-        from azureml.core import Workspace
-        from azureml.core.keyvault import Keyvault
-
-        workspace: Workspace = Workspace.get(
-            name=args.workspace_name,
-            subscription_id=args.subscription_id,
-            resource_group=args.resource_group,
-        )
-    else:
-        logging.info("No workspace name provided, using local key vault")
-        from azureml.core import Run, Workspace
-        from azureml.core.keyvault import Keyvault
-
-        run: Run = Run.get_context()
-        logging.info(f"Got run context: {run}")
-        workspace: Workspace = run.experiment.workspace
-
-    return workspace.get_default_keyvault()
-
-
 def get_ml_client(args):
     credential = DefaultAzureCredential()
     if args.workspace_name:
@@ -269,11 +245,6 @@ class MultiComputeLauncher:
             # get a URL for the status of the job
             print(returned_job.studio_url)
             self.jobs.append(returned_job)
-
-    def get_connstr(self):
-        # Get the key vault
-        kv = get_key_vault(args)
-        servicebus_connstr = kv.get_secret("MCDSERVICEBUSCONNSTR")
 
 
 def run(args: argparse.Namespace):
