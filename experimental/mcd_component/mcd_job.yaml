@@ -8,10 +8,10 @@ inputs:
   # data loading
   config:
     type: uri_file
-    path: ./project/config.yaml
+    path: ./projects/helloworld/config.yaml
   source:
     type: uri_folder
-    path: ./project/src/
+    path: ./projects/helloworld/src/
 
 code: ./src/
 

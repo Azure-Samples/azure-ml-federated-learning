@@ -33,7 +33,7 @@ class ServiceBusMPILikeDriver:
         world_rank: int,
         topic: str,
         subscription: str,
-        allowed_tags=[ 42, 43 ],
+        allowed_tags=[42, 43],
         sb_host: str = None,
         auth_method: str = "ManagedIdentity",
     ):
@@ -63,7 +63,11 @@ class ServiceBusMPILikeDriver:
             )
         if self.auth_method == "ManagedIdentity":
             if "DEFAULT_IDENTITY_CLIENT_ID" in os.environ:
-                self.logger.info("Using default identity client id {}".format(os.environ["DEFAULT_IDENTITY_CLIENT_ID"]))
+                self.logger.info(
+                    "Using default identity client id {}".format(
+                        os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
+                    )
+                )
                 self.auth_credential = ManagedIdentityCredential(
                     client_id=os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
                 )

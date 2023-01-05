@@ -87,7 +87,9 @@ def get_ml_client(args):
     credential = DefaultAzureCredential()
     if args.workspace_name:
         logging.info("Workspace name provided, using cli args to connect")
-        ml_client = MLClient(credential, args.subscription_id, args.resource_group, args.workspace_name)
+        ml_client = MLClient(
+            credential, args.subscription_id, args.resource_group, args.workspace_name
+        )
     else:
         logging.info("No workspace name provided, using local config")
         ml_client = MLClient.from_config(credential)
@@ -105,7 +107,7 @@ class MultiComputeLauncher:
         self.logger.info(f"MCD root run ID: {self.run_id}")
 
         self.config = self._load_and_validate_config(config_path)
-        self.source_tmp_dir  = tempfile.TemporaryDirectory()
+        self.source_tmp_dir = tempfile.TemporaryDirectory()
         self.source_dir = os.path.join(self.source_tmp_dir.name, "src")
         shutil.copytree(source_dir, self.source_dir)
 
@@ -117,15 +119,25 @@ class MultiComputeLauncher:
 
     def _load_and_validate_config(self, config_path):
         """Load and validates the config file."""
-        self.logger.info("Loading and validating config file from {}".format(config_path))
+        self.logger.info(
+            "Loading and validating config file from {}".format(config_path)
+        )
         _config = OmegaConf.load(config_path)
         self.logger.debug(f"Loaded config: {_config}")
 
-        assert "head" in _config and _config.head is not None, "Head node config not found"
-        assert "workers" in _config and _config.workers is not None, "Worker nodes config not found"
+        assert (
+            "head" in _config and _config.head is not None
+        ), "Head node config not found"
+        assert (
+            "workers" in _config and _config.workers is not None
+        ), "Worker nodes config not found"
 
-        assert isinstance(_config.head, DictConfig), "Head node config is not a dictionary"
-        assert isinstance(_config.workers, DictConfig), "Worker nodes config is not a dictionary"
+        assert isinstance(
+            _config.head, DictConfig
+        ), "Head node config is not a dictionary"
+        assert isinstance(
+            _config.workers, DictConfig
+        ), "Worker nodes config is not a dictionary"
 
         return _config
 
@@ -145,19 +157,31 @@ class MultiComputeLauncher:
 
     def _build_shared_io(self):
         """Build shared inputs and outputs from the config file."""
-        if "inputs"in self.config and self.config.inputs is not None:
-            self.logger.info("Building shared inputs from config {}".format(self.config.inputs))
+        if "inputs" in self.config and self.config.inputs is not None:
+            self.logger.info(
+                "Building shared inputs from config {}".format(self.config.inputs)
+            )
             for input_key in self.config.inputs:
-                self.shared_inputs[input_key] = self._build_io(self.config.inputs[input_key], Input)
-                self.logger.debug(f"Shared input {input_key}={self.shared_inputs[input_key]}")
+                self.shared_inputs[input_key] = self._build_io(
+                    self.config.inputs[input_key], Input
+                )
+                self.logger.debug(
+                    f"Shared input {input_key}={self.shared_inputs[input_key]}"
+                )
         else:
             self.logger.info("No shared inputs found in config")
 
-        if "outputs"in self.config and self.config.outputs is not None:
-            self.logger.info("Building shared outputs from config {}".format(self.config.outputs))
+        if "outputs" in self.config and self.config.outputs is not None:
+            self.logger.info(
+                "Building shared outputs from config {}".format(self.config.outputs)
+            )
             for output_key in self.config.outputs:
-                self.shared_outputs[output_key] = self._build_io(self.config.outputs[output_key], Output)
-                self.logger.debug(f"Shared output {output_key} = {self.shared_outputs[output_key]}")
+                self.shared_outputs[output_key] = self._build_io(
+                    self.config.outputs[output_key], Output
+                )
+                self.logger.debug(
+                    f"Shared output {output_key} = {self.shared_outputs[output_key]}"
+                )
         else:
             self.logger.info("No shared outputs found in config")
 
@@ -188,15 +212,19 @@ class MultiComputeLauncher:
             job_config["code"] = os.path.join(self.source_dir, job_config["code"])
             shutil.copy(
                 os.path.join(os.path.dirname(__file__), "mcd_runtime", "launch.py"),
-                job_config["code"]
+                job_config["code"],
             )
             shutil.copy(
-                os.path.join(os.path.dirname(__file__), "mcd_runtime", "service_bus_driver.py"),
-                job_config["code"]
+                os.path.join(
+                    os.path.dirname(__file__), "mcd_runtime", "service_bus_driver.py"
+                ),
+                job_config["code"],
             )
 
         if "command" in job_config:
-            job_config["command"] = f"python launch.py {run_id} {rank} {size} " + job_config["command"]
+            job_config["command"] = (
+                f"python launch.py {run_id} {rank} {size} " + job_config["command"]
+            )
 
         job = command(**job_config)
 
@@ -209,7 +237,12 @@ class MultiComputeLauncher:
 
     def _launch_head(self):
         self.logger.info("Launching head from config {}".format(self.config.head))
-        job = self._build_command(self.config.head, run_id=self.run_id, rank=0, size=len(self.config.workers) + 1)
+        job = self._build_command(
+            self.config.head,
+            run_id=self.run_id,
+            rank=0,
+            size=len(self.config.workers) + 1,
+        )
         job.display_name = self.run_id + "_head"
         # submit the command
         self.logger.debug("Submitting job {}".format(job))
@@ -219,9 +252,16 @@ class MultiComputeLauncher:
         self.jobs.append(returned_job)
 
     def _launch_workers(self):
-        for worker_rank, (worker_key, worker_conf) in enumerate(self.config.workers.items()):
+        for worker_rank, (worker_key, worker_conf) in enumerate(
+            self.config.workers.items()
+        ):
             self.logger.info(f"Launching worker {worker_key} from config {worker_conf}")
-            job = self._build_command(worker_conf, run_id=self.run_id, rank=(worker_rank+1), size=len(self.config.workers) + 1)
+            job = self._build_command(
+                worker_conf,
+                run_id=self.run_id,
+                rank=(worker_rank + 1),
+                size=len(self.config.workers) + 1,
+            )
             job.display_name = self.run_id + f"_worker_{worker_key}"
             # submit the command
             self.logger.debug(f"Submitting job f{worker_key}={job}")
@@ -252,7 +292,9 @@ def run(args: argparse.Namespace):
 
     ml_client = get_ml_client(args)
     # Parse the config file and launch sequence
-    launcher = MultiComputeLauncher(config_path=args.config, source_dir=args.source, ml_client=ml_client)
+    launcher = MultiComputeLauncher(
+        config_path=args.config, source_dir=args.source, ml_client=ml_client
+    )
     launcher.launch()
 
 

@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(
     filename="outputs/mcd_runtime.log",
     format="[%(asctime)s] [%(levelname)s] - %(message)s",
-    filemode='a'
+    filemode="a",
 )
 MCD_HOST_LOGGER = logging.getLogger()
 MCD_HOST_LOGGER.setLevel(logging.DEBUG)
@@ -40,12 +40,7 @@ sb_comm = ServiceBusMPILikeDriver(
     topic="mcd",
     subscription=MCD_RUN_ID,
     auth_method="ConnectionString",
-    allowed_tags=[
-        "IP",
-        "CONFIG",
-        "RUN",
-        "KILL"
-    ],
+    allowed_tags=["IP", "CONFIG", "RUN", "KILL"],
 )
 try:
     sb_comm.initialize()
@@ -57,20 +52,30 @@ try:
         for rank in range(1, MCD_SIZE):
             MCD_HOST_LOGGER.info("Waiting for worker {}...".format(rank))
             worker_config = sb_comm.recv(source=rank, tag="IP")
-            MCD_HOST_LOGGER.info("Received worker {} config: {}".format(rank, worker_config))
+            MCD_HOST_LOGGER.info(
+                "Received worker {} config: {}".format(rank, worker_config)
+            )
             worker_ip_list.append(worker_config["worker_ip"])
         MCD_HOST_LOGGER.info("Received all workers config: {}".format(worker_ip_list))
 
         for rank in range(1, MCD_SIZE):
             MCD_HOST_LOGGER.info("Sending workers config to worker {}...".format(rank))
-            sb_comm.send({"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG")
+            sb_comm.send(
+                {"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG"
+            )
 
         for rank in range(1, MCD_SIZE):
-            MCD_HOST_LOGGER.info("Sending workers order to start to worker {}...".format(rank))
-            sb_comm.send({"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG")
+            MCD_HOST_LOGGER.info(
+                "Sending workers order to start to worker {}...".format(rank)
+            )
+            sb_comm.send(
+                {"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG"
+            )
 
     else:
-        sb_comm.send({"worker_ip": LOCAL_IP, "worker_rank": MCD_RANK}, target=0, tag="IP")
+        sb_comm.send(
+            {"worker_ip": LOCAL_IP, "worker_rank": MCD_RANK}, target=0, tag="IP"
+        )
         mcd_config = sb_comm.recv(source=0, tag="CONFIG")
         worker_ip_list = mcd_config["workers"]
         head_ip = mcd_config["head"]
