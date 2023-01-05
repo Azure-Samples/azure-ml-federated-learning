@@ -9,6 +9,7 @@ import argparse
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 from azure.servicebus.management import ServiceBusAdministrationClient
 from azure.servicebus.exceptions import SessionLockLostError
+from azure.core.exceptions import ResourceExistsError
 import json
 import datetime
 import os
@@ -122,14 +123,18 @@ class ServiceBusMPILikeDriver:
 
     def create_subscription(self):
         self.logger.info("Creating subscription {}".format(self.subscription))
-        self.mgmt_client.create_subscription(
-            self.topic,
-            self.subscription,
-            requires_session=True,
-            default_message_time_to_live=datetime.timedelta(minutes=10),
-            max_delivery_count=2000,
-            auto_delete_on_idle=datetime.timedelta(minutes=60),
-        )
+        try:
+            self.mgmt_client.create_subscription(
+                self.topic,
+                self.subscription,
+                requires_session=True,
+                default_message_time_to_live=datetime.timedelta(minutes=10),
+                max_delivery_count=2000,
+                auto_delete_on_idle=datetime.timedelta(minutes=60),
+            )
+        except ResourceExistsError:
+            # to avoid concurrent creation
+            self.logger.info("Subscription already exists")
 
     # session id management
 
