@@ -23,7 +23,9 @@ def get_arg_parser(parser=None):
         parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument("--local_data_path_input", type=str, required=True, help="")
-    parser.add_argument("--preprocessed_local_data_output", type=str, required=True, help="")
+    parser.add_argument(
+        "--preprocessed_local_data_output", type=str, required=True, help=""
+    )
     return parser
 
 
@@ -33,16 +35,21 @@ def run(args):
     with open(os.path.join(args.local_data_path_input, "data_file.txt")) as in_f:
         lines = in_f.readlines()
     print("Contents of local input file:")
-    print(lines) # Be careful here, you don't want to print sensitive user data!
+    print(lines)  # Be careful here, you don't want to print sensitive user data!
 
     # "preprocess" the data (simple conversion to lower case)
     preprocessed_lines = [line.lower() for line in lines]
     print("Preprocessed data:")
-    print(preprocessed_lines) # Be careful here, you don't want to print sensitive user data!
+    print(
+        preprocessed_lines
+    )  # Be careful here, you don't want to print sensitive user data!
 
     # write the preprocessed data to the output
-    with open(os.path.join(args.preprocessed_local_data_output, "data_file.txt")) as out_f:
+    with open(
+        os.path.join(args.preprocessed_local_data_output, "data_file.txt")
+    ) as out_f:
         out_f.writelines(preprocessed_lines)
+
 
 def main(cli_args=None):
     """Component main function.
