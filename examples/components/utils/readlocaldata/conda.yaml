@@ -1,5 +1,0 @@
-name: readlocaldata_conda_env
-channels:
-  - defaults
-dependencies:
-  - python=3.8
