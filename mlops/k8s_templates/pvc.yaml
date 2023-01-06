@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: demolocaldata
+  namespace: default
+  # The label and annotation below are required for the Azure ML job to have access to the mounted folders.
+  labels:
+    app: demolocaldata
+    ml.azure.com/pvc: "true"
+  annotations:
+    ml.azure.com/mountpath: "/mnt/localdata" # The path from which the local data will be accessed during the Azure ML job. You can change that to a different path if you want.
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      # The amount of the volume's storage to request.
+      storage: 1Gi

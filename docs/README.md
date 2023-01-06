@@ -76,6 +76,12 @@ This example shows how to train a federated model for the Named Entity Recogniti
 ### Credit card fraud detection using synthetic transactional data
 This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud.md) for detailed instructions on how to run this example.
 
+## Targeted tutorials
+Besides the full end-to-end real-world examples, we also provide targeted tutorials for specific scenarios.
+
+### Read local data in an on-premises Kubernetes silo
+This tutorial will show you how to access, within an Azure ML job running on an on-premises Kubernetes (k8s) cluster, some data in the local file system. It will guide you through the entire process: k8s cluster creation and configuration, attachment to Azure ML as an external silo, and finally test job. See [here](./targeted-tutorials/read-local-data-in-k8s-silo.md) for detailed instructions.
+
 
 ## Troubleshooting guide
 
