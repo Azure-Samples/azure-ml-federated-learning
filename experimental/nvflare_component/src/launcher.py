@@ -209,6 +209,9 @@ class NVFlareLauncher:
             assert (
                 "type" != "admin"
             ), f"when using this component, please do NOT include an admin participant in your project config."
+            assert (
+                "azureml_compute" in participant and participant.azureml_compute is not None
+            ), f"each participant needs an azureml_compute config, could not find it in participant={participant}"
 
         return _config
 
@@ -310,7 +313,7 @@ class NVFlareLauncher:
                 os.path.join(component_folder, self.admin_name),
             )
             # copy the app folder in the server job snapshot
-            shutil.copytree(self.app_folder, os.path.join(component_folder, "app"))
+            shutil.copytree(self.app_folder, os.path.join(component_folder, self.admin_name, "app"))
 
         # create a command to launch the participant
         command_line = [
@@ -328,13 +331,13 @@ class NVFlareLauncher:
 
         # create the AzureML job for it
         participant_job = command(
-            compute=participant.name,
+            compute=participant.azureml_compute,
             code=component_folder,
             command=" ".join(command_line),
             environment=self.project_config.azureml.environment.lstrip("azureml:"),
         )
         participant_job.display_name = (
-            f"NVFlare_{self.run_id}_{self.project_config.name}_{participant.type}_{rank}/{size}"
+            f"NVFlare project={self.project_config.name} name={participant.name} type={participant.type} r={rank}/s={size}"
         )
 
         # submit the command

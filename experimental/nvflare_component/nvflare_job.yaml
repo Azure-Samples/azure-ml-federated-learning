@@ -3,6 +3,7 @@ type: command
 
 description: "Run an NVFlare job"
 display_name: NVFlare launcher (experimental)
+experiment_name: nvflare_dev
 
 inputs:
   # data loading

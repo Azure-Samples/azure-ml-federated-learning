@@ -2,26 +2,39 @@ api_version: 3
 name: example_project
 description: NVIDIA FLARE sample project yaml file
 
-# CUSTOM section for the AzureML NVFlare component
+# NOTE: custom section for the AzureML NVFlare component
 azureml:
+  # specify in which environment to run each NVFlare participant
   environment: azureml:nvflare-pt@latest
 
 participants:
-  # each participant is an AzureML compute
-  - name: cpu-orchestrator # this needs to map to the name of a compute
+
+  - name: server-1
     type: server
-    org: nvidia
+    org: azureml
     fed_learn_port: 8002
     admin_port: 8003
-  - name: cpu-silo0-westus
+    # NOTE: each participant needs an azureml_compute
+    azureml_compute: cpu-orchestrator
+
+  - name: worker-1
     type: client
-    org: nvidia
-  # - name: cpu-silo1-francecentral
+    org: azureml
+    # NOTE: each participant needs an azureml_compute
+    azureml_compute: cpu-silo0-westus
+
+  - name: worker-2
+    type: client
+    org: azureml
+    # NOTE: each participant needs an azureml_compute
+    azureml_compute: cpu-silo2-brazilsouth
+
+  # - name: worker-3
   #   type: client
-  #   org: nvidia
-  - name: cpu-silo2-brazilsouth
-    type: client
-    org: nvidia
+  #   org: azureml
+  #   azureml_compute: cpu-silo1-francecentral
+
+# NOTE: below is typical NVFlare, untouched
 
 # The same methods in all builders are called in their order defined in builders section
 builders:

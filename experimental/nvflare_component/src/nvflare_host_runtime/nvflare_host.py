@@ -139,7 +139,7 @@ def run_server(sb_comm, name, rank, size, overseer=None):
         username="admin@azure.ml", admin_dir=admin_dir, debug=True
     )
 
-    app_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "app/")
+    app_dir = os.path.join(admin_dir, "app")
     logger.info("Starting app from {}".format(app_dir))
     runner.run(app_dir)
     # for _rank in range(1, size):
