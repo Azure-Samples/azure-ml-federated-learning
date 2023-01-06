@@ -67,6 +67,6 @@ builders:
         # 
         overseer_exists: false
         args:
-          sp_end_point: cpu-orchestrator:8002:8003
+          sp_end_point: server-1:8002:8003
   - path: nvflare.lighter.impl.cert.CertBuilder
   - path: nvflare.lighter.impl.signature.SignatureBuilder
