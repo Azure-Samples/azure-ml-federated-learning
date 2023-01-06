@@ -42,7 +42,7 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def run_cli_command(cli_command: list, timeout: int = 60):
+def run_cli_command(cli_command: list, timeout: int = None):
     """Runs subprocess for a cli setup command"""
     logger = logging.getLogger()
     logger.info(f"Launching cli with command: {cli_command}")
@@ -118,6 +118,7 @@ def run_server(sb_comm, name, rank, size, overseer=None):
 
     # run server startup
     logger.info("Running ./startup/start.sh")
+    # TODO: run sub_start.sh instead and figure out logs pipe
     run_cli_command(["bash", "./startup/start.sh"])
 
     # now that server is ready, send an order for each client to start
@@ -128,6 +129,10 @@ def run_server(sb_comm, name, rank, size, overseer=None):
     # ********************
     # WORK IN PROGRESS
     # ********************
+
+    import time
+    # we need to wait for startup to complete before calling admin port
+    time.sleep(30)
 
     logger.info("Starting FLAdminAPIRunner()")
     admin_dir = os.path.join(
@@ -196,7 +201,7 @@ def run_client(sb_comm, name, rank, size, overseer=None):
 
     # run client startup
     logger.info("Running ./startup/sub_start.sh")
-    run_cli_command(["bash", "./startup/sub_start.sh"], timeout=None)
+    run_cli_command(["bash", "./startup/sub_start.sh"])
 
     # send start signal back
     # sb_comm.send("START", target=0, tag="START")
