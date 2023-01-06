@@ -140,6 +140,9 @@ def run_server(sb_comm, name, rank, size, overseer=None):
     )
     os.makedirs(os.path.join(admin_dir, "local"), exist_ok=True)
     os.makedirs(os.path.join(admin_dir, "transfer"), exist_ok=True)
+
+    run_cli_command(["nvflare","preflight_check","-p",admin_dir])
+
     runner = FLAdminAPIRunner(
         username="admin@azure.ml", admin_dir=admin_dir, debug=True
     )

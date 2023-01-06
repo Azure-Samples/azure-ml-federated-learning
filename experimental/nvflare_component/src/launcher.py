@@ -226,7 +226,7 @@ class NVFlareLauncher:
                 "name": self.admin_name,
                 "type": "admin",
                 "org": "azureml",
-                "roles": ["super"],
+                "role": "project_admin",
             }
         )
         # add overseer if requested
