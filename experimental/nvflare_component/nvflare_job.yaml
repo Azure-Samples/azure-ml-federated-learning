@@ -1,0 +1,26 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+type: command
+
+description: "Run an NVFlare job"
+display_name: NVFlare launcher (experimental)
+
+inputs:
+  # data loading
+  project_config:
+    type: uri_file
+    path: ./project/project.yaml
+  app_folder:
+    type: uri_folder
+    # path: ./project/app/
+    path: ../../../NVFlare/examples/hello-pt/app
+
+code: ./src/
+
+command: >-
+  python launcher.py 
+  --project_config ${{inputs.project_config}} 
+  --app_folder ${{inputs.app_folder}}
+
+environment: azureml:nvflare-launcher@latest
+
+compute: azureml:cpu-orchestrator
