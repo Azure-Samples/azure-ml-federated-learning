@@ -124,22 +124,25 @@ class NERTrainer:
         Returns:
             None
         """
-        client.log_param(
-            run_id=run_id, key=f"learning_rate {self._experiment_name}", value=self._lr
-        )
-        client.log_param(
-            run_id=run_id, key=f"epochs {self._experiment_name}", value=self._epochs
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"batch_size {self._experiment_name}",
-            value=self._batch_size,
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"optimizer {self._experiment_name}",
-            value=self.optimizer_.__class__.__name__,
-        )
+        if run_id:
+            client.log_param(
+                run_id=run_id,
+                key=f"learning_rate {self._experiment_name}",
+                value=self._lr,
+            )
+            client.log_param(
+                run_id=run_id, key=f"epochs {self._experiment_name}", value=self._epochs
+            )
+            client.log_param(
+                run_id=run_id,
+                key=f"batch_size {self._experiment_name}",
+                value=self._batch_size,
+            )
+            client.log_param(
+                run_id=run_id,
+                key=f"optimizer {self._experiment_name}",
+                value=self.optimizer_.__class__.__name__,
+            )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
         """Log mlflow metrics
@@ -154,18 +157,19 @@ class NERTrainer:
         Returns:
             None
         """
-        if pipeline_level:
-            client.log_metric(
-                run_id=run_id,
-                key=f"{self._experiment_name}/{key}",
-                value=value,
-            )
-        else:
-            client.log_metric(
-                run_id=run_id,
-                key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
-                value=value,
-            )
+        if run_id:
+            if pipeline_level:
+                client.log_metric(
+                    run_id=run_id,
+                    key=f"{self._experiment_name}/{key}",
+                    value=value,
+                )
+            else:
+                client.log_metric(
+                    run_id=run_id,
+                    key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
+                    value=value,
+                )
 
     def compute_metrics(self, eval_preds):
         """Compute evaluation results for given predictions

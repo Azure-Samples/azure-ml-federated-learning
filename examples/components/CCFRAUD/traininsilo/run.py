@@ -158,42 +158,45 @@ class CCFraudTrainer:
         return train_dataset, test_dataset, train_df.shape[1] - 1
 
     def log_params(self, client, run_id):
-        client.log_param(
-            run_id=run_id, key=f"learning_rate {self._experiment_name}", value=self._lr
-        )
-        client.log_param(
-            run_id=run_id, key=f"epochs {self._experiment_name}", value=self._epochs
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"batch_size {self._experiment_name}",
-            value=self._batch_size,
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"loss {self._experiment_name}",
-            value=self.criterion_.__class__.__name__,
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"optimizer {self._experiment_name}",
-            value=self.optimizer_.__class__.__name__,
-        )
+        if run_id:
+            client.log_param(
+                run_id=run_id,
+                key=f"learning_rate {self._experiment_name}",
+                value=self._lr,
+            )
+            client.log_param(
+                run_id=run_id, key=f"epochs {self._experiment_name}", value=self._epochs
+            )
+            client.log_param(
+                run_id=run_id,
+                key=f"batch_size {self._experiment_name}",
+                value=self._batch_size,
+            )
+            client.log_param(
+                run_id=run_id,
+                key=f"loss {self._experiment_name}",
+                value=self.criterion_.__class__.__name__,
+            )
+            client.log_param(
+                run_id=run_id,
+                key=f"optimizer {self._experiment_name}",
+                value=self.optimizer_.__class__.__name__,
+            )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-
-        if pipeline_level:
-            client.log_metric(
-                run_id=run_id,
-                key=f"{self._experiment_name}/{key}",
-                value=value,
-            )
-        else:
-            client.log_metric(
-                run_id=run_id,
-                key=f"{self._iteration_name}/{self._experiment_name}/{key}",
-                value=value,
-            )
+        if run_id:
+            if pipeline_level:
+                client.log_metric(
+                    run_id=run_id,
+                    key=f"{self._experiment_name}/{key}",
+                    value=value,
+                )
+            else:
+                client.log_metric(
+                    run_id=run_id,
+                    key=f"{self._iteration_name}/{self._experiment_name}/{key}",
+                    value=value,
+                )
 
     def local_train(self, checkpoint):
         """Perform local training for a given number of epochs
@@ -210,8 +213,8 @@ class CCFraudTrainer:
 
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
-            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
             root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            logger.debug(f"Root runId: {root_run_id}")
 
             # log params
             self.log_params(mlflow_client, root_run_id)
