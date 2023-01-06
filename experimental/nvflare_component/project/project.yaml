@@ -2,6 +2,10 @@ api_version: 3
 name: example_project
 description: NVIDIA FLARE sample project yaml file
 
+# CUSTOM section for the AzureML NVFlare component
+azureml:
+  environment: azureml:nvflare-pt@latest
+
 participants:
   # change example.com to the FQDN of the server
   - name: cpu-orchestrator
@@ -18,11 +22,6 @@ participants:
   - name: cpu-silo2-brazilsouth
     type: client
     org: nvidia
-  - name: admin@nvidia.com
-    type: admin
-    org: nvidia
-    roles:
-      - super
 
 # The same methods in all builders are called in their order defined in builders section
 builders:
