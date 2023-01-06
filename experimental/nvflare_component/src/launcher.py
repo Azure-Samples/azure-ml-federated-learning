@@ -334,7 +334,7 @@ class NVFlareLauncher:
             environment=self.project_config.azureml.environment.lstrip("azureml:"),
         )
         participant_job.display_name = (
-            f"nvflare_{self.run_id}_{participant.type}_{rank}/{size}"
+            f"NVFlare_{self.run_id}_{self.project_config.name}_{participant.type}_{rank}/{size}"
         )
 
         # submit the command

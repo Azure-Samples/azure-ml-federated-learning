@@ -7,8 +7,8 @@ azureml:
   environment: azureml:nvflare-pt@latest
 
 participants:
-  # change example.com to the FQDN of the server
-  - name: cpu-orchestrator
+  # each participant is an AzureML compute
+  - name: cpu-orchestrator # this needs to map to the name of a compute
     type: server
     org: nvidia
     fed_learn_port: 8002
