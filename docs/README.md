@@ -5,13 +5,19 @@
 
 ## Table of contents
 
-- [Motivation](#motivation)
-- [Getting Started](#getting-started)
-- [Why Federated Learning?](#why-should-you-consider-federated-learning)
-- [What this repo as to offer?](#what-this-repo-as-to-offer)
-- [Tutorial on how to adapt the "literal" and the "factory" code](#tutorial-on-how-to-adapt-the-literal-and-the-factory-code)
-- [Real-world examples](#real-world-examples)
-- [Glossary](#glossary)
+- [Federated Learning in Azure ML](#federated-learning-in-azure-ml)
+  - [Table of contents](#table-of-contents)
+  - [Motivation](#motivation)
+  - [Getting Started](#getting-started)
+  - [Why should you consider Federated Learning?](#why-should-you-consider-federated-learning)
+  - [What this repo as to offer?](#what-this-repo-as-to-offer)
+  - [Tutorial on how to adapt the "literal" and the "factory" code](#tutorial-on-how-to-adapt-the-literal-and-the-factory-code)
+  - [Real-world examples](#real-world-examples)
+    - [Pneumonia detection from chest radiographs](#pneumonia-detection-from-chest-radiographs)
+    - [Named Entity Recognition using MultiNERD dataset](#named-entity-recognition-using-multinerd-dataset)
+    - [Credit card fraud detection using synthetic transactional data](#credit-card-fraud-detection-using-synthetic-transactional-data)
+  - [Troubleshooting guide](#troubleshooting-guide)
+  - [Glossary](#glossary)
 
 ## Motivation
 
@@ -69,23 +75,6 @@ In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [
 
 ### Pneumonia detection from chest radiographs
 In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)from Kaggle. This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._ See [here](./real-world-examples/pneumonia.md) for detailed instructions on how to run this example.
-
-### Named Entity Recognition using MultiNERD dataset
-This example shows how to train a federated model for the Named Entity Recognition task. This tutorial uses the [MultiNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. See [here](./real-world-examples/ner.md) for detailed instructions on how to run this example.
-
-### Credit card fraud detection using synthetic transactional data
-This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud.md) for detailed instructions on how to run this example.
-
-## Targeted tutorials
-Besides the full end-to-end real-world examples, we also provide targeted tutorials for specific scenarios.
-
-### Read local data in an on-premises Kubernetes silo
-This tutorial will show you how to access, within an Azure ML job running on an on-premises Kubernetes (k8s) cluster, some data in the local file system. It will guide you through the entire process: k8s cluster creation and configuration, attachment to Azure ML as an external silo, and finally test job. See [here](./targeted-tutorials/read-local-data-in-k8s-silo.md) for detailed instructions.
-
-
-## Troubleshooting guide
-
-If you experience an issue using this repository, please check the [**troubleshooting guide**](./tsg.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
 
 ### Named Entity Recognition using MultiNERD dataset
 This example shows how to train a federated model for the Named Entity Recognition task. This tutorial uses the [MultiNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. See [here](./real-world-examples/ner.md) for detailed instructions on how to run this example.
