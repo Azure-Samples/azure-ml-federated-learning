@@ -116,7 +116,6 @@ def get_key_vault() -> Keyvault:
     return workspace.get_default_keyvault()
 
 
-
 def download_kaggle_dataset(kaggle_client, path):
     """Downloads datasets to specified location
 
