@@ -111,17 +111,9 @@ To switch between models, please update the `config.yaml` file in `examples/pipe
 ## Distributed training
 
 This sample can be ran in distributed fashion, using [PyTorch Data Distributed Parallel (DDP) with NCCL backend](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html). However, this requires us to provision new cluster with >1 CUDA enabled GPUs and allow them to access datastorages in corresponding regions. In order to do so follow these steps for every region you want to run distributed training in:
-- Go to compute clusters in your Azure ML workspace
-- Click on "+ New"
-- Chose desired region (due to latency choose region of corresponding datastore you want it to be attached to)
-- In pop-up choose GPU under "Virtual machine type" and select "Select from all option" under "Virtual machine size"
-- Choose any machine with >1 NVIDIA GPUs
-- Click "Next" and choose your own compute name
-- Click "Create"
-- Open the compute one created
-- Go to "Managed identity" section and click on edit button
-- Choose "User-assigned" under "Identity type"
-- Choose identity that match user-identity of cpu compute in that region
+- Provision GPU cluster with 1+ NVIDIA GPU alongside with storage according to tutorial [here](../provisioning/README.md)
 - Adjust the config file  `config.yaml` in `examples/pipelines/ccfraud/` to use the newly created compute
+- The pipeline automatically detects number of GPUs on a given compute and scales the job accordingly
+- If your cluster can be scaled to more than 1 machine, you can modify `config.yaml` in `examples/pipelines/ccfraud/` by adding `instance_count` to your silo config with number of nodes you would like to run the training on
 
 After performing all these steps you can rerun the experiment and it will run using DDP.
