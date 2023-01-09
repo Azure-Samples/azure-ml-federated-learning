@@ -82,7 +82,6 @@ Besides the full end-to-end real-world examples, we also provide targeted tutori
 ### Read local data in an on-premises Kubernetes silo
 This tutorial will show you how to access, within an Azure ML job running on an on-premises Kubernetes (k8s) cluster, some data in the local file system. It will guide you through the entire process: k8s cluster creation and configuration, attachment to Azure ML as an external silo, and finally test job. See [here](./targeted-tutorials/read-local-data-in-k8s-silo.md) for detailed instructions.
 
-
 ## Troubleshooting guide
 
 If you experience an issue using this repository, please check the [**troubleshooting guide**](./tsg.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
