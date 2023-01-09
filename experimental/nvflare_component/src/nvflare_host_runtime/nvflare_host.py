@@ -155,8 +155,9 @@ def run_server(sb_comm, name, rank, size, overseer=None):
     #         "Getting start confirmation from client {}...".format(_rank)
     #     )
     #     sb_comm.recv(source=_rank, tag="START")
-    # logger.info("Shutdown ???")
-    # api_command_wrapper(runner.api.shutdown(target_type=TargetType.CLIENT))
+
+    logger.info("Shutdown ???")
+    api_command_wrapper(runner.api.shutdown(target_type=TargetType.ALL))
 
 
 def run_client(sb_comm, name, rank, size, overseer=None):

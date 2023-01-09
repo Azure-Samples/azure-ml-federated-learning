@@ -113,7 +113,7 @@ def connect_to_aml(
 
 class NVFlareLauncher:
     """Launcher for NVFlare jobs in AzureML."""
-
+    RUNTIME_LOGS_PATH = "outputs/"
     def __init__(self, project_config, app_folder, ml_client, overseer=None):
         """Initialize the launcher.
 
@@ -173,7 +173,7 @@ class NVFlareLauncher:
             timeout=timeout,  # TODO: more than a minute would be weird?
             # env=custom_env
         )
-        self.logger.debug(f"return code: {cli_command_call.returncode}")
+        self.logger.info(f"Command returned code: {cli_command_call.returncode}")
 
         if cli_command_call.returncode != 0:
             raise RuntimeError("Cli command returned code != 0")
@@ -188,32 +188,32 @@ class NVFlareLauncher:
         _config = OmegaConf.load(config_path)
         self.logger.debug(f"Loaded config: {_config}")
 
-        assert (
-            "azureml" in _config and _config.azureml is not None
-        ), "please add a section 'azureml' in your project config to specify which environment to use"
+        errors = []
 
-        assert (
-            "participants" in _config and _config.participants is not None
-        ), "participants config not found"
-        assert (
-            "builders" in _config and _config.builders is not None
-        ), "builders config not found"
+        if "azure" not in _config or _config.azureml is None:
+            errors.append("please add a section 'azureml' in your project config to specify which environment to use")
+
+        if "participants" not in _config or _config.participants is None:
+            errors.append("please add a section 'participants' in your project config to specify which participants to use")
+        if "builders" not in _config or _config.builders is None:
+            errors.append("please add a section 'builders' in your project config to specify which builders to use")
 
         for participant in _config.participants:
-            assert (
-                "name" in participant and participant.name is not None
-            ), f"participant name not found for participant={participant}"
-            assert (
-                "type" in participant and participant.type is not None
-            ), f"participant name not found for participant={participant}"
-            assert (
-                "type" != "admin"
-            ), f"when using this component, please do NOT include an admin participant in your project config."
-            assert (
-                "azureml_compute" in participant and participant.azureml_compute is not None
-            ), f"each participant needs an azureml_compute config, could not find it in participant={participant}"
-
-        return _config
+            if "name" not in participant or participant.name is None:
+                errors.append(f"participant {participant} has no name")
+            if "type" not in participant or participant.type is None:
+                errors.append(f"participant {participant} has no type")
+            if "type" in participant and participant.type == "admin":
+                errors.append("when using this launching component, please do NOT include an admin participant in your project config.")
+            if "azureml_compute" not in participant or participant.azureml_compute is None:
+                errors.append(f"each participant needs an azureml_compute config, could not find it in participant={participant}")
+    
+        if errors:
+            raise ValueError("Validating the NVFlare provisioning config file {} has led to critical errors:\n-- {}".format(
+                config_path, "\n-- ".join(errors)
+            ))
+        else:
+            return _config
 
     def launch(self):
         """Takes care of everything"""
@@ -234,6 +234,7 @@ class NVFlareLauncher:
             self.project_config.participants.append(
                 {"name": "overseer", "type": "overseer", "org": "azureml"}
             )
+            raise NotImplementedError("overseer support is not implemented yet")
 
         # save as a new config
         new_config_file = os.path.join(self.workspace_folder, "project.yml")
@@ -241,17 +242,22 @@ class NVFlareLauncher:
         self.project_config_path = new_config_file
 
         # use project config to provision the workspace in the workspace folder
-        self.run_cli_command(
-            cli_command=[
-                "nvflare",
-                "provision",
-                "-p",
-                self.project_config_path,
-                "-w",
-                self.workspace_folder,
-            ],
-            timeout=60,  # this is supposed to take less than a minute
-        )
+        try:
+            self.logger.info("Running NVFlare provisioning...")
+            self.run_cli_command(
+                cli_command=[
+                    "nvflare",
+                    "provision",
+                    "-p",
+                    self.project_config_path,
+                    "-w",
+                    self.workspace_folder,
+                ],
+                timeout=60,  # this is supposed to take less than a minute
+            )
+        except RuntimeError as e:
+            err_msg = "Running the nvflare provision command failed, see user_logs/std_log.txt logs to debug."
+            raise RuntimeError(err_msg)
 
         # get list of server/client participants
         participants = [
@@ -262,6 +268,7 @@ class NVFlareLauncher:
 
         # launch a job for each of them in their respective computes
         for index, participant in enumerate(participants):
+            self.logger.info("Launching participant {}".format(participant))
             self.launch_participant(
                 participant=participant, rank=index, size=len(participants)
             )
@@ -341,7 +348,7 @@ class NVFlareLauncher:
         )
 
         # submit the command
-        self.logger.info("Submitting job {}".format(participant_job))
+        self.logger.info("Submitting participant job... {}".format(participant_job))
         returned_job = self.ml_client.jobs.create_or_update(
             participant_job,
             experiment_name=os.environ.get("AZUREML_ARM_PROJECT_NAME", "mcd_dev"),
