@@ -62,12 +62,12 @@ The option 1 wraps up multiple provisioning steps from multiple sections of the 
 
 ## Create InstanceType
 
-InstanceType sets restrictions for each job running on the AKS cluster. You can create multiple InstanceType(s) for different type of jobs. For example, job for pre-processing data is usually less demanding than a training job and thus the InstanceType can provide process with less resources. You can find example InstanceType definition in [`mlops/kube/instance-type.yaml`](../../mlops/kube/instance-type.yaml). To create InstanceType follow these steps:
+InstanceType sets restrictions for each job running on the AKS cluster. You can create multiple InstanceType(s) for different type of jobs. For example, job for pre-processing data is usually less demanding than a training job and thus the InstanceType can provide process with less resources. You can find example InstanceType definition in [`mlops/k8_templates/instance-type.yaml`](../../mlops/k8_templates/instance-type.yaml). To create InstanceType follow these steps:
 
 > Note: Make sure you have `kubectl` tool installed: https://kubernetes.io/docs/tasks/tools/
 
-1. Update `mlops/kube/instance-type.yaml` file to reflect minimum and limit resources for the job you intend to deploy (for simplicity you can just set the limit to resources provided by provisioned node in the AKS cluster)
-2. Update `name` property under `metadata` section in the `mlops/kube/instance-type.yaml` file. Please remember this name as you will need it later on.
+1. Update `mlops/k8_templates/instance-type.yaml` file to reflect minimum and limit resources for the job you intend to deploy (for simplicity you can just set the limit to resources provided by provisioned node in the AKS cluster)
+2. Update `name` property under `metadata` section in the `mlops/k8_templates/instance-type.yaml` file. Please remember this name as you will need it later on.
 3. Run `az login`
 4. Run `az account set --subscription <your-subscription-id>`
 5. Run `az aks get-credentials --resource-group <rg-name> --name <aks-name>`
