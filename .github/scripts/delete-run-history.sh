@@ -1,6 +1,6 @@
 #!/bin/bash
 
-job_name_with_created_date=$(az ml job list -g $1 -w $2 | jq ".[] | .name, .creation_context.created_at") 
+job_name_with_created_date=$(az ml job list -g $1 -w $2 --all-results true | jq ".[] | .name, .creation_context.created_at") 
 echo $job_name_with_created_date
 job_name=""
 i=1 

@@ -242,6 +242,12 @@ def fl_ccfraud_basic():
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
 
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            silo_pre_processing_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
+
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
@@ -317,9 +323,15 @@ def fl_ccfraud_basic():
 
             # set number of instances to distribute training across
             if hasattr(silo_config, "instance_count"):
-                silo_training_step.resources = {
-                    "instance_count": silo_config.instance_count
-                }
+                if silo_training_step.resources is None: 
+                    silo_training_step.resources = {}
+                silo_training_step.resources["instance_count"] = silo_config.instance_count
+
+            # assign instance type for AKS, if available
+            if hasattr(silo_config, "instance_type"):
+                if silo_training_step.resources is None: 
+                    silo_training_step.resources = {}
+                silo_training_step.resources["instance_type"] = silo_config.instance_type
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
@@ -344,6 +356,11 @@ def fl_ccfraud_basic():
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            aggregate_weights_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
         # add a readable name to the step
         aggregate_weights_step.name = f"iteration_{iteration}_aggregation"
 
