@@ -50,13 +50,13 @@ def run_cli_command(cli_command: list, timeout: int = None, env: dict=None):
     return cli_command_call.returncode
 
 
-def run_server(sb_comm, name: str, rank: int, size: int) -> dict:
-    """Runs the server communication process.
+def run_head(sb_comm, name: str, rank: int, size: int) -> dict:
+    """Runs the head communication process.
 
     Args:
         sb_comm (object): the service bus communicator instance
-        name (str): the name of the server
-        rank (int): the rank of the server
+        name (str): the name of the head
+        rank (int): the rank of the head
         size (int): the size of the federation
    
     Returns:
@@ -70,45 +70,54 @@ def run_server(sb_comm, name: str, rank: int, size: int) -> dict:
     logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
 
     # create a "federation" config
-    federation_config = {"server": {"name": name, "ip": local_ip}, "clients": {}}
+    federation_config = {"head": {"name": name, "ip": local_ip}, "workers": {}}
 
-    # create a config capturing all the clients ip adresses and names
-    logger.info("Waiting for client to connect...")
+    # create a config capturing all the workers ip adresses and names
+    logger.info("Waiting for worker to connect...")
     for _rank in range(1, size):
-        # ask each client in sequence for its config
-        logger.info("Waiting for client {}...".format(_rank))
-        client_config = sb_comm.recv(source=_rank, tag="IP")
-        logger.info("Received client {} config: {}".format(_rank, client_config))
-        federation_config["clients"][client_config["name"]] = client_config["ip"]
+        # ask each worker in sequence for its config
+        logger.info("Waiting for worker {}...".format(_rank))
+        worker_config = sb_comm.recv(source=_rank, tag="IP")
+        logger.info("Received worker {} config: {}".format(_rank, worker_config))
+        federation_config["workers"][worker_config["name"]] = worker_config["ip"]
 
     logger.info("Gathered federation config: {}".format(federation_config))
 
-    # send this config to every client
+    # send this config to every worker
     for _rank in range(1, size):
-        logger.info("Sending federation config to client {}...".format(_rank))
+        logger.info("Sending federation config to worker {}...".format(_rank))
         sb_comm.send(
             federation_config,
             target=_rank,
             tag="CONFIG",
         )
 
+    # create hosts file to resolve ip adresses
+    with (open("/etc/hosts", "a")) as f:
+        # write head address
+        f.write(str(local_ip) + "\t" + name + "\n")
+
+        # write each worker adresses
+        for worker_name, worker_ip in federation_config["workers"].items():
+            f.write(str(worker_ip) + "\t" + worker_name + "\n")
+
     # we can run a setup command here?
 
-    # now that server is ready, send an order for each client to start
+    # now that head is ready, send an order for each worker to start
     for _rank in range(1, size):
-        logger.info("Sending order to start to client {}...".format(_rank))
+        logger.info("Sending order to start to worker {}...".format(_rank))
         sb_comm.send("START", target=_rank, tag="START")
 
     return federation_config
 
 
-def run_client(sb_comm, name, rank, size) -> dict:
-    """Runs the client communication process.
+def run_worker(sb_comm, name, rank, size) -> dict:
+    """Runs the worker communication process.
 
     Args:
         sb_comm (object): the service bus communicator instance
-        name (str): the name of the server
-        rank (int): the rank of the server
+        name (str): the name of the worker
+        rank (int): the rank of the worker
         size (int): the size of the federation
     
     Returns:
@@ -121,10 +130,24 @@ def run_client(sb_comm, name, rank, size) -> dict:
     local_ip = socket.gethostbyname(local_hostname)
     logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
 
-    # send the ip to the server (rank=0) and wait for the federation config in return
+    # send the ip to the head (rank=0) and wait for the federation config in return
     sb_comm.send({"name": name, "ip": local_ip}, target=0, tag="IP")
     federation_config = sb_comm.recv(source=0, tag="CONFIG")
     logger.info("Received federation config: {}".format(federation_config))
+
+    # create hosts file to resolve ip adresses
+    with (open("/etc/hosts", "a")) as f:
+        # write head address
+        f.write(
+            str(federation_config["head"]["ip"])
+            + "\t"
+            + federation_config["head"]["name"]
+            + "\n"
+        )
+
+        # write each worker adresses
+        for worker_name, worker_ip in federation_config["workers"].items():
+            f.write(str(worker_ip) + "\t" + worker_name + "\n")
 
     # wait for start signal from rank=0
     sb_comm.recv(source=0, tag="START")
@@ -172,18 +195,18 @@ def main():
 
         if args.name is None:
             if args.rank == 0:
-                args.name = "server"
+                args.name = "head"
             else:
-                args.name = f"client-{args.rank}"
+                args.name = f"worker-{args.rank}"
 
         if args.rank == 0:
-            # run the communication that needs to happen on a server node
+            # run the communication that needs to happen on a head node
             logger.info("****************** MCD SERVER RUN ******************")
-            fed_config = run_server(sb_comm, args.name, args.rank, args.size)
+            fed_config = run_head(sb_comm, args.name, args.rank, args.size)
         else:
-            # run the communication that needs to happen on a client node
+            # run the communication that needs to happen on a worker node
             logger.info("****************** MCD CLIENT RUN ******************")
-            fed_config = run_client(sb_comm, args.name, args.rank, args.size)
+            fed_config = run_worker(sb_comm, args.name, args.rank, args.size)
 
     except BaseException as e:
         logger.critical("MCD RUNTIME ERROR: {}".format(e))
@@ -195,8 +218,8 @@ def main():
     custom_env["MCD_SIZE"] = str(args.size)
     custom_env["MCD_RUN_ID"] = str(args.run_id)
     custom_env["MCD_CONFIG"] = str(fed_config)
-    custom_env["MCD_HEAD"] = str(fed_config["server"]["ip"])
-    custom_env["MCD_WORKERS"] = ",".join([str(ip) for ip in fed_config["clients"].values()])
+    custom_env["MCD_HEAD"] = str(fed_config["head"]["ip"])
+    custom_env["MCD_WORKERS"] = ",".join([str(ip) for ip in fed_config["workers"].values()])
 
     run_cli_command(custom_command, env=custom_env)
 

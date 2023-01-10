@@ -18,7 +18,7 @@ for index, worker_ip in enumerate(os.environ["MCD_WORKERS"].split(",")):
     for response in response_list:
         print(response)
 
-    print(f"Worker host address: worker-{index}")
-    response_list = pythonping.ping(f"worker-{index}", count=5)
+    print(f"Worker host address: worker-{index+1}")
+    response_list = pythonping.ping(f"worker-{index+1}", count=5)
     for response in response_list:
         print(response)
