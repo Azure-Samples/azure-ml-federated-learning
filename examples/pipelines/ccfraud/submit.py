@@ -323,15 +323,19 @@ def fl_ccfraud_basic():
 
             # set number of instances to distribute training across
             if hasattr(silo_config, "instance_count"):
-                if silo_training_step.resources is None: 
+                if silo_training_step.resources is None:
                     silo_training_step.resources = {}
-                silo_training_step.resources["instance_count"] = silo_config.instance_count
+                silo_training_step.resources[
+                    "instance_count"
+                ] = silo_config.instance_count
 
             # assign instance type for AKS, if available
             if hasattr(silo_config, "instance_type"):
-                if silo_training_step.resources is None: 
+                if silo_training_step.resources is None:
                     silo_training_step.resources = {}
-                silo_training_step.resources["instance_type"] = silo_config.instance_type
+                silo_training_step.resources[
+                    "instance_type"
+                ] = silo_config.instance_type
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
