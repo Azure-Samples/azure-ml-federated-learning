@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "7004676525786094242"
+      "templateHash": "4855225957645855221"
     }
   },
   "parameters": {
@@ -4086,7 +4086,7 @@
             "value": "[resourceGroup().name]"
           },
           "useGatewayFromSourceToTarget": {
-            "value": true
+            "value": false
           }
         },
         "template": {
