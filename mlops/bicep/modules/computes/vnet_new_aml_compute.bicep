@@ -28,19 +28,10 @@ param computeNodes int = 4
 param computeIdentityType string = 'UserAssigned'
 
 @description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
-param computeUaiName string = 'uai-${computeName}'
+param computeUaiName string
 
-@description('Name of the Network Security Group resource')
-param nsgResourceName string = 'nsg-${computeName}'
-
-@description('Name of the vNET resource')
-param vnetResourceName string = 'vnet-${computeName}'
-
-@description('Virtual network address prefix')
-param vnetAddressPrefix string = '10.0.0.0/16'
-
-@description('Subnet address prefix')
-param subnetPrefix string = '10.0.0.0/24'
+@description('Subnet ID')
+param subnetId string
 
 @description('Subnet name')
 param subnetName string = 'snet-training'
@@ -51,38 +42,9 @@ param enableNodePublicIp bool = true
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
-// Virtual network and network security group
-module nsg '../networking/nsg.bicep' = { 
-  name: '${nsgResourceName}-deployment'
-  params: {
-    location: computeRegion
-    nsgName: nsgResourceName
-    tags: tags
-  }
-}
-
-module vnet '../networking/vnet.bicep' = { 
-  name: '${vnetResourceName}-deployment'
-  params: {
-    location: computeRegion
-    virtualNetworkName: vnetResourceName
-    networkSecurityGroupId: nsg.outputs.id
-    vnetAddressPrefix: vnetAddressPrefix
-    subnets: [
-      {
-        name: subnetName
-        addressPrefix: subnetPrefix
-      }
-    ]
-    tags: tags
-  }
-}
-
-// provision a user assigned identify for this compute
-resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (computeIdentityType == 'UserAssigned') {
+// get an existing user assigned identify for this compute
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
   name: computeUaiName
-  location: computeRegion
-  tags: tags
 }
 
 var identityPrincipalId = computeIdentityType == 'UserAssigned' ? uai.properties.principalId : compute.identity.principalId
@@ -125,7 +87,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
 
       // includes compute in the vnet/subnet
       subnet: {
-        id: '${vnet.outputs.id}/subnets/${subnetName}'
+        id: '${subnetId}/subnets/${subnetName}'
       }
 
       // ???
@@ -138,7 +100,4 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
 output identityPrincipalId string = identityPrincipalId
 output compute string = compute.name
 output region string = computeRegion
-output vnetName string = vnet.outputs.name
-output vnetId string = vnet.outputs.id
-output subnetId string = '${vnet.outputs.id}/subnets/${subnetName}'
 output subnetName string = subnetName

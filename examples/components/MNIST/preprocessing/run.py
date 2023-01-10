@@ -139,19 +139,20 @@ def log_metadata(X_train, X_test, metrics_prefix):
     with mlflow.start_run() as mlflow_run:
         # get Mlflow client
         mlflow_client = mlflow.tracking.client.MlflowClient()
-        logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
         root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-        mlflow_client.log_metric(
-            run_id=root_run_id,
-            key=f"{metrics_prefix}/Number of train datapoints",
-            value=f"{X_train.size(dim=0)}",
-        )
+        logger.debug(f"Root runId: {root_run_id}")
+        if root_run_id:
+            mlflow_client.log_metric(
+                run_id=root_run_id,
+                key=f"{metrics_prefix}/Number of train datapoints",
+                value=f"{X_train.size(dim=0)}",
+            )
 
-        mlflow_client.log_metric(
-            run_id=root_run_id,
-            key=f"{metrics_prefix}/Number of test datapoints",
-            value=f"{X_test.size(dim=0)}",
-        )
+            mlflow_client.log_metric(
+                run_id=root_run_id,
+                key=f"{metrics_prefix}/Number of test datapoints",
+                value=f"{X_test.size(dim=0)}",
+            )
 
 
 def run(args):
