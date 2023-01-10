@@ -45,7 +45,7 @@ parser.add_argument(
     "--offline",
     default=False,
     action="store_true",
-    help="Sets flag to do not submit the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
