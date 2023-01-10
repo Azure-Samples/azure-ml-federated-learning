@@ -208,7 +208,7 @@ def silo_scatter_subgraph(
     # user defined accumulator
     aggregated_checkpoint: Input(optional=True),
     # factory inputs (contract)
-    scatter_compute: str,
+    scatter_name: str,
     scatter_datastore: str,
     gather_datastore: str,
     iteration_num: int,
@@ -240,7 +240,7 @@ def silo_scatter_subgraph(
         raw_training_data=raw_train_data,
         raw_testing_data=raw_test_data,
         # here we're using the name of the silo compute as a metrics prefix
-        metrics_prefix=scatter_compute,
+        metrics_prefix=scatter_name,
     )
 
     # we're using our own training component
@@ -258,7 +258,7 @@ def silo_scatter_subgraph(
         # Dataloader batch size
         batch_size=batch_size,
         # Silo name/identifier
-        metrics_prefix=scatter_compute,
+        metrics_prefix=scatter_name,
         # Iteration number
         iteration_num=iteration_num,
     )
@@ -293,6 +293,7 @@ builder.set_orchestrator(
 for silo_config in YAML_CONFIG.federated_learning.silos:
     builder.add_silo(
         # provide settings for this silo
+        silo_config.name,
         silo_config.compute,
         silo_config.datastore,
         # any additional custom kwarg will be sent to silo_preprocessing() as is
