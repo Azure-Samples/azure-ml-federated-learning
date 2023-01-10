@@ -182,7 +182,7 @@ class ServiceBusMPILikeDriver:
 
     def _initialize_client(self, source: int, target: int, tag=None):
         _session_key = self.get_session_key(source, target, tag)
-        self.logger.info("Creating client {}".format(_session_key))
+        self.logger.debug("Creating client {}".format(_session_key))
         if self.auth_method == "ManagedIdentity":
             self.clients[_session_key] = ServiceBusClient(
                 fully_qualified_namespace=self.sb_host,
@@ -195,7 +195,7 @@ class ServiceBusMPILikeDriver:
                 logging_enable=True,
                 session_id=_session_key,
             )
-        self.logger.info("Opening client {}".format(_session_key))
+        self.logger.debug("Opening client {}".format(_session_key))
         self.clients[_session_key].__enter__()
 
     def initialize(self):

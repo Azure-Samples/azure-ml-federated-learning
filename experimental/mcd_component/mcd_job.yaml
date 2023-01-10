@@ -2,7 +2,7 @@ $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 type: command
 
 description: "Run a job distributed accross multiple computes (for FL in-sync)."
-display_name: Multi-Compute Distributed Job (FL experimental)
+display_name: Multi-Compute Distributed Job launcher (experimental)
 
 inputs:
   # data loading

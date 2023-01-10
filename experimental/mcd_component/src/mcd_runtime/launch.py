@@ -1,141 +1,205 @@
 import os
 import sys
 import logging
-
-# Create and configure logger
-logging.basicConfig(
-    filename="outputs/mcd_runtime.log",
-    format="[%(asctime)s] [%(levelname)s] - %(message)s",
-    filemode="a",
-)
-MCD_HOST_LOGGER = logging.getLogger()
-MCD_HOST_LOGGER.setLevel(logging.DEBUG)
-
-MCD_HOST_LOGGER.info("****************** MCD RUNTIME INIT ******************")
-MCD_HOST_LOGGER.info("sys.argv: {}".format(sys.argv))
-
-# UGLY, YOU CAN DO BETTER
-MCD_RUN_ID = str(sys.argv[1])
-MCD_RANK = int(sys.argv[2])
-MCD_SIZE = int(sys.argv[3])
-
-MCD_HOST_LOGGER.info("MCD_RANK={}".format(MCD_RANK))
-MCD_HOST_LOGGER.info("MCD_SIZE={}".format(MCD_SIZE))
-MCD_HOST_LOGGER.info("MCD_RUN_ID={}".format(MCD_RUN_ID))
-MCD_COMMAND = sys.argv[4:]
-MCD_HOST_LOGGER.info("MCD_COMMAND='{}'".format(MCD_COMMAND))
-
+import argparse
 import socket
-
-# network config
-LOCAL_HOSTNAME = socket.gethostname()
-LOCAL_IP = socket.gethostbyname(LOCAL_HOSTNAME)
-MCD_HOST_LOGGER.info(f"Detected IP from socket.gethostbyname(): {LOCAL_IP}")
-
-from service_bus_driver import ServiceBusMPILikeDriver
-
-sb_comm = ServiceBusMPILikeDriver(
-    world_size=MCD_SIZE,
-    world_rank=MCD_RANK,
-    topic="mcd",
-    subscription=MCD_RUN_ID,
-    auth_method="ConnectionString",
-    allowed_tags=["IP", "CONFIG", "RUN", "KILL"],
-)
-try:
-    sb_comm.initialize()
-
-    if MCD_RANK == 0:
-        head_ip = LOCAL_IP
-        worker_ip_list = []
-        MCD_HOST_LOGGER.info("Waiting for workers to connect...")
-        for rank in range(1, MCD_SIZE):
-            MCD_HOST_LOGGER.info("Waiting for worker {}...".format(rank))
-            worker_config = sb_comm.recv(source=rank, tag="IP")
-            MCD_HOST_LOGGER.info(
-                "Received worker {} config: {}".format(rank, worker_config)
-            )
-            worker_ip_list.append(worker_config["worker_ip"])
-        MCD_HOST_LOGGER.info("Received all workers config: {}".format(worker_ip_list))
-
-        for rank in range(1, MCD_SIZE):
-            MCD_HOST_LOGGER.info("Sending workers config to worker {}...".format(rank))
-            sb_comm.send(
-                {"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG"
-            )
-
-        for rank in range(1, MCD_SIZE):
-            MCD_HOST_LOGGER.info(
-                "Sending workers order to start to worker {}...".format(rank)
-            )
-            sb_comm.send(
-                {"head": LOCAL_IP, "workers": worker_ip_list}, target=rank, tag="CONFIG"
-            )
-
-    else:
-        sb_comm.send(
-            {"worker_ip": LOCAL_IP, "worker_rank": MCD_RANK}, target=0, tag="IP"
-        )
-        mcd_config = sb_comm.recv(source=0, tag="CONFIG")
-        worker_ip_list = mcd_config["workers"]
-        head_ip = mcd_config["head"]
-
-except BaseException as e:
-    MCD_HOST_LOGGER.critical("MCD RUNTIME ERROR: {}".format(e))
-    raise e
-
-
-MCD_HOST_LOGGER.info("****************** MCD RUNTIME RUN ******************")
-
 import subprocess
 
-try:
-    mcd_env = dict(os.environ)
-    mcd_env["MCD_RANK"] = str(MCD_RANK)
-    mcd_env["MCD_SIZE"] = str(MCD_SIZE)
-    mcd_env["MCD_RUN_ID"] = str(MCD_RUN_ID)
-    mcd_env["MCD_WORKERS"] = ",".join(worker_ip_list)
-    mcd_env["MCD_HEAD"] = str(head_ip)
 
-    with(open("/etc/hosts", "a")) as f:
-        f.write(str(head_ip)+"\thead\n")
-        for index, ip in enumerate(worker_ip_list):
-            f.write(str(ip)+f"\tworker-{index}\n")
+def get_arg_parser(parser=None):
+    """Parse the command line arguments for merge using argparse.
+    Args:
+        parser (argparse.ArgumentParser or CompliantArgumentParser):
+        an argument parser instance
+    Returns:
+        ArgumentParser: the argument parser instance
+    Notes:
+        if parser is None, creates a new parser instance
+    """
+    # add arguments that are specific to the component
+    if parser is None:
+        parser = argparse.ArgumentParser(description=__doc__)
 
-    subprocess.check_call(" ".join(MCD_COMMAND), shell=True, env=mcd_env)
-    # proc = subprocess.check_call(
-    #     MCD_COMMAND,
-    #     shell=True,
-    #     env=mcd_env,
-    #     # stdout=subprocess.PIPE,
-    #     # stderr=subprocess.STDOUT
-    # )
-    # while proc.poll() is None:
-    #     output = proc.stdout.readline()
-    #     print(output)
-    # for line in iter(p.stdout.readline, b''):
-    #     print(">>> " + line.rstrip())
+    group = parser.add_argument_group("MCD Launcher Inputs")
+    group.add_argument("--run_id", type=str, required=True)
+    group.add_argument("--name", type=str, required=False, default=None)
+    group.add_argument("--rank", type=int, required=True)
+    group.add_argument("--size", type=int, required=True)
 
-except subprocess.CalledProcessError as e:
-    MCD_HOST_LOGGER.critical("MCD RUNTIME ERROR: {}".format(e))
-    sys.exit(e.returncode)
+    return parser
 
-MCD_HOST_LOGGER.info("****************** MCD RUNTIME TEARDOWN ******************")
 
-try:
-    if MCD_RANK == 0:
-        head_ip = LOCAL_IP
-        worker_ip_list = []
-        MCD_HOST_LOGGER.info("Sending KILL signal to workers...")
-        for rank in range(1, MCD_SIZE):
-            sb_comm.send("KILL", target=rank, tag="KILL")
+def run_cli_command(cli_command: list, timeout: int = None, env: dict=None):
+    """Runs subprocess for a cli setup command"""
+    logger = logging.getLogger()
+    logger.info(f"Launching cli with command: {cli_command}")
+    cli_command_call = subprocess.run(
+        cli_command,
+        # stdout=PIPE,
+        # stderr=PIPE,
+        universal_newlines=True,
+        check=False,  # will not raise an exception if subprocess fails
+        timeout=timeout,
+        env=env
+    )
+    logger.info(f"return code: {cli_command_call.returncode}")
 
-    else:
-        MCD_HOST_LOGGER.info("Waiting for KILL signal from head...")
-        sb_comm.recv(source=0, tag="KILL")
+    if cli_command_call.returncode != 0:
+        raise RuntimeError("CLI command returned code != 0")
 
-    sb_comm.finalize()
+    return cli_command_call.returncode
 
-except BaseException as e:
-    MCD_HOST_LOGGER.critical("MCD RUNTIME ERROR: {}".format(e))
-    raise e
+
+def run_server(sb_comm, name: str, rank: int, size: int) -> dict:
+    """Runs the server communication process.
+
+    Args:
+        sb_comm (object): the service bus communicator instance
+        name (str): the name of the server
+        rank (int): the rank of the server
+        size (int): the size of the federation
+   
+    Returns:
+        dict: the federation config
+    """
+    logger = logging.getLogger()
+
+    # get the local ip of this current node
+    local_hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(local_hostname)
+    logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
+
+    # create a "federation" config
+    federation_config = {"server": {"name": name, "ip": local_ip}, "clients": {}}
+
+    # create a config capturing all the clients ip adresses and names
+    logger.info("Waiting for client to connect...")
+    for _rank in range(1, size):
+        # ask each client in sequence for its config
+        logger.info("Waiting for client {}...".format(_rank))
+        client_config = sb_comm.recv(source=_rank, tag="IP")
+        logger.info("Received client {} config: {}".format(_rank, client_config))
+        federation_config["clients"][client_config["name"]] = client_config["ip"]
+
+    logger.info("Gathered federation config: {}".format(federation_config))
+
+    # send this config to every client
+    for _rank in range(1, size):
+        logger.info("Sending federation config to client {}...".format(_rank))
+        sb_comm.send(
+            federation_config,
+            target=_rank,
+            tag="CONFIG",
+        )
+
+    # we can run a setup command here?
+
+    # now that server is ready, send an order for each client to start
+    for _rank in range(1, size):
+        logger.info("Sending order to start to client {}...".format(_rank))
+        sb_comm.send("START", target=_rank, tag="START")
+
+    return federation_config
+
+
+def run_client(sb_comm, name, rank, size) -> dict:
+    """Runs the client communication process.
+
+    Args:
+        sb_comm (object): the service bus communicator instance
+        name (str): the name of the server
+        rank (int): the rank of the server
+        size (int): the size of the federation
+    
+    Returns:
+        dict: the federation config
+    """
+    logger = logging.getLogger()
+
+    # get the local ip of this current node
+    local_hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(local_hostname)
+    logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
+
+    # send the ip to the server (rank=0) and wait for the federation config in return
+    sb_comm.send({"name": name, "ip": local_ip}, target=0, tag="IP")
+    federation_config = sb_comm.recv(source=0, tag="CONFIG")
+    logger.info("Received federation config: {}".format(federation_config))
+
+    # wait for start signal from rank=0
+    sb_comm.recv(source=0, tag="START")
+
+    # we can run a setup command here?
+
+    return federation_config
+
+
+def main():
+    """Script main function."""
+    # Create and configure logger to write into a file in job outputs/
+    logging.basicConfig(
+        filename="outputs/mcd_runtime.log",
+        format="[%(asctime)s] [%(levelname)s] - %(message)s",
+        filemode="a",
+    )
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    logger.info("****************** MCD RUNTIME INIT ******************")
+    logger.info("sys.argv: {}".format(sys.argv))
+
+    # parse the arguments
+    parser = get_arg_parser()
+    args, custom_command = parser.parse_known_args()
+    logger.info("args: {}".format(args))
+
+    # use service bus to communicate with other nodes
+    try:
+        from service_bus_driver import ServiceBusMPILikeDriver
+
+        sb_comm = ServiceBusMPILikeDriver(
+            world_size=args.size,
+            world_rank=args.rank,
+            topic="mcd",
+            subscription=args.run_id,
+            auth_method="ConnectionString",
+            allowed_tags=["IP", "CONFIG", "START", "KILL"],
+        )
+
+        logger.info("****************** MCD INIT COMM ******************")
+        sb_comm.initialize()
+
+        if args.name is None:
+            if args.rank == 0:
+                args.name = "server"
+            else:
+                args.name = f"client-{args.rank}"
+
+        if args.rank == 0:
+            # run the communication that needs to happen on a server node
+            logger.info("****************** MCD SERVER RUN ******************")
+            fed_config = run_server(sb_comm, args.name, args.rank, args.size)
+        else:
+            # run the communication that needs to happen on a client node
+            logger.info("****************** MCD CLIENT RUN ******************")
+            fed_config = run_client(sb_comm, args.name, args.rank, args.size)
+
+    except BaseException as e:
+        logger.critical("MCD RUNTIME ERROR: {}".format(e))
+        raise e
+    
+    # run whatever goes after the known args as a command
+    custom_env = dict(os.environ) # create copy of env vars
+    custom_env["MCD_RANK"] = str(args.rank)
+    custom_env["MCD_SIZE"] = str(args.size)
+    custom_env["MCD_RUN_ID"] = str(args.run_id)
+    custom_env["MCD_CONFIG"] = str(fed_config)
+    custom_env["MCD_HEAD"] = str(fed_config["server"]["ip"])
+    custom_env["MCD_WORKERS"] = ",".join([str(ip) for ip in fed_config["clients"].values()])
+
+    run_cli_command(custom_command, env=custom_env)
+
+
+if __name__ == "__main__":
+    main()

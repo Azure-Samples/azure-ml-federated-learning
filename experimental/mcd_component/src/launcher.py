@@ -8,7 +8,6 @@ import uuid
 import shutil
 import tempfile
 
-# to handle yaml config easily
 from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 from azure.ai.ml import command
@@ -48,7 +47,6 @@ def get_arg_parser(parser=None):
         required=False,
         help="Resource group name",
     )
-
     group.add_argument(
         "--workspace_name",
         type=str,
@@ -61,16 +59,32 @@ def get_arg_parser(parser=None):
 
 def connect_to_aml(
     subscription_id: str = None, resource_group: str = None, workspace_name: str = None
-):
-    credential = ManagedIdentityCredential(
-        client_id=os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
-    )
+) -> MLClient:
+    """Get MLClient using the adapted auth / environment.
+    Args:
+        subscription_id (str, optional): Azure subscription ID. Defaults to None.
+        resource_group (str, optional): Azure resource group name. Defaults to None.
+        workspace_name (str, optional): AzureML workspace name. Defaults to None.
+    Returns:
+        MLClient: MLClient instance
+    """
+    if "DEFAULT_IDENTITY_CLIENT_ID" in os.environ:
+        # if we're running this within an AzureML job (as intended)
+        credential = ManagedIdentityCredential(
+            client_id=os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
+        )
+    else:
+        # if not, use the default
+        credential = DefaultAzureCredential()
+
     if subscription_id:
+        # if we provide the references manually (local use)
         logging.info("Workspace references provided as arguments")
         ml_client = MLClient(
             credential, subscription_id, resource_group, workspace_name
         )
     elif "AZUREML_ARM_WORKSPACE_NAME" in os.environ:
+        # if not, let's try to get them from inside the AzureML job using env vars
         logging.info("Workspace references found in os.environ")
         ml_client = MLClient(
             credential,
@@ -79,6 +93,7 @@ def connect_to_aml(
             os.environ.get("AZUREML_ARM_WORKSPACE_NAME", None),
         )
     else:
+        # else, try local config
         logging.info("No workspace references provided, using local config")
         ml_client = MLClient.from_config(credential)
 
@@ -211,7 +226,7 @@ class MultiComputeLauncher:
 
         if "command" in job_config:
             job_config["command"] = (
-                f"python launch.py {run_id} {rank} {size} " + job_config["command"]
+                f"python launch.py --run_id {run_id} --rank {rank} --size {size} " + job_config["command"]
             )
 
         job = command(**job_config)
@@ -231,7 +246,7 @@ class MultiComputeLauncher:
             rank=0,
             size=len(self.config.workers) + 1,
         )
-        job.display_name = self.run_id + "_head"
+        job.display_name = f"MCD head job run_id={self.run_id}"
         # submit the command
         self.logger.debug("Submitting job {}".format(job))
         returned_job = self.ml_client.jobs.create_or_update(
@@ -253,7 +268,7 @@ class MultiComputeLauncher:
                 rank=(worker_rank + 1),
                 size=len(self.config.workers) + 1,
             )
-            job.display_name = self.run_id + f"_worker_{worker_key}"
+            job.display_name = f"MCD worker key={worker_key} run_id={self.run_id}"
             # submit the command
             self.logger.debug(f"Submitting job f{worker_key}={job}")
             returned_job = self.ml_client.jobs.create_or_update(
@@ -265,8 +280,27 @@ class MultiComputeLauncher:
             self.jobs.append(returned_job)
 
 
-def run(args: argparse.Namespace):
-    """Run the component."""
+def main(cli_args=None):
+    """Component main function.
+    Args:
+        cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
+    """
+    # build an arg parser
+    parser = get_arg_parser()
+
+    # run the parser on cli args
+    args = parser.parse_args(cli_args)
+    print(f"Running script with arguments: {args}")
+
+    # Set logging to sys.out
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+
     # load the config from a local yaml file
     try:
         mcd_config = OmegaConf.load(args.config)
@@ -290,32 +324,5 @@ def run(args: argparse.Namespace):
     launcher.launch()
 
 
-def main(cli_args=None):
-    """Component main function.
-
-    It parses arguments and executes run() with the right arguments.
-
-    Args:
-        cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
-    """
-    # build an arg parser
-    parser = get_arg_parser()
-
-    # run the parser on cli args
-    args = parser.parse_args(cli_args)
-
-    print(f"Running script with arguments: {args}")
-    run(args)
-
-
 if __name__ == "__main__":
-    # Set logging to sys.out
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(log_format)
-    logger.addHandler(handler)
-
     main()
