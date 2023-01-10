@@ -255,6 +255,9 @@ def fl_pneumonia_basic():
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.compute
 
+            # set distribution according to the number of available GPUs (1 in case of only CPU available)
+            silo_training_step.distribution.process_count_per_instance = silo_processes
+
             # set number of instances to distribute training across
             if hasattr(silo_config, "instance_count"):
                 if silo_training_step.resources is None:
