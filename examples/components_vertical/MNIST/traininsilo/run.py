@@ -531,13 +531,14 @@ if __name__ == "__main__":
             logger.info("Initializing process group...")
             global_group = dist.init_process_group(
                 dist.Backend.GLOO,
-                # rank=rank,
-                # world_size=world_size,
-                # init_method=f"tcp://{os.environ['DIST_GROUP_HOST_IP']}:12988",
+                rank=rank,
+                world_size=world_size,
+                init_method=f"tcp://{os.environ['DIST_GROUP_HOST_IP']}:12988",
             )
             logger.info("Process group initialized")
-        except:
+        except Exception as e:
             import time
+            logger.exception(e)
 
             time.sleep(10)
             retries += 1
