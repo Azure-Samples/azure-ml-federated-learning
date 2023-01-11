@@ -286,7 +286,11 @@ class FederatedLearningPipelineFactory:
                 # reserved scatter inputs
                 scatter_arguments["iteration_num"] = iteration_num
                 scatter_arguments["scatter_compute1"] = silo_config["computes"][0]
-                scatter_arguments["scatter_compute2"] = silo_config["computes"][1] if len(silo_config["computes"])>1 else silo_config["computes"][0]
+                scatter_arguments["scatter_compute2"] = (
+                    silo_config["computes"][1]
+                    if len(silo_config["computes"]) > 1
+                    else silo_config["computes"][0]
+                )
                 scatter_arguments["scatter_datastore"] = silo_config["datastore"]
                 scatter_arguments["gather_datastore"] = self.orchestrator["datastore"]
 
@@ -700,7 +704,11 @@ class FederatedLearningPipelineFactory:
             # if the job is an actual command, we need to validate the command itself
 
             # validate that the compute is anchored (unspecified compute is not accepted)
-            job_compute = job.compute._data if isinstance(job.compute, PipelineInput) else job.compute
+            job_compute = (
+                job.compute._data
+                if isinstance(job.compute, PipelineInput)
+                else job.compute
+            )
             if job.compute is None:
                 soft_validation_report.append(
                     f"{_path}: job name={job.name} has no compute"
@@ -750,7 +758,11 @@ class FederatedLearningPipelineFactory:
 
             # loop on all the outputs
             for output_key in job.outputs:
-                job_compute = job.compute._data if isinstance(job.compute, PipelineInput) else job.compute
+                job_compute = (
+                    job.compute._data
+                    if isinstance(job.compute, PipelineInput)
+                    else job.compute
+                )
                 # resolve the output path by recursing through the references
                 output_type, output_path = self._resolve_pipeline_data_path(
                     data_key=output_key,
@@ -825,7 +837,9 @@ class FederatedLearningPipelineFactory:
             )
 
         # check if there's overlap in the configured computes
-        silo_computes_names = set([silo_compute for _silo in self.silos for silo_compute in _silo["computes"]])
+        silo_computes_names = set(
+            [silo_compute for _silo in self.silos for silo_compute in _silo["computes"]]
+        )
         if len(silo_computes_names) == 0:
             soft_validation_report.append("No silo computes have been configured.")
         elif len(silo_computes_names) < len(self.silos):
