@@ -6,12 +6,14 @@ import argparse
 import socket
 import subprocess
 from nvflare.fuel.hci.client.fl_admin_api_runner import FLAdminAPIRunner
+from nvflare.fuel.hci.client.fl_admin_api_constants import FLDetailKey
 from nvflare.fuel.hci.client.fl_admin_api_spec import (
     APISyntaxError,
     FLAdminAPIResponse,
     FLAdminAPISpec,
     TargetType,
 )
+import mlflow
 from nvflare.security.logging import secure_format_exception
 
 
@@ -35,8 +37,6 @@ def get_arg_parser(parser=None):
     group.add_argument("--name", type=str, required=True)
     group.add_argument("--rank", type=int, required=True)
     group.add_argument("--size", type=int, required=True)
-    group.add_argument("--command", type=str, required=False, default=None)
-    group.add_argument("--overseer", type=str, required=False, default=None)
 
     return parser
 
@@ -79,11 +79,10 @@ def api_command_wrapper(api_command_result, logger=None):
     return api_command_result
 
 
-def run_server(sb_comm, name, rank, size, overseer=None):
+def run_server(name, rank, size):
     """Runs the server communication process.
 
     Args:
-        sb_comm (object): the service bus communicator instance
         name (str): the name of the server
         rank (int): the rank of the server
         size (int): the size of the federation
@@ -92,67 +91,39 @@ def run_server(sb_comm, name, rank, size, overseer=None):
     logger = logging.getLogger()
 
     logger.info("****************** MCD INIT COMM ******************")
-    sb_comm.initialize()
 
     # get the local ip of this current node
     local_hostname = socket.gethostname()
     local_ip = socket.gethostbyname(local_hostname)
     logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
 
-    # create a "federation" config
-    federation_config = {"server": {"name": name, "ip": local_ip}, "clients": {}}
-
-    # create a config capturing all the clients ip adresses and names
-    logger.info("Waiting for client to connect...")
-    for _rank in range(1, size):
-        # ask each client in sequence for its config
-        logger.info("Waiting for client {}...".format(_rank))
-        client_config = sb_comm.recv(source=_rank, tag="IP")
-        logger.info("Received client {} config: {}".format(_rank, client_config))
-        federation_config["clients"][client_config["name"]] = client_config["ip"]
-
-    logger.info("Gathered federation config: {}".format(federation_config))
-
-    # send this config to every client
-    for _rank in range(1, size):
-        logger.info("Sending federation config to client {}...".format(_rank))
-        sb_comm.send(
-            federation_config,
-            target=_rank,
-            tag="CONFIG",
-        )
+    # set self as overseer
+    overseer_name = name
+    overseer_ip = str(local_ip)
 
     # create hosts file to resolve ip adresses
     with (open("/etc/hosts", "a")) as f:
         # write server address
-        f.write(str(local_ip) + "\t" + name + "\n")
-
-        # write each client adresses
-        for client_name, client_ip in federation_config["clients"].items():
-            f.write(str(client_ip) + "\t" + client_name + "\n")
-
-        # write overseer
-        if overseer:
-            f.write(str(overseer) + "\t" + "overseer" + "\n")
+        f.write(f"{overseer_ip}\t{overseer_name}\n")
 
     # run server startup
-    logger.info("Running ./startup/start.sh")
-    # TODO: run sub_start.sh instead and figure out logs pipe
     run_cli_command(["bash", "./startup/start.sh"])
-
-    # now that server is ready, send an order for each client to start
-    for _rank in range(1, size):
-        logger.info("Sending order to start to client {}...".format(_rank))
-        sb_comm.send("START", target=_rank, tag="START")
-
-    # we don't need this beyond this point
-    sb_comm.finalize()
-
-    # let's start the...
-    logger.info("****************** NVFLARE SUBMIT SEQUENCE ******************")
 
     # we need to wait for startup to complete before calling admin port
     time.sleep(30)
+
+    # communicate to clients through mlflow root (magic)
+    mlflow_run = mlflow.start_run()
+    mlflow_client = mlflow.tracking.client.MlflowClient()
+    logger.info(f"run tags: {mlflow_run.data.tags}")
+    logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
+    root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
+
+    mlflow_client.set_tag(run_id=root_run_id, key="overseer_name", value=overseer_name)
+    mlflow_client.set_tag(run_id=root_run_id, key="overseer_ip", value=overseer_ip)
+
+    # let's start the...
+    logger.info("****************** NVFLARE SUBMIT SEQUENCE ******************")
 
     logger.info("Starting FLAdminAPIRunner()")
     admin_dir = os.path.join(
@@ -224,69 +195,53 @@ def run_server(sb_comm, name, rank, size, overseer=None):
         raise RuntimeError(err_msg)
 
 
-def run_client(sb_comm, name, rank, size, overseer=None):
+def run_client(name, rank, size):
     """Runs the client communication process.
 
     Args:
-        sb_comm (object): the service bus communicator instance
         name (str): the name of the server
         rank (int): the rank of the server
         size (int): the size of the federation
-        overseer (str, optional): the ip address of the overseer. Defaults to None.
     """
     logger = logging.getLogger()
 
-    logger.info("****************** MCD INIT COMM ******************")
-    sb_comm.initialize()
+    # get Mlflow client and root run id
+    mlflow_run = mlflow.start_run()
+    mlflow_client = mlflow.tracking.client.MlflowClient()
+    logger.debug(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
+    root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
 
-    # get the local ip of this current node
-    local_hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(local_hostname)
-    logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
+    overseer_name = None
+    overseer_ip = None
+    fetch_start_time = time.time()
 
-    # send the ip to the server (rank=0) and wait for the federation config in return
-    sb_comm.send({"name": name, "ip": local_ip}, target=0, tag="IP")
-    federation_config = sb_comm.recv(source=0, tag="CONFIG")
-    logger.info("Received federation config: {}".format(federation_config))
+    while overseer_name is None or overseer_ip is None:
+        logger.info(f"Checking out tag overseer_name/overseer_ip...")
+        mlflow_root_run = mlflow_client.get_run(root_run_id)
 
-    if "server" not in federation_config:
-        raise ValueError("Federation config does not contain server information")
-    if (
-        "ip" not in federation_config["server"]
-        or "name" not in federation_config["server"]
-    ):
-        raise ValueError("Federation config does not contain server information")
+        if "overseer_name" in mlflow_root_run.data.tags:
+            overseer_name = mlflow_root_run.data.tags["overseer_name"]
+            logger.info(f"overseer_name found: {overseer_name}")
+
+        if "overseer_ip" in mlflow_root_run.data.tags:
+            overseer_ip = mlflow_root_run.data.tags["overseer_ip"]
+            logger.info(f"overseer_ip found: {overseer_ip}")
+
+        if (overseer_name is None or overseer_ip is None) and (
+            time.time() - fetch_start_time > 600
+        ):
+            raise RuntimeError("Could not fetch the tag within timeout.")
+        else:
+            time.sleep(10)
 
     # create hosts file to resolve ip adresses
     with (open("/etc/hosts", "a")) as f:
         # write server address
-        f.write(
-            str(federation_config["server"]["ip"])
-            + "\t"
-            + federation_config["server"]["name"]
-            + "\n"
-        )
-
-        # write each client adresses
-        for client_name, client_ip in federation_config["clients"].items():
-            f.write(str(client_ip) + "\t" + client_name + "\n")
-
-        # write overseer
-        if overseer:
-            f.write(str(overseer) + "\t" + "overseer" + "\n")
-
-    # wait for start signal from rank=0
-    sb_comm.recv(source=0, tag="START")
-
-    # we don't need this beyond this point
-    sb_comm.finalize()
+        f.write(f"{overseer_ip}\t{overseer_name}\n")
 
     # run client startup
     logger.info("Running ./startup/sub_start.sh")
     run_cli_command(["bash", "./startup/sub_start.sh"])
-
-    # send start signal back
-    # sb_comm.send("START", target=0, tag="START")
 
 
 def main():
@@ -309,31 +264,13 @@ def main():
     args = parser.parse_args()
     logger.info("args: {}".format(args))
 
-    # use service bus to communicate with other nodes
-    try:
-        from service_bus_driver import ServiceBusMPILikeDriver
-
-        sb_comm = ServiceBusMPILikeDriver(
-            world_size=args.size,
-            world_rank=args.rank,
-            topic="mcd",
-            subscription=args.run_id,
-            auth_method="ConnectionString",
-            allowed_tags=["IP", "CONFIG", "START", "KILL"],
-        )
-
-        if args.type == "server":
-            # run the communication that needs to happen on a server node
-            logger.info("****************** MCD SERVER RUN ******************")
-            run_server(sb_comm, args.name, args.rank, args.size, overseer=args.overseer)
-        else:
-            # run the communication that needs to happen on a client node
-            logger.info("****************** MCD CLIENT RUN ******************")
-            run_client(sb_comm, args.name, args.rank, args.size, overseer=args.overseer)
-
-    except BaseException as e:
-        logger.critical("MCD RUNTIME ERROR: {}".format(e))
-        raise e
+    # launch server / client
+    if args.type == "server":
+        logger.info("****************** MCD SERVER RUN ******************")
+        run_server(args.name, args.rank, args.size)
+    else:
+        logger.info("****************** MCD CLIENT RUN ******************")
+        run_client(args.name, args.rank, args.size)
 
 
 if __name__ == "__main__":

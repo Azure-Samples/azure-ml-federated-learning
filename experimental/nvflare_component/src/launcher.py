@@ -326,14 +326,6 @@ class NVFlareLauncher:
             ),
             component_folder,
         )
-        shutil.copy(
-            os.path.join(
-                os.path.dirname(__file__),
-                "nvflare_host_runtime",
-                "service_bus_driver.py",
-            ),
-            component_folder,
-        )
 
         if participant.type == "server":
             # copy the admin folder in the server job snapshot
