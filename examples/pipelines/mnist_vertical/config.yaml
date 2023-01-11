@@ -1,0 +1,44 @@
+# example yaml config
+
+# using this to store references to Azure ML
+aml:
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
+
+# federated learning parameters
+federated_learning:
+  orchestrator:
+    compute: cpu-orchestrator
+    datastore: datastore_orchestrator
+
+  host: 
+    compute: cpu-silo0-westus
+    datastore: datastore_silo0_westus
+    training_data:
+      type: uri_file
+      mode: 'download'
+      path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_train_data
+    testing_data:
+      type: uri_file
+      mode: 'download'
+      path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_test_data
+
+  contributors:
+    - compute: cpu-silo1-francecentral
+      datastore: datastore_silo1_francecentral
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/mnist_vertical/raw_train_data
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/mnist_vertical/raw_test_data
+
+# training parameters
+training_parameters:
+  num_of_iterations: 3
+  epochs: 3 # number of epochs per iteration (in-silo training) 
+  lr: 0.01 # learning rate
+  batch_size: 64 # batch size

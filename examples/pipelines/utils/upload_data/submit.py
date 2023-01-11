@@ -49,7 +49,7 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=True,
-    choices=["CCFRAUD", "NER", "PNEUMONIA"],
+    choices=["CCFRAUD", "NER", "PNEUMONIA", "MNIST_VERTICAL"],
     help="dataset name",
 )
 
