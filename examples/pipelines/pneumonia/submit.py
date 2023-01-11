@@ -209,7 +209,7 @@ def fl_pneumonia_basic():
                 # Number of epochs
                 epochs=YAML_CONFIG.training_parameters.epochs,
                 # Silo name/identifier
-                metrics_prefix=silo_config.compute,
+                metrics_prefix=silo_config.name,
                 # Iteration number
                 iteration_num=iteration,
             )

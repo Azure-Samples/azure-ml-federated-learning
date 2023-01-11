@@ -13,19 +13,22 @@ federated_learning:
     datastore: "datastore_orchestrator"
 
   silos:
-    - compute: silo0-01
+    - name: silo0
+      compute: silo0-01
       datastore: datastore_silo0
       silo_data:
         type: uri_folder
         mode: 'download'
         path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
-    - compute: silo1-01
+    - name: silo1
+      compute: silo1-01
       datastore: datastore_silo1
       silo_data:
         type: uri_folder
         mode: 'download'
         path: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
-    - compute: silo2-01
+    - name: silo2
+      compute: silo2-01
       datastore: datastore_silo2
       silo_data:
         type: uri_folder
