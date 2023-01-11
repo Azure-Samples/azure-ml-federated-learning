@@ -236,14 +236,14 @@ def fl_ccfraud_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
-            metrics_prefix=silo_config.compute,
+            metrics_prefix=silo_config.computes[0],
         )
 
         # add a readable name to the step
         silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
         # make sure the compute corresponds to the silo
-        silo_pre_processing_step.compute = silo_config.compute
+        silo_pre_processing_step.compute = silo_config.computes[0]
 
         # assign instance type for AKS, if available
         if hasattr(silo_config, "instance_type"):
@@ -286,7 +286,7 @@ def fl_ccfraud_basic():
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
             # Determine number of processes to deploy on a given compute cluster node
-            silo_processes = get_gpus_count(silo_config.compute)
+            silo_processes = get_gpus_count(silo_config.computes[0])
 
             # We need to reload component because otherwise all the instances will share same
             # value for process_count_per_instance
@@ -309,7 +309,7 @@ def fl_ccfraud_basic():
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
-                metrics_prefix=silo_config.compute,
+                metrics_prefix=silo_config.computes[0],
                 # Iteration name
                 iteration_name=f"Iteration-{iteration}",
                 # Model name
@@ -319,7 +319,7 @@ def fl_ccfraud_basic():
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
-            silo_training_step.compute = silo_config.compute
+            silo_training_step.compute = silo_config.computes[0]
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
             silo_training_step.distribution.process_count_per_instance = silo_processes
