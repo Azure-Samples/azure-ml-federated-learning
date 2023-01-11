@@ -9,9 +9,12 @@ import mlflow
 from mlflow import log_metric, log_param
 
 import torch
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch import nn
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from torchvision import models, datasets, transforms
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Normalize, Compose, Grayscale, Resize
@@ -28,6 +31,8 @@ class PTLearner:
         experiment_name="default-experiment",
         iteration_num=1,
         model_path=None,
+        device_id=None,
+        distributed=False,
     ):
         """Simple PyTorch Learner.
         Args:
@@ -35,8 +40,10 @@ class PTLearner:
             epochs (int, optional): Epochs. Defaults to 5.
             dataset_dir (str, optional): Name of data asset in Azure ML. Defaults to "pneumonia-alldata".
             experiment_name (str, optional): Experiment name. Default is "default-experiment".
-            iteration_num (int, optional): Iteration number. Defaults to 1
+            iteration_num (int, optional): Iteration number. Defaults to 1.
             model_path (str, optional): where in the output directory to save the model. Defaults to None.
+            device_id (int, optional): Device id to run training on. Default to None.
+            distributed (bool, optional): Whether to run distributed training. Default to False.
 
         Attributes:
             model_: PneumoniaNetwork model
@@ -53,6 +60,22 @@ class PTLearner:
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
         self._model_path = model_path
+        self._distributed = distributed
+
+        self.device_ = (
+            torch.device(
+                torch.device("cuda", device_id) if torch.cuda.is_available() else "cpu"
+            )
+            if device_id is not None
+            else torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        )
+        logger.info(f"Using device: {self.device_}")
+
+        if self._distributed:
+            self._rank = device_id
+            logger.info(f"Rank: {self._rank}")
+        else:
+            self._rank = None
 
         # Training setup
         self.model_ = PneumoniaNetwork()
@@ -76,13 +99,32 @@ class PTLearner:
         self.train_dataset_, self.test_dataset_ = self.load_dataset(
             dataset_dir, transforms
         )
+
+        if self._distributed:
+            logger.info("Setting up distributed samplers.")
+            self.train_sampler_ = DistributedSampler(self.train_dataset_)
+            self.test_sampler_ = DistributedSampler(self.test_dataset_)
+        else:
+            self.train_sampler_ = None
+            self.test_sampler_ = None
+
         self.train_loader_ = DataLoader(
-            dataset=self.train_dataset_, batch_size=32, shuffle=True, drop_last=True
+            dataset=self.train_dataset_,
+            batch_size=32,
+            shuffle=True,
+            drop_last=True,
+            sampler=self.train_sampler_,
         )
         self.n_iterations = len(self.train_loader_)
         self.test_loader_ = DataLoader(
-            dataset=self.test_dataset_, batch_size=100, shuffle=False
+            dataset=self.test_dataset_,
+            batch_size=100,
+            shuffle=False,
+            sampler=self.test_sampler_,
         )
+
+        logger.info(f"Train loader steps: {len(self.train_loader_)}")
+        logger.info(f"Test loader steps: {len(self.test_loader_)}")
 
     def load_dataset(self, data_dir, transforms):
         """Load dataset from {data_dir} directory. It is assumed that it contains two subdirectories 'train' and 'test'.
@@ -188,12 +230,13 @@ class PTLearner:
                         )
 
                         # log train loss
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            "Train Loss",
-                            training_loss,
-                        )
+                        if not self._distributed or self._rank == 0:
+                            self.log_metrics(
+                                mlflow_client,
+                                root_run_id,
+                                "Train Loss",
+                                training_loss,
+                            )
 
                         running_loss = 0.0
 
@@ -201,31 +244,39 @@ class PTLearner:
                 test_loss, test_acc = self.test()
 
                 # log test metrics after each epoch
-                self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
-                self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc)
+                if not self._distributed or self._rank == 0:
+                    self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
+                    self.log_metrics(
+                        mlflow_client, root_run_id, "Test Accuracy", test_acc
+                    )
 
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
 
             # log metrics at the pipeline level
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Train Loss",
-                training_loss,
-                pipeline_level=True,
-            )
-            self.log_metrics(
-                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
-            )
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Test Accuracy",
-                test_acc,
-                pipeline_level=True,
-            )
+            if not self._distributed or self._rank == 0:
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Train Loss",
+                    training_loss,
+                    pipeline_level=True,
+                )
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Test Loss",
+                    test_loss,
+                    pipeline_level=True,
+                )
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Test Accuracy",
+                    test_acc,
+                    pipeline_level=True,
+                )
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
@@ -254,9 +305,15 @@ class PTLearner:
         logger.debug("Start training")
         self.local_train(checkpoint)
 
-        logger.debug("Save model")
-        torch.save(self.model_.state_dict(), self._model_path)
-        logger.info(f"Model saved to {self._model_path}")
+        if not self._distributed:
+            logger.debug("Save model")
+            torch.save(self.model_.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
+        elif self._rank == 0:
+            # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+            logger.debug("Save model")
+            torch.save(self.model_.module.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
 
 
 def get_arg_parser(parser=None):
@@ -314,6 +371,18 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
+    logger.info(f"Distributed process rank: {os.environ['RANK']}")
+    logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
+
+    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+        dist.init_process_group(
+            "nccl",
+            rank=int(os.environ["RANK"]),
+            world_size=int(os.environ["WORLD_SIZE"]),
+        )
+    elif int(os.environ["WORLD_SIZE"]) > 1:
+        dist.init_process_group("gloo")
+
     trainer = PTLearner(
         dataset_dir=args.dataset_name,
         lr=args.lr,
@@ -321,9 +390,14 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",
+        device_id=int(os.environ["RANK"]),
+        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
     )
 
     trainer.execute(args.checkpoint)
+
+    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+        dist.destroy_process_group()
 
 
 def main(cli_args=None):

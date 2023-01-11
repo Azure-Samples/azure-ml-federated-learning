@@ -41,10 +41,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
@@ -126,8 +126,28 @@ def connect_to_aml():
 ### GET ML_CLIENT AND COMPUTE INFORMATION ###
 #############################################
 
-ML_CLIENT = connect_to_aml()
-COMPUTE_SIZES = ML_CLIENT.compute.list_sizes()
+if not args.offline:
+    ML_CLIENT = connect_to_aml()
+    COMPUTE_SIZES = ML_CLIENT.compute.list_sizes()
+
+
+def get_gpus_count(compute_name):
+    if not args.offline:
+        ws_compute = ML_CLIENT.compute.get(compute_name)
+        if hasattr(ws_compute, "size"):
+            silo_compute_size_name = ws_compute.size
+            silo_compute_info = next(
+                (
+                    x
+                    for x in COMPUTE_SIZES
+                    if x.name.lower() == silo_compute_size_name.lower()
+                ),
+                None,
+            )
+            if silo_compute_info is not None and silo_compute_info.gpus >= 1:
+                return silo_compute_info.gpus
+    return 1
+
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -150,23 +170,6 @@ aggregate_component = load_component(
 ########################
 ### BUILD A PIPELINE ###
 ########################
-
-
-def get_gpus_count(compute_name):
-    ws_compute = ML_CLIENT.compute.get(compute_name)
-    if hasattr(ws_compute, "size"):
-        silo_compute_size_name = ws_compute.size
-        silo_compute_info = next(
-            (
-                x
-                for x in COMPUTE_SIZES
-                if x.name.lower() == silo_compute_size_name.lower()
-            ),
-            None,
-        )
-        if silo_compute_info is not None and silo_compute_info.gpus >= 1:
-            return silo_compute_info.gpus
-    return 1
 
 
 def custom_fl_data_path(
@@ -391,7 +394,7 @@ pipeline_job = fl_ccfraud_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_demo_ccfraud"
@@ -422,4 +425,4 @@ if args.submit:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")

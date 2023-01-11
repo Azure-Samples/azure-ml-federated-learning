@@ -11,11 +11,11 @@ import pandas as pd
 import numpy as np
 from torch import nn
 import torch.distributed as dist
-import torch.multiprocessing as mp
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from typing import List
 import models as models
 import datasets as datasets
@@ -93,7 +93,7 @@ class CCFraudTrainer:
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE
+            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
             train_data_dir(str, optional): Training data directory path.
             test_data_dir(str, optional): Testing data directory path.
             lr (float, optional): Learning rate. Defaults to 0.01.
@@ -141,12 +141,8 @@ class CCFraudTrainer:
 
         if self._distributed:
             logger.info("Setting up distributed samplers.")
-            self.train_sampler_ = torch.utils.data.distributed.DistributedSampler(
-                self.train_dataset_
-            )
-            self.test_sampler_ = torch.utils.data.distributed.DistributedSampler(
-                self.test_dataset_
-            )
+            self.train_sampler_ = DistributedSampler(self.train_dataset_)
+            self.test_sampler_ = DistributedSampler(self.test_dataset_)
         else:
             self.train_sampler_ = None
             self.test_sampler_ = None
