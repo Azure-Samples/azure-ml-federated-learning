@@ -130,6 +130,25 @@ if not args.offline:
     ML_CLIENT = connect_to_aml()
     COMPUTE_SIZES = ML_CLIENT.compute.list_sizes()
 
+
+def get_gpus_count(compute_name):
+    if not args.offline:
+        ws_compute = ML_CLIENT.compute.get(compute_name)
+        if hasattr(ws_compute, "size"):
+            silo_compute_size_name = ws_compute.size
+            silo_compute_info = next(
+                (
+                    x
+                    for x in COMPUTE_SIZES
+                    if x.name.lower() == silo_compute_size_name.lower()
+                ),
+                None,
+            )
+            if silo_compute_info is not None and silo_compute_info.gpus >= 1:
+                return silo_compute_info.gpus
+    return 1
+
+
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
 ####################################
@@ -151,24 +170,6 @@ aggregate_component = load_component(
 ########################
 ### BUILD A PIPELINE ###
 ########################
-
-
-def get_gpus_count(compute_name):
-    if not args.offline:
-        ws_compute = ML_CLIENT.compute.get(compute_name)
-        if hasattr(ws_compute, "size"):
-            silo_compute_size_name = ws_compute.size
-            silo_compute_info = next(
-                (
-                    x
-                    for x in COMPUTE_SIZES
-                    if x.name.lower() == silo_compute_size_name.lower()
-                ),
-                None,
-            )
-            if silo_compute_info is not None and silo_compute_info.gpus >= 1:
-                return silo_compute_info.gpus
-    return 1
 
 
 def custom_fl_data_path(
