@@ -46,7 +46,7 @@ az deployment group create --template-file .\mlops\bicep\vnet_publicip_sandbox_s
     git checkout -t 2.2
     ```
 
-5. Check the file `nvflare_job.yaml` and modify the path to the sample
+5. Check the file `nvflare_job.yaml` and modify the path to the sample app/ folder according to your local clone path.
 
     ```bash
     az ml job create --file ./nvflare_job.yaml
