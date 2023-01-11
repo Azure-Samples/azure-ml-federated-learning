@@ -14,19 +14,22 @@ participants:
     fed_learn_port: 8002
     admin_port: 8003
     # NOTE: each participant needs an azureml_compute
-    azureml_compute: cpu-orchestrator
+    azureml:
+      compute: cpu-orchestrator
 
   - name: worker-1
     type: client
     org: azureml
     # NOTE: each participant needs an azureml_compute
-    azureml_compute: cpu-silo0-westus
+    azureml:
+      compute: cpu-silo0-westus
 
   - name: worker-2
     type: client
     org: azureml
     # NOTE: each participant needs an azureml_compute
-    azureml_compute: cpu-silo2-brazilsouth
+    azureml:
+      compute: cpu-silo2-brazilsouth
 
 # NOTE: below is typical NVFlare, untouched
 

@@ -206,8 +206,11 @@ class NVFlareLauncher:
                 errors.append(f"participant {participant} has no type")
             if "type" in participant and participant.type == "admin":
                 errors.append("when using this launching component, please do NOT include an admin participant in your project config.")
-            if "azureml_compute" not in participant or participant.azureml_compute is None:
-                errors.append(f"each participant needs an azureml_compute config, could not find it in participant={participant}")
+            if "azureml" not in participant or participant.azureml is None:
+                errors.append(f"each participant needs an azureml config, could not find it in participant={participant}")
+            else:
+                if "compute" not in participant.azureml or participant.azureml.compute is None:
+                    errors.append(f"each participant needs an azureml.compute config, could not find it in participant={participant}")
     
         if errors:
             raise ValueError("Validating the NVFlare provisioning config file {} has led to critical errors:\n-- {}".format(
@@ -279,7 +282,7 @@ class NVFlareLauncher:
                 )
 
                 step = component()
-                step.compute = participant.azureml_compute
+                step.compute = participant.azureml.compute
                 step.name = "participant_{}_{}".format(participant.type, index)
     
         pipeline_job = nvflare_pipeline()
@@ -352,7 +355,6 @@ class NVFlareLauncher:
 
         # create the AzureML job for it
         participant_job = command(
-            # compute=participant.azureml_compute,
             code=component_folder,
             command=" ".join(command_line),
             environment=self.project_config.azureml.environment.lstrip("azureml:"),
