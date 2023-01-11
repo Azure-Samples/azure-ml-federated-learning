@@ -8,7 +8,6 @@ azureml:
   environment: azureml:nvflare-pt@latest
 
 participants:
-
   - name: server-1
     type: server
     org: azureml
@@ -28,11 +27,6 @@ participants:
     org: azureml
     # NOTE: each participant needs an azureml_compute
     azureml_compute: cpu-silo2-brazilsouth
-
-  # - name: worker-3
-  #   type: client
-  #   org: azureml
-  #   azureml_compute: cpu-silo1-francecentral
 
 # NOTE: below is typical NVFlare, untouched
 

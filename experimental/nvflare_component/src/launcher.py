@@ -14,7 +14,8 @@ import socket
 from omegaconf import OmegaConf
 from omegaconf.dictconfig import DictConfig
 from azure.ai.ml import command
-from azure.ai.ml import Input, Output
+from azure.ai.ml import dsl, Input, Output
+from azure.ai.ml.constants import AssetTypes
 from azure.identity import (
     DefaultAzureCredential,
     InteractiveBrowserCredential,
@@ -190,7 +191,7 @@ class NVFlareLauncher:
 
         errors = []
 
-        if "azure" not in _config or _config.azureml is None:
+        if "azureml" not in _config or _config.azureml is None:
             errors.append("please add a section 'azureml' in your project config to specify which environment to use")
 
         if "participants" not in _config or _config.participants is None:
@@ -259,21 +260,42 @@ class NVFlareLauncher:
             err_msg = "Running the nvflare provision command failed, see user_logs/std_log.txt logs to debug."
             raise RuntimeError(err_msg)
 
-        # get list of server/client participants
-        participants = [
-            p
-            for p in self.project_config.participants
-            if p.type in ["server", "client"]
-        ]
+        @dsl.pipeline(
+            description="NVFlare/AzureML orchestration pipeline",
+        )
+        def nvflare_pipeline():
+            # get list of server/client participants
+            participants = [
+                p
+                for p in self.project_config.participants
+                if p.type in ["server", "client"]
+            ]
 
-        # launch a job for each of them in their respective computes
-        for index, participant in enumerate(participants):
-            self.logger.info("Launching participant {}".format(participant))
-            self.launch_participant(
-                participant=participant, rank=index, size=len(participants)
-            )
+            # launch a job for each of them in their respective computes
+            for index, participant in enumerate(participants):
+                self.logger.info("Launching participant {}".format(participant))
+                component = self.build_participant_component(
+                    participant=participant, rank=index, size=len(participants)
+                )
 
-    def launch_participant(self, participant, rank, size):
+                step = component()
+                step.compute = participant.azureml_compute
+                step.name = "participant_{}_{}".format(participant.type, index)
+    
+        pipeline_job = nvflare_pipeline()
+        pipeline_job.display_name = f"NVFlare pipeline ({self.project_config.name})"
+        # submit the command
+        self.logger.info("Submitting NVFlare graph... {}".format(pipeline_job))
+        returned_job = self.ml_client.jobs.create_or_update(
+            pipeline_job,
+            experiment_name=os.environ.get("AZUREML_ARM_PROJECT_NAME", "mcd_dev"),
+        )
+        # get a URL for the status of the job
+        self.logger.info("Access job at : {}".format(returned_job.studio_url))
+        self.jobs.append(returned_job)
+
+
+    def build_participant_component(self, participant, rank, size):
         """Launch an AzureML job for a given participant.
 
         Args:
@@ -338,24 +360,15 @@ class NVFlareLauncher:
 
         # create the AzureML job for it
         participant_job = command(
-            compute=participant.azureml_compute,
+            # compute=participant.azureml_compute,
             code=component_folder,
             command=" ".join(command_line),
             environment=self.project_config.azureml.environment.lstrip("azureml:"),
-        )
-        participant_job.display_name = (
-            f"NVFlare project={self.project_config.name} name={participant.name} type={participant.type} r={rank}/s={size}"
+            # name="nvflare_{}_{}_{}".format(self.project_config.name, participant.name.replace, participant.type),
+            display_name=f"NVFlare project={self.project_config.name} name={participant.name} type={participant.type} r={rank}/s={size}"
         )
 
-        # submit the command
-        self.logger.info("Submitting participant job... {}".format(participant_job))
-        returned_job = self.ml_client.jobs.create_or_update(
-            participant_job,
-            experiment_name=os.environ.get("AZUREML_ARM_PROJECT_NAME", "mcd_dev"),
-        )
-        # get a URL for the status of the job
-        self.logger.info("Access job at : {}".format(returned_job.studio_url))
-        self.jobs.append(returned_job)
+        return participant_job.component
 
 
 def main(cli_args=None):

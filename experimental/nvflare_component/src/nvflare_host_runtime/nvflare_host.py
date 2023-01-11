@@ -1,19 +1,18 @@
 import os
 import sys
+import time
 import logging
 import argparse
 import socket
 import subprocess
-from nvflare.fuel.hci.client.fl_admin_api_runner import (
-    FLAdminAPIRunner,
-    api_command_wrapper,
-)
+from nvflare.fuel.hci.client.fl_admin_api_runner import FLAdminAPIRunner
 from nvflare.fuel.hci.client.fl_admin_api_spec import (
     APISyntaxError,
     FLAdminAPIResponse,
     FLAdminAPISpec,
     TargetType,
 )
+from nvflare.security.logging import secure_format_exception
 
 
 def get_arg_parser(parser=None):
@@ -63,6 +62,23 @@ def run_cli_command(cli_command: list, timeout: int = None):
     return cli_command_call.returncode
 
 
+def api_command_wrapper(api_command_result, logger=None):
+    """Prints the result of the command and raises RuntimeError to interrupt command sequence if there is an error.
+
+    Args:
+        api_command_result: result of the api command
+
+    """
+    if logger:
+        logger.info("response: {}".format(api_command_result))
+    if not api_command_result["status"] == "SUCCESS":
+        if logger:
+            logger.critical("command was not successful!")
+        raise RuntimeError("command was not successful!")
+
+    return api_command_result
+
+
 def run_server(sb_comm, name, rank, size, overseer=None):
     """Runs the server communication process.
 
@@ -74,6 +90,9 @@ def run_server(sb_comm, name, rank, size, overseer=None):
         overseer (str, optional): the ip address of the overseer. Defaults to None.
     """
     logger = logging.getLogger()
+
+    logger.info("****************** MCD INIT COMM ******************")
+    sb_comm.initialize()
 
     # get the local ip of this current node
     local_hostname = socket.gethostname()
@@ -126,11 +145,12 @@ def run_server(sb_comm, name, rank, size, overseer=None):
         logger.info("Sending order to start to client {}...".format(_rank))
         sb_comm.send("START", target=_rank, tag="START")
 
-    # ********************
-    # WORK IN PROGRESS
-    # ********************
+    # we don't need this beyond this point
+    sb_comm.finalize()
 
-    import time
+    # let's start the...
+    logger.info("****************** NVFLARE SUBMIT SEQUENCE ******************")
+
     # we need to wait for startup to complete before calling admin port
     time.sleep(30)
 
@@ -141,23 +161,67 @@ def run_server(sb_comm, name, rank, size, overseer=None):
     os.makedirs(os.path.join(admin_dir, "local"), exist_ok=True)
     os.makedirs(os.path.join(admin_dir, "transfer"), exist_ok=True)
 
-    run_cli_command(["nvflare","preflight_check","-p",admin_dir])
+    run_cli_command(["nvflare", "preflight_check", "-p", admin_dir])
 
     runner = FLAdminAPIRunner(
         username="admin@azure.ml", admin_dir=admin_dir, debug=True
     )
 
-    app_dir = os.path.join(admin_dir, "app")
-    logger.info("Starting app from {}".format(app_dir))
-    runner.run(app_dir)
-    # for _rank in range(1, size):
-    #     logger.info(
-    #         "Getting start confirmation from client {}...".format(_rank)
-    #     )
-    #     sb_comm.recv(source=_rank, tag="START")
+    job_folder_name = os.path.join(admin_dir, "app")
+    logger.info("Starting app from {}".format(job_folder_name))
+    # see code from https://nvflare.readthedocs.io/en/2.2.1/_modules/nvflare/fuel/hci/client/fl_admin_api_runner.html
+    try:
+        # check status of the server
+        def wait_for_client_connections(reply: FLAdminAPIResponse, **kwargs) -> bool:
+            # wait for number of clients to be SIZE-1 (see args)
+            if reply["details"][FLDetailKey.REGISTERED_CLIENTS] == (size - 1):
+                return True
+            else:
+                return False
 
-    logger.info("Shutdown ???")
-    api_command_wrapper(runner.api.shutdown(target_type=TargetType.ALL))
+        logger.info("api.wait_until_server_status(TargetType.SERVER)")
+        response = api_command_wrapper(
+            runner.api.wait_until_server_status(
+                timeout=600,  # let's give 10 mins for all clients to start
+                interval=10,
+                callback=wait_for_client_connections,
+            ),
+            logger,
+        )
+        logger.info("All clients are now connected to the server")
+
+        # submit the job
+        logger.info(f'api.submit_job("{job_folder_name}")')
+        response = api_command_wrapper(runner.api.submit_job(job_folder_name), logger)
+        job_id = response["details"]["job_id"]
+        logger.info(f"NVFlare job_id={job_id}")
+
+        # check server (again ?)
+        time.sleep(30)
+        logger.info("api.check_status(TargetType.SERVER)")
+        api_command_wrapper(runner.api.check_status(TargetType.SERVER), logger)
+
+        # wait until all clients are ready again (app is stopped).
+        logger.info("api.wait_until_client_status()")
+        api_command_wrapper(runner.api.wait_until_client_status(), logger)
+
+        # check server and clients (again ?)
+        logger.info("api.check_status(TargetType.SERVER)")
+        api_command_wrapper(runner.api.check_status(TargetType.SERVER), logger)
+        # now server engine status should be stopped
+        time.sleep(
+            10
+        )  # wait for clients to stop in case they take longer than server to stop
+        logger.info("api.check_status(TargetType.CLIENT)")
+        api_command_wrapper(runner.api.check_status(TargetType.CLIENT), logger)
+
+        # shutdown everything
+        logger.info("api.shutdown(target_type=TargetType.ALL)")
+        api_command_wrapper(runner.api.shutdown(target_type=TargetType.ALL), logger)
+
+    except RuntimeError as e:
+        err_msg = f"There was an exception during an admin api command: {secure_format_exception(e)}"
+        raise RuntimeError(err_msg)
 
 
 def run_client(sb_comm, name, rank, size, overseer=None):
@@ -172,6 +236,9 @@ def run_client(sb_comm, name, rank, size, overseer=None):
     """
     logger = logging.getLogger()
 
+    logger.info("****************** MCD INIT COMM ******************")
+    sb_comm.initialize()
+
     # get the local ip of this current node
     local_hostname = socket.gethostname()
     local_ip = socket.gethostbyname(local_hostname)
@@ -181,6 +248,14 @@ def run_client(sb_comm, name, rank, size, overseer=None):
     sb_comm.send({"name": name, "ip": local_ip}, target=0, tag="IP")
     federation_config = sb_comm.recv(source=0, tag="CONFIG")
     logger.info("Received federation config: {}".format(federation_config))
+
+    if "server" not in federation_config:
+        raise ValueError("Federation config does not contain server information")
+    if (
+        "ip" not in federation_config["server"]
+        or "name" not in federation_config["server"]
+    ):
+        raise ValueError("Federation config does not contain server information")
 
     # create hosts file to resolve ip adresses
     with (open("/etc/hosts", "a")) as f:
@@ -203,6 +278,9 @@ def run_client(sb_comm, name, rank, size, overseer=None):
     # wait for start signal from rank=0
     sb_comm.recv(source=0, tag="START")
 
+    # we don't need this beyond this point
+    sb_comm.finalize()
+
     # run client startup
     logger.info("Running ./startup/sub_start.sh")
     run_cli_command(["bash", "./startup/sub_start.sh"])
@@ -215,7 +293,7 @@ def main():
     """Script main function."""
     # Create and configure logger to write into a file in job outputs/
     logging.basicConfig(
-        filename="outputs/mcd_runtime.log",
+        filename="outputs/nvflare_host.log",
         format="[%(asctime)s] [%(levelname)s] - %(message)s",
         filemode="a",
     )
@@ -243,9 +321,6 @@ def main():
             auth_method="ConnectionString",
             allowed_tags=["IP", "CONFIG", "START", "KILL"],
         )
-
-        logger.info("****************** MCD INIT COMM ******************")
-        sb_comm.initialize()
 
         if args.type == "server":
             # run the communication that needs to happen on a server node
