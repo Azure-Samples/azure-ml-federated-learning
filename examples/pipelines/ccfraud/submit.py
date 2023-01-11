@@ -236,7 +236,7 @@ def fl_ccfraud_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
-            metrics_prefix=silo_config.computes[0],
+            metrics_prefix=silo_config.name,
         )
 
         # add a readable name to the step
@@ -309,7 +309,7 @@ def fl_ccfraud_basic():
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Silo name/identifier
-                metrics_prefix=silo_config.computes[0],
+                metrics_prefix=silo_config.name,
                 # Iteration name
                 iteration_name=f"Iteration-{iteration}",
                 # Model name

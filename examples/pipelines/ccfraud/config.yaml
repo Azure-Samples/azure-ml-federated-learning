@@ -13,7 +13,8 @@ federated_learning:
     datastore: datastore_orchestrator
 
   silos:
-    - computes: 
+    - name: silo0
+      computes: 
       - silo0-01 # name of the compute for silo X
       datastore: datastore_silo0
       training_data:
@@ -24,7 +25,9 @@ federated_learning:
         type: uri_file
         mode: 'download'
         path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_test_data
-    - computes: 
+
+    - name: silo1
+      computes: 
       - silo1-01 # we are repeating over the same config for silo 2
       datastore: datastore_silo1
       training_data:
@@ -35,7 +38,9 @@ federated_learning:
         type: uri_file
         mode: 'download'
         path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_test_data
-    - computes: 
+
+    - name: silo2
+      computes: 
       - silo2-01 # we are repeating over the same config for silo 3
       datastore: datastore_silo2
       training_data:

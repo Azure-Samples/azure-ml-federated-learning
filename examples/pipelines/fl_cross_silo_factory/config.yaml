@@ -25,7 +25,8 @@ federated_learning:
     datastore: "datastore_orchestrator"
 
   silos: # silos are provided as a list
-    - computes: 
+    - name: silo0
+      computes: 
       - silo0-01 # name of the compute for silo X
       - silo0-02
       datastore: datastore_silo0 # name of the datastore for silo X
@@ -40,7 +41,8 @@ federated_learning:
         mode: 'download'
         path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
-    - computes: 
+    - name: silo1
+      computes: 
       - silo1-01 # we are repeating over the same config for silo 2
       - silo1-02
       datastore: datastore_silo1
@@ -53,7 +55,8 @@ federated_learning:
         mode: 'download'
         path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
-    - computes: 
+    - name: silo2
+      computes: 
       - silo2-01 # we are repeating over the same config for silo 3
       - silo2-02
       datastore: datastore_silo2

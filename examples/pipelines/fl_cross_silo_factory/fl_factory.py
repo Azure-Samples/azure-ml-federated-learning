@@ -50,7 +50,7 @@ class FederatedLearningPipelineFactory:
         """
         self.orchestrator = {"compute": compute, "datastore": datastore}
 
-    def add_silo(self, computes: list, datastore: str, **custom_input_args):
+    def add_silo(self, name: str, computes: list, datastore: str, **custom_input_args):
         """Add a silo to the internal configuration of the builder.
 
         Args:
@@ -60,6 +60,7 @@ class FederatedLearningPipelineFactory:
         """
         self.silos.append(
             {
+                "name": name,
                 "computes": computes,
                 "datastore": datastore,
                 "custom_input_args": custom_input_args or {},
@@ -291,6 +292,7 @@ class FederatedLearningPipelineFactory:
                     if len(silo_config["computes"]) > 1
                     else silo_config["computes"][0]
                 )
+                scatter_arguments["scatter_name"] = silo_config["name"]
                 scatter_arguments["scatter_datastore"] = silo_config["datastore"]
                 scatter_arguments["gather_datastore"] = self.orchestrator["datastore"]
 
