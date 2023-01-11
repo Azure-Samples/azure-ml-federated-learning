@@ -7,6 +7,9 @@ type: command
 description: Component to train a pneumonia detection model on chest radiographs
 is_deterministic: true
 
+distribution:
+  type: pytorch
+  
 inputs:
   lr:
     type: number

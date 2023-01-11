@@ -1,11 +1,14 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: ccfraud_train_in_silo
-version: 0.3.0
+version: 0.3.8
 display_name: CC Fraud Train (in silo)
 type: command
 description: Component to train a model to classify CC Fraud.
 is_deterministic: false
+
+distribution:
+  type: pytorch
 
 inputs:
   train_data:

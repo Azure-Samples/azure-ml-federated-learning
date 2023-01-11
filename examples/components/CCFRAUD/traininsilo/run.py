@@ -2,6 +2,7 @@
 import argparse
 import logging
 import sys
+import os
 import copy
 
 import mlflow
@@ -9,11 +10,12 @@ import torch
 import pandas as pd
 import numpy as np
 from torch import nn
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Dataset
-from mlflow import log_metric, log_param
+from torch.utils.data.distributed import DistributedSampler
 from typing import List
 import models as models
 import datasets as datasets
@@ -85,16 +87,20 @@ class CCFraudTrainer:
         batch_size=10,
         experiment_name="default-experiment",
         iteration_name="default-iteration",
+        device_id=None,
+        distributed=False,
     ):
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE
-            train_data_dir(str, optional): Training data directory path
-            test_data_dir(str, optional): Testing data directory path
-            lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 1
+            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
+            train_data_dir(str, optional): Training data directory path.
+            test_data_dir(str, optional): Testing data directory path.
+            lr (float, optional): Learning rate. Defaults to 0.01.
+            epochs (int, optional): Epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            device_id (int, optional): Device id to run training on. Default to None.
+            distributed (bool, optional): Whether to run distributed training. Default to False.
 
         Attributes:
             model_: Model
@@ -112,21 +118,59 @@ class CCFraudTrainer:
         self._batch_size = batch_size
         self._experiment_name = experiment_name
         self._iteration_name = iteration_name
+        self._distributed = distributed
 
-        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device_ = (
+            torch.device(
+                torch.device("cuda", device_id) if torch.cuda.is_available() else "cpu"
+            )
+            if device_id is not None
+            else torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        )
+        logger.info(f"Using device: {self.device_}")
+
+        if self._distributed:
+            self._rank = device_id
+            logger.info(f"Rank: {self._rank}")
+        else:
+            self._rank = None
 
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
             train_data_dir, test_data_dir, model_name
         )
+
+        if self._distributed:
+            logger.info("Setting up distributed samplers.")
+            self.train_sampler_ = DistributedSampler(self.train_dataset_)
+            self.test_sampler_ = DistributedSampler(self.test_dataset_)
+        else:
+            self.train_sampler_ = None
+            self.test_sampler_ = None
+
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_size=batch_size, shuffle=True
+            self.train_dataset_,
+            batch_size=batch_size,
+            shuffle=(self.train_sampler_ is None),
+            sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_size=batch_size, shuffle=True
+            self.test_dataset_,
+            batch_size=batch_size,
+            shuffle=False,
+            sampler=self.test_sampler_,
         )
+
+        logger.info(f"Train loader steps: {len(self.train_loader_)}")
+        logger.info(f"Test loader steps: {len(self.test_loader_)}")
 
         # Build model
         self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
+        if self._distributed:
+            self.model_ = DDP(
+                self.model_,
+                device_ids=[self._rank] if self._rank is not None else None,
+                output_device=self._rank,
+            )
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
@@ -206,7 +250,11 @@ class CCFraudTrainer:
         """
 
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            if self._distributed:
+                # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+                self.model_.module.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            else:
+                self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
             num_of_batches_before_logging = 5
@@ -315,23 +363,25 @@ class CCFraudTrainer:
             # log metrics at the pipeline level
             for name, value in train_metrics.get_global().items():
                 log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
+                if not self._distributed or self._rank == 0:
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                        pipeline_level=True,
+                    )
 
             for name, value in test_metrics.get_global().items():
                 log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
+                if not self._distributed or self._rank == 0:
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                        pipeline_level=True,
+                    )
             logger.info(", ".join(log_message))
 
     def test(self):
@@ -376,9 +426,15 @@ class CCFraudTrainer:
         logger.debug("Start training")
         self.local_train(checkpoint)
 
-        logger.debug("Save model")
-        torch.save(self.model_.state_dict(), self._model_path)
-        logger.info(f"Model saved to {self._model_path}")
+        if not self._distributed:
+            logger.debug("Save model")
+            torch.save(self.model_.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
+        elif self._rank == 0:
+            # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+            logger.debug("Save model")
+            torch.save(self.model_.module.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
 
 
 def get_arg_parser(parser=None):
@@ -430,6 +486,18 @@ def run(args):
         args (argparse.namespace): command line arguments provided to script
     """
 
+    logger.info(f"Distributed process rank: {os.environ['RANK']}")
+    logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
+
+    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+        dist.init_process_group(
+            "nccl",
+            rank=int(os.environ["RANK"]),
+            world_size=int(os.environ["WORLD_SIZE"]),
+        )
+    elif int(os.environ["WORLD_SIZE"]) > 1:
+        dist.init_process_group("gloo")
+
     trainer = CCFraudTrainer(
         model_name=args.model_name,
         train_data_dir=args.train_data,
@@ -440,8 +508,13 @@ def run(args):
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
+        device_id=int(os.environ["RANK"]),
+        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
+
+    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+        dist.destroy_process_group()
 
 
 def main(cli_args=None):
@@ -459,7 +532,10 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    print(f"Running script with arguments: {args}")
+    logger.info(f"Running script with arguments: {args}")
+    logger.info(f"CUDA available: {torch.cuda.is_available()}")
+    logger.info(f"CUDA devices count: {torch.cuda.device_count()}")
+
     run(args)
 
 

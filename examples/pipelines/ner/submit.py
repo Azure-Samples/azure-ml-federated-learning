@@ -41,10 +41,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
@@ -120,6 +120,33 @@ def connect_to_aml():
         ML_CLIENT = MLClient.from_config(credential=credential)
 
     return ML_CLIENT
+
+
+#############################################
+### GET ML_CLIENT AND COMPUTE INFORMATION ###
+#############################################
+
+if not args.offline:
+    ML_CLIENT = connect_to_aml()
+    COMPUTE_SIZES = ML_CLIENT.compute.list_sizes()
+
+
+def get_gpus_count(compute_name):
+    if not args.offline:
+        ws_compute = ML_CLIENT.compute.get(compute_name)
+        if hasattr(ws_compute, "size"):
+            silo_compute_size_name = ws_compute.size
+            silo_compute_info = next(
+                (
+                    x
+                    for x in COMPUTE_SIZES
+                    if x.name.lower() == silo_compute_size_name.lower()
+                ),
+                None,
+            )
+            if silo_compute_info is not None and silo_compute_info.gpus >= 1:
+                return silo_compute_info.gpus
+    return 1
 
 
 ####################################
@@ -259,6 +286,15 @@ def fl_ner_basic():
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+            # Determine number of processes to deploy on a given compute cluster node
+            silo_processes = get_gpus_count(silo_config.compute)
+
+            # We need to reload component because otherwise all the instances will share same
+            # value for process_count_per_instance
+            training_component = load_component(
+                source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
+            )
+
             # we're using training component here
             silo_training_step = training_component(
                 # with the train_data from the pre_processing step
@@ -288,11 +324,24 @@ def fl_ner_basic():
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.compute
 
+            # set distribution according to the number of available GPUs (1 in case of only CPU available)
+            silo_training_step.distribution.process_count_per_instance = silo_processes
+
+            # set number of instances to distribute training across
+            if hasattr(silo_config, "instance_count"):
+                if silo_training_step.resources is None:
+                    silo_training_step.resources = {}
+                silo_training_step.resources[
+                    "instance_count"
+                ] = silo_config.instance_count
+
             # assign instance type for AKS, if available
             if hasattr(silo_config, "instance_type"):
-                silo_training_step.resources = {
-                    "instance_type": silo_config.instance_type
-                }
+                if silo_training_step.resources is None:
+                    silo_training_step.resources = {}
+                silo_training_step.resources[
+                    "instance_type"
+                ] = silo_config.instance_type
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
@@ -348,9 +397,8 @@ pipeline_job = fl_ner_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
-    ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_demo_ner"
     )
@@ -380,4 +428,4 @@ if args.submit:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")
