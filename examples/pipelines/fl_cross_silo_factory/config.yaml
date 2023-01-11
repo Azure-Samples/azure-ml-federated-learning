@@ -26,7 +26,9 @@ federated_learning:
 
   silos: # silos are provided as a list
     - name: silo0
-      compute: silo0-01 # name of the compute for silo X
+      computes: 
+      - silo0-01 # name of the compute for silo X
+      - silo0-02
       datastore: datastore_silo0 # name of the datastore for silo X
       # training inputs are specified below
       # NOTE: in this demo, we're using public data from a url instead
@@ -40,7 +42,9 @@ federated_learning:
         path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
     - name: silo1
-      compute: silo1-01 # we are repeating over the same config for silo 2
+      computes: 
+      - silo1-01 # we are repeating over the same config for silo 2
+      - silo1-02
       datastore: datastore_silo1
       training_data:
         type: uri_file
@@ -52,7 +56,9 @@ federated_learning:
         path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
     - name: silo2
-      compute: silo2-01 # we are repeating over the same config for silo 3
+      computes: 
+      - silo2-01 # we are repeating over the same config for silo 3
+      - silo2-02
       datastore: datastore_silo2
       training_data:
         type: uri_file

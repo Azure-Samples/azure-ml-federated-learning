@@ -208,6 +208,8 @@ def silo_scatter_subgraph(
     # user defined accumulator
     aggregated_checkpoint: Input(optional=True),
     # factory inputs (contract)
+    scatter_compute1: str,
+    scatter_compute2: str,
     scatter_name: str,
     scatter_datastore: str,
     gather_datastore: str,
@@ -223,7 +225,8 @@ def silo_scatter_subgraph(
         raw_train_data (Input): raw train data
         raw_test_data (Input): raw test data
         aggregated_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
-        scatter_compute (str): Silo compute name
+        scatter_compute1 (str): Silo compute1 name
+        scatter_compute2 (str): Silo compute2 name
         scatter_datastore (str): Silo datastore name
         gather_datastore (str): Orchestrator datastore name
         iteration_num (int): Iteration number
@@ -242,6 +245,9 @@ def silo_scatter_subgraph(
         # here we're using the name of the silo compute as a metrics prefix
         metrics_prefix=scatter_name,
     )
+
+    # Assigning the silo's first compute to the preprocessing component
+    silo_pre_processing_step.compute = scatter_compute1
 
     # we're using our own training component
     silo_training_step = training_component(
@@ -262,6 +268,9 @@ def silo_scatter_subgraph(
         # Iteration number
         iteration_num=iteration_num,
     )
+
+    # Assigning the silo's second compute to the training component
+    silo_training_step.compute = scatter_compute2
 
     # IMPORTANT: we will assume that any output provided here can be exfiltrated into the orchestrator
     return {
@@ -294,7 +303,7 @@ for silo_config in YAML_CONFIG.federated_learning.silos:
     builder.add_silo(
         # provide settings for this silo
         silo_config.name,
-        silo_config.compute,
+        silo_config.computes,
         silo_config.datastore,
         # any additional custom kwarg will be sent to silo_preprocessing() as is
         raw_train_data=Input(

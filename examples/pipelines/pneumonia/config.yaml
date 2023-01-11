@@ -14,21 +14,26 @@ federated_learning:
 
   silos:
     - name: silo0
-      compute: silo0-01
+      computes: 
+      - silo0-01 # name of the compute for silo X
       datastore: datastore_silo0
       silo_data:
         type: uri_folder
         mode: 'download'
         path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
+
     - name: silo1
-      compute: silo1-01
+      computes: 
+      - silo1-01 # we are repeating over the same config for silo 2
       datastore: datastore_silo1
       silo_data:
         type: uri_folder
         mode: 'download'
         path: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
+
     - name: silo2
-      compute: silo2-01
+      computes: 
+      - silo2-01 # we are repeating over the same config for silo 3
       datastore: datastore_silo2
       silo_data:
         type: uri_folder
