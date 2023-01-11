@@ -25,7 +25,7 @@ from typing import List, Optional, Union
 from typing import Callable, Dict
 from dataclasses import dataclass
 import itertools
-from azure.ai.ml.entities._job.pipeline._io import NodeOutput
+from azure.ai.ml.entities._job.pipeline._io import NodeOutput, PipelineInput
 from azure.ai.ml.exceptions import ValidationException
 
 
@@ -699,6 +699,7 @@ class FederatedLearningPipelineFactory:
             # if the job is an actual command, we need to validate the command itself
 
             # validate that the compute is anchored (unspecified compute is not accepted)
+            job_compute = job.compute._data if isinstance(job.compute, PipelineInput) else job.compute
             if job.compute is None:
                 soft_validation_report.append(
                     f"{_path}: job name={job.name} has no compute"
@@ -732,22 +733,23 @@ class FederatedLearningPipelineFactory:
                     datastore = self.DATASTORE_UNKNOWN
 
                 self.logger.debug(
-                    f"{_path}: validating job input={input_key} on datastore={datastore} against compute={job.compute}"
+                    f"{_path}: validating job input={input_key} on datastore={datastore} against compute={job_compute}"
                 )
 
                 # verify affinity and log errors if they occur
                 if not self.check_affinity(
-                    job.compute,
+                    job_compute,
                     datastore,
                     self.OPERATION_READ,
                     job.inputs[input_key].type,
                 ):
                     soft_validation_report.append(
-                        f"In job {_path}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job.compute}"
+                        f"In job {_path}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job_compute}"
                     )
 
             # loop on all the outputs
             for output_key in job.outputs:
+                job_compute = job.compute._data if isinstance(job.compute, PipelineInput) else job.compute
                 # resolve the output path by recursing through the references
                 output_type, output_path = self._resolve_pipeline_data_path(
                     data_key=output_key,
@@ -772,13 +774,13 @@ class FederatedLearningPipelineFactory:
 
                 # verify affinity and log errors if they occur
                 if not self.check_affinity(
-                    job.compute,
+                    job_compute,
                     datastore,
                     self.OPERATION_WRITE,
                     job.outputs[output_key].type,
                 ):
                     soft_validation_report.append(
-                        f"In job {_path}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job.compute}"
+                        f"In job {_path}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job_compute}"
                     )
 
             # return the report
