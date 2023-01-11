@@ -293,13 +293,14 @@ class FederatedLearningPipelineFactory:
                 silo_subgraph_step = scatter(**scatter_arguments)
                 silo_subgraph_step.name = f"silo_subgraph_{silo_index}"
 
-                # every step within the silo_subgraph_step needs to be anchored in the SILO
-                self.anchor_step_in_silo(
-                    silo_subgraph_step,
-                    compute=silo_config["computes"][0], # by default, only first silo's compute will be used
-                    output_datastore=silo_config["datastore"],
-                    _path="silo_subgraph_step",  # to help with debug logging
-                )
+                for silo_compute in silo_config["computes"]:
+                    # every step within the silo_subgraph_step needs to be anchored in the SILO
+                    self.anchor_step_in_silo(
+                        silo_subgraph_step,
+                        compute=silo_compute,
+                        output_datastore=silo_config["datastore"],
+                        _path="silo_subgraph_step",  # to help with debug logging
+                    )
 
                 # BUT the outputs of the scatter() subgraph/component
                 # are exfiltrated to the orchestrator instead
@@ -449,14 +450,14 @@ class FederatedLearningPipelineFactory:
                     self.orchestrator["datastore"],
                     self.OPERATION_READ,
                     True,
-                    data_type=AssetTypes.CUSTOM_MODEL,
+                    data_type=AssetTypes.URI_FOLDER,
                 )  # OK to get a model our of the orchestrator
                 self.set_affinity(
                     silo_compute,
                     self.orchestrator["datastore"],
                     self.OPERATION_WRITE,
                     True,
-                    data_type=AssetTypes.CUSTOM_MODEL,
+                    data_type=AssetTypes.URI_FOLDER,
                 )  # OK to write a model into the orchestrator
 
             self.set_affinity(
