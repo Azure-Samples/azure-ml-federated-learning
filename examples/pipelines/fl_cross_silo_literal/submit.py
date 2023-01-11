@@ -42,10 +42,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
@@ -228,6 +228,12 @@ def fl_cross_silo_internal_basic():
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
 
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            silo_pre_processing_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
+
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
@@ -287,6 +293,12 @@ def fl_cross_silo_internal_basic():
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.compute
 
+            # assign instance type for AKS, if available
+            if hasattr(silo_config, "instance_type"):
+                silo_training_step.resources = {
+                    "instance_type": silo_config.instance_type
+                }
+
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
                 type=AssetTypes.URI_FOLDER,
@@ -310,6 +322,11 @@ def fl_cross_silo_internal_basic():
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            aggregate_weights_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
         # add a readable name to the step
         aggregate_weights_step.name = f"iteration_{iteration}_aggregation"
 
@@ -336,7 +353,7 @@ pipeline_job = fl_cross_silo_internal_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
     ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
@@ -368,4 +385,4 @@ if args.submit:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")

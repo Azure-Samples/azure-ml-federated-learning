@@ -20,6 +20,9 @@ param computeName string
 @description('Specifies the location of the compute resources.')
 param computeRegion string
 
+@description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
+param computeUaiName string
+
 @description('VM size for the default compute cluster')
 param computeSKU string = 'Standard_DS3_v2'
 
@@ -29,18 +32,13 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param computeIdentityType string = 'UserAssigned'
 
-@description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
-param computeUaiName string = 'uai-${computeName}'
-
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
 
-// provision a user assigned identify for this compute
-resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (computeIdentityType == 'UserAssigned') {
+// get an existing user assigned identify for this compute
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
   name: computeUaiName
-  location: computeRegion
-  tags: tags
 }
 
 var identityPrincipalId = computeIdentityType == 'UserAssigned' ? uai.properties.principalId : compute.identity.principalId

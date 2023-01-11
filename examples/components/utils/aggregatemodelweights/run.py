@@ -4,7 +4,8 @@ import argparse
 import logging
 import sys
 import glob
-
+import shutil
+from distutils.util import strtobool
 import torch
 
 
@@ -39,6 +40,18 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--output", type=str, required=True, help="where to write the averaged model"
     )
+    parser.add_argument(
+        "--ancillary_files",
+        type=strtobool,
+        default=False,
+        help="Whether ancillary files need to be copied",
+    )
+    parser.add_argument(
+        "--out_checkpoint_name",
+        type=str,
+        default="model",
+        help=" the name of the output checkpoint, e.g. model for CCFRAUD/MNIST/NER/PNEUMONIA, finetuned_state_dict for Babel models",
+    )
 
     return parser
 
@@ -62,7 +75,6 @@ class PyTorchStateDictFedAvg:
 
     def add_model(self, model_path: str):
         """Add one model to the average.
-
         Args:
             model_path (str): path to the model to add
         """
@@ -118,7 +130,6 @@ class PyTorchStateDictFedAvg:
 
     def save_model(self, model_path: str):
         """Save the averaged model.
-
         Args:
             model_path (str): path to save the model to
         """
@@ -165,7 +176,24 @@ def main(cli_args=None):
     for model_path in model_paths:
         model_handler.add_model(model_path)
 
-    model_handler.save_model(os.path.join(args.output, f"model.{args.extension}"))
+    # check if meta data needed, copy the whole dir
+    if args.ancillary_files:
+        for src in os.listdir(args.checkpoints[0]):
+            src_path = os.path.join(args.checkpoints[0], src)
+            if os.path.isfile(src_path):
+                shutil.copy(src_path, f"{args.output}/{src}")
+            else:
+                shutil.copytree(src_path, f"{args.output}/{src}")
+
+        # remove the checkpoint, it's from single silo
+        out_checkpoint_pth = os.path.join(
+            args.output, f"{args.out_checkpoint_name}.{args.extension}"
+        )
+        os.remove(out_checkpoint_pth)
+
+    model_handler.save_model(
+        os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
+    )
 
 
 if __name__ == "__main__":

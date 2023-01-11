@@ -7,6 +7,9 @@ type: command
 description: Component to train a NER model.
 is_deterministic: true
 
+distribution:
+  type: pytorch
+  
 inputs:
   train_data:
     type: uri_folder
