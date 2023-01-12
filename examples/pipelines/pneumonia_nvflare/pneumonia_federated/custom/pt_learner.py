@@ -27,25 +27,27 @@ from nvflare.apis.fl_constant import FLContextKey, ReturnCode, ReservedKey
 from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable, make_reply
 from nvflare.apis.signal import Signal
-from nvflare.app_common.abstract.model import ModelLearnable, ModelLearnableKey, \
-                                        make_model_learnable, model_learnable_to_dxo
+from nvflare.app_common.abstract.model import (
+    ModelLearnable,
+    ModelLearnableKey,
+    make_model_learnable,
+    model_learnable_to_dxo,
+)
 from nvflare.app_common.abstract.learner_spec import Learner
 from nvflare.app_common.app_constant import AppConstants
 from nvflare.app_common.pt.pt_fed_utils import PTModelPersistenceFormatManager
 from pt_constants import PTConstants
 from pneumonia_network import PneumoniaNetwork
-from azureml.core import Workspace, Dataset
 
 
 class PTLearner(Learner):
-
     def __init__(
         self,
         lr=0.01,
         epochs=5,
         exclude_vars=None,
         dataset_path_env_var: str = "CLIENT_DATA_PATH",
-        analytic_sender_id="analytic_sender"
+        analytic_sender_id="analytic_sender",
     ):
         """Simple PyTorch Learner.
         Args:
@@ -65,49 +67,51 @@ class PTLearner(Learner):
     def initialize(self, parts: dict, fl_ctx: FLContext):
         # Training setup
         self.model = PneumoniaNetwork()
-        self.device = torch.device(
-            "cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
         self.loss = nn.CrossEntropyLoss()
         self.optimizer = SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
 
-        self.workspace = Workspace.from_config()
-        print(self.workspace)
-        print('model', self.model)
+        print("model", self.model)
 
         IMG_HEIGHT, IMG_WIDTH = 224, 224
         IMG_MEAN = 0.4818
         IMG_STD = 0.2357
 
-        transforms = Compose([Grayscale(),
-                              Resize((IMG_HEIGHT, IMG_WIDTH)),
-                              ToTensor(),
-                              Normalize(mean=(IMG_MEAN,), std=(IMG_STD,))
-                              ])
+        transforms = Compose(
+            [
+                Grayscale(),
+                Resize((IMG_HEIGHT, IMG_WIDTH)),
+                ToTensor(),
+                Normalize(mean=(IMG_MEAN,), std=(IMG_STD,)),
+            ]
+        )
 
-        # pneumonia_dataset = Dataset.get_by_name(
-        #     self.workspace, self.dataset_name)
         pneumonia_dataset_path = os.environ.get(self.dataset_path_env_var, None)
-        # pneumonia_dataset.download(target_path=os.path.join(
-        #     os.path.expanduser('~'), 'data'), overwrite=True)
-        self.train_dataset = ImageFolder(root=os.path.join(pneumonia_dataset_path, 'train'), transform=transforms)
+        self.train_dataset = ImageFolder(
+            root=os.path.join(pneumonia_dataset_path, "train"), transform=transforms
+        )
 
         self.train_loader = DataLoader(
-            dataset=self.train_dataset, batch_size=32, shuffle=True, drop_last=True)
+            dataset=self.train_dataset, batch_size=32, shuffle=True, drop_last=True
+        )
         self.n_iterations = len(self.train_loader)
 
-        self.test_dataset = ImageFolder(root=os.path.join(os.path.expanduser(
-            '~'), 'data', 'pneumonia-2class-reduced', 'test'), transform=transforms)
+        self.test_dataset = ImageFolder(
+            root=os.path.join(pneumonia_dataset_path, "test"),
+            transform=transforms,
+        )
         self.test_loader = DataLoader(
-            dataset=self.test_dataset, batch_size=100, shuffle=False)
+            dataset=self.test_dataset, batch_size=100, shuffle=False
+        )
 
         # Setup the persistence manager to save PT model.
         # The default training configuration is used by persistence manager in case no initial model is found.
-        self.default_train_conf = {
-            "train": {"model": type(self.model).__name__}}
-        print('default_train_conf', self.default_train_conf)
+        self.default_train_conf = {"train": {"model": type(self.model).__name__}}
+        print("default_train_conf", self.default_train_conf)
         self.persistence_manager = PTModelPersistenceFormatManager(
-            data=self.model.state_dict(), default_train_conf=self.default_train_conf)
+            data=self.model.state_dict(), default_train_conf=self.default_train_conf
+        )
 
         # Tensorboard streaming setup
         # user configuration from config_fed_client.json
@@ -115,7 +119,9 @@ class PTLearner(Learner):
         if not self.writer:  # else use local TensorBoard writer only
             self.writer = SummaryWriter(fl_ctx.get_prop(FLContextKey.APP_ROOT))
 
-    def train(self, data: Shareable, fl_ctx: FLContext, abort_signal: Signal) -> Shareable:
+    def train(
+        self, data: Shareable, fl_ctx: FLContext, abort_signal: Signal
+    ) -> Shareable:
         # Get model weights
         try:
             dxo = from_shareable(data)
@@ -126,7 +132,8 @@ class PTLearner(Learner):
         # Ensure data kind is weights.
         if not dxo.data_kind == DataKind.WEIGHTS:
             self.log_error(
-                fl_ctx, f"data_kind expected WEIGHTS but got {dxo.data_kind} instead.")
+                fl_ctx, f"data_kind expected WEIGHTS but got {dxo.data_kind} instead."
+            )
             return make_reply(ReturnCode.BAD_TASK_DATA)
 
         # Convert weights to tensor. Run training
@@ -145,8 +152,11 @@ class PTLearner(Learner):
         new_weights = self.model.state_dict()
         new_weights = {k: v.cpu().numpy() for k, v in new_weights.items()}
 
-        outgoing_dxo = DXO(data_kind=DataKind.WEIGHTS, data=new_weights,
-                           meta={MetaKey.NUM_STEPS_CURRENT_ROUND: self.n_iterations})
+        outgoing_dxo = DXO(
+            data_kind=DataKind.WEIGHTS,
+            data=new_weights,
+            meta={MetaKey.NUM_STEPS_CURRENT_ROUND: self.n_iterations},
+        )
         return outgoing_dxo.to_shareable()
 
     def local_train(self, fl_ctx, weights, abort_signal):
@@ -162,8 +172,7 @@ class PTLearner(Learner):
                 if abort_signal.triggered:
                     return
 
-                images, labels = batch[0].to(
-                    self.device), batch[1].to(self.device)
+                images, labels = batch[0].to(self.device), batch[1].to(self.device)
                 self.optimizer.zero_grad()
 
                 predictions = self.model(images)
@@ -171,10 +180,13 @@ class PTLearner(Learner):
                 cost.backward()
                 self.optimizer.step()
 
-                running_loss += (cost.cpu().detach().numpy()/images.size()[0])
+                running_loss += cost.cpu().detach().numpy() / images.size()[0]
                 if i % 3000 == 0:
-                    self.log_info(fl_ctx, f"Epoch: {epoch}/{self.epochs}, Iteration: {i}, "
-                                          f"Loss: {running_loss/3000}")
+                    self.log_info(
+                        fl_ctx,
+                        f"Epoch: {epoch}/{self.epochs}, Iteration: {i}, "
+                        f"Loss: {running_loss/3000}",
+                    )
                     running_loss = 0.0
 
                 # Stream training loss at each step
@@ -186,36 +198,41 @@ class PTLearner(Learner):
             self.writer.add_scalar("validation_accuracy", metric, epoch)
 
     def get_model_for_validation(self, model_name: str, fl_ctx: FLContext) -> Shareable:
-        run_dir = fl_ctx.get_engine().get_workspace().get_run_dir(
-            fl_ctx.get_prop(ReservedKey.RUN_NUM))
+        run_dir = (
+            fl_ctx.get_engine()
+            .get_workspace()
+            .get_run_dir(fl_ctx.get_prop(ReservedKey.RUN_NUM))
+        )
         models_dir = os.path.join(run_dir, PTConstants.PTModelsDir)
         if not os.path.exists(models_dir):
             return None
         model_path = os.path.join(models_dir, PTConstants.PTLocalModelName)
 
-        self.persistence_manager = PTModelPersistenceFormatManager(data=torch.load(model_path),
-                                                                   default_train_conf=self.default_train_conf)
-        ml = self.persistence_manager.to_model_learnable(
-            exclude_vars=self.exclude_vars)
+        self.persistence_manager = PTModelPersistenceFormatManager(
+            data=torch.load(model_path), default_train_conf=self.default_train_conf
+        )
+        ml = self.persistence_manager.to_model_learnable(exclude_vars=self.exclude_vars)
 
         # Get the model parameters and create dxo from it
         dxo = model_learnable_to_dxo(ml)
         return dxo.to_shareable()
 
-    def validate(self, data: Shareable, fl_ctx: FLContext, abort_signal: Signal) -> Shareable:
+    def validate(
+        self, data: Shareable, fl_ctx: FLContext, abort_signal: Signal
+    ) -> Shareable:
         model_owner = "?"
         try:
             try:
                 dxo = from_shareable(data)
             except:
-                self.log_error(
-                    fl_ctx, "Error in extracting dxo from shareable.")
+                self.log_error(fl_ctx, "Error in extracting dxo from shareable.")
                 return make_reply(ReturnCode.BAD_TASK_DATA)
 
             # Ensure data_kind is weights.
             if not dxo.data_kind == DataKind.WEIGHTS:
                 self.log_exception(
-                    fl_ctx, f"DXO is of type {dxo.data_kind} but expected type WEIGHTS.")
+                    fl_ctx, f"DXO is of type {dxo.data_kind} but expected type WEIGHTS."
+                )
                 return make_reply(ReturnCode.BAD_TASK_DATA)
 
             if isinstance(dxo.data, ModelLearnable):
@@ -223,8 +240,9 @@ class PTLearner(Learner):
 
             # Extract weights and ensure they are tensor.
             model_owner = data.get_header(AppConstants.MODEL_OWNER, "?")
-            weights = {k: torch.as_tensor(v, device=self.device)
-                       for k, v in dxo.data.items()}
+            weights = {
+                k: torch.as_tensor(v, device=self.device) for k, v in dxo.data.items()
+            }
 
             self.model.load_state_dict(weights)
 
@@ -233,15 +251,19 @@ class PTLearner(Learner):
             if abort_signal.triggered:
                 return make_reply(ReturnCode.TASK_ABORTED)
 
-            self.log_info(fl_ctx, f"Accuracy when validating {model_owner}'s model on"
-                          f" {fl_ctx.get_identity_name()}"f's data: {val_accuracy}')
+            self.log_info(
+                fl_ctx,
+                f"Accuracy when validating {model_owner}'s model on"
+                f" {fl_ctx.get_identity_name()}"
+                f"s data: {val_accuracy}",
+            )
 
-            dxo = DXO(data_kind=DataKind.METRICS,
-                      data={'val_acc': val_accuracy})
+            dxo = DXO(data_kind=DataKind.METRICS, data={"val_acc": val_accuracy})
             return dxo.to_shareable()
         except:
             self.log_exception(
-                fl_ctx, f"Exception in validating model from {model_owner}")
+                fl_ctx, f"Exception in validating model from {model_owner}"
+            )
             return make_reply(ReturnCode.EXECUTION_EXCEPTION)
 
     def local_validate(self, weights, abort_signal):
@@ -260,12 +282,15 @@ class PTLearner(Learner):
 
                 correct += (pred_label == labels).sum().item()
                 total += images.size()[0]
-            metric = correct/float(total)
+            metric = correct / float(total)
         return metric
 
     def save_local_model(self, fl_ctx: FLContext):
-        run_dir = fl_ctx.get_engine().get_workspace().get_run_dir(
-            fl_ctx.get_prop(ReservedKey.RUN_NUM))
+        run_dir = (
+            fl_ctx.get_engine()
+            .get_workspace()
+            .get_run_dir(fl_ctx.get_prop(ReservedKey.RUN_NUM))
+        )
         models_dir = os.path.join(run_dir, PTConstants.PTModelsDir)
         if not os.path.exists(models_dir):
             os.makedirs(models_dir)

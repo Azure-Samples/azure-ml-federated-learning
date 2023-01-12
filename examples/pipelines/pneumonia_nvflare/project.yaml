@@ -27,6 +27,15 @@ participants:
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore
     azureml:
+      data: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/pneumonia
+      compute: cpu-silo1-francecentral
+      datastore: datastore_silo1_francecentral
+
+  - name: worker-3
+    type: client
+    org: azureml
+    # NOTE: each participant needs an azureml compute and datastore
+    azureml:
       data: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/pneumonia
       compute: cpu-silo2-brazilsouth
       datastore: datastore_silo2_brazilsouth
