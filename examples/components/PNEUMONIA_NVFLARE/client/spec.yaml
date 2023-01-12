@@ -1,0 +1,22 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: nvflare_client
+version: 2.2.3-mod1
+display_name: NVFlare client
+type: command
+description: Populates an NVFlare client
+is_deterministic: true
+
+inputs:
+  client_config:
+    type: uri_folder
+  start:
+    type: uri_file
+
+code: "."
+
+command: >-
+  python run.py --client_config ${{inputs.client_config}}
+
+environment: 
+  build:
+    path: ../nvflare_run_env/context/
