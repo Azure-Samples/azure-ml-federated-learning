@@ -217,7 +217,7 @@ def run_server(
         # download results
         response = api_command_wrapper(runner.api.download_job(job_id))
         logger.info("Copying job artefacts to output_dir")
-        shutil.copytree(os.path.join(admin_config_dir_local, "transfer"), output_dir)
+        shutil.copytree(os.path.join(admin_config_dir_local, "transfer"), os.path.join(output_dir, "artefacts"))
 
         # shutdown system
         logger.info("api.shutdown(target_type=TargetType.ALL)")
