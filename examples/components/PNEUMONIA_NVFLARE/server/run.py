@@ -159,7 +159,7 @@ def run_server(server_config_dir, admin_config_dir, app_dir, server_name, expect
         # check status of the server
         def wait_for_client_connections(reply: FLAdminAPIResponse, **kwargs) -> bool:
             # wait for number of clients to be SIZE-1 (see args)
-            if reply["details"][FLDetailKey.REGISTERED_CLIENTS] == (expected_clients - 1):
+            if reply["details"][FLDetailKey.REGISTERED_CLIENTS] == expected_clients:
                 return True
             else:
                 return False
