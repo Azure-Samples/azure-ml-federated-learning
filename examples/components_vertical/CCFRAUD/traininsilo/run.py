@@ -8,6 +8,7 @@ import mlflow
 import torch
 import pandas as pd
 import numpy as np
+import torch.distributed as dist
 from torch import nn
 from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import Adam
@@ -77,6 +78,9 @@ class CCFraudTrainer:
     def __init__(
         self,
         model_name,
+        global_rank,
+        global_size,
+        global_group,
         train_data_dir="./",
         test_data_dir="./",
         model_path=None,
@@ -112,6 +116,9 @@ class CCFraudTrainer:
         self._batch_size = batch_size
         self._experiment_name = experiment_name
         self._iteration_name = iteration_name
+        self._global_rank = global_rank
+        self._global_size = global_size
+        self._global_group = global_group
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -119,13 +126,14 @@ class CCFraudTrainer:
             train_data_dir, test_data_dir, model_name
         )
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_size=batch_size, shuffle=True
+            self.train_dataset_, batch_size=batch_size, shuffle=False
         )
         self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_size=batch_size, shuffle=True
+            self.test_dataset_, batch_size=batch_size, shuffle=False
         )
 
         # Build model
+        model_name = ("Top" if self._global_rank == 0 else "Bottom") + model_name
         self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
         self._model_path = model_path
 
@@ -141,7 +149,8 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
+        if self._global_rank == 0:
+            self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
         train_df = pd.read_csv(train_data_dir + "/data.csv")
         test_df = pd.read_csv(test_data_dir + "/data.csv")
         if model_name == "SimpleLinear":
@@ -229,32 +238,56 @@ class CCFraudTrainer:
                 train_metrics.reset_global()
 
                 for i, batch in enumerate(self.train_loader_):
-                    data, labels = batch[0].to(self.device_), batch[1].to(self.device_)
+                    data = batch.to(self.device_)
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
+                    if self._global_rank != 0:
+                        output = self.model_(data)
+                        dist.send(output, 0, self._global_group)
+                        gradient = torch.zeros_like(output).to(self.device_)
+                        dist.recv(gradient, 0, self._global_group)
+                        output.backward(gradient)
+                        self.optimizer_.step()
+                        continue
+
+                    outputs = []
+                    for j in range(1, self._global_size):
+                        output = torch.zeros((len(batch),512))
+                        dist.recv(output, j)
+                        outputs.append(output)
+
+                    outputs = torch.autograd.Variable(torch.stack(outputs), requires_grad=True)
+                    outputs = outputs.to(torch.float32).mean(dim=0)
+
+                    predictions, net_loss = self.model_(outputs)
+
                     predictions, net_loss = self.model_(data)
                     self.criterion_.weight = (
-                        ((labels == 1) * (self.fraud_weight_ - 1)) + 1
+                        ((data == 1) * (self.fraud_weight_ - 1)) + 1
                     ).to(self.device_)
                     # Compute loss
-                    loss = self.criterion_(predictions, labels.type(torch.float))
+                    loss = self.criterion_(predictions, data.type(torch.float))
                     if net_loss is not None:
                         loss += net_loss * 1e-5
 
                     # Compute gradients and adjust learning weights
-                    loss.backward()
+                    # loss.backward()
+                    gradients = torch.autograd.grad(loss, outputs)[0]
                     self.optimizer_.step()
 
+                    for j in range(1, self._global_size):
+                        dist.send(gradients[j-1], j)
+
                     precision, recall = precision_recall(
-                        preds=predictions.detach(), target=labels
+                        preds=predictions.detach(), target=data
                     )
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
                         "accuracy",
                         accuracy(
-                            preds=predictions.detach(), target=labels, threshold=0.5
+                            preds=predictions.detach(), target=data, threshold=0.5
                         ).item(),
                     )
                     train_metrics.add_metric(
@@ -339,25 +372,39 @@ class CCFraudTrainer:
 
         self.model_.eval()
         with torch.no_grad():
-            for data, target in self.test_loader_:
-                data, labels = data.to(self.device_), target.to(self.device_)
-                predictions, net_loss = self.model_(data)
+            for batch in self.test_loader_:
+                data = batch.to(self.device_)
+
+                if self._global_rank != 0:
+                    output = self.model_(data)
+                    dist.send(output, 0, self._global_group)
+                    continue
+
+                outputs = []
+                for j in range(1, self._global_size):
+                    output = torch.zeros((len(batch),512))
+                    dist.recv(output, j)
+                    outputs.append(output)
+
+                outputs = torch.autograd.Variable(torch.stack(outputs))
+                outputs = outputs.to(torch.float32).mean(dim=0)
+                predictions, net_loss = self.model_(outputs)
 
                 self.criterion_.weight = (
-                    ((labels == 1) * (self.fraud_weight_ - 1)) + 1
+                    ((data == 1) * (self.fraud_weight_ - 1)) + 1
                 ).to(self.device_)
-                loss = self.criterion_(predictions, labels.type(torch.float)).item()
+                loss = self.criterion_(predictions, data.type(torch.float)).item()
                 if net_loss is not None:
                     loss += net_loss * 1e-5
 
                 precision, recall = precision_recall(
-                    preds=predictions.detach(), target=labels
+                    preds=predictions.detach(), target=data
                 )
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
                 test_metrics.add_metric(
                     "accuracy",
-                    accuracy(preds=predictions.detach(), target=labels).item(),
+                    accuracy(preds=predictions.detach(), target=data).item(),
                 )
                 test_metrics.add_metric("loss", loss / data.shape[0])
                 test_metrics.step()
@@ -401,6 +448,18 @@ def get_arg_parser(parser=None):
     parser.add_argument("--model_path", type=str, required=True, help="")
     parser.add_argument("--model_name", type=str, required=True, help="")
     parser.add_argument(
+        "--global_size",
+        type=int,
+        required=True,
+        help="Number of silos",
+    )
+    parser.add_argument(
+        "--global_rank",
+        type=int,
+        required=True,
+        help="Index of the current silo",
+    )
+    parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
     parser.add_argument(
@@ -420,7 +479,7 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def run(args):
+def run(args, global_group):
     """Run script with arguments (the core of the component).
 
     Args:
@@ -437,9 +496,49 @@ def run(args):
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
+        global_rank=args.global_rank,
+        global_size=args.global_size,
+        global_group=global_group
     )
     trainer.execute(args.checkpoint)
 
+def retrieve_host_address(mlflow_client, root_run_id, global_rank):
+    if global_rank == 0:
+        import socket
+
+        local_socket = socket.socket()
+        local_socket.bind(('',0))
+        host_port = local_socket.getsockname()[1]
+        
+        local_hostname = socket.gethostname()
+        host_ip = str(socket.gethostbyname(local_hostname))
+
+        mlflow_client.set_tag(run_id=root_run_id, key="aml_host_ip", value=host_ip)
+        mlflow_client.set_tag(run_id=root_run_id, key="aml_host_port", value=host_port)
+    else:
+        import time
+        host_ip, host_port = None, None
+        fetch_start_time = time.time()
+
+        while host_ip is None or host_port is None:
+            logger.info(f"Checking out tag host_ip...")
+            mlflow_root_run = mlflow_client.get_run(root_run_id)
+
+            if "aml_host_ip" in mlflow_root_run.data.tags:
+                host_ip = mlflow_root_run.data.tags["aml_host_ip"]
+                logger.info(f"host_ip found: {host_ip}")
+
+            if "aml_host_port" in mlflow_root_run.data.tags:
+                host_port = mlflow_root_run.data.tags["aml_host_port"]
+                logger.info(f"host_port found: {host_port}")
+
+            if (host_ip is None) and (
+                time.time() - fetch_start_time > 600
+            ):
+                raise RuntimeError("Could not fetch the tag within timeout.")
+            else:
+                time.sleep(10)
+    return host_ip, host_port
 
 def main(cli_args=None):
     """Component main function.
@@ -456,8 +555,26 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
+    # communicate to clients through mlflow root (magic)
+    mlflow_run = mlflow.start_run()
+    mlflow_client = mlflow.tracking.client.MlflowClient()
+    logger.info(f"run tags: {mlflow_run.data.tags}")
+    logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
+    root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
+    host_ip, host_port = retrieve_host_address(mlflow_client, root_run_id, args.global_rank)
+
+    print("Initializing distributed process group")
+    global_group = dist.init_process_group(
+        "gloo",
+        init_method=f"tcp://{host_ip}:{host_port}",
+        rank=int(args.global_rank),
+        world_size=int(args.global_size)
+    )
+    print("Distributed process group initialized")
     print(f"Running script with arguments: {args}")
-    run(args)
+    run(args, global_group)
+    print("Destroying distributed process group")
+    dist.destroy_process_group(global_group)
 
 
 if __name__ == "__main__":

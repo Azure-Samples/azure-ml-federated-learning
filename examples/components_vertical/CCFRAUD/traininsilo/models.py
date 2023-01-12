@@ -2,9 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-class SimpleLinear(nn.Module):
-    """Model composed of only Linear model interleaved with ReLU activations
+class SimpleLinearBottom(nn.Module):
+    """Bottom part of the model composed of only Linear model interleaved with ReLU activations
 
     Args:
         input_dim (int):
@@ -32,6 +31,33 @@ class SimpleLinear(nn.Module):
             nn.ReLU(),
             nn.Linear(8, 4),
             nn.ReLU(),
+        )
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Embedding):
+                torch.nn.init.uniform_(m.weight, -0.001, 0.001)
+            elif isinstance(m, nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0.01)
+
+    def forward(self, x):
+        return self.model(x), None
+
+class SimpleLinearTop(nn.Module):
+    """Top part of the model composed of only Linear model interleaved with ReLU activations
+
+    Args:
+        input_dim (int):
+        number of features to be consumed by the model
+    """
+
+    def __init__(self, input_dim) -> None:
+        super().__init__()
+
+        self.input_dim = input_dim
+        self.model = nn.Sequential(
             nn.Linear(4, 1),
             nn.Sigmoid(),
         )

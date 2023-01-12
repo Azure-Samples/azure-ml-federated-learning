@@ -14,17 +14,27 @@ class FraudDataset(Dataset):
     """
 
     def __init__(self, df):
-        self.X = torch.tensor(
-            df.loc[:, df.columns != "is_fraud"].values, dtype=torch.float
-        )
-        self.Y = torch.tensor(df.loc[:, "is_fraud"].values, dtype=torch.int)
+        if "is_fraud" in df.columns:
+            if len(df.columns) > 1:
+                self.X = torch.tensor(
+                    df.loc[:, df.columns != "is_fraud"].values, dtype=torch.float
+                )
+            else:
+                self.X = None
+            self.Y = torch.tensor(df.loc[:, "is_fraud"].values, dtype=torch.int)
+        else:
+            self.X = torch.tensor(df.values, dtype=torch.float)
+            self.Y = None
 
     def __len__(self):
-        return len(self.X)
+        if self.Y is None:
+            return len(self.X)
+        else:
+            return len(self.Y)
 
     def __getitem__(self, idx):
         if self.Y is None:
-            return [self.X[idx]]
+            return self.X[idx]
         return self.X[idx], self.Y[idx]
 
 
@@ -40,11 +50,17 @@ class FraudTimeDataset(Dataset):
     """
 
     def __init__(self, df, time_steps=100):
-
-        self.X = torch.tensor(
-            df.loc[:, df.columns != "is_fraud"].values, dtype=torch.float
-        )
-        self.Y = torch.tensor(df.loc[:, "is_fraud"].values, dtype=torch.int)
+        if "is_fraud" in df.columns:
+            if len(df.columns) > 1:
+                self.X = torch.tensor(
+                    df.loc[:, df.columns != "is_fraud"].values, dtype=torch.float
+                )
+            else:
+                self.X = None
+            self.Y = torch.tensor(df.loc[:, "is_fraud"].values, dtype=torch.int)
+        else:
+            self.X = torch.tensor(df.values, dtype=torch.float)
+            self.Y = None
 
         assert time_steps >= 10
 
@@ -52,10 +68,16 @@ class FraudTimeDataset(Dataset):
         self._time_step_overlaps = time_steps // 5
 
     def __len__(self):
-        return (
-            len(self.X) // (self._time_steps // self._time_step_overlaps)
-            - self._time_step_overlaps
-        ) + 1
+        if self.Y is None:
+            return (
+                len(self.X) // (self._time_steps // self._time_step_overlaps)
+                - self._time_step_overlaps
+            ) + 1
+        else:
+            return (
+                len(self.Y) // (self._time_steps // self._time_step_overlaps)
+                - self._time_step_overlaps
+            ) + 1
 
     def __getitem__(self, idx):
         if self.Y is None:
@@ -67,17 +89,27 @@ class FraudTimeDataset(Dataset):
                     + self._time_steps
                 ],
             )
-        return (
-            self.X[
-                idx
-                * (self._time_steps // self._time_step_overlaps) : idx
-                * (self._time_steps // self._time_step_overlaps)
-                + self._time_steps
-            ],
-            self.Y[
-                idx
-                * (self._time_steps // self._time_step_overlaps) : idx
-                * (self._time_steps // self._time_step_overlaps)
-                + self._time_steps
-            ],
-        )
+        elif self.X is None:
+            return (
+                self.Y[
+                    idx
+                    * (self._time_steps // self._time_step_overlaps) : idx
+                    * (self._time_steps // self._time_step_overlaps)
+                    + self._time_steps
+                ],
+            )
+        else:
+            return (
+                self.X[
+                    idx
+                    * (self._time_steps // self._time_step_overlaps) : idx
+                    * (self._time_steps // self._time_step_overlaps)
+                    + self._time_steps
+                ],
+                self.Y[
+                    idx
+                    * (self._time_steps // self._time_step_overlaps) : idx
+                    * (self._time_steps // self._time_step_overlaps)
+                    + self._time_steps
+                ],
+            )

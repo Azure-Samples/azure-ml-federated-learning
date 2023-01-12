@@ -52,6 +52,12 @@ inputs:
     type: string
     description: stringified json config for a silo
     optional: true
+  global_size:
+    type: number
+    optional: false
+  global_rank:
+    type: number
+    optional: false
 
 outputs:
   model:
@@ -66,6 +72,8 @@ command: >-
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}
   --model_name ${{inputs.model_name}}
+  --global_size ${{inputs.global_size}}
+  --global_rank ${{inputs.global_rank}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--iteration_name ${{inputs.iteration_name}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]

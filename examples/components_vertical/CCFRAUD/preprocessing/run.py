@@ -65,6 +65,9 @@ def apply_transforms(df):
     for column in datetimes:
         df.loc[:, column] = pd.to_datetime(df[column]).view("int64")
     for column in normalize:
+        if column not in df.columns:
+            continue
+        
         if column not in SCALERS:
             print(f"Creating encoder for column: {column}")
             # Simply set all zeros if the category is unseen
@@ -104,10 +107,12 @@ def preprocess_data(
     train_df = pd.read_csv(raw_training_data + f"/train.csv")
     test_df = pd.read_csv(raw_testing_data + f"/test.csv")
 
-    fraud_weight = (
-        train_df["is_fraud"].value_counts()[0] / train_df["is_fraud"].value_counts()[1]
-    )
-    logger.debug(f"Fraud weight: {fraud_weight}")
+    if "is_fraud" in train_df.columns:
+        fraud_weight = (
+            train_df["is_fraud"].value_counts()[0] / train_df["is_fraud"].value_counts()[1]
+        )
+        logger.debug(f"Fraud weight: {fraud_weight}")
+        np.savetxt(train_data_dir + "/fraud_weight.txt", np.array([fraud_weight]))
 
     logger.debug(f"Applying transformations...")
     train_data = apply_transforms(train_df)
@@ -119,9 +124,12 @@ def preprocess_data(
     train_data = train_data.sort_values(by="trans_date_trans_time")
     test_data = test_data.sort_values(by="trans_date_trans_time")
 
+    if "is_fraud" in train_df.columns:
+        train_data = train_data[["is_fraud"]]
+        test_data = test_data[["is_fraud"]]
+
     logger.info(f"Saving processed data to {train_data_dir} and {test_data_dir}")
     train_data.to_csv(train_data_dir + "/data.csv", index=False)
-    np.savetxt(train_data_dir + "/fraud_weight.txt", np.array([fraud_weight]))
     test_data.to_csv(test_data_dir + "/data.csv", index=False)
 
     # Mlflow logging
