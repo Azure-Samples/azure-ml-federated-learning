@@ -79,6 +79,10 @@ args = parser.parse_args()
 # load the config from a local yaml file
 PROJECT_CONFIG = OmegaConf.load(args.project_config)
 
+# use a hash to check if there are changes in config (or else, reuse provisioning)
+with open(args.project_config, "r") as f:
+    PROJECT_CONFIG_HASH = hash(f.read())
+
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
     os.path.dirname(__file__), "..", "..", "components", "NVFLARE"
@@ -204,7 +208,7 @@ def fl_pneumonia_nvflare():
     nvflare_workspace_datapath = custom_fl_data_path(
         server_config.azureml.datastore,
         "nvflare_workspace",
-        unique_id=pipeline_identifier,
+        unique_id=PROJECT_CONFIG_HASH, # reuse previous provision run if config is unchanged
     )
     provision_step.outputs.workspace = Output(
         type=AssetTypes.URI_FOLDER, mode="mount", path=nvflare_workspace_datapath
