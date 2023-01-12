@@ -72,8 +72,6 @@ class PTLearner(Learner):
         self.loss = nn.CrossEntropyLoss()
         self.optimizer = SGD(self.model.parameters(), lr=self.lr, momentum=0.9)
 
-        print("model", self.model)
-
         IMG_HEIGHT, IMG_WIDTH = 224, 224
         IMG_MEAN = 0.4818
         IMG_STD = 0.2357
@@ -161,7 +159,6 @@ class PTLearner(Learner):
 
     def local_train(self, fl_ctx, weights, abort_signal):
         # Set the model weights
-        print("weights", weights)
         self.model.load_state_dict(state_dict=weights)
 
         # Basic training

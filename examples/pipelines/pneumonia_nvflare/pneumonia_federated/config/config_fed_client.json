@@ -23,10 +23,10 @@
             "id": "pt_learner",
             "path": "pt_learner.PTLearner",
             "args": {
-                "lr": 0.01,
+                "lr": 0.0005,
                 "epochs": 5,
-                "analytic_sender_id": "analytic_sender",
-                "dataset_path_env_var": "CLIENT_DATA_PATH"
+                "dataset_path_env_var": "CLIENT_DATA_PATH",
+                "analytic_sender_id": "analytic_sender"
             }
         },
         {

@@ -41,7 +41,8 @@
         },
         {
             "id": "tb_analytics_receiver",
-            "name": "TBAnalyticsReceiver",
+            "name": "MLFlowAnalyticsReceiver",
+            "path": "mlflow_receiver.MLFlowAnalyticsReceiver",
             "args": {
                 "events": [
                     "fed.analytix_log_stats"
@@ -54,7 +55,7 @@
             "id": "scatter_and_gather",
             "name": "ScatterAndGather",
             "args": {
-                "min_clients": 2,
+                "min_clients": 1,
                 "num_rounds": 1,
                 "start_round": 0,
                 "wait_time_after_min_received": 10,
