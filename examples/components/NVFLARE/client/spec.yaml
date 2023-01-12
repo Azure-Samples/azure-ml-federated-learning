@@ -9,13 +9,22 @@ is_deterministic: true
 inputs:
   client_config:
     type: uri_folder
+  client_data:
+    type: uri_folder
+    optional: true
+  client_data_env_var:
+    type: string
+    default: CLIENT_DATA_PATH
   start:
     type: uri_file
 
 code: "."
 
 command: >-
-  python run.py --client_config ${{inputs.client_config}}
+  python run.py 
+  --client_config ${{inputs.client_config}} 
+  $[[--client_data ${{inputs.client_data}}]] 
+  --client_data_env_var ${{inputs.client_data_env_var}}
 
 environment: 
   build:

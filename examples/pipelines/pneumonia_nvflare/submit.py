@@ -176,48 +176,64 @@ pipeline_identifier = getUniqueIdentifier()
 
 
 @pipeline(
-    description=f'EXPERIMENTAL',
+    description=f"EXPERIMENTAL",
 )
 def fl_pneumonia_nvflare():
-    server_config = [ participant for participant in PROJECT_CONFIG.participants if participant.type == "server"][0]
-    admin_config = [ participant for participant in PROJECT_CONFIG.participants if participant.type == "admin"][0]
-    client_configs = [ participant for participant in PROJECT_CONFIG.participants if participant.type == "client"]
+    server_config = [
+        participant
+        for participant in PROJECT_CONFIG.participants
+        if participant.type == "server"
+    ][0]
+    admin_config = [
+        participant
+        for participant in PROJECT_CONFIG.participants
+        if participant.type == "admin"
+    ][0]
+    client_configs = [
+        participant
+        for participant in PROJECT_CONFIG.participants
+        if participant.type == "client"
+    ]
 
     # run a provisioning component
     provision_step = provision_component(
         # with the config file
-        project_config=Input(
-            type=AssetTypes.URI_FILE,
-            path=args.project_config
-        )
+        project_config=Input(type=AssetTypes.URI_FILE, path=args.project_config)
     )
     provision_step.compute = server_config.azureml.compute
     nvflare_workspace_datapath = custom_fl_data_path(
         server_config.azureml.datastore,
         "nvflare_workspace",
-        unique_id=pipeline_identifier
+        unique_id=pipeline_identifier,
     )
     provision_step.outputs.workspace = Output(
-        type=AssetTypes.URI_FOLDER,
-        mode="mount",
-        path=nvflare_workspace_datapath
+        type=AssetTypes.URI_FOLDER, mode="mount", path=nvflare_workspace_datapath
     )
     provision_step.outputs.start = Output(
         type=AssetTypes.URI_FOLDER,
         mode="mount",
-        path=nvflare_workspace_datapath+"/start.txt"
+        path=nvflare_workspace_datapath + "/start.txt",
     )
 
     ## SCATTER ##
 
     # for each silo, run a distinct client with its own inputs and outputs
     for client_index, client_config in enumerate(client_configs):
+        # some preprocessing CAN happen here :)
+        # in this demo we're just using a previously created dataset
+        client_preprocessed_data = Input(
+            type=AssetTypes.URI_FOLDER, mode="mount", path=client_config.azureml.data
+        )
+
         silo_client_step = client_component(
             client_config=Input(
                 type=AssetTypes.URI_FOLDER,
-                path=nvflare_workspace_datapath+f"{PROJECT_CONFIG.name}/prod_00/{client_config.name}/"
+                path=nvflare_workspace_datapath
+                + f"{PROJECT_CONFIG.name}/prod_00/{client_config.name}/",
             ),
-            start=provision_step.outputs.start
+            client_data=client_preprocessed_data,
+            client_data_env_var="CLIENT_DATA_PATH",
+            start=provision_step.outputs.start,
         )
         # add a readable name to the step
         silo_client_step.name = f"silo_client_{client_index}"
@@ -229,26 +245,24 @@ def fl_pneumonia_nvflare():
 
     server_step = server_component(
         server_config=Input(
-            path=nvflare_workspace_datapath+f"{PROJECT_CONFIG.name}/prod_00/{server_config.name}/",
-            type=AssetTypes.URI_FOLDER
+            path=nvflare_workspace_datapath
+            + f"{PROJECT_CONFIG.name}/prod_00/{server_config.name}/",
+            type=AssetTypes.URI_FOLDER,
         ),
         admin_config=Input(
-            path=nvflare_workspace_datapath+f"{PROJECT_CONFIG.name}/prod_00/{admin_config.name}/",
-            type=AssetTypes.URI_FOLDER
-        ),
-        app_dir=Input(
+            path=nvflare_workspace_datapath
+            + f"{PROJECT_CONFIG.name}/prod_00/{admin_config.name}/",
             type=AssetTypes.URI_FOLDER,
-            path=args.nvflare_app
         ),
+        app_dir=Input(type=AssetTypes.URI_FOLDER, path=args.nvflare_app),
         start=provision_step.outputs.start,
         server_name=server_config.name,
-        expected_clients=len(client_configs)
+        expected_clients=len(client_configs),
     )
     # this is done in the orchestrator compute
     server_step.compute = server_config.azureml.compute
     server_step.outputs.job_artefacts = Output(
-        type=AssetTypes.URI_FOLDER,
-        path=nvflare_workspace_datapath+"job_artefacts/"
+        type=AssetTypes.URI_FOLDER, path=nvflare_workspace_datapath + "job_artefacts/"
     )
 
     # no return value yet

@@ -23,6 +23,7 @@ participants:
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore
     azureml:
+      data: azureml://datastores/datastore_silo0_westus/paths/federated_learning/pneumonia
       compute: cpu-silo0-westus
       datastore: datastore_silo0_westus
 
@@ -31,6 +32,7 @@ participants:
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore
     azureml:
+      data: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/pneumonia
       compute: cpu-silo2-brazilsouth
       datastore: datastore_silo2_brazilsouth
 

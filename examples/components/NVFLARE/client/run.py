@@ -35,11 +35,15 @@ def get_arg_parser(parser=None):
 
     group = parser.add_argument_group("NVFlare client launcher arguments")
     group.add_argument("--client_config", type=str, required=True)
+    group.add_argument("--client_data", type=str, required=False, default=None)
+    group.add_argument(
+        "--client_data_env_var", type=str, required=False, default="CLIENT_DATA_PATH"
+    )
 
     return parser
 
 
-def run_cli_command(cli_command: list, timeout: int = None):
+def run_cli_command(cli_command: list, timeout: int = None, custom_env: dict = None):
     """Runs subprocess for a cli setup command"""
     logger = logging.getLogger()
     logger.info(f"Launching cli with command: {cli_command}")
@@ -50,7 +54,7 @@ def run_cli_command(cli_command: list, timeout: int = None):
         universal_newlines=True,
         check=False,  # will not raise an exception if subprocess fails
         timeout=timeout,  # TODO: more than a minute would be weird?
-        # env=custom_env
+        env=custom_env,
     )
     logger.info(f"return code: {cli_command_call.returncode}")
 
@@ -101,10 +105,15 @@ def run_client(client_dir):
         # write server address
         f.write(f"{overseer_ip}\t{overseer_name}\n")
 
+    # create env for the client startup script
+    client_env = dict(os.environ)
+    if args.client_data and args.client_data_env_var:
+        client_env[args.client_data_env_var] = args.client_data
+
     # run client startup
     startup_script_path = os.path.join(client_dir_local, "startup", "sub_start.sh")
     logger.info(f"Running ${startup_script_path}")
-    run_cli_command(["bash", startup_script_path])
+    run_cli_command(["bash", startup_script_path], custom_env=client_env)
 
 
 def main():
