@@ -20,6 +20,10 @@ inputs:
   start:
     type: uri_file
 
+outputs:
+  job_artefacts:
+    type: uri_folder
+
 code: "."
 
 command: >-
@@ -28,7 +32,8 @@ command: >-
   --admin_config ${{inputs.admin_config}} 
   --app_dir ${{inputs.app_dir}} 
   --server_name ${{inputs.server_name}} 
-  --expected_clients ${{inputs.expected_clients}}
+  --expected_clients ${{inputs.expected_clients}} 
+  --output_dir ${{outputs.job_artefacts}}
 
 environment: 
   build:

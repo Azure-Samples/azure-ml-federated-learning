@@ -39,6 +39,7 @@ def get_arg_parser(parser=None):
     group.add_argument("--app_dir", type=str, required=True)
     group.add_argument("--server_name", type=str, required=True)
     group.add_argument("--expected_clients", type=int, required=True)
+    group.add_argument("--output_dir", type=str, required=True)
 
     return parser
 
@@ -81,7 +82,14 @@ def api_command_wrapper(api_command_result, logger=None):
     return api_command_result
 
 
-def run_server(server_config_dir, admin_config_dir, app_dir, server_name, expected_clients):
+def run_server(
+    server_config_dir,
+    admin_config_dir,
+    app_dir,
+    server_name,
+    expected_clients,
+    output_dir,
+):
     """Runs the server communication process.
 
     Args:
@@ -116,7 +124,9 @@ def run_server(server_config_dir, admin_config_dir, app_dir, server_name, expect
     shutil.copytree(server_config_dir, server_config_dir_local)
 
     # copy admin config locally
-    admin_config_dir_local = os.path.join(workspace_dir, "admin_config", "admin@azure.ml")
+    admin_config_dir_local = os.path.join(
+        workspace_dir, "admin_config", "admin@azure.ml"
+    )
     shutil.copytree(admin_config_dir, admin_config_dir_local)
     os.makedirs(os.path.join(admin_config_dir_local, "local"), exist_ok=True)
     os.makedirs(os.path.join(admin_config_dir_local, "transfer"), exist_ok=True)
@@ -200,7 +210,16 @@ def run_server(server_config_dir, admin_config_dir, app_dir, server_name, expect
         logger.info("api.check_status(TargetType.CLIENT)")
         api_command_wrapper(runner.api.check_status(TargetType.CLIENT), logger)
 
-        # shutdown everything
+        # shutdown clients
+        logger.info("api.shutdown(target_type=TargetType.CLIENT)")
+        api_command_wrapper(runner.api.shutdown(target_type=TargetType.CLIENT), logger)
+
+        # download results
+        response = api_command_wrapper(runner.api.download_job(job_id))
+        logger.info("Copying job artefacts to output_dir")
+        shutil.copytree(os.path.join(admin_config_dir_local, "transfer"), output_dir)
+
+        # shutdown system
         logger.info("api.shutdown(target_type=TargetType.ALL)")
         api_command_wrapper(runner.api.shutdown(target_type=TargetType.ALL), logger)
 
@@ -228,7 +247,14 @@ def main():
     args, _ = parser.parse_known_args()
     logger.info("args: {}".format(args))
 
-    run_server(args.server_config, args.admin_config, args.app_dir, args.server_name, args.expected_clients)
+    run_server(
+        args.server_config,
+        args.admin_config,
+        args.app_dir,
+        args.server_name,
+        args.expected_clients,
+        args.output_dir,
+    )
 
 
 if __name__ == "__main__":
