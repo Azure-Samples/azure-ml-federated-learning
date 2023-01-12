@@ -40,6 +40,7 @@ def get_arg_parser(parser=None):
     group.add_argument("--server_name", type=str, required=True)
     group.add_argument("--expected_clients", type=int, required=True)
     group.add_argument("--output_dir", type=str, required=True)
+    group.add_argument("--wait_for_clients_timeout", type=int, required=False, default=600)
 
     return parser
 
@@ -89,6 +90,7 @@ def run_server(
     server_name,
     expected_clients,
     output_dir,
+    wait_for_clients_timeout=600,
 ):
     """Runs the server communication process.
 
@@ -177,7 +179,7 @@ def run_server(
         logger.info("api.wait_until_server_status(TargetType.SERVER)")
         response = api_command_wrapper(
             runner.api.wait_until_server_status(
-                timeout=600,  # let's give 10 mins for all clients to start
+                timeout=wait_for_clients_timeout,
                 interval=10,
                 callback=wait_for_client_connections,
             ),

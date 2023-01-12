@@ -64,7 +64,7 @@ def run_cli_command(cli_command: list, timeout: int = None, custom_env: dict = N
     return cli_command_call.returncode
 
 
-def run_client(client_dir):
+def run_client(args):
     """Runs the client communication process."""
     logger = logging.getLogger()
 
@@ -79,7 +79,7 @@ def run_client(client_dir):
     fetch_start_time = time.time()
 
     client_dir_local = tempfile.TemporaryDirectory().name
-    shutil.copytree(client_dir, client_dir_local)
+    shutil.copytree(args.client_config, client_dir_local)
 
     while overseer_name is None or overseer_ip is None:
         logger.info(f"Checking out tag overseer_name/overseer_ip...")
@@ -135,7 +135,7 @@ def main():
     args, _ = parser.parse_known_args()
     logger.info("args: {}".format(args))
 
-    run_client(args.client_config)
+    run_client(args)
 
 
 if __name__ == "__main__":

@@ -2,11 +2,6 @@ api_version: 3
 name: example_project
 description: NVIDIA FLARE sample project yaml file
 
-# NOTE: custom section for the AzureML NVFlare component
-azureml:
-  # specify in which environment to run each NVFlare participant
-  environment: azureml:nvflare-pt@latest
-
 participants:
   - name: server-1
     type: server
