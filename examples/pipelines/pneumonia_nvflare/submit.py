@@ -1,4 +1,11 @@
-"""NVFLARE experimental"""
+"""NVFlare FL Cross-Silo pipeline for pneumonia detection on chest xrays.
+
+This script:
+1) reads an NVFlare project config file in yaml specifying the number of silos and their parameters,
+2) reads some NVFlare provision/server/client components from a local folder,
+3) builds an AzureML pipeline depending on the config,
+4) configures each step of this pipeline to read/write from the right silo.
+"""
 import os
 import argparse
 import random
@@ -39,14 +46,12 @@ parser.add_argument(
     required=True,
     help="path to an NVFlare application folder",
 )
-
 parser.add_argument(
     "--submit",
     default=False,
     action="store_true",
     help="actually submits the experiment to AzureML",
 )
-
 parser.add_argument(
     "--subscription_id",
     type=str,
@@ -164,55 +169,47 @@ def custom_fl_data_path(
     return data_path
 
 
-def getUniqueIdentifier(length=8):
-    """Generates a random string and concatenates it with today's date
-
-    Args:
-        length (int): length of the random string (default: 8)
-
-    """
-    str = string.ascii_lowercase
-    date = datetime.date.today().strftime("%Y_%m_%d_")
-    return date + "".join(random.choice(str) for i in range(length))
-
-
-pipeline_identifier = getUniqueIdentifier()
-
-
 @pipeline(
-    description=f"EXPERIMENTAL",
+    description=f"NVFlare experimental FL pipeline using AzureML",
 )
 def fl_pneumonia_nvflare():
+    # get the server config from project yaml
     server_config = [
         participant
         for participant in PROJECT_CONFIG.participants
         if participant.type == "server"
     ][0]
-    admin_config = [
-        participant
-        for participant in PROJECT_CONFIG.participants
-        if participant.type == "admin"
-    ][0]
+    # get all client configs from project yaml
     client_configs = [
         participant
         for participant in PROJECT_CONFIG.participants
         if participant.type == "client"
     ]
+    # get the admin config from project yaml
+    admin_config = [
+        participant
+        for participant in PROJECT_CONFIG.participants
+        if participant.type == "admin"
+    ][0]
 
     # run a provisioning component
     provision_step = provision_component(
         # with the config file
         project_config=Input(type=AssetTypes.URI_FILE, path=args.project_config)
     )
+    # run it in the orchestrator
     provision_step.compute = server_config.azureml.compute
+
+    # set a specific path to produce the NVFlare workspace config folder
     nvflare_workspace_datapath = custom_fl_data_path(
-        server_config.azureml.datastore,
+        server_config.azureml.datastore, # store it on the orchestrator
         "nvflare_workspace",
         unique_id=PROJECT_CONFIG_HASH, # reuse previous provision run if config is unchanged
     )
     provision_step.outputs.workspace = Output(
         type=AssetTypes.URI_FOLDER, mode="mount", path=nvflare_workspace_datapath
     )
+    # use a dummy "start" output to synchronize start of server/client
     provision_step.outputs.start = Output(
         type=AssetTypes.URI_FOLDER,
         mode="mount",
@@ -229,42 +226,55 @@ def fl_pneumonia_nvflare():
             type=AssetTypes.URI_FOLDER, mode="mount", path=client_config.azureml.data
         )
 
+        # create a client component for the silo
         silo_client_step = client_component(
+            # it will be given this client's workspace config folder
             client_config=Input(
                 type=AssetTypes.URI_FOLDER,
                 path=nvflare_workspace_datapath
                 + f"{PROJECT_CONFIG.name}/prod_00/{client_config.name}/",
             ),
+            # some input data from blob
             client_data=client_preprocessed_data,
+            # passed as an env variable for NVFlare training code to consume
             client_data_env_var="CLIENT_DATA_PATH",
+            # use the start signal
             start=provision_step.outputs.start,
         )
         # add a readable name to the step
         silo_client_step.name = f"silo_client_{client_index}"
 
-        # make sure the compute corresponds to the silo
+        # make sure it runs in the silo itself
         silo_client_step.compute = client_config.azureml.compute
 
     ## GATHER ##
 
+    # create a server component as a "gather" step
     server_step = server_component(
+        # it will be given the server workspace config folder
         server_config=Input(
             path=nvflare_workspace_datapath
             + f"{PROJECT_CONFIG.name}/prod_00/{server_config.name}/",
             type=AssetTypes.URI_FOLDER,
         ),
+        # ... and the application folder (training code)
+        app_dir=Input(type=AssetTypes.URI_FOLDER, path=args.nvflare_app),
+        # ... and the admin folder (so that it can submit the job to itself)
         admin_config=Input(
             path=nvflare_workspace_datapath
             + f"{PROJECT_CONFIG.name}/prod_00/{admin_config.name}/",
             type=AssetTypes.URI_FOLDER,
         ),
-        app_dir=Input(type=AssetTypes.URI_FOLDER, path=args.nvflare_app),
+        # will start after provisioning is complete
         start=provision_step.outputs.start,
+        # server is given a hostname for /etc/hosts
         server_name=server_config.name,
+        # and a number of clients to wait before job submission
         expected_clients=len(client_configs),
     )
-    # this is done in the orchestrator compute
+    # this server job will run in the orchestrator compute
     server_step.compute = server_config.azureml.compute
+    # and its outputs are stored in the orchestrator datastore
     server_step.outputs.job_artefacts = Output(
         type=AssetTypes.URI_FOLDER, path=nvflare_workspace_datapath + "job_artefacts/"
     )
@@ -272,7 +282,7 @@ def fl_pneumonia_nvflare():
     # no return value yet
     return {}
 
-
+# build the pipeline
 pipeline_job = fl_pneumonia_nvflare()
 
 # Inspect built pipeline
