@@ -246,6 +246,10 @@ def fl_pneumonia_nvflare():
     )
     # this is done in the orchestrator compute
     server_step.compute = server_config.azureml.compute
+    server_step.outputs.job_artefacts = Output(
+        type=AssetTypes.URI_FOLDER,
+        path=nvflare_workspace_datapath+"job_artefacts/"
+    )
 
     # no return value yet
     return {}
