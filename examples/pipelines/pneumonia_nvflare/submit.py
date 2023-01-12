@@ -81,7 +81,7 @@ PROJECT_CONFIG = OmegaConf.load(args.project_config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", "PNEUMONIA_NVFLARE"
+    os.path.dirname(__file__), "..", "..", "components", "NVFLARE"
 )
 
 
