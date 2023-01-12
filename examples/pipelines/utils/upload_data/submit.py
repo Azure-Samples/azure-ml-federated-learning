@@ -45,11 +45,17 @@ parser.add_argument(
     action="store_true",
     help="Sets flag to not submit the experiment to AzureML",
 )
+parser.add_argument(
+    "--vertical",
+    default=False,
+    action="store_true",
+    help="Sets flag to submit vertical job",
+)
 
 parser.add_argument(
     "--example",
     required=True,
-    choices=["CCFRAUD", "NER", "PNEUMONIA", "MNIST_VERTICAL", "CCFRAUD_VERTICAL"],
+    choices=["CCFRAUD", "NER", "PNEUMONIA", "MNIST"],
     help="dataset name",
 )
 
@@ -89,7 +95,10 @@ YAML_CONFIG = OmegaConf.load(args.config)
 COMPONENTS_FOLDER = os.path.join(
     os.path.dirname(__file__), "..", "..", "..", "components", args.example
 )
-
+if args.vertical: 
+    COMPONENTS_FOLDER = os.path.join(
+        os.path.dirname(__file__), "..", "..", "..", "components_vertical", args.example
+    )
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -183,14 +192,14 @@ def fl_cross_silo_upload_data():
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
                 path=custom_fl_data_path(
-                    silo_config.datastore, f"{args.example.lower()}/raw_train_data"
+                    silo_config.datastore, f"{args.example.lower() + '_vertical' if args.vertical else ''}/raw_train_data"
                 ),
             )
             silo_upload_data_step.outputs.raw_test_data = Output(
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
                 path=custom_fl_data_path(
-                    silo_config.datastore, f"{args.example.lower()}/raw_test_data"
+                    silo_config.datastore, f"{args.example.lower() + '_vertical' if args.vertical else ''}/raw_test_data"
                 ),
             )
 

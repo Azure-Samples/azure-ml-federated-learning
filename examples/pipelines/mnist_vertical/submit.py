@@ -83,7 +83,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", "MNIST_VERTICAL"
+    os.path.dirname(__file__), "..", "..", "components_vertical", "MNIST"
 )
 
 # path to the shared components

@@ -13,16 +13,16 @@ federated_learning:
     datastore: datastore_orchestrator
 
   host: 
-    compute: cpu-silo0-westus
-    datastore: datastore_silo0_westus
+    compute: cpu-orchestrator
+    datastore: datastore_orchestrator
     training_data:
       type: uri_file
       mode: 'download'
-      path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_train_data
+      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/mnist_vertical/raw_train_data
     testing_data:
       type: uri_file
       mode: 'download'
-      path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_test_data
+      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/mnist_vertical/raw_test_data
 
   contributors:
     - compute: cpu-silo1-francecentral

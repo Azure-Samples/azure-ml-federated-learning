@@ -8,15 +8,15 @@ import io
 import socket
 import mlflow
 import torch
-import numpy as np
 import pandas as pd
 from torch import nn
 import torch.distributed as dist
 from torch.optim import SGD
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
-from torchvision import models, datasets, transforms
+from torchvision import models, transforms
 from mlflow import log_metric, log_param
+from PIL import Image
 
 
 class BottomModel(nn.Module):
@@ -64,7 +64,7 @@ class BottomDataset(Dataset):
             idx = idx.tolist()
 
         img_name = os.path.join(self.root_dir, self.images[idx])
-        image = io.imread(img_name)
+        image = Image.open(img_name).convert("RGB")
 
         if self.transform:
             image = self.transform(image)
@@ -147,7 +147,7 @@ class MnistTrainer:
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # Build model
-        if self._rank == 0:
+        if self._global_rank == 0:
             self.model_ = TopModel()
             self.loss_ = nn.CrossEntropyLoss()
         else:
@@ -176,9 +176,9 @@ class MnistTrainer:
             test_data_dir(str, optional): Testing data directory path
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        if self._rank == 0:
-            train_dataset = TopDataset(train_data_dir)
-            test_dataset = TopDataset(train_data_dir)
+        if self._global_rank == 0:
+            train_dataset = TopDataset(train_data_dir + "/train.csv")
+            test_dataset = TopDataset(test_data_dir + "/train.csv")
         else:
             transformer = transforms.Compose(
                 [
@@ -204,7 +204,7 @@ class MnistTrainer:
             key=f"batch_size {self._experiment_name}",
             value=self._batch_size,
         )
-        if self._rank == 0:
+        if self._global_rank == 0:
             client.log_param(
                 run_id=run_id,
                 key=f"loss {self._experiment_name}",
@@ -268,7 +268,7 @@ class MnistTrainer:
                     data = data.to(self.device_)
                     self.optimizer_.zero_grad()
 
-                    if self._rank != 0:
+                    if self._global_rank != 0:
                         output = self.model_(data)
                         dist.send(output, 0, self._global_group)
                         grad = torch.zeros_like(output)
@@ -279,25 +279,24 @@ class MnistTrainer:
                         continue
 
                     outputs = []
-                    for i in range(1, self._workers_num):
+                    for j in range(1, self._global_size):
                         output = torch.zeros((data.shape[0], 512))
-                        dist.recv(output, i, self._global_group)
+                        dist.recv(output, j, self._global_group)
                         outputs.append(output)
 
                     # Average all intermediate results
-                    outputs = torch.stack(outputs)
-                    outputs = torch.autograd.Variable(outputs, requires_grad=True)
-                    outputs = outputs.to(float).mean(dim=0)
+                    outputs = torch.autograd.Variable(torch.stack(outputs), requires_grad=True)
+                    outputs = outputs.to(torch.float32).mean(dim=0)
 
                     predictions = self.model_(outputs)
-                    cost = self.loss_(predictions, data)
-                    cost.backward()
+                    loss = self.loss_(predictions, data)
+                    gradients = torch.autograd.grad(loss, outputs)
                     self.optimizer_.step()
 
-                    for i in range(1, self._workers_num):
-                        dist.send(outputs.grad, i, self._global_group)
+                    for j in range(1, self._global_size):
+                        dist.send(gradients[j - 1], j, self._global_group)
 
-                    running_loss += cost.item() / data.shape[0]
+                    running_loss += loss.item() / data.shape[0]
                     if i != 0 and i % num_of_batches_before_logging == 0:
                         training_loss = running_loss / num_of_batches_before_logging
                         logger.info(
@@ -352,21 +351,20 @@ class MnistTrainer:
             for data in self.test_loader_:
                 data = data.to(self.device_)
 
-                if self._rank != 0:
+                if self._global_rank != 0:
                     output = self.model_(data)
                     dist.send(output, 0, self._global_group)
                     continue
 
                 outputs = []
-                for i in range(1, self._workers_num):
+                for i in range(1, self._global_size):
                     output = torch.zeros((data.shape[0], 512))
                     dist.recv(output, i, self._global_group)
                     outputs.append(output)
 
                 # Average all intermediate results
-                outputs = torch.stack(outputs)
-                outputs = torch.autograd.Variable(outputs, requires_grad=True)
-                outputs = outputs.to(float).mean(dim=0)
+                outputs = torch.autograd.Variable(torch.stack(outputs))
+                outputs = outputs.to(torch.float32).mean(dim=0)
 
                 predictions = self.model_(outputs)
                 test_loss += self.loss_(predictions, data).item()
@@ -458,7 +456,7 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def run(args):
+def run(global_group, args):
     """Run script with arguments (the core of the component).
 
     Args:
@@ -475,11 +473,12 @@ def run(args):
         iteration_num=args.iteration_num,
         global_size=args.global_size,
         global_rank=args.global_rank,
+        global_group=global_group,
     )
     trainer.execute(args.checkpoint)
 
 
-def main(world_size: int, rank: int, global_group, cli_args=None):
+def main(global_group, cli_args=None):
     """Component main function.
 
     It parses arguments and executes run() with the right arguments.
@@ -495,7 +494,7 @@ def main(world_size: int, rank: int, global_group, cli_args=None):
     args = parser.parse_args(cli_args)
 
     print(f"Running script with arguments: {args}")
-    run(args)
+    run(global_group, args)
 
 
 if __name__ == "__main__":
@@ -519,25 +518,32 @@ if __name__ == "__main__":
     local_ip = socket.gethostbyname(local_hostname)
     logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
 
-    os.environ["MASTER_ADDR"] = os.environ["DIST_GROUP_HOST_IP"]
-    os.environ["MASTER_PORT"] = "12988"
-    os.environ["WORLD_SIZE"] = os.environ["DIST_GROUP_SIZE"]
-    os.environ["RANK"] = os.environ["DIST_GROUP_RANK"]
+    print("Head node address: {}".format(os.environ["DIST_GROUP_HOST_IP"]))
+    import pythonping
+
+    response_list = pythonping.ping(os.environ["DIST_GROUP_HOST_IP"], count=5)
+    for response in response_list:
+        print(response)
 
     # initialize the process group
     retries = 0
     while retries < 10:
         try:
+            import datetime
+
             logger.info("Initializing process group...")
             global_group = dist.init_process_group(
                 dist.Backend.GLOO,
                 rank=rank,
                 world_size=world_size,
                 init_method=f"tcp://{os.environ['DIST_GROUP_HOST_IP']}:12988",
+                timeout=datetime.timedelta(seconds=10000),
             )
             logger.info("Process group initialized")
+            break
         except Exception as e:
             import time
+
             logger.exception(e)
 
             time.sleep(10)
