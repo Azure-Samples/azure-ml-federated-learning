@@ -203,6 +203,21 @@ def run_server(
         api_command_wrapper(runner.api.wait_until_client_status(), logger)
 
         # TODO: check if job was successful or not
+        logging.info("api.show_errors(TargetType.CLIENT)")
+        client_errors = api_command_wrapper(runner.api.show_errors(job_id,target_type=TargetType.CLIENT), logger)
+        if isinstance(client_errors["details"]["message"], str) and client_errors["details"]["message"] == "No errors.":
+            logging.info("No errors found on clients")
+        else:
+            report = "\n".join([ entry["data"] for entry in client_errors["raw"]["data"] if entry["type"] == "string" ])
+            raise Exception(f"Errors were found on clients, check client logs to debug:\n{report}")
+
+        logging.info("api.show_errors(TargetType.CLIENT)")
+        server_errors = api_command_wrapper(runner.api.show_errors(job_id,target_type=TargetType.SERVER), logger)
+        if isinstance(server_errors["details"]["message"], str) and server_errors["details"]["message"] == "No errors.":
+            logging.info("No errors found on server")
+        else:
+            report = "\n".join([ entry["data"] for entry in server_errors["raw"]["data"] if entry["type"] == "string" ])
+            raise Exception(f"Errors were found on server, check server logs to debug:\n{report}")
 
         # check server and clients (again ?)
         logger.info("api.check_status(TargetType.SERVER)")
