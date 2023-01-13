@@ -202,6 +202,8 @@ def run_server(
         logger.info("api.wait_until_client_status()")
         api_command_wrapper(runner.api.wait_until_client_status(), logger)
 
+        # TODO: check if job was successful or not
+
         # check server and clients (again ?)
         logger.info("api.check_status(TargetType.SERVER)")
         api_command_wrapper(runner.api.check_status(TargetType.SERVER), logger)
