@@ -42,6 +42,9 @@ def fit_encoders(df):
     global ENCODERS
 
     for column in CATEGORICAL_PROPS:
+        if column not in df.columns:
+            continue
+
         if column not in ENCODERS:
             print(f"Creating encoder for column: {column}")
             # Simply set all zeros if the category is unseen
@@ -63,7 +66,7 @@ def filter_useful_columns(df: pd.DataFrame):
         "lat",
         "long",
         "city_pop",
-        "job",
+        # "job",
         "trans_date_trans_time",
         "is_fraud",
     ]
@@ -82,23 +85,25 @@ def split_load(df, silo_count):
     target_load = sum(loads.values()) / silo_count
     sorted_loads = sorted(loads.items(), key=lambda x: x[1], reverse=True)
 
+    print("Sorted loads:", sorted_loads)
+    print("Silo count:", silo_count)
+
     current_load = 0
     split, splits = [], []
     for column, load in sorted_loads:
-        if current_load + load <= target_load:
-            split.append(column)
-            current_load += load
-        else:
-            if len(splits) == silo_count - 1 or len(split) == 0:
-                split.append(column)
-            else:
-                splits.append(split)
-                current_load = load
-                split = [column]
+        split.append(column)
+        current_load += load
+
+        if (current_load >= target_load and len(splits) < silo_count - 1)\
+            or len(sorted_loads) - sorted_loads.index((column, load)) - 1 <= silo_count - len(splits) - 1:
+            splits.append(split)
+            split = []
+            current_load = 0
 
     if len(split) > 0:
         splits.append(split)
 
+    print("Splits:", splits)
     return splits
 
 
@@ -182,13 +187,6 @@ def run(args):
         filter_useful_columns(df_train)
         filter_useful_columns(df_test)
 
-        print(
-            f"Train dataset has {len(df_train)} rows and {len(df_train.columns)} columns: {list(df_train.columns)}"
-        )
-        print(
-            f"Test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
-        )
-
         regions_df = pd.read_csv("./us_regions.csv")
         state_region = {row.StateCode: row.Region for row in regions_df.itertuples()}
         print(f"Loaded state/regions:\n {state_region}")
@@ -196,11 +194,19 @@ def run(args):
         df_train.loc[:, "region"] = df_train["state"].map(state_region)
         df_test.loc[:, "region"] = df_test["state"].map(state_region)
 
+        print(
+            f"Train dataset has {len(df_train)} rows and {len(df_train.columns)} columns: {list(df_train.columns)}"
+        )
+        print(
+            f"Test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
+        )
+        
         # Create categorical encoder before any further preprocessing/reduction
         fit_encoders(df_train)
-        column_splits = split_load(df_train, int(args.silo_count))
+        column_splits = split_load(df_train, int(args.silo_count) - 1)
+
         drop_columns_subset = set(df_train.columns).difference(
-            column_splits[args.silo_index]
+            column_splits[args.silo_index - 1]
         )
         if "trans_date_trans_time" in drop_columns_subset:
             drop_columns_subset.remove("trans_date_trans_time")
