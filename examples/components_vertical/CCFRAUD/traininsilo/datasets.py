@@ -91,26 +91,22 @@ class FraudTimeDataset(Dataset):
         if self.X is not None:
             return self.X.shape[1]
         return None
-        
+
     def __getitem__(self, idx):
         if self.Y is None:
-            return (
-                self.X[
-                    idx
-                    * (self._time_steps // self._time_step_overlaps) : idx
-                    * (self._time_steps // self._time_step_overlaps)
-                    + self._time_steps
-                ]
-            )
+            return self.X[
+                idx
+                * (self._time_steps // self._time_step_overlaps) : idx
+                * (self._time_steps // self._time_step_overlaps)
+                + self._time_steps
+            ]
         elif self.X is None:
-            return (
-                self.Y[
-                    idx
-                    * (self._time_steps // self._time_step_overlaps) : idx
-                    * (self._time_steps // self._time_step_overlaps)
-                    + self._time_steps
-                ]
-            )
+            return self.Y[
+                idx
+                * (self._time_steps // self._time_step_overlaps) : idx
+                * (self._time_steps // self._time_step_overlaps)
+                + self._time_steps
+            ]
         else:
             return (
                 self.X[

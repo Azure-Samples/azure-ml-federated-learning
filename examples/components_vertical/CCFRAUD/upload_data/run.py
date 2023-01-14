@@ -94,8 +94,9 @@ def split_load(df, silo_count):
         split.append(column)
         current_load += load
 
-        if (current_load >= target_load and len(splits) < silo_count - 1)\
-            or len(sorted_loads) - sorted_loads.index((column, load)) - 1 <= silo_count - len(splits) - 1:
+        if (current_load >= target_load and len(splits) < silo_count - 1) or len(
+            sorted_loads
+        ) - sorted_loads.index((column, load)) - 1 <= silo_count - len(splits) - 1:
             splits.append(split)
             split = []
             current_load = 0
@@ -200,7 +201,7 @@ def run(args):
         print(
             f"Test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
         )
-        
+
         # Create categorical encoder before any further preprocessing/reduction
         fit_encoders(df_train)
         column_splits = split_load(df_train, int(args.silo_count) - 1)

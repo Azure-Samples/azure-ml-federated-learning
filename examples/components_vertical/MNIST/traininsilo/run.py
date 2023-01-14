@@ -54,7 +54,7 @@ class BottomDataset(Dataset):
         super(BottomDataset, self).__init__()
         self.root_dir = root_dir
         self.transform = transform
-        self.images = os.listdir(self.root_dir)
+        self.images = [img for img in os.listdir(self.root_dir) if img.endswith(".jpg")]
 
     def __len__(self):
         return len(self.images)
@@ -166,7 +166,7 @@ class MnistTrainer:
         self.model_.to(self.device_)
         self._model_path = model_path
 
-        self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
+        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, momentum=0.9)
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -178,7 +178,7 @@ class MnistTrainer:
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
         if self._global_rank == 0:
             train_dataset = TopDataset(train_data_dir + "/train.csv")
-            test_dataset = TopDataset(test_data_dir + "/train.csv")
+            test_dataset = TopDataset(test_data_dir + "/test.csv")
         else:
             transformer = transforms.Compose(
                 [
@@ -261,20 +261,19 @@ class MnistTrainer:
             for epoch in range(self._epochs):
 
                 running_loss = 0.0
+                running_acc = 0.0
                 num_of_batches_before_logging = 100
 
                 for i, data in enumerate(self.train_loader_):
-
                     data = data.to(self.device_)
                     self.optimizer_.zero_grad()
 
                     if self._global_rank != 0:
                         output = self.model_(data)
                         dist.send(output, 0, self._global_group)
-                        grad = torch.zeros_like(output)
-                        dist.recv(grad, 0, self._global_group)
-
-                        output.backward(grad)
+                        gradient = torch.zeros_like(output).to(self.device_)
+                        dist.recv(gradient, 0, self._global_group)
+                        output.backward(gradient)
                         self.optimizer_.step()
                         continue
 
@@ -285,22 +284,28 @@ class MnistTrainer:
                         outputs.append(output)
 
                     # Average all intermediate results
-                    outputs = torch.autograd.Variable(torch.stack(outputs), requires_grad=True)
-                    outputs = outputs.to(torch.float32).mean(dim=0)
+                    outputs = torch.stack(outputs).to(torch.float32)
+                    outputs.requires_grad = True
+                    outputs_avg = outputs.mean(dim=0)
 
-                    predictions = self.model_(outputs)
+                    predictions = self.model_(outputs_avg)
                     loss = self.loss_(predictions, data)
-                    gradients = torch.autograd.grad(loss, outputs)
+                    loss.backward(retain_graph=True)
+                    gradients = torch.autograd.grad(loss, outputs)[0]
                     self.optimizer_.step()
 
                     for j in range(1, self._global_size):
                         dist.send(gradients[j - 1], j, self._global_group)
 
                     running_loss += loss.item() / data.shape[0]
+                    running_acc += (
+                        (predictions.argmax(dim=1) == data).to(float).mean().item()
+                    )
                     if i != 0 and i % num_of_batches_before_logging == 0:
                         training_loss = running_loss / num_of_batches_before_logging
+                        training_accuracy = running_acc / num_of_batches_before_logging
                         logger.info(
-                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
+                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}, Accuracy: {training_accuracy}"
                         )
 
                         # log train loss
@@ -312,6 +317,7 @@ class MnistTrainer:
                         )
 
                         running_loss = 0.0
+                        running_acc = 0.0
 
                 test_loss, test_acc = self.test()
 
@@ -478,7 +484,50 @@ def run(global_group, args):
     trainer.execute(args.checkpoint)
 
 
-def main(global_group, cli_args=None):
+def get_open_port():
+    from contextlib import closing
+    import socket
+
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return str(s.getsockname()[1])
+
+
+def retrieve_host_address(mlflow_client, root_run_id, global_rank):
+    host_ip, host_port = None, None
+    if global_rank == 0:
+        import socket
+
+        host_port = get_open_port()
+        local_hostname = socket.gethostname()
+        host_ip = str(socket.gethostbyname(local_hostname))
+    else:
+        import time
+
+        host_ip, host_port = None, None
+        fetch_start_time = time.time()
+
+        while host_ip is None or host_port is None:
+            logger.info(f"Checking out tag aml_host_ip and aml_host_port...")
+            mlflow_root_run = mlflow_client.get_run(root_run_id)
+
+            if "aml_host_ip" in mlflow_root_run.data.tags:
+                host_ip = mlflow_root_run.data.tags["aml_host_ip"]
+                logger.info(f"host_ip found: {host_ip}")
+
+            if "aml_host_port" in mlflow_root_run.data.tags:
+                host_port = mlflow_root_run.data.tags["aml_host_port"]
+                logger.info(f"host_port found: {host_port}")
+
+            if (host_ip is None) and (time.time() - fetch_start_time > 600):
+                raise RuntimeError("Could not fetch the tag within timeout.")
+            else:
+                time.sleep(1)
+    return host_ip, host_port
+
+
+def main(cli_args=None):
     """Component main function.
 
     It parses arguments and executes run() with the right arguments.
@@ -493,8 +542,64 @@ def main(global_group, cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
+    logger.info(args.train_data)
+    logger.info(args.test_data)
+
+    # communicate to clients through mlflow root (magic)
+    with mlflow.start_run() as mlflow_run:
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        logger.info(f"run tags: {mlflow_run.data.tags}")
+        logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
+        root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
+        host_ip, host_port = retrieve_host_address(
+            mlflow_client, root_run_id, args.global_rank
+        )
+        distributed_method = f"tcp://{host_ip}:{host_port}"
+
+        if args.global_rank == 0:
+            mlflow_client.set_tag(run_id=root_run_id, key="aml_host_ip", value=host_ip)
+            mlflow_client.set_tag(
+                run_id=root_run_id, key="aml_host_port", value=host_port
+            )
+
+        import socket
+
+        local_hostname = socket.gethostname()
+        local_ip = str(socket.gethostbyname(local_hostname))
+        world_size, rank = int(args.global_size), int(args.global_rank)
+        logger.info(f"Local IP: {local_ip}")
+        logger.info(f"World size: {args.global_size}, Rank: {args.global_rank}")
+        logger.info(distributed_method)
+
+        # initialize the process group
+        retries = 0
+        while retries < 10:
+            try:
+                import datetime
+
+                logger.info("Initializing process group...")
+                global_group = dist.init_process_group(
+                    dist.Backend.GLOO,
+                    rank=rank,
+                    world_size=world_size,
+                    init_method=distributed_method,
+                    timeout=datetime.timedelta(seconds=10000),
+                )
+                logger.info("Process group initialized")
+                break
+            except Exception as e:
+                import time
+
+                logger.exception(e)
+
+                time.sleep(10)
+                retries += 1
+
     print(f"Running script with arguments: {args}")
     run(global_group, args)
+
+    # destroy the process group
+    dist.destroy_process_group(global_group)
 
 
 if __name__ == "__main__":
@@ -507,49 +612,5 @@ if __name__ == "__main__":
     handler.setFormatter(log_format)
     logger.addHandler(handler)
 
-    from dotenv import load_dotenv
-
-    load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env"))
-
-    world_size = int(os.environ["DIST_GROUP_SIZE"])
-    rank = int(os.environ["DIST_GROUP_RANK"])
-
-    local_hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(local_hostname)
-    logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
-
-    print("Head node address: {}".format(os.environ["DIST_GROUP_HOST_IP"]))
-    import pythonping
-
-    response_list = pythonping.ping(os.environ["DIST_GROUP_HOST_IP"], count=5)
-    for response in response_list:
-        print(response)
-
-    # initialize the process group
-    retries = 0
-    while retries < 10:
-        try:
-            import datetime
-
-            logger.info("Initializing process group...")
-            global_group = dist.init_process_group(
-                dist.Backend.GLOO,
-                rank=rank,
-                world_size=world_size,
-                init_method=f"tcp://{os.environ['DIST_GROUP_HOST_IP']}:12988",
-                timeout=datetime.timedelta(seconds=10000),
-            )
-            logger.info("Process group initialized")
-            break
-        except Exception as e:
-            import time
-
-            logger.exception(e)
-
-            time.sleep(10)
-            retries += 1
-
     # run training
-    main(global_group)
-    # destroy the process group
-    dist.destroy_process_group(global_group)
+    main()

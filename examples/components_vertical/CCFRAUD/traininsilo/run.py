@@ -141,7 +141,9 @@ class CCFraudTrainer:
         if self._global_rank == 0:
             self.model_ = getattr(models, model_name + "Top")().to(self.device_)
         else:
-            self.model_ = getattr(models, model_name + "Bottom")(self._input_dim).to(self.device_)
+            self.model_ = getattr(models, model_name + "Bottom")(self._input_dim).to(
+                self.device_
+            )
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
@@ -262,7 +264,7 @@ class CCFraudTrainer:
                     outputs = []
                     for j in range(1, self._global_size):
                         # output = torch.zeros((len(batch), 4)) # Linear
-                        output = torch.zeros((len(batch), 100, 256)) # LSTM
+                        output = torch.zeros((len(batch), 100, 256))  # LSTM
                         dist.recv(output, j, self._global_group)
                         outputs.append(output)
 
@@ -587,7 +589,9 @@ def main(cli_args=None):
 
         if args.global_rank == 0:
             mlflow_client.set_tag(run_id=root_run_id, key="aml_host_ip", value=host_ip)
-            mlflow_client.set_tag(run_id=root_run_id, key="aml_host_port", value=host_port)
+            mlflow_client.set_tag(
+                run_id=root_run_id, key="aml_host_port", value=host_port
+            )
 
         import socket
 

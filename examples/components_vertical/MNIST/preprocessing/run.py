@@ -42,10 +42,12 @@ def get_arg_parser(parser=None):
     )
     return parser
 
+
 def process_sample(processed_data_dir, idxdata):
     idx, data = idxdata
     output_path = processed_data_dir + f"/{idx}.jpg"
     save_image(data, output_path)
+
 
 class MnistDataset(Dataset):
     """MNIST Dataset - combination of features and labels
@@ -126,7 +128,7 @@ def preprocess_data(
             transforms.RandomAffine(degrees=30),
             transforms.RandomPerspective(),
             transforms.ToTensor(),
-            transforms.Normalize(mean = (0.1307,), std = (0.3081,)),
+            transforms.Normalize(mean=(0.1307,), std=(0.3081,)),
         ]
     )
 
@@ -147,10 +149,12 @@ def preprocess_data(
         process_sample_partial = partial(process_sample, processed_data_dir)
 
         with mt.Pool(cpu_count) as pool:
-            list(tqdm(
-                pool.imap(process_sample_partial, enumerate(datasets[x])), 
-                total=len(datasets[x])
-            ))
+            list(
+                tqdm(
+                    pool.imap(process_sample_partial, enumerate(datasets[x])),
+                    total=len(datasets[x]),
+                )
+            )
 
 
 def log_metadata(X_train, X_test, metrics_prefix):

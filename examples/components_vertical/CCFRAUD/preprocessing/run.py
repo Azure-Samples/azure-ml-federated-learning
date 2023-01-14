@@ -67,7 +67,7 @@ def apply_transforms(df):
     for column in normalize:
         if column not in df.columns:
             continue
-        
+
         if column not in SCALERS:
             print(f"Creating encoder for column: {column}")
             # Simply set all zeros if the category is unseen
@@ -109,7 +109,8 @@ def preprocess_data(
 
     if "is_fraud" in train_df.columns:
         fraud_weight = (
-            train_df["is_fraud"].value_counts()[0] / train_df["is_fraud"].value_counts()[1]
+            train_df["is_fraud"].value_counts()[0]
+            / train_df["is_fraud"].value_counts()[1]
         )
         logger.debug(f"Fraud weight: {fraud_weight}")
         np.savetxt(train_data_dir + "/fraud_weight.txt", np.array([fraud_weight]))

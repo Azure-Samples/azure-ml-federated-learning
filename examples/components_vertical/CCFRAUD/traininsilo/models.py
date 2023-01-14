@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class SimpleLinearBottom(nn.Module):
     """Bottom part of the model composed of only Linear model interleaved with ReLU activations
 
@@ -44,6 +45,7 @@ class SimpleLinearBottom(nn.Module):
 
     def forward(self, x):
         return self.model(x), None
+
 
 class SimpleLinearTop(nn.Module):
     """Top part of the model composed of only Linear model interleaved with ReLU activations
@@ -111,6 +113,7 @@ class SimpleLSTMBottom(nn.Module):
         x, _ = self.lstm(x)
         x = self.dropout(x)
         return x, None
+
 
 class SimpleLSTMTop(nn.Module):
     """Model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations

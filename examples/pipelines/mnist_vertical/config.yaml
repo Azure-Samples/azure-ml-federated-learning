@@ -25,20 +25,19 @@ federated_learning:
       path: azureml://datastores/datastore_orchestrator/paths/federated_learning/mnist_vertical/raw_test_data
 
   contributors:
-    - compute: cpu-silo1-francecentral
-      datastore: datastore_silo1_francecentral
+    - compute: cpu-silo0-westus
+      datastore: datastore_silo0_westus
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/mnist_vertical/raw_train_data
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/mnist_vertical/raw_test_data
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_test_data
 
 # training parameters
 training_parameters:
-  num_of_iterations: 3
-  epochs: 3 # number of epochs per iteration (in-silo training) 
-  lr: 0.01 # learning rate
-  batch_size: 64 # batch size
+  epochs: 4 # number of epochs per iteration (in-silo training) 
+  lr: 1e-3 # learning rate
+  batch_size: 128 # batch size

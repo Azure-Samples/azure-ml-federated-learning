@@ -64,10 +64,6 @@ outputs:
 code: .
 
 command: >-
-  python ./mcd_runtime/launch.py 
-  --size ${{inputs.global_size}}
-  --rank ${{inputs.global_rank}}
-  &&
   python run.py 
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}

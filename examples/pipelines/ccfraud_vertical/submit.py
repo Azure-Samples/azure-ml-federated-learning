@@ -201,7 +201,10 @@ def fl_mnist_vertical_basic():
     )  # list of preprocessed train datasets for each silo
     silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
 
-    for silo_index, silo_config in enumerate([YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.contributors):
+    for silo_index, silo_config in enumerate(
+        [YAML_CONFIG.federated_learning.host]
+        + YAML_CONFIG.federated_learning.contributors
+    ):
         # run the pre-processing component once
         silo_pre_processing_step = preprocessing_component(
             raw_training_data=Input(
@@ -221,7 +224,9 @@ def fl_mnist_vertical_basic():
         if silo_index == 0:
             silo_pre_processing_step.name = f"silo_host_preprocessing"
         else:
-            silo_pre_processing_step.name = f"silo_contributor_{silo_index}_preprocessing"
+            silo_pre_processing_step.name = (
+                f"silo_contributor_{silo_index}_preprocessing"
+            )
 
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
@@ -253,8 +258,11 @@ def fl_mnist_vertical_basic():
 
     outputs = {}
     # for each silo, run a distinct training with its own inputs and outputs
-    for silo_index, silo_config in enumerate([YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.contributors):
-        
+    for silo_index, silo_config in enumerate(
+        [YAML_CONFIG.federated_learning.host]
+        + YAML_CONFIG.federated_learning.contributors
+    ):
+
         # we're using training component here
         silo_training_step = training_component(
             # with the train_data from the pre_processing step
@@ -271,10 +279,10 @@ def fl_mnist_vertical_basic():
             metrics_prefix=silo_config.compute,
             # Model name
             model_name=YAML_CONFIG.training_parameters.model_name,
-            global_size=len(YAML_CONFIG.federated_learning.contributors)+1,
-            global_rank=silo_index
+            global_size=len(YAML_CONFIG.federated_learning.contributors) + 1,
+            global_rank=silo_index,
         )
-        
+
         # add a readable name to the step
         if silo_index == 0:
             silo_training_step.name = f"silo_host_training"
@@ -296,7 +304,6 @@ def fl_mnist_vertical_basic():
         )
         outputs[f"silo_{silo_index}_output"] = silo_training_step.outputs.model
         # outputs.append(silo_training_step.outputs.model)
-    
 
     return outputs
 
