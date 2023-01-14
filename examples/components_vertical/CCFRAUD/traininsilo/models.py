@@ -53,10 +53,9 @@ class SimpleLinearTop(nn.Module):
         number of features to be consumed by the model
     """
 
-    def __init__(self, input_dim) -> None:
+    def __init__(self) -> None:
         super().__init__()
 
-        self.input_dim = input_dim
         self.model = nn.Sequential(
             nn.Linear(4, 1),
             nn.Sigmoid(),
@@ -75,7 +74,7 @@ class SimpleLinearTop(nn.Module):
         return self.model(x).squeeze(), None
 
 
-class SimpleLSTM(nn.Module):
+class SimpleLSTMBottom(nn.Module):
     """Model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
 
     Args:
@@ -98,6 +97,35 @@ class SimpleLSTM(nn.Module):
             bidirectional=True,
         )
         self.dropout = nn.Dropout(p=0.5)
+        self._init_weights()
+
+    def _init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Embedding):
+                torch.nn.init.uniform_(m.weight, -0.001, 0.001)
+            elif isinstance(m, nn.Linear):
+                torch.nn.init.xavier_uniform_(m.weight)
+                m.bias.data.fill_(0.01)
+
+    def forward(self, x):
+        x, _ = self.lstm(x)
+        x = self.dropout(x)
+        return x, None
+
+class SimpleLSTMTop(nn.Module):
+    """Model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
+
+    Args:
+        input_dim (int):
+        number of features to be consumed by the model
+
+    Note:
+        Input must be 3D such that it contains time-dependent sequences
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+
         self.denseseq = nn.Sequential(
             nn.Linear(256, 128),
             nn.ReLU(),
@@ -125,8 +153,6 @@ class SimpleLSTM(nn.Module):
                 m.bias.data.fill_(0.01)
 
     def forward(self, x):
-        x, _ = self.lstm(x)
-        x = self.dropout(x)
         x = self.denseseq(x).squeeze()
         return x, None
 

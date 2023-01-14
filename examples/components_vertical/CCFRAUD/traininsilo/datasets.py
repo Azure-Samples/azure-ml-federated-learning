@@ -32,10 +32,18 @@ class FraudDataset(Dataset):
         else:
             return len(self.Y)
 
+    def features_count(self):
+        if self.X is not None:
+            return self.X.shape[1]
+        return None
+
     def __getitem__(self, idx):
         if self.Y is None:
             return self.X[idx]
-        return self.X[idx], self.Y[idx]
+        elif self.X is None:
+            return self.Y[idx]
+        else:
+            return self.X[idx], self.Y[idx]
 
 
 class FraudTimeDataset(Dataset):
@@ -79,6 +87,11 @@ class FraudTimeDataset(Dataset):
                 - self._time_step_overlaps
             ) + 1
 
+    def features_count(self):
+        if self.X is not None:
+            return self.X.shape[1]
+        return None
+        
     def __getitem__(self, idx):
         if self.Y is None:
             return (
@@ -87,7 +100,7 @@ class FraudTimeDataset(Dataset):
                     * (self._time_steps // self._time_step_overlaps) : idx
                     * (self._time_steps // self._time_step_overlaps)
                     + self._time_steps
-                ],
+                ]
             )
         elif self.X is None:
             return (
@@ -96,7 +109,7 @@ class FraudTimeDataset(Dataset):
                     * (self._time_steps // self._time_step_overlaps) : idx
                     * (self._time_steps // self._time_step_overlaps)
                     + self._time_steps
-                ],
+                ]
             )
         else:
             return (

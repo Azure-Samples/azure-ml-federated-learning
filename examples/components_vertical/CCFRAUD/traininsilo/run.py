@@ -3,11 +3,16 @@ import argparse
 import logging
 import sys
 import copy
+import datetime
+import os
 
+import pythonping
 import mlflow
 import torch
 import pandas as pd
 import numpy as np
+import torch.distributed.rpc as rpc
+import torch.distributed.optim as dist_optim
 import torch.distributed as dist
 from torch import nn
 from torchmetrics.functional import precision_recall, accuracy
@@ -133,8 +138,10 @@ class CCFraudTrainer:
         )
 
         # Build model
-        model_name = ("Top" if self._global_rank == 0 else "Bottom") + model_name
-        self.model_ = getattr(models, model_name)(self._input_dim).to(self.device_)
+        if self._global_rank == 0:
+            self.model_ = getattr(models, model_name + "Top")().to(self.device_)
+        else:
+            self.model_ = getattr(models, model_name + "Bottom")(self._input_dim).to(self.device_)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
@@ -164,7 +171,7 @@ class CCFraudTrainer:
             f"Train data samples: {len(train_df)}, Test data samples: {len(test_df)}"
         )
 
-        return train_dataset, test_dataset, train_df.shape[1] - 1
+        return train_dataset, test_dataset, train_dataset.features_count()
 
     def log_params(self, client, run_id):
         client.log_param(
@@ -243,7 +250,8 @@ class CCFraudTrainer:
                     self.optimizer_.zero_grad()
 
                     if self._global_rank != 0:
-                        output = self.model_(data)
+                        output = self.model_(data)[0]
+                        output = output.contiguous()
                         dist.send(output, 0, self._global_group)
                         gradient = torch.zeros_like(output).to(self.device_)
                         dist.recv(gradient, 0, self._global_group)
@@ -253,16 +261,17 @@ class CCFraudTrainer:
 
                     outputs = []
                     for j in range(1, self._global_size):
-                        output = torch.zeros((len(batch),512))
-                        dist.recv(output, j)
+                        # output = torch.zeros((len(batch), 4)) # Linear
+                        output = torch.zeros((len(batch), 100, 256)) # LSTM
+                        dist.recv(output, j, self._global_group)
                         outputs.append(output)
 
-                    outputs = torch.autograd.Variable(torch.stack(outputs), requires_grad=True)
+                    outputs = torch.autograd.Variable(
+                        torch.stack(outputs), requires_grad=True
+                    )
                     outputs = outputs.to(torch.float32).mean(dim=0)
 
                     predictions, net_loss = self.model_(outputs)
-
-                    predictions, net_loss = self.model_(data)
                     self.criterion_.weight = (
                         ((data == 1) * (self.fraud_weight_ - 1)) + 1
                     ).to(self.device_)
@@ -272,12 +281,16 @@ class CCFraudTrainer:
                         loss += net_loss * 1e-5
 
                     # Compute gradients and adjust learning weights
-                    # loss.backward()
-                    gradients = torch.autograd.grad(loss, outputs)[0]
+                    loss.backward(retain_graph=True)
+                    if outputs.grad is not None:
+                        gradients = outputs.grad
+                    else:
+                        logger.warning("Gradient not computed in backward pass!")
+                        gradients = torch.autograd.grad(loss, outputs)[0]
                     self.optimizer_.step()
 
                     for j in range(1, self._global_size):
-                        dist.send(gradients[j-1], j)
+                        dist.send(gradients[j - 1], j, self._global_group)
 
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=data
@@ -382,8 +395,8 @@ class CCFraudTrainer:
 
                 outputs = []
                 for j in range(1, self._global_size):
-                    output = torch.zeros((len(batch),512))
-                    dist.recv(output, j)
+                    output = torch.zeros((len(batch), 4))
+                    dist.recv(output, j, self._global_group)
                     outputs.append(output)
 
                 outputs = torch.autograd.Variable(torch.stack(outputs))
@@ -498,30 +511,37 @@ def run(args, global_group):
         iteration_name=args.iteration_name,
         global_rank=args.global_rank,
         global_size=args.global_size,
-        global_group=global_group
+        global_group=global_group,
     )
     trainer.execute(args.checkpoint)
 
+
+def get_open_port():
+    from contextlib import closing
+    import socket
+
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
+        s.bind(("", 0))
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return str(s.getsockname()[1])
+
+
 def retrieve_host_address(mlflow_client, root_run_id, global_rank):
+    host_ip, host_port = None, None
     if global_rank == 0:
         import socket
 
-        local_socket = socket.socket()
-        local_socket.bind(('',0))
-        host_port = local_socket.getsockname()[1]
-        
+        host_port = get_open_port()
         local_hostname = socket.gethostname()
         host_ip = str(socket.gethostbyname(local_hostname))
-
-        mlflow_client.set_tag(run_id=root_run_id, key="aml_host_ip", value=host_ip)
-        mlflow_client.set_tag(run_id=root_run_id, key="aml_host_port", value=host_port)
     else:
         import time
+
         host_ip, host_port = None, None
         fetch_start_time = time.time()
 
         while host_ip is None or host_port is None:
-            logger.info(f"Checking out tag host_ip...")
+            logger.info(f"Checking out tag aml_host_ip and aml_host_port...")
             mlflow_root_run = mlflow_client.get_run(root_run_id)
 
             if "aml_host_ip" in mlflow_root_run.data.tags:
@@ -532,13 +552,12 @@ def retrieve_host_address(mlflow_client, root_run_id, global_rank):
                 host_port = mlflow_root_run.data.tags["aml_host_port"]
                 logger.info(f"host_port found: {host_port}")
 
-            if (host_ip is None) and (
-                time.time() - fetch_start_time > 600
-            ):
+            if (host_ip is None) and (time.time() - fetch_start_time > 600):
                 raise RuntimeError("Could not fetch the tag within timeout.")
             else:
                 time.sleep(10)
     return host_ip, host_port
+
 
 def main(cli_args=None):
     """Component main function.
@@ -556,24 +575,55 @@ def main(cli_args=None):
     args = parser.parse_args(cli_args)
 
     # communicate to clients through mlflow root (magic)
-    mlflow_run = mlflow.start_run()
-    mlflow_client = mlflow.tracking.client.MlflowClient()
-    logger.info(f"run tags: {mlflow_run.data.tags}")
-    logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
-    root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
-    host_ip, host_port = retrieve_host_address(mlflow_client, root_run_id, args.global_rank)
+    with mlflow.start_run() as mlflow_run:
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        logger.info(f"run tags: {mlflow_run.data.tags}")
+        logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
+        root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
+        host_ip, host_port = retrieve_host_address(
+            mlflow_client, root_run_id, args.global_rank
+        )
+        distributed_method = f"tcp://{host_ip}:{host_port}"
 
-    print("Initializing distributed process group")
-    global_group = dist.init_process_group(
-        "gloo",
-        init_method=f"tcp://{host_ip}:{host_port}",
-        rank=int(args.global_rank),
-        world_size=int(args.global_size)
-    )
-    print("Distributed process group initialized")
-    print(f"Running script with arguments: {args}")
+        if args.global_rank == 0:
+            mlflow_client.set_tag(run_id=root_run_id, key="aml_host_ip", value=host_ip)
+            mlflow_client.set_tag(run_id=root_run_id, key="aml_host_port", value=host_port)
+
+        import socket
+
+        local_hostname = socket.gethostname()
+        local_ip = str(socket.gethostbyname(local_hostname))
+        world_size, rank = int(args.global_size), int(args.global_rank)
+        logger.info(f"Local IP: {local_ip}")
+        logger.info(f"World size: {args.global_size}, Rank: {args.global_rank}")
+        logger.info(distributed_method)
+
+        response_list = pythonping.ping(host_ip, count=5)
+        for response in response_list:
+            logger.info(str(response))
+
+        import time
+
+        start_time = time.time()
+        while time.time() - start_time < 600:
+            try:
+                logger.info(f"Initializing distributed process group")
+                global_group = dist.init_process_group(
+                    dist.Backend.GLOO,
+                    rank=rank,
+                    world_size=world_size,
+                    init_method=distributed_method,
+                    timeout=datetime.timedelta(minutes=100),
+                )
+                logger.info("Distributed process group initialized")
+                break
+            except Exception as e:
+                logger.exception(e)
+                continue
+
+    logger.info(f"Running script with arguments: {args}")
     run(args, global_group)
-    print("Destroying distributed process group")
+    logger.info("Destroying distributed process group")
     dist.destroy_process_group(global_group)
 
 
