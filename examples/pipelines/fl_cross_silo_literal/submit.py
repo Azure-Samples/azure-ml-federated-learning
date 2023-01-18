@@ -282,6 +282,12 @@ def fl_cross_silo_internal_basic():
                 epochs=YAML_CONFIG.training_parameters.epochs,
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Differential Privacy
+                dp=YAML_CONFIG.training_parameters.dp,
+                # DP noise multiplier
+                dp_noise_multiplier=YAML_CONFIG.training_parameters.dp_noise_multiplier,
+                # DP max gradient norm
+                dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
                 # Silo name/identifier
                 metrics_prefix=silo_config.name,
                 # Iteration number
