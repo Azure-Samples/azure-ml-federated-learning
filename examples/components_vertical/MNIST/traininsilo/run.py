@@ -54,7 +54,8 @@ class BottomDataset(Dataset):
         super(BottomDataset, self).__init__()
         self.root_dir = root_dir
         self.transform = transform
-        self.images = [img for img in os.listdir(self.root_dir) if img.endswith(".jpg")]
+        self.images = list(sorted([int(img.split('.')[0]) for img in os.listdir(self.root_dir) if img.endswith(".jpg")]))
+        logger.info(str(self.images))
 
     def __len__(self):
         return len(self.images)
@@ -63,7 +64,7 @@ class BottomDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
 
-        img_name = os.path.join(self.root_dir, self.images[idx])
+        img_name = os.path.join(self.root_dir, str(self.images[idx]) + ".jpg")
         image = Image.open(img_name).convert("RGB")
 
         if self.transform:

@@ -88,6 +88,11 @@ def preprocess_data(
     print(train_data.head)
     print(train_data.shape)
 
+    if not os.path.exists(train_data_dir):
+        os.makedirs(train_data_dir, exist_ok=True)
+    if not os.path.exists(test_data_dir):
+        os.makedirs(test_data_dir, exist_ok=True)
+
     if silo_index == 0:
         train_data[["label"]].to_csv(f"{train_data_dir}/train.csv")
         test_data[["label"]].to_csv(f"{test_data_dir}/test.csv")
@@ -129,7 +134,7 @@ def preprocess_data(
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
 
-        cpu_count = min(mt.cpu_count(), 6)
+        cpu_count = max(mt.cpu_count(), 6)
         process_sample_partial = partial(
             process_sample, processed_data_dir, datasets[x]
         )
@@ -177,17 +182,6 @@ def run(args):
         args.raw_train_data,
         args.raw_test_data,
     )
-
-    for x in ["train", "test"]:
-        attrname = f"raw_{x}_data"
-        store_path = f"{getattr(args, attrname)}/{x}.csv"
-        df = pd.read_csv(DATASET_URL["train"], index_col=0).reset_index()
-
-        if args.silo_index == 0:
-            df[["label"]].to_csv(store_path)
-        else:
-            df = df.loc[:, df.columns != "label"]
-            df.to_csv(store_path)
 
 
 def get_arg_parser(parser=None):
