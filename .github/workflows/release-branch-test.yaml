@@ -3,8 +3,13 @@ name: Release-branch-test
 on:
   pull_request:
     branches:
-    - main
-
+    - release**
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Release branch tests'     
+        required: true
+        default: 'warning'
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
