@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: nvflare_client
-version: 2.2.3-mod1
+name: nvflare_server
+version: 2.2.3-pytorch
 display_name: NVFlare server
 type: command
 description: Populates an NVFlare server

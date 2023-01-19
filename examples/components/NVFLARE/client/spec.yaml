@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: nvflare_client
-version: 2.2.3-mod1
+version: 2.2.3-pytorch
 display_name: NVFlare client
 type: command
 description: Populates an NVFlare client
