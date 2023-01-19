@@ -1,9 +1,12 @@
 name: Release-branch-test
 
 on:
-  pull_request:
-    branches:
-    - release**
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Describe reason'     
+        required: false
+        default: "To test the release branch"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
