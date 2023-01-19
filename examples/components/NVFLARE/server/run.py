@@ -34,14 +34,52 @@ def get_arg_parser(parser=None):
         parser = argparse.ArgumentParser(description=__doc__)
 
     group = parser.add_argument_group("MCD Launcher Inputs")
-    group.add_argument("--federation_identifier", type=str, required=True)
-    group.add_argument("--server_config", type=str, required=True)
-    group.add_argument("--admin_config", type=str, required=True)
-    group.add_argument("--app_dir", type=str, required=True)
-    group.add_argument("--server_name", type=str, required=True)
-    group.add_argument("--expected_clients", type=int, required=True)
-    group.add_argument("--output_dir", type=str, required=True)
-    group.add_argument("--wait_for_clients_timeout", type=int, required=False, default=600)
+    group.add_argument(
+        "--federation_identifier",
+        type=str,
+        required=True,
+        help="a unique identifier for the group of clients and server to find each other",
+    )
+    group.add_argument(
+        "--server_config",
+        type=str,
+        required=True,
+        help="the NVFlare workspace folder for this server",
+    )
+    group.add_argument(
+        "--admin_config",
+        type=str,
+        required=True,
+        help="the NVFlare workspace admin folder to connect to the server",
+    )
+    group.add_argument(
+        "--app_dir", type=str, required=True, help="the NVFlare app code directory"
+    )
+    group.add_argument(
+        "--server_name",
+        type=str,
+        required=True,
+        help="the name of the server/overseer expected by clients for hostname resolution",
+    )
+    group.add_argument(
+        "--expected_clients",
+        type=int,
+        required=True,
+        help="the number of clients expected to connect to the server before training",
+    )
+    group.add_argument(
+        "--output_dir",
+        type=str,
+        required=True,
+        help="where the NVFlare job artefacts will be saved upon completion of the job",
+    )
+    group.add_argument(
+        "--wait_for_clients_timeout",
+        type=int,
+        required=False,
+        default=600,
+        help="the number of seconds to wait for clients to connect before timing out",
+    )
 
     return parser
 
@@ -84,7 +122,23 @@ def api_command_wrapper(api_command_result, logger=None):
     return api_command_result
 
 
-def publish_server_ip(mlflow_run, federation_identifier, server_name=None, target_run_tag='mlflow.rootRunId'):
+def publish_server_ip(
+    mlflow_run,
+    federation_identifier,
+    server_name=None,
+    target_run_tag="mlflow.rootRunId",
+):
+    """Publishes the server ip to mlflow as a tag.
+
+    Args:
+        mlflow_run (mlflow.entities.Run): the mlflow run object
+        federation_identifier (str): the unique identifier for the federation
+        server_name (str, optional): the name of the server to publish for the clients
+        target_run_tag (str, optional): the tag to use to find the root run. Defaults to "mlflow.rootRunId".
+
+    Returns:
+        str, str: the server ip and name
+    """
     logger = logging.getLogger()
 
     # get the local ip of this current node
@@ -96,14 +150,22 @@ def publish_server_ip(mlflow_run, federation_identifier, server_name=None, targe
 
     mlflow_client = mlflow.tracking.client.MlflowClient()
     logger.info(f"run tags: {mlflow_run.data.tags}")
-    logger.info(f"target tag {target_run_tag}={mlflow_run.data.tags.get(target_run_tag)}")
+    logger.info(
+        f"target tag {target_run_tag}={mlflow_run.data.tags.get(target_run_tag)}"
+    )
     target_run_id = mlflow_run.data.tags.get(target_run_tag)
 
     # publish the server ip/name as a tag in mlflow
-    mlflow_client.set_tag(run_id=target_run_id, key=f"{federation_identifier}.server_ip", value=server_ip)
+    mlflow_client.set_tag(
+        run_id=target_run_id, key=f"{federation_identifier}.server_ip", value=server_ip
+    )
 
     if server_name:
-        mlflow_client.set_tag(run_id=target_run_id, key=f"{federation_identifier}.server_name", value=server_name)
+        mlflow_client.set_tag(
+            run_id=target_run_id,
+            key=f"{federation_identifier}.server_name",
+            value=server_name,
+        )
 
     return server_ip, server_name
 
@@ -131,7 +193,9 @@ def run_server(
     # communicate to clients through mlflow root (magic)
     mlflow_run = mlflow.start_run()
     overseer_name = server_name
-    overseer_ip, _ = publish_server_ip(mlflow_run, federation_identifier, server_name=server_name)
+    overseer_ip, _ = publish_server_ip(
+        mlflow_run, federation_identifier, server_name=server_name
+    )
 
     # create hosts file to resolve ip adresses
     with (open("/etc/hosts", "a")) as f:
@@ -225,20 +289,46 @@ def run_server(
 
         # TODO: check if job was successful or not
         logging.info("api.show_errors(TargetType.CLIENT)")
-        client_errors = api_command_wrapper(runner.api.show_errors(job_id,target_type=TargetType.CLIENT), logger)
-        if isinstance(client_errors["details"]["message"], str) and client_errors["details"]["message"] == "No errors.":
+        client_errors = api_command_wrapper(
+            runner.api.show_errors(job_id, target_type=TargetType.CLIENT), logger
+        )
+        if (
+            isinstance(client_errors["details"]["message"], str)
+            and client_errors["details"]["message"] == "No errors."
+        ):
             logging.info("No errors found on clients")
         else:
-            report = "\n".join([ entry["data"] for entry in client_errors["raw"]["data"] if entry["type"] == "string" ])
-            raise Exception(f"Errors were found on clients, check client logs to debug:\n{report}")
+            report = "\n".join(
+                [
+                    entry["data"]
+                    for entry in client_errors["raw"]["data"]
+                    if entry["type"] == "string"
+                ]
+            )
+            raise Exception(
+                f"Errors were found on clients, check client logs to debug:\n{report}"
+            )
 
         logging.info("api.show_errors(TargetType.CLIENT)")
-        server_errors = api_command_wrapper(runner.api.show_errors(job_id,target_type=TargetType.SERVER), logger)
-        if isinstance(server_errors["details"]["message"], str) and server_errors["details"]["message"] == "No errors.":
+        server_errors = api_command_wrapper(
+            runner.api.show_errors(job_id, target_type=TargetType.SERVER), logger
+        )
+        if (
+            isinstance(server_errors["details"]["message"], str)
+            and server_errors["details"]["message"] == "No errors."
+        ):
             logging.info("No errors found on server")
         else:
-            report = "\n".join([ entry["data"] for entry in server_errors["raw"]["data"] if entry["type"] == "string" ])
-            raise Exception(f"Errors were found on server, check server logs to debug:\n{report}")
+            report = "\n".join(
+                [
+                    entry["data"]
+                    for entry in server_errors["raw"]["data"]
+                    if entry["type"] == "string"
+                ]
+            )
+            raise Exception(
+                f"Errors were found on server, check server logs to debug:\n{report}"
+            )
 
         # check server and clients (again ?)
         logger.info("api.check_status(TargetType.SERVER)")

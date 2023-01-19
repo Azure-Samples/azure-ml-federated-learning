@@ -34,11 +34,31 @@ def get_arg_parser(parser=None):
         parser = argparse.ArgumentParser(description=__doc__)
 
     group = parser.add_argument_group("NVFlare client launcher arguments")
-    group.add_argument("--federation_identifier", type=str, required=True)
-    group.add_argument("--client_config", type=str, required=True)
-    group.add_argument("--client_data", type=str, required=False, default=None)
     group.add_argument(
-        "--client_data_env_var", type=str, required=False, default="CLIENT_DATA_PATH"
+        "--federation_identifier",
+        type=str,
+        required=True,
+        help="a unique identifier for the group of clients and server to find each other",
+    )
+    group.add_argument(
+        "--client_config",
+        type=str,
+        required=True,
+        help="the NVFlare workspace folder for this client",
+    )
+    group.add_argument(
+        "--client_data",
+        type=str,
+        required=False,
+        default=None,
+        help="an optional folder containing data for the client to use",
+    )
+    group.add_argument(
+        "--client_data_env_var",
+        type=str,
+        required=False,
+        default="CLIENT_DATA_PATH",
+        help="the name of the env variable to set with the mount path of the client_data folder",
     )
 
     return parser
@@ -65,12 +85,32 @@ def run_cli_command(cli_command: list, timeout: int = None, custom_env: dict = N
     return cli_command_call.returncode
 
 
-def fetch_server_ip(mlflow_run, federation_identifier, fetch_name=False, target_run_tag='mlflow.rootRunId', timeout=600):
+def fetch_server_ip(
+    mlflow_run,
+    federation_identifier,
+    fetch_name=False,
+    target_run_tag="mlflow.rootRunId",
+    timeout=600,
+):
+    """Fetches the server ip and name from the mlflow run tags.
+
+    Args:
+        mlflow_run (mlflow.entities.Run): the mlflow run to fetch the tags from
+        federation_identifier (str): the federation identifier to use to find the server ip
+        fetch_name (bool, optional): whether to fetch the server name. Defaults to False.
+        target_run_tag (str, optional): the tag to use to find the root run. Defaults to "mlflow.rootRunId".
+        timeout (int, optional): the timeout in seconds to wait for the server ip. Defaults to 600.
+
+    Returns:
+        str, str: the server ip and name
+    """
     logger = logging.getLogger(__name__)
 
     mlflow_client = mlflow.tracking.client.MlflowClient()
     logger.info(f"run tags: {mlflow_run.data.tags}")
-    logger.info(f"target tag {target_run_tag}={mlflow_run.data.tags.get(target_run_tag)}")
+    logger.info(
+        f"target tag {target_run_tag}={mlflow_run.data.tags.get(target_run_tag)}"
+    )
     target_run_id = mlflow_run.data.tags.get(target_run_tag)
 
     server_ip = None
@@ -111,7 +151,9 @@ def run_client(args):
 
     # use mlflow to getch server ip and name
     mlflow_run = mlflow.start_run()
-    overseer_ip, overseer_name = fetch_server_ip(mlflow_run, args.federation_identifier, fetch_name=True)
+    overseer_ip, overseer_name = fetch_server_ip(
+        mlflow_run, args.federation_identifier, fetch_name=True
+    )
 
     # create hosts file to resolve ip adresses
     with (open("/etc/hosts", "a")) as f:

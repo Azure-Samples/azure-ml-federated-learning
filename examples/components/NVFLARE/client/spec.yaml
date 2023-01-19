@@ -9,16 +9,21 @@ is_deterministic: true
 inputs:
   federation_identifier:
     type: string
+    description: "a unique identifier for the group of clients and server to find each other"
   client_config:
     type: uri_folder
+    description: "the NVFlare workspace folder for this client"
   client_data:
     type: uri_folder
     optional: true
+    description: "an optional folder containing data for the client to use"
   client_data_env_var:
     type: string
     default: CLIENT_DATA_PATH
+    description: "the name of the env variable to set with the mount path of the client_data folder"
   start:
     type: uri_file
+    description: "input to trigger the job to start, not actually used"
 
 code: "."
 

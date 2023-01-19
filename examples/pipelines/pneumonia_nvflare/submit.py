@@ -89,7 +89,7 @@ PROJECT_CONFIG = OmegaConf.load(args.project_config)
 
 # use a hash to check if there are changes in config (or else, reuse provisioning)
 with open(args.project_config, "r", encoding="utf-8") as f:
-    PROJECT_CONFIG_HASH = hashlib.md5(f.read().encode('utf-8')).hexdigest()
+    PROJECT_CONFIG_HASH = hashlib.md5(f.read().encode("utf-8")).hexdigest()
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
@@ -186,6 +186,7 @@ def getUniqueIdentifier(length=8):
     date = datetime.date.today().strftime("%Y_%m_%d_")
     return date + "".join(random.choice(str) for i in range(length))
 
+
 # we're using some runtime identifier within the pipeline
 pipeline_identifier = getUniqueIdentifier()
 
@@ -223,7 +224,7 @@ def fl_pneumonia_nvflare():
 
     # set a specific path to produce the NVFlare workspace config folder
     nvflare_workspace_datapath = custom_fl_data_path(
-        server_config.azureml.datastore, # store it on the orchestrator
+        server_config.azureml.datastore,  # store it on the orchestrator
         "nvflare_workspace",
         # below will ensure we reuse previous provision job run if config is unchanged
         unique_id=PROJECT_CONFIG_HASH,
@@ -307,6 +308,7 @@ def fl_pneumonia_nvflare():
 
     # no return value yet
     return {}
+
 
 # build the pipeline
 pipeline_job = fl_pneumonia_nvflare()
