@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvc
+  namespace: default
+  labels:
+    app: demolocaldata
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pvc
+  template:
+    metadata:
+      labels:
+        app: pvc
+    spec:
+      containers:
+      - name: name
+        image: gcr.io/google-containers/echoserver:1.10
+        volumeMounts:
+        - mountPath: /localdata # Path on the docker file system where the local data folder was mounted.
+          name: localdata
+      volumes:
+        - name: localdata
+          persistentVolumeClaim:
+            claimName: demolocaldata

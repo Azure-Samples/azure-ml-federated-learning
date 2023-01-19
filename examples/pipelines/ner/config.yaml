@@ -20,43 +20,49 @@ aml:
 federated_learning:
   orchestrator:
     # name of compute for orchestrator
-    compute: "cpu-orchestrator"
+    compute: "orchestrator-01"
     # name of datastore for orchestrator (saving model weights + aggregate)
     datastore: "datastore_orchestrator"
 
   silos: # silos are provided as a list
-    - compute: cpu-silo0-westus # name of the compute for silo X
-      datastore: datastore_silo0_westus # name of the datastore for silo X
+    - name: silo0
+      computes: 
+      - silo0-01 # name of the compute for silo X
+      datastore: datastore_silo0 # name of the datastore for silo X
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ner/raw_train_data/
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ner/raw_test_data/
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ner/raw_test_data/
 
-    - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
-      datastore: datastore_silo1_francecentral
+    - name: silo1
+      computes: 
+      - silo1-01 # we are repeating over the same config for silo 2
+      datastore: datastore_silo1
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ner/raw_train_data/
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ner/raw_test_data/
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ner/raw_test_data/
 
-    - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
-      datastore: datastore_silo2_brazilsouth
+    - name: silo2
+      computes: 
+      - silo2-01 # we are repeating over the same config for silo 3
+      datastore: datastore_silo2
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ner/raw_train_data/
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ner/raw_test_data/
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ner/raw_test_data/
 
 # Training parameters
 training_parameters:

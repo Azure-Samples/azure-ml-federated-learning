@@ -79,8 +79,9 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 2. Submit the experiment by running:
 
    ```bash
-   python ./examples/pipelines/utils/upload_data/submit.py --submit --example CCFRAUD --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/utils/upload_data/submit.py --example CCFRAUD --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
@@ -93,8 +94,9 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 2. Submit the FL experiment by running:
 
    ```bash
-   python ./examples/pipelines/ccfraud/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/ccfraud/submit.py --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
@@ -107,3 +109,13 @@ This sample experiment provides multiple models you can try:
 - **SimpleVAE** : a model composed of 2 encoder LSTM layers and 2 decoder LSTM layers that tries to recreate consumed sequence of transactions, the latent space created by encoder is consumed by a linear layer to perform prediction, takes data ordered by time in sequences that overlap each other
 
 To switch between models, please update the `config.yaml` file in `examples/pipelines/ccfraud/`. Look for the field `model_name` in the `training_parameters` section (use `SimpleLinear`, `SimpleLSTM`, or `SimpleVAE`).
+
+## Distributed training
+
+This sample can be ran in distributed fashion, using [PyTorch Data Distributed Parallel (DDP) with NCCL backend](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html). However, this requires us to provision new cluster with >1 CUDA enabled GPUs and allow them to access datastorages in corresponding regions. In order to do so follow these steps for every region you want to run distributed training in:
+- Provision GPU cluster with 1+ NVIDIA GPU alongside with storage according to tutorial [here](../provisioning/README.md)
+- Adjust the config file  `config.yaml` in `examples/pipelines/ccfraud/` to use the newly created compute
+- The pipeline automatically detects number of GPUs on a given compute and scales the job accordingly
+- If your cluster can be scaled to more than 1 machine, you can modify `config.yaml` in `examples/pipelines/ccfraud/` by adding `instance_count` to your silo config with number of nodes you would like to run the training on
+
+After performing all these steps you can rerun the experiment and it will run using DDP.
