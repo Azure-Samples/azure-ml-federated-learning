@@ -20,6 +20,10 @@ from typing import List
 import models as models
 import datasets as datasets
 
+# DP
+from opacus import PrivacyEngine
+from opacus.validators import ModuleValidator
+
 
 class RunningMetrics:
     def __init__(self, metrics: List[str], prefix: str = None) -> None:
@@ -85,6 +89,9 @@ class CCFraudTrainer:
         lr=0.01,
         epochs=1,
         batch_size=10,
+        dp=False,
+        dp_noise_multiplier=1.0,
+        dp_max_grad_norm=1.0,
         experiment_name="default-experiment",
         iteration_name="default-iteration",
         device_id=None,
@@ -99,6 +106,9 @@ class CCFraudTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01.
             epochs (int, optional): Epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            dp (bool, optional): Differential Privacy
+            dp_noise_multiplier (float, optional): DP noise multiplier
+            dp_max_grad_norm (float, optional): DP max gradient norm
             device_id (int, optional): Device id to run training on. Default to None.
             distributed (bool, optional): Whether to run distributed training. Default to False.
 
@@ -174,7 +184,27 @@ class CCFraudTrainer:
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
+
+        # DP
+        if dp:
+            if not ModuleValidator.is_valid(self.model_):
+                self.model_ = ModuleValidator.fix(self.model_)
+
         self.optimizer_ = Adam(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
+
+        if dp:
+            privacy_engine = PrivacyEngine(secure_mode=False)
+            (
+                self.model_,
+                self.optimizer_,
+                self.train_loader_,
+            ) = privacy_engine.make_private(
+                module=self.model_,
+                optimizer=self.optimizer_,
+                data_loader=self.train_loader_,
+                noise_multiplier=dp_noise_multiplier,
+                max_grad_norm=dp_max_grad_norm,
+            )
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -252,9 +282,13 @@ class CCFraudTrainer:
         if checkpoint:
             if self._distributed:
                 # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
-                self.model_.module.load_state_dict(torch.load(checkpoint + "/model.pt"))
+                self.model_.module.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
             else:
-                self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+                self.model_.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
 
         with mlflow.start_run() as mlflow_run:
             num_of_batches_before_logging = 5
@@ -476,6 +510,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
+    )
+    parser.add_argument(
+        "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
     return parser
 
 
@@ -506,6 +547,9 @@ def run(args):
         lr=args.lr,
         epochs=args.epochs,
         batch_size=args.batch_size,
+        dp=args.dp,
+        dp_noise_multiplier=args.dp_noise_multiplier,
+        dp_max_grad_norm=args.dp_max_grad_norm,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
         device_id=int(os.environ["RANK"]),

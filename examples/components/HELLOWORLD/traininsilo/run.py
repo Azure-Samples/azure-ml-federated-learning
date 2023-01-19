@@ -44,6 +44,13 @@ def get_arg_parser(parser=None):
         help="Total number of iterations for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
+    )
+    parser.add_argument(
+        "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
     return parser
 
 

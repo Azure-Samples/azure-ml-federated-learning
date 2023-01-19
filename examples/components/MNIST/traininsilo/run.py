@@ -179,7 +179,9 @@ class MnistTrainer:
         """
 
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            self.model_.load_state_dict(
+                torch.load(checkpoint + "/model.pt", map_location=self.device_)
+            )
 
         with mlflow.start_run() as mlflow_run:
 
@@ -353,6 +355,10 @@ def run(args):
         model_path=args.model + "/model.pt",
         lr=args.lr,
         epochs=args.epochs,
+        batch_size=args.batch_size,
+        dp=args.dp,
+        dp_noise_multiplier=args.dp_noise_multiplier,
+        dp_max_grad_norm=args.dp_max_grad_norm,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
     )

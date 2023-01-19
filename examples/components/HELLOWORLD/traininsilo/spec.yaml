@@ -43,6 +43,21 @@ inputs:
     description: batch size
     default: 64
     optional: true
+  dp:
+    type: boolean
+    description: differential privacy
+    default: False
+    optional: true
+  dp_noise_multiplier:
+    type: number
+    description: DP noise multiplier
+    default: 1.0
+    optional: true
+  dp_max_grad_norm:
+    type: number
+    description: DP max gradient norm
+    default: 1.0
+    optional: true
 
 outputs:
   model:
@@ -52,6 +67,6 @@ outputs:
 code: .
 
 command: >-
-  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]]
+  python run.py --train_data ${{inputs.train_data}} --test_data ${{inputs.test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]] $[[--dp ${{inputs.dp}}]] $[[--dp_noise_multiplier ${{inputs.dp_noise_multiplier}}]] $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
 
 environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu:30

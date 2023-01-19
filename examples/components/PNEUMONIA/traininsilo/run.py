@@ -21,12 +21,19 @@ from torchvision.transforms import ToTensor, Normalize, Compose, Grayscale, Resi
 
 from pneumonia_network import PneumoniaNetwork
 
+# DP
+from opacus import PrivacyEngine
+from opacus.validators import ModuleValidator
+
 
 class PTLearner:
     def __init__(
         self,
         lr=0.01,
         epochs=5,
+        dp=False,
+        dp_noise_multiplier=1.0,
+        dp_max_grad_norm=1.0,
         dataset_dir: str = "pneumonia-alldata",
         experiment_name="default-experiment",
         iteration_num=1,
@@ -38,6 +45,9 @@ class PTLearner:
         Args:
             lr (float, optional): Learning rate. Defaults to 0.01.
             epochs (int, optional): Epochs. Defaults to 5.
+            dp (bool, optional): Differential Privacy
+            dp_noise_multiplier (float, optional): DP noise multiplier
+            dp_max_grad_norm (float, optional): DP max gradient norm
             dataset_dir (str, optional): Name of data asset in Azure ML. Defaults to "pneumonia-alldata".
             experiment_name (str, optional): Experiment name. Default is "default-experiment".
             iteration_num (int, optional): Iteration number. Defaults to 1.
@@ -82,7 +92,6 @@ class PTLearner:
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_.to(self.device_)
         self.loss_ = nn.CrossEntropyLoss()
-        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, momentum=0.9)
 
         # Data setup
         IMG_HEIGHT, IMG_WIDTH = 224, 224
@@ -125,6 +134,27 @@ class PTLearner:
 
         logger.info(f"Train loader steps: {len(self.train_loader_)}")
         logger.info(f"Test loader steps: {len(self.test_loader_)}")
+
+        # DP
+        if dp:
+            if not ModuleValidator.is_valid(self.model_):
+                self.model_ = ModuleValidator.fix(self.model_)
+
+        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, momentum=0.9)
+
+        if dp:
+            privacy_engine = PrivacyEngine(secure_mode=False)
+            (
+                self.model_,
+                self.optimizer_,
+                self.train_loader_,
+            ) = privacy_engine.make_private(
+                module=self.model_,
+                optimizer=self.optimizer_,
+                data_loader=self.train_loader_,
+                noise_multiplier=dp_noise_multiplier,
+                max_grad_norm=dp_max_grad_norm,
+            )
 
     def load_dataset(self, data_dir, transforms):
         """Load dataset from {data_dir} directory. It is assumed that it contains two subdirectories 'train' and 'test'.
@@ -186,7 +216,9 @@ class PTLearner:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            self.model_.load_state_dict(
+                torch.load(checkpoint + "/model.pt", map_location=self.device_)
+            )
 
         with mlflow.start_run() as mlflow_run:
 
@@ -198,7 +230,6 @@ class PTLearner:
             # log params
             self.log_params(mlflow_client, root_run_id)
 
-            self.model_.train()
             logger.debug("Local training started")
 
             training_loss = 0.0
@@ -209,6 +240,7 @@ class PTLearner:
             for epoch in range(self._epochs):
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
+                self.model_.train()
 
                 for i, batch in enumerate(self.train_loader_):
 
@@ -361,7 +393,13 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training.",
     )
-
+    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
+    )
+    parser.add_argument(
+        "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
     return parser
 
 
@@ -387,6 +425,9 @@ def run(args):
         dataset_dir=args.dataset_name,
         lr=args.lr,
         epochs=args.epochs,
+        dp=args.dp,
+        dp_noise_multiplier=args.dp_noise_multiplier,
+        dp_max_grad_norm=args.dp_max_grad_norm,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",

@@ -75,3 +75,8 @@ training_parameters:
   epochs: 3 # number of epochs per iteration (in-silo training) 
   lr: 0.01 # learning rate
   batch_size: 16 # batch size
+
+  # Differential privacy
+  dp: True
+  dp_noise_multiplier: 1.0
+  dp_max_grad_norm: 1.0

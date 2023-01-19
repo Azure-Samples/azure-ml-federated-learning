@@ -218,6 +218,9 @@ def silo_scatter_subgraph(
     lr: float = 0.01,
     epochs: int = 3,
     batch_size: int = 64,
+    dp: bool = False,
+    dp_noise_multiplier: float = 1.0,
+    dp_max_grad_norm: float = 1.0,
 ):
     """Create silo/training subgraph.
 
@@ -233,6 +236,9 @@ def silo_scatter_subgraph(
         lr (float, optional): Learning rate. Defaults to 0.01.
         epochs (int, optional): Number of epochs. Defaults to 3.
         batch_size (int, optional): Batch size. Defaults to 64.
+        dp (bool, optional): Differential Privacy
+        dp_noise_multiplier (float, optional): DP noise multiplier
+        dp_max_grad_norm (float, optional): DP max gradient norm
 
     Returns:
         Dict[str, Outputs]: a map of the outputs
@@ -263,6 +269,12 @@ def silo_scatter_subgraph(
         epochs=epochs,
         # Dataloader batch size
         batch_size=batch_size,
+        # Differential Privacy
+        dp=dp,
+        # DP noise multiplier
+        dp_noise_multiplier=dp_noise_multiplier,
+        # DP max gradient norm
+        dp_max_grad_norm=dp_max_grad_norm,
         # Silo name/identifier
         metrics_prefix=scatter_name,
         # Iteration number
@@ -358,6 +370,9 @@ pipeline_job = builder.build_flexible_fl_pipeline(
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
     epochs=YAML_CONFIG.training_parameters.epochs,
+    dp=YAML_CONFIG.training_parameters.dp,
+    dp_noise_multiplier=YAML_CONFIG.training_parameters.dp_noise_multiplier,
+    dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
 )
 
 # 4. Validate the pipeline using soft rules

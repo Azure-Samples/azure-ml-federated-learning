@@ -63,3 +63,8 @@ training_parameters:
   # file for the CCFRAUD component. Options include: 
   # SimpleLinear, SimpleLSTM, SimpleVAE
   model_name: SimpleLinear
+
+  # Differential privacy
+  dp: True
+  dp_noise_multiplier: 1.0
+  dp_max_grad_norm: 1.0
