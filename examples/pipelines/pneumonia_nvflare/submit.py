@@ -14,7 +14,7 @@ import datetime
 import webbrowser
 import time
 import sys
-import uuid
+import hashlib
 
 # Azure ML sdk v2 imports
 import azure
@@ -44,15 +44,17 @@ parser.add_argument(
 parser.add_argument(
     "--nvflare_app",
     type=str,
-    required=True,
+    required=False,
+    default=os.path.join(os.path.dirname(__file__), "pneumonia_federated"),
     help="path to an NVFlare application folder",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
+
 parser.add_argument(
     "--subscription_id",
     type=str,
@@ -86,8 +88,8 @@ args = parser.parse_args()
 PROJECT_CONFIG = OmegaConf.load(args.project_config)
 
 # use a hash to check if there are changes in config (or else, reuse provisioning)
-with open(args.project_config, "r") as f:
-    PROJECT_CONFIG_HASH = hash(f.read())
+with open(args.project_config, "r", encoding="utf-8") as f:
+    PROJECT_CONFIG_HASH = hashlib.md5(f.read().encode('utf-8')).hexdigest()
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
@@ -127,6 +129,9 @@ def connect_to_aml():
 
     return ML_CLIENT
 
+
+if not args.offline:
+    ML_CLIENT = connect_to_aml()
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -170,6 +175,21 @@ def custom_fl_data_path(
     return data_path
 
 
+def getUniqueIdentifier(length=8):
+    """Generates a random string and concatenates it with today's date
+
+    Args:
+        length (int): length of the random string (default: 8)
+
+    """
+    str = string.ascii_lowercase
+    date = datetime.date.today().strftime("%Y_%m_%d_")
+    return date + "".join(random.choice(str) for i in range(length))
+
+# we're using some runtime identifier within the pipeline
+pipeline_identifier = getUniqueIdentifier()
+
+
 @pipeline(
     description=f"NVFlare experimental FL pipeline using AzureML",
 )
@@ -193,9 +213,6 @@ def fl_pneumonia_nvflare():
         if participant.type == "admin"
     ][0]
 
-    # an identifier so that client and server find each other
-    fed_id = str(uuid.uuid4())
-
     # run a provisioning component
     provision_step = provision_component(
         # with the config file
@@ -208,7 +225,8 @@ def fl_pneumonia_nvflare():
     nvflare_workspace_datapath = custom_fl_data_path(
         server_config.azureml.datastore, # store it on the orchestrator
         "nvflare_workspace",
-        unique_id=PROJECT_CONFIG_HASH, # reuse previous provision run if config is unchanged
+        # below will ensure we reuse previous provision job run if config is unchanged
+        unique_id=PROJECT_CONFIG_HASH,
     )
     provision_step.outputs.workspace = Output(
         type=AssetTypes.URI_FOLDER, mode="mount", path=nvflare_workspace_datapath
@@ -233,7 +251,7 @@ def fl_pneumonia_nvflare():
         # create a client component for the silo
         silo_client_step = client_component(
             # an identifier so that client and server find each other
-            federation_identifier=fed_id,
+            federation_identifier=pipeline_identifier,
             # it will be given this client's workspace config folder
             client_config=Input(
                 type=AssetTypes.URI_FOLDER,
@@ -258,7 +276,7 @@ def fl_pneumonia_nvflare():
     # create a server component as a "gather" step
     server_step = server_component(
         # an identifier so that client and server find each other
-        federation_identifier=fed_id,
+        federation_identifier=pipeline_identifier,
         # it will be given the server workspace config folder
         server_config=Input(
             path=nvflare_workspace_datapath
@@ -296,9 +314,8 @@ pipeline_job = fl_pneumonia_nvflare()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
-    ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_demo_pneumonia_nvflare"
     )
@@ -328,4 +345,4 @@ if args.submit:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")
