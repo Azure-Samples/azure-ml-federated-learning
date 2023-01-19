@@ -1,7 +1,9 @@
 # FL using NVFlare in AzureML [Experimental]
 
-**Scenario** - This tutorial is an extension of the [Pneumonia / radiographis classification tutorial](../real-world-examples/pneumonia.md) using the NVFlare framework instead. We run an NVFlare federated learning job to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
-The model will be trained in a federated manner, where each entity will train a model on its own data, and the models will be aggregated to produce a final model.
+**Scenario** - This tutorial is an extension of the [Pneumonia / radiographis classification tutorial](../real-world-examples/pneumonia.md) using the NVFlare framework instead.  
+We run an NVFlare federated learning job to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
+
+:warning: Experimental :warning: This tutorial is relying on some experiment code. It will work on our quickstart sandbox, but running it outside of this controlled setup might not work. We're actively working to release a more robust and generic solution.
 
 **Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._.
 
