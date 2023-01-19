@@ -22,4 +22,4 @@ command: >-
 
 environment: 
   build:
-    path: ../nvflare_sdk_env/context/
+    path: ./env/context/

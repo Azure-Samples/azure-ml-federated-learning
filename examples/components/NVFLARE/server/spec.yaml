@@ -7,6 +7,8 @@ description: Populates an NVFlare server
 is_deterministic: true
 
 inputs:
+  federation_identifier:
+    type: string
   server_config:
     type: uri_folder
   admin_config:
@@ -31,6 +33,7 @@ code: "."
 
 command: >-
   python run.py 
+  --federation_identifier ${{inputs.federation_identifier}} 
   --server_config ${{inputs.server_config}} 
   --admin_config ${{inputs.admin_config}} 
   --app_dir ${{inputs.app_dir}} 
@@ -41,4 +44,4 @@ command: >-
 
 environment: 
   build:
-    path: ../nvflare_run_env/context/
+    path: ./environment/context/

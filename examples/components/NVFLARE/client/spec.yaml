@@ -7,6 +7,8 @@ description: Populates an NVFlare client
 is_deterministic: true
 
 inputs:
+  federation_identifier:
+    type: string
   client_config:
     type: uri_folder
   client_data:
@@ -22,10 +24,11 @@ code: "."
 
 command: >-
   python run.py 
+  --federation_identifier ${{inputs.federation_identifier}} 
   --client_config ${{inputs.client_config}} 
   $[[--client_data ${{inputs.client_data}}]] 
   --client_data_env_var ${{inputs.client_data_env_var}}
 
 environment: 
   build:
-    path: ../nvflare_run_env/context/
+    path: ./environment/context/

@@ -14,6 +14,7 @@ import datetime
 import webbrowser
 import time
 import sys
+import uuid
 
 # Azure ML sdk v2 imports
 import azure
@@ -192,6 +193,9 @@ def fl_pneumonia_nvflare():
         if participant.type == "admin"
     ][0]
 
+    # an identifier so that client and server find each other
+    fed_id = str(uuid.uuid4())
+
     # run a provisioning component
     provision_step = provision_component(
         # with the config file
@@ -228,6 +232,8 @@ def fl_pneumonia_nvflare():
 
         # create a client component for the silo
         silo_client_step = client_component(
+            # an identifier so that client and server find each other
+            federation_identifier=fed_id,
             # it will be given this client's workspace config folder
             client_config=Input(
                 type=AssetTypes.URI_FOLDER,
@@ -251,6 +257,8 @@ def fl_pneumonia_nvflare():
 
     # create a server component as a "gather" step
     server_step = server_component(
+        # an identifier so that client and server find each other
+        federation_identifier=fed_id,
         # it will be given the server workspace config folder
         server_config=Input(
             path=nvflare_workspace_datapath

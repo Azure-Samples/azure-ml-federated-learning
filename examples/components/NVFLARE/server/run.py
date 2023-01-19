@@ -34,6 +34,7 @@ def get_arg_parser(parser=None):
         parser = argparse.ArgumentParser(description=__doc__)
 
     group = parser.add_argument_group("MCD Launcher Inputs")
+    group.add_argument("--federation_identifier", type=str, required=True)
     group.add_argument("--server_config", type=str, required=True)
     group.add_argument("--admin_config", type=str, required=True)
     group.add_argument("--app_dir", type=str, required=True)
@@ -83,6 +84,30 @@ def api_command_wrapper(api_command_result, logger=None):
     return api_command_result
 
 
+def publish_server_ip(mlflow_run, federation_identifier, server_name=None, target_run_tag='mlflow.rootRunId'):
+    logger = logging.getLogger()
+
+    # get the local ip of this current node
+    local_hostname = socket.gethostname()
+    local_ip = socket.gethostbyname(local_hostname)
+    logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
+
+    server_ip = str(local_ip)
+
+    mlflow_client = mlflow.tracking.client.MlflowClient()
+    logger.info(f"run tags: {mlflow_run.data.tags}")
+    logger.info(f"target tag {target_run_tag}={mlflow_run.data.tags.get(target_run_tag)}")
+    target_run_id = mlflow_run.data.tags.get(target_run_tag)
+
+    # publish the server ip/name as a tag in mlflow
+    mlflow_client.set_tag(run_id=target_run_id, key=f"{federation_identifier}.server_ip", value=server_ip)
+
+    if server_name:
+        mlflow_client.set_tag(run_id=target_run_id, key=f"{federation_identifier}.server_name", value=server_name)
+
+    return server_ip, server_name
+
+
 def run_server(
     server_config_dir,
     admin_config_dir,
@@ -103,14 +128,10 @@ def run_server(
     """
     logger = logging.getLogger()
 
-    # get the local ip of this current node
-    local_hostname = socket.gethostname()
-    local_ip = socket.gethostbyname(local_hostname)
-    logger.info(f"Detected IP from socket.gethostbyname(): {local_ip}")
-
-    # set self as overseer
+    # communicate to clients through mlflow root (magic)
+    mlflow_run = mlflow.start_run()
     overseer_name = server_name
-    overseer_ip = str(local_ip)
+    overseer_ip, _ = publish_server_ip(mlflow_run, federation_identifier, server_name=server_name)
 
     # create hosts file to resolve ip adresses
     with (open("/etc/hosts", "a")) as f:

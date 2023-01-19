@@ -34,6 +34,7 @@ def get_arg_parser(parser=None):
         parser = argparse.ArgumentParser(description=__doc__)
 
     group = parser.add_argument_group("NVFlare client launcher arguments")
+    group.add_argument("--federation_identifier", type=str, required=True)
     group.add_argument("--client_config", type=str, required=True)
     group.add_argument("--client_data", type=str, required=False, default=None)
     group.add_argument(
@@ -64,41 +65,53 @@ def run_cli_command(cli_command: list, timeout: int = None, custom_env: dict = N
     return cli_command_call.returncode
 
 
-def run_client(args):
-    """Runs the client communication process."""
-    logger = logging.getLogger()
+def fetch_server_ip(mlflow_run, federation_identifier, fetch_name=False, target_run_tag='mlflow.rootRunId', timeout=600):
+    logger = logging.getLogger(__name__)
 
-    # get Mlflow client and root run id
-    mlflow_run = mlflow.start_run()
     mlflow_client = mlflow.tracking.client.MlflowClient()
-    logger.debug(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
-    root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
+    logger.info(f"run tags: {mlflow_run.data.tags}")
+    logger.info(f"target tag {target_run_tag}={mlflow_run.data.tags.get(target_run_tag)}")
+    target_run_id = mlflow_run.data.tags.get(target_run_tag)
 
-    overseer_name = None
-    overseer_ip = None
+    server_ip = None
+    server_name = None
+
     fetch_start_time = time.time()
 
-    client_dir_local = tempfile.TemporaryDirectory().name
-    shutil.copytree(args.client_config, client_dir_local)
+    while (fetch_name and server_name is None) or server_ip is None:
+        logger.info(f"Checking out tag server_ip...")
+        mlflow_root_run = mlflow_client.get_run(target_run_id)
 
-    while overseer_name is None or overseer_ip is None:
-        logger.info(f"Checking out tag overseer_name/overseer_ip...")
-        mlflow_root_run = mlflow_client.get_run(root_run_id)
+        server_ip_tag = f"{federation_identifier}.server_ip"
 
-        if "overseer_name" in mlflow_root_run.data.tags:
-            overseer_name = mlflow_root_run.data.tags["overseer_name"]
-            logger.info(f"overseer_name found: {overseer_name}")
+        if server_ip_tag in mlflow_root_run.data.tags:
+            server_ip = mlflow_root_run.data.tags[server_ip_tag]
+            logger.info(f"server_ip found: {server_ip}")
 
-        if "overseer_ip" in mlflow_root_run.data.tags:
-            overseer_ip = mlflow_root_run.data.tags["overseer_ip"]
-            logger.info(f"overseer_ip found: {overseer_ip}")
+        if fetch_name:
+            server_name_tag = f"{federation_identifier}.server_name"
 
-        if (overseer_name is None or overseer_ip is None) and (
-            time.time() - fetch_start_time > 600
+            if server_name_tag in mlflow_root_run.data.tags:
+                server_name = mlflow_root_run.data.tags[server_name_tag]
+                logger.info(f"server_name found: {server_name}")
+
+        if ((fetch_name and server_name is None) or server_ip is None) and (
+            time.time() - fetch_start_time > timeout
         ):
             raise RuntimeError("Could not fetch the tag within timeout.")
         else:
             time.sleep(10)
+
+    return server_ip, server_name
+
+
+def run_client(args):
+    """Runs the client communication process."""
+    logger = logging.getLogger()
+
+    # use mlflow to getch server ip and name
+    mlflow_run = mlflow.start_run()
+    overseer_ip, overseer_name = fetch_server_ip(mlflow_run, args.federation_identifier, fetch_name=True)
 
     # create hosts file to resolve ip adresses
     with (open("/etc/hosts", "a")) as f:

@@ -1,4 +1,4 @@
-ARG PYTORCH_IMAGE=nvcr.io/nvidia/pytorch:22.09-py3
+ARG PYTORCH_IMAGE=nvcr.io/nvidia/pytorch:22.12-py3
 FROM ${PYTORCH_IMAGE}
 
 RUN python3 -m pip install -U pip
