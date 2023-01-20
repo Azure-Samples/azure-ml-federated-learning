@@ -205,13 +205,13 @@ def fl_pipeline_flwr_basic():
         type=AssetTypes.URI_FOLDER,
         mode="mount",
         path=custom_fl_data_path(
-            YAML_CONFIG.federated_learning.orchestrator.datastore,
-            "job_artefacts"
+            YAML_CONFIG.federated_learning.orchestrator.datastore, "job_artefacts"
         ),
     )
 
     # no return value yet
     return {}
+
 
 # build the pipeline
 pipeline_job = fl_pipeline_flwr_basic()
