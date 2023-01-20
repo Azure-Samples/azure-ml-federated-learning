@@ -14,6 +14,7 @@ import logging
 import sys
 import os.path
 import time
+from collections import OrderedDict
 
 import mlflow
 from mlflow import log_metric, log_param
@@ -125,72 +126,52 @@ class PTLearner:
         if checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
-        with mlflow.start_run() as mlflow_run:
+        mlflow_run = mlflow.active_run()
 
-            # get Mlflow client and root run id
-            mlflow_client = mlflow.tracking.client.MlflowClient()
-            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+        # get Mlflow client and root run id
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
+        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
 
-            self.model_.train()
-            logger.debug("Local training started")
+        self.model_.train()
+        logger.debug("Local training started")
 
-            training_loss = 0.0
-            test_loss = 0.0
-            test_acc = 0.0
+        training_loss = 0.0
+        test_loss = 0.0
+        test_acc = 0.0
 
-            # Basic training
-            for epoch in range(self._epochs):
-                running_loss = 0.0
-                num_of_batches_before_logging = 100
+        # Basic training
+        for epoch in range(self._epochs):
+            running_loss = 0.0
+            num_of_batches_before_logging = 100
 
-                for i, batch in enumerate(self.train_loader_):
+            for i, batch in enumerate(self.train_loader_):
 
-                    images, labels = batch[0].to(self.device_), batch[1].to(
-                        self.device_
+                images, labels = batch[0].to(self.device_), batch[1].to(self.device_)
+                self.optimizer_.zero_grad()
+
+                predictions = self.model_(images)
+                cost = self.loss_(predictions, labels)
+                cost.backward()
+                self.optimizer_.step()
+
+                running_loss += cost.cpu().detach().numpy() / images.size()[0]
+                if i != 0 and i % num_of_batches_before_logging == 0:
+                    training_loss = running_loss / num_of_batches_before_logging
+                    logger.info(
+                        f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
                     )
-                    self.optimizer_.zero_grad()
 
-                    predictions = self.model_(images)
-                    cost = self.loss_(predictions, labels)
-                    cost.backward()
-                    self.optimizer_.step()
+                    # log train loss
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        "Train Loss",
+                        training_loss,
+                        pipeline_level=True,
+                    )
 
-                    running_loss += cost.cpu().detach().numpy() / images.size()[0]
-                    if i != 0 and i % num_of_batches_before_logging == 0:
-                        training_loss = running_loss / num_of_batches_before_logging
-                        logger.info(
-                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
-                        )
-
-                        # log train loss
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            "Train Loss",
-                            training_loss,
-                        )
-
-                        running_loss = 0.0
-
-            # log metrics at the pipeline level
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Train Loss",
-                training_loss,
-                pipeline_level=True,
-            )
-            self.log_metrics(
-                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
-            )
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Test Accuracy",
-                test_acc,
-                pipeline_level=True,
-            )
+                    running_loss = 0.0
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
@@ -232,7 +213,7 @@ class CustomFlowerClient(fl.client.NumPyClient):
     def fit(self, parameters, config):
         self.set_parameters(parameters)
         self.pt_trainer.local_train(checkpoint=None)
-        return self.get_parameters(config={}), len(trainloader.dataset), {}
+        return self.get_parameters(config={}), len(self.pt_trainer.train_loader_), {}
 
     def evaluate(self, parameters, config):
         self.set_parameters(parameters)
