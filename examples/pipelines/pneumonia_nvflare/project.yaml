@@ -10,35 +10,35 @@ participants:
     admin_port: 8003
     # NOTE: each participant needs an azureml compute and datastore
     azureml:
-      compute: cpu-orchestrator
+      compute: "orchestrator-01"
       datastore: datastore_orchestrator
+
+  - name: worker-0
+    type: client
+    org: azureml
+    # NOTE: each participant needs an azureml compute and datastore
+    azureml:
+      data: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
+      compute: silo0-01
+      datastore: datastore_silo0
 
   - name: worker-1
     type: client
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore
     azureml:
-      data: azureml://datastores/datastore_silo0_westus/paths/federated_learning/pneumonia
-      compute: cpu-silo0-westus
-      datastore: datastore_silo0_westus
+      data: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
+      compute: silo1-01
+      datastore: datastore_silo1
 
   - name: worker-2
     type: client
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore
     azureml:
-      data: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/pneumonia
-      compute: cpu-silo1-francecentral
-      datastore: datastore_silo1_francecentral
-
-  - name: worker-3
-    type: client
-    org: azureml
-    # NOTE: each participant needs an azureml compute and datastore
-    azureml:
-      data: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/pneumonia
-      compute: cpu-silo2-brazilsouth
-      datastore: datastore_silo2_brazilsouth
+      data: azureml://datastores/datastore_silo2/paths/federated_learning/pneumonia
+      compute: silo2-01
+      datastore: datastore_silo2
 
   - name: "admin@azure.ml"
     type: admin
