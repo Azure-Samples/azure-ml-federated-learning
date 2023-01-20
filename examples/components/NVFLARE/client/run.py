@@ -166,6 +166,9 @@ def run_client(args):
         client_env[args.client_data_env_var] = args.client_data
 
     # run client startup
+    client_dir_local = tempfile.TemporaryDirectory().name
+    shutil.copytree(args.client_config, client_dir_local)
+
     startup_script_path = os.path.join(client_dir_local, "startup", "sub_start.sh")
     logger.info(f"Running ${startup_script_path}")
     run_cli_command(["bash", startup_script_path], custom_env=client_env)
