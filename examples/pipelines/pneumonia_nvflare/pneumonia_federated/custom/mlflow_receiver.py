@@ -23,8 +23,6 @@ from nvflare.apis.fl_context import FLContext
 from nvflare.apis.shareable import Shareable
 from nvflare.app_common.widgets.streaming import AnalyticsReceiver
 
-from azure.ai.ml import MLClient
-from azure.identity import DefaultAzureCredential
 import mlflow
 
 FUNCTION_MAPPING = {
