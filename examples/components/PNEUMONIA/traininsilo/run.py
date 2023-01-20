@@ -1,4 +1,4 @@
-# This file defining the learner was adapted from https://github.com/Azure/medical-imaging/blob/main/federated-learning/pneumonia-federated/custom/pt_learner.py to run directly on Azure ML without using NVFlare.
+# This file defining the learner was adapted from https://github.com/Azure/medical-imaging/blob/main/federated-learning/pneumonia-federated/custom/pt_learner.py to run directly on Azure ML without using Flower.
 """Script for training component."""
 import argparse
 import logging
