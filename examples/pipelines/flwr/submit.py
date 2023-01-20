@@ -32,14 +32,15 @@ parser.add_argument(
     type=str,
     required=False,
     default=os.path.join(os.path.dirname(__file__), "config.yaml"),
-    help="path to a config.yaml file",
+    help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
+
 parser.add_argument(
     "--subscription_id",
     type=str,
@@ -96,10 +97,10 @@ def connect_to_aml():
     try:
         # tries to connect using cli args if provided else using config.yaml
         ML_CLIENT = MLClient(
-            subscription_id=args.subscription_id or PROJECT_CONFIG.aml.subscription_id,
+            subscription_id=args.subscription_id or YAML_CONFIG.aml.subscription_id,
             resource_group_name=args.resource_group
-            or PROJECT_CONFIG.aml.resource_group_name,
-            workspace_name=args.workspace_name or PROJECT_CONFIG.aml.workspace_name,
+            or YAML_CONFIG.aml.resource_group_name,
+            workspace_name=args.workspace_name or YAML_CONFIG.aml.workspace_name,
             credential=credential,
         )
 
@@ -110,6 +111,13 @@ def connect_to_aml():
 
     return ML_CLIENT
 
+
+#############################################
+### GET ML_CLIENT AND COMPUTE INFORMATION ###
+#############################################
+
+if not args.offline:
+    ML_CLIENT = connect_to_aml()
 
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
@@ -159,16 +167,27 @@ def fl_pipeline_flwr_basic():
     fed_identifier = str(uuid.uuid4())
 
     # for each silo, run a distinct client with its own inputs and outputs
-    for client_index, client_config in enumerate(YAML_CONFIG.federated_learning.silos):
+    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # create a client component for the silo
         silo_client_step = client_component(
             federation_identifier=fed_identifier,
+            client_data=Input(
+                type=silo_config.silo_data.type,
+                mode=silo_config.silo_data.mode,
+                path=silo_config.silo_data.path,
+            ),
+            # Learning rate for local training
+            lr=YAML_CONFIG.training_parameters.lr,
+            # Number of epochs
+            epochs=YAML_CONFIG.training_parameters.epochs,
+            # Silo name/identifier
+            metrics_prefix=silo_config.name,
         )
         # add a readable name to the step
-        silo_client_step.name = f"silo_client_{client_index}"
+        silo_client_step.name = f"silo_{silo_index}_client"
 
         # make sure it runs in the silo itself
-        silo_client_step.compute = client_config.compute
+        silo_client_step.compute = silo_config.computes[0]
 
     ## GATHER ##
 
@@ -200,9 +219,8 @@ pipeline_job = fl_pipeline_flwr_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
-    ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_pipeline_flwr_basic"
     )
@@ -232,4 +250,4 @@ if args.submit:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")
