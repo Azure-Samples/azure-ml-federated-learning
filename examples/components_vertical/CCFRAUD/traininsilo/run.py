@@ -16,7 +16,7 @@ import torch.distributed.optim as dist_optim
 import torch.distributed as dist
 from torch import nn
 from torchmetrics.functional import precision_recall, accuracy
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Dataset
 from mlflow import log_metric, log_param
@@ -138,6 +138,7 @@ class CCFraudTrainer:
         )
 
         # Build model
+        self._model_name = model_name
         if self._global_rank == 0:
             self.model_ = getattr(models, model_name + "Top")().to(self.device_)
         else:
@@ -147,7 +148,9 @@ class CCFraudTrainer:
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
-        self.optimizer_ = Adam(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
+        self.optimizer_ = AdamW(
+            self.model_.parameters(), lr=self._lr, weight_decay=1e-5
+        )
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -160,8 +163,8 @@ class CCFraudTrainer:
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
         if self._global_rank == 0:
             self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
-        train_df = pd.read_csv(train_data_dir + "/data.csv")
-        test_df = pd.read_csv(test_data_dir + "/data.csv")
+        train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
+        test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
         if model_name == "SimpleLinear":
             train_dataset = datasets.FraudDataset(train_df)
             test_dataset = datasets.FraudDataset(test_df)
@@ -242,6 +245,7 @@ class CCFraudTrainer:
             test_metrics = RunningMetrics(
                 ["accuracy", "precision", "recall"], prefix="test"
             )
+
             for epoch in range(1, self._epochs + 1):
                 self.model_.train()
                 train_metrics.reset_global()
@@ -252,9 +256,12 @@ class CCFraudTrainer:
                     self.optimizer_.zero_grad()
 
                     if self._global_rank != 0:
-                        output = self.model_(data)[0]
+                        output, net_loss = self.model_(data)
                         output = output.contiguous()
                         dist.send(output, 0, self._global_group)
+                        if net_loss is not None:
+                            net_loss += net_loss * 1e-5
+                            net_loss.backward(retain_graph=True)
                         gradient = torch.zeros_like(output).to(self.device_)
                         dist.recv(gradient, 0, self._global_group)
                         output.backward(gradient)
@@ -263,32 +270,32 @@ class CCFraudTrainer:
 
                     outputs = []
                     for j in range(1, self._global_size):
-                        # output = torch.zeros((len(batch), 4)) # Linear
-                        output = torch.zeros((len(batch), 100, 256))  # LSTM
+                        if self._model_name == "SimpleLinear":
+                            output = torch.zeros((len(batch), 4), dtype=torch.float32)
+                        else:
+                            output = torch.zeros(
+                                (len(batch), 100, 256), dtype=torch.float32
+                            )
                         dist.recv(output, j, self._global_group)
                         outputs.append(output)
 
-                    outputs = torch.autograd.Variable(
-                        torch.stack(outputs), requires_grad=True
-                    )
-                    outputs = outputs.to(torch.float32).mean(dim=0)
+                    # Average all intermediate results
+                    outputs = torch.stack(outputs)
+                    outputs.requires_grad = True
+                    outputs = outputs.mean(dim=0)
 
                     predictions, net_loss = self.model_(outputs)
                     self.criterion_.weight = (
                         ((data == 1) * (self.fraud_weight_ - 1)) + 1
                     ).to(self.device_)
                     # Compute loss
-                    loss = self.criterion_(predictions, data.type(torch.float))
+                    loss = self.criterion_(predictions, data.to(torch.float32))
                     if net_loss is not None:
                         loss += net_loss * 1e-5
 
                     # Compute gradients and adjust learning weights
                     loss.backward(retain_graph=True)
-                    if outputs.grad is not None:
-                        gradients = outputs.grad
-                    else:
-                        logger.warning("Gradient not computed in backward pass!")
-                        gradients = torch.autograd.grad(loss, outputs)[0]
+                    gradients = torch.autograd.grad(loss, outputs)
                     self.optimizer_.step()
 
                     for j in range(1, self._global_size):
@@ -331,6 +338,9 @@ class CCFraudTrainer:
 
                 test_metrics = self.test()
 
+                if self._global_rank != 0:
+                    continue
+
                 log_message = [
                     f"Epoch: {epoch}/{self._epochs}",
                 ]
@@ -357,26 +367,28 @@ class CCFraudTrainer:
             log_message = [
                 f"End of training",
             ]
-            # log metrics at the pipeline level
-            for name, value in train_metrics.get_global().items():
-                log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
 
-            for name, value in test_metrics.get_global().items():
-                log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
+            if self._global_rank != 0:
+                # log metrics at the pipeline level
+                for name, value in train_metrics.get_global().items():
+                    log_message.append(f"{name}: {value}")
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                        pipeline_level=True,
+                    )
+
+                for name, value in test_metrics.get_global().items():
+                    log_message.append(f"{name}: {value}")
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        name,
+                        value,
+                        pipeline_level=True,
+                    )
             logger.info(", ".join(log_message))
 
     def test(self):
@@ -391,18 +403,22 @@ class CCFraudTrainer:
                 data = batch.to(self.device_)
 
                 if self._global_rank != 0:
-                    output = self.model_(data)
+                    output = self.model_(data)[0].contiguous()
                     dist.send(output, 0, self._global_group)
                     continue
 
                 outputs = []
                 for j in range(1, self._global_size):
-                    output = torch.zeros((len(batch), 4))
+                    if self._model_name == "SimpleLinear":
+                        output = torch.zeros((len(batch), 4), dtype=torch.float32)
+                    else:
+                        output = torch.zeros(
+                            (len(batch), 100, 256), dtype=torch.float32
+                        )
                     dist.recv(output, j, self._global_group)
                     outputs.append(output)
 
-                outputs = torch.autograd.Variable(torch.stack(outputs))
-                outputs = outputs.to(torch.float32).mean(dim=0)
+                outputs = torch.stack(outputs).mean(dim=0)
                 predictions, net_loss = self.model_(outputs)
 
                 self.criterion_.weight = (

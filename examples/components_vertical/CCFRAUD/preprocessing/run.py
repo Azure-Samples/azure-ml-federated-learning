@@ -63,6 +63,8 @@ def apply_transforms(df):
     ]
 
     for column in datetimes:
+        if column not in df.columns:
+            continue
         df.loc[:, column] = pd.to_datetime(df[column]).view("int64")
     for column in normalize:
         if column not in df.columns:
@@ -104,8 +106,8 @@ def preprocess_data(
     )
 
     logger.debug(f"Loading data...")
-    train_df = pd.read_csv(raw_training_data + f"/train.csv")
-    test_df = pd.read_csv(raw_testing_data + f"/test.csv")
+    train_df = pd.read_csv(raw_training_data + f"/train.csv", index_col=0)
+    test_df = pd.read_csv(raw_testing_data + f"/test.csv", index_col=0)
 
     if "is_fraud" in train_df.columns:
         fraud_weight = (
@@ -121,17 +123,15 @@ def preprocess_data(
 
     logger.debug(f"Train data samples: {len(train_data)}")
     logger.debug(f"Test data samples: {len(test_data)}")
-
-    train_data = train_data.sort_values(by="trans_date_trans_time")
-    test_data = test_data.sort_values(by="trans_date_trans_time")
-
-    if "is_fraud" in train_df.columns:
-        train_data = train_data[["is_fraud"]]
-        test_data = test_data[["is_fraud"]]
-
     logger.info(f"Saving processed data to {train_data_dir} and {test_data_dir}")
-    train_data.to_csv(train_data_dir + "/data.csv", index=False)
-    test_data.to_csv(test_data_dir + "/data.csv", index=False)
+
+    if not os.path.exists(train_data_dir):
+        os.makedirs(train_data_dir)
+    if not os.path.exists(test_data_dir):
+        os.makedirs(test_data_dir)
+
+    train_data.to_csv(train_data_dir + "/data.csv")
+    test_data.to_csv(test_data_dir + "/data.csv")
 
     # Mlflow logging
     log_metadata(train_data, test_data, metrics_prefix)

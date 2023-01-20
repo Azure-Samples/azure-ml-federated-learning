@@ -163,18 +163,25 @@ def run(args):
         zObject.extractall("./dataset/extracted")
 
     df_train = pd.read_csv("./dataset/extracted/fraudTrain.csv", index_col=0)
+    df_train = df_train.sort_values(by="trans_date_trans_time")
     df_train.reset_index(inplace=True)
     print(f"Loaded train dataset with {len(df_train)} rows")
     df_test = pd.read_csv("./dataset/extracted/fraudTest.csv", index_col=0)
+    df_test = df_test.sort_values(by="trans_date_trans_time")
     df_test.reset_index(inplace=True)
     print(f"Loaded test dataset with {len(df_test)} rows")
+
+    if not os.path.exists(args.raw_train_data):
+        os.makedirs(args.raw_train_data, exist_ok=True)
+    if not os.path.exists(args.raw_test_data):
+        os.makedirs(args.raw_test_data, exist_ok=True)
 
     train_path = f"{args.raw_train_data}/train.csv"
     test_path = f"{args.raw_test_data}/test.csv"
 
     if args.silo_index == 0:
-        df_train = df_train[["is_fraud", "trans_date_trans_time"]]
-        df_test = df_test[["is_fraud", "trans_date_trans_time"]]
+        df_train = df_train[["is_fraud"]]
+        df_test = df_test[["is_fraud"]]
     else:
         df_train.drop("is_fraud", axis=1, inplace=True)
         df_test.drop("is_fraud", axis=1, inplace=True)
@@ -209,8 +216,6 @@ def run(args):
         drop_columns_subset = set(df_train.columns).difference(
             column_splits[args.silo_index - 1]
         )
-        if "trans_date_trans_time" in drop_columns_subset:
-            drop_columns_subset.remove("trans_date_trans_time")
 
         df_train.drop(drop_columns_subset, 1, inplace=True)
         df_test.drop(drop_columns_subset, 1, inplace=True)
@@ -225,8 +230,8 @@ def run(args):
         f"Filtered test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
     )
 
-    df_train.to_csv(train_path, index=False)
-    df_test.to_csv(test_path, index=False)
+    df_train.to_csv(train_path)
+    df_test.to_csv(test_path)
 
 
 def get_arg_parser(parser=None):

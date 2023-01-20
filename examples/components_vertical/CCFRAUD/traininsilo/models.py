@@ -160,7 +160,7 @@ class SimpleLSTMTop(nn.Module):
         return x, None
 
 
-class SimpleVAE(nn.Module):
+class SimpleVAEBottom(nn.Module):
     """LSTM based VAE with head composed of Linear layers interleaved by ReLU activations
 
     Args:
@@ -214,11 +214,6 @@ class SimpleVAE(nn.Module):
         )
 
         self.nll_loss = torch.nn.NLLLoss(reduction="sum")
-        self.output = torch.nn.Linear(
-            in_features=self._latent_dim,  # * self._num_layers,
-            out_features=1,
-        )
-        self.sigmoid = torch.nn.Sigmoid()
 
     def encoder(self, x, hidden_encoder):
         output_encoder, hidden_encoder = self.encoder_lstm(x, hidden_encoder)
@@ -263,8 +258,34 @@ class SimpleVAE(nn.Module):
         # Compute architecture loss (difference between input/output + difference between predicted distribution and Gaussian distribution)
         reconstruction_loss = F.mse_loss(x_hat.reshape(-1), x.reshape(-1))
         kl_loss = self.kl_loss(mu, log_var)
-
-        y_hat = self.output(z.repeat([x.shape[1], 1, 1]).permute((1, 0, 2))).squeeze()
-        y_hat = self.sigmoid(y_hat)
+        y_hat = z.repeat([x.shape[1], 1, 1]).permute((1, 0, 2))
 
         return y_hat, reconstruction_loss + kl_loss
+
+
+class SimpleVAETop(nn.Module):
+    """LSTM based VAE with head composed of Linear layers interleaved by ReLU activations
+
+    Args:
+        input_dim (int):
+        number of features to be consumed by the model
+
+    Note:
+        Input must be 3D such that it contains time-dependent sequences
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._latent_dim = 256
+
+        self.output = torch.nn.Linear(
+            in_features=self._latent_dim,
+            out_features=1,
+        )
+        self.sigmoid = torch.nn.Sigmoid()
+
+    def forward(self, x):
+        y_hat = self.output(x).squeeze()
+        y_hat = self.sigmoid(y_hat)
+
+        return y_hat, None

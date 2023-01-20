@@ -54,7 +54,15 @@ class BottomDataset(Dataset):
         super(BottomDataset, self).__init__()
         self.root_dir = root_dir
         self.transform = transform
-        self.images = list(sorted([int(img.split('.')[0]) for img in os.listdir(self.root_dir) if img.endswith(".jpg")]))
+        self.images = list(
+            sorted(
+                [
+                    int(img.split(".")[0])
+                    for img in os.listdir(self.root_dir)
+                    if img.endswith(".jpg")
+                ]
+            )
+        )
         logger.info(str(self.images))
 
     def __len__(self):
@@ -280,19 +288,19 @@ class MnistTrainer:
 
                     outputs = []
                     for j in range(1, self._global_size):
-                        output = torch.zeros((data.shape[0], 512))
+                        output = torch.zeros((data.shape[0], 512), dtype=torch.float32)
                         dist.recv(output, j, self._global_group)
                         outputs.append(output)
 
                     # Average all intermediate results
-                    outputs = torch.stack(outputs).to(torch.float32)
+                    outputs = torch.stack(outputs)
                     outputs.requires_grad = True
                     outputs_avg = outputs.mean(dim=0)
 
                     predictions = self.model_(outputs_avg)
                     loss = self.loss_(predictions, data)
                     loss.backward(retain_graph=True)
-                    gradients = torch.autograd.grad(loss, outputs)[0]
+                    gradients = torch.autograd.grad(loss, outputs)
                     self.optimizer_.step()
 
                     for j in range(1, self._global_size):
