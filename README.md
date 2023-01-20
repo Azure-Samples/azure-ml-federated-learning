@@ -27,6 +27,14 @@ Please also check our industry use cases below.
 | [![](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
 | [pneumonia.md](./docs/real-world-examples/pneumonia.md) | [ner.md](./docs/real-world-examples/ner.md) | [ccfraud.md](./docs/real-world-examples/ccfraud.md) |
 
+### FL Frameworks
+
+If you are already using a specific FL framework, you can port your code to work with AzureML. The following table shows the tested frameworks and the corresponding code samples.
+
+| Framework | Status |
+| :-- | :-- |
+| [**Flower**](./docs/frameworks/flower.md) | Experimental, works only with in-cloud FL. |
+
 ### Documentation
 
 Please find a full documentation of this project [**here**](docs/README.md).
