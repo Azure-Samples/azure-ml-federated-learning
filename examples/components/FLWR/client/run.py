@@ -13,6 +13,7 @@ import argparse
 import logging
 import sys
 import os.path
+import time
 
 import mlflow
 from mlflow import log_metric, log_param
@@ -25,6 +26,7 @@ from torchvision import models, datasets, transforms
 from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Normalize, Compose, Grayscale, Resize
 
+import flwr as fl
 from pneumonia_network import PneumoniaNetwork
 
 
