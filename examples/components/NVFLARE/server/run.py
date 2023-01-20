@@ -171,6 +171,7 @@ def publish_server_ip(
 
 
 def run_server(
+    federation_identifier,
     server_config_dir,
     admin_config_dir,
     app_dir,
@@ -182,11 +183,14 @@ def run_server(
     """Runs the server communication process.
 
     Args:
+        federation_identifier (str): the unique identifier for the federation
         server_config_dir (str): the path to the server config directory (from provision)
         admin_config_dir (str): the path to the admin config directory (from provision)
         app_dir (str): the path to the NVFlare application (training code) to submit
         server_name (str): the name of the server
         expected_clients (int): the size of the federation
+        output_dir (str): the path to the output directory for the NVFlare job
+        wait_for_clients_timeout (int, optional): the number of seconds to wait for clients to connect before timing out. Defaults to 600.
     """
     logger = logging.getLogger()
 
@@ -381,6 +385,7 @@ def main():
     logger.info("args: {}".format(args))
 
     run_server(
+        args.federation_identifier,
         args.server_config,
         args.admin_config,
         args.app_dir,
