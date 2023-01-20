@@ -52,11 +52,13 @@ Follow the instructions in the [pneumonia real-world-example](../real-world-exam
 
 This will create a job in AzureML, this job will submit 4 other jobs within a pipeline, one in the orchestrator for the NVFlare server, and 3 in each silo for each of the NVFlare clients.
 
-You can check out the logs in each of those jobs:
-- `outputs/nvflare_host.log` : are the logs of the runtime that operates the nvflare host setup
-- `user_logs/std_log.txt` : the regular logs of the job being run
+Those jobs connect to one another: each silo client will directly connect to the server job using its private IP through the vnet peering, using the NVFlare protocol. This works thanks to a trick using mlflow: the server job will report its private IP address as an mlflow tag, and the client jobs will fetch it from there. This currently works only through vnets and private IPs.
 
-If you click on the Server job, you will see the MLFlow metrics reporting there.
+During the execution, you can check out the logs in each of both the server and the clients jobs::
+- `outputs/nvflare_host.log` : the logs of the "runtime" that wraps the NVFlare server/clients as an AzureML job
+- `user_logs/std_log.txt` : the logs of the NVFlare application
+
+Also, if you click on the server job, you will see the MLFlow metrics reporting there.
 
 ## How to adapt to your own scenario
 
