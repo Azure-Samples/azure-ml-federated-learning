@@ -271,7 +271,7 @@ def run_server(
             ),
             logger,
         )
-        if response.details.message == "Waited until timeout.":
+        if response.get("details", {}).get("message", None) == "Waited until timeout.":
             raise RuntimeError("Waited for clients until timeout.")
         logger.info("All clients are now connected to the server")
 
