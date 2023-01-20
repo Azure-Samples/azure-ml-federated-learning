@@ -194,18 +194,6 @@ def run_server(
     """
     logger = logging.getLogger()
 
-    # communicate to clients through mlflow root (magic)
-    mlflow_run = mlflow.start_run()
-    overseer_name = server_name
-    overseer_ip, _ = publish_server_ip(
-        mlflow_run, federation_identifier, server_name=server_name
-    )
-
-    # create hosts file to resolve ip adresses
-    with (open("/etc/hosts", "a")) as f:
-        # write server address
-        f.write(f"{overseer_ip}\t{overseer_name}\n")
-
     # organize files locally
     workspace_dir = tempfile.TemporaryDirectory().name
     logger.info(f"workspace_dir: {workspace_dir}")
@@ -236,13 +224,15 @@ def run_server(
 
     # communicate to clients through mlflow root (magic)
     mlflow_run = mlflow.start_run()
-    mlflow_client = mlflow.tracking.client.MlflowClient()
-    logger.info(f"run tags: {mlflow_run.data.tags}")
-    logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
-    root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
+    overseer_name = server_name
+    overseer_ip, _ = publish_server_ip(
+        mlflow_run, federation_identifier, server_name=server_name
+    )
 
-    mlflow_client.set_tag(run_id=root_run_id, key="overseer_name", value=overseer_name)
-    mlflow_client.set_tag(run_id=root_run_id, key="overseer_ip", value=overseer_ip)
+    # create hosts file to resolve ip adresses
+    with (open("/etc/hosts", "a")) as f:
+        # write server address
+        f.write(f"{overseer_ip}\t{overseer_name}\n")
 
     # let's start the...
     logger.info("****************** NVFLARE SUBMIT SEQUENCE ******************")
