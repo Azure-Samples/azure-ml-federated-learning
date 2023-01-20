@@ -82,7 +82,7 @@ If you are already using a specific FL framework, you can port your code to work
 
 | Framework | Status |
 | :-- | :-- |
-| [NVFlare](./docs/frameworks/nvflare.md) | Experimental, works only with in-cloud FL. |
+| [**NVFlare**](./frameworks/nvflare.md) | Experimental, works only with in-cloud FL. |
 
 
 ## Targeted tutorials
