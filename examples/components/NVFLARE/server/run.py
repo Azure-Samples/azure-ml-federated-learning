@@ -1,3 +1,12 @@
+"""This script runs an NVFlare server inside an AzureML job.
+
+The script will:
+- run the server workspace setup script,
+- publish the local ip as a pipeline root tag using mlflow,
+- wait for clients to connect,
+- connect to the NVFlare server using admin api,
+- submit the NVFlare app to itself.
+"""
 import os
 import sys
 import time
@@ -10,13 +19,11 @@ import shutil
 from nvflare.fuel.hci.client.fl_admin_api_runner import FLAdminAPIRunner
 from nvflare.fuel.hci.client.fl_admin_api_constants import FLDetailKey
 from nvflare.fuel.hci.client.fl_admin_api_spec import (
-    APISyntaxError,
     FLAdminAPIResponse,
-    FLAdminAPISpec,
     TargetType,
 )
-import mlflow
 from nvflare.security.logging import secure_format_exception
+import mlflow
 
 
 def get_arg_parser(parser=None):

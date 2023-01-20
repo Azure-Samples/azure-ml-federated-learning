@@ -1,3 +1,14 @@
+"""This script runs an NVFlare client inside an AzureML job.
+
+The script will:
+- fetch the server IP from a pipeline root tag using mlflow,
+- add server name+ip to /etc/hosts to allow client code to find server,
+- run the client workspace setup script.
+
+NOTE: the script can take an input data --client_data folder
+which AzureML will mount to the job. This script passes an environment variable
+to the client workspace setup script to tell it where the data is mounted.
+"""
 import os
 import sys
 import time
@@ -7,16 +18,7 @@ import socket
 import subprocess
 import shutil
 import tempfile
-from nvflare.fuel.hci.client.fl_admin_api_runner import FLAdminAPIRunner
-from nvflare.fuel.hci.client.fl_admin_api_constants import FLDetailKey
-from nvflare.fuel.hci.client.fl_admin_api_spec import (
-    APISyntaxError,
-    FLAdminAPIResponse,
-    FLAdminAPISpec,
-    TargetType,
-)
 import mlflow
-from nvflare.security.logging import secure_format_exception
 
 
 def get_arg_parser(parser=None):

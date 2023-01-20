@@ -2,7 +2,7 @@
 
 This script:
 1) reads an NVFlare project config file in yaml specifying the number of silos and their parameters,
-2) reads some NVFlare provision/server/client components from a local folder,
+2) loads some NVFlare provision/server/client components from a local folder,
 3) builds an AzureML pipeline depending on the config,
 4) configures each step of this pipeline to read/write from the right silo.
 """
@@ -188,7 +188,8 @@ def getUniqueIdentifier(length=8):
 
 
 # we're using some runtime identifier within the pipeline
-pipeline_identifier = getUniqueIdentifier()
+# to identify this federation of server/clients
+fed_id = getUniqueIdentifier()
 
 
 @pipeline(
@@ -252,7 +253,7 @@ def fl_pneumonia_nvflare():
         # create a client component for the silo
         silo_client_step = client_component(
             # an identifier so that client and server find each other
-            federation_identifier=pipeline_identifier,
+            federation_identifier=fed_id,
             # it will be given this client's workspace config folder
             client_config=Input(
                 type=AssetTypes.URI_FOLDER,
@@ -277,7 +278,7 @@ def fl_pneumonia_nvflare():
     # create a server component as a "gather" step
     server_step = server_component(
         # an identifier so that client and server find each other
-        federation_identifier=pipeline_identifier,
+        federation_identifier=fed_id,
         # it will be given the server workspace config folder
         server_config=Input(
             path=nvflare_workspace_datapath
@@ -303,7 +304,8 @@ def fl_pneumonia_nvflare():
     server_step.compute = server_config.azureml.compute
     # and its outputs are stored in the orchestrator datastore
     server_step.outputs.job_artefacts = Output(
-        type=AssetTypes.URI_FOLDER, path=nvflare_workspace_datapath + "job_artefacts/"
+        type=AssetTypes.URI_FOLDER,
+        path=nvflare_workspace_datapath + "runs/${{name}}/job_artefacts/",
     )
 
     # no return value yet

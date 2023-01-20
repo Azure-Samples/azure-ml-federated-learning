@@ -1,10 +1,13 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: nvflare_client
-version: 2.2.3-pytorch
+version: 0.0.5
 display_name: NVFlare client
 type: command
-description: Populates an NVFlare client
+description: This component runs an NVFlare client inside an AzureML job.
 is_deterministic: true
+tags:
+  nvflare: 2.2.3
+  url: https://github.com/Azure-Samples/azure-ml-federated-learning
 
 inputs:
   federation_identifier:
