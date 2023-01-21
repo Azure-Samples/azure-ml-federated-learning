@@ -55,6 +55,8 @@ After that, you should connect your _sensitive_ data to your workspace. Dependin
 
 After all that, you're ready to cook with gas! Iterate on your training algorithm until you are satisfied with the outcome.
 
+_Please note that if you want to upload data to the storage account later on, you will NOT be able to do so through the workspace UI, because the AML workspace itself should NOT have permissions to the storage account. You will need to upload your data directly to the storage account, from the Azure portal._
+
 >**:checkered_flag: :running: Checkpoint:** You have trained your FL model on sensitive data, and it performs well. You have performed some parity check between your FL model and a relevant baseline model. You are now ready to use your FL model in production.
 
 <!-- Here below is a stub for the Fly phase. Not sure if we want to tackle this now, or wait till later and we get a better view into what mature organizations will need.-->
