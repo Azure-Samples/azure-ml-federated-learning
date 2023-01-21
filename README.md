@@ -19,7 +19,7 @@ This repo provides some code samples for running a federated learning pipeline i
 
 No time to read? Go directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
 
-For an overview of the onboarding process, please check our [**roadmap**](./docs/roadmap.md).
+For an overview of the onboarding process, please check our [**ramp-up plan**](./docs/ramp-up-plan.md).
 
 ### Real world examples
 
