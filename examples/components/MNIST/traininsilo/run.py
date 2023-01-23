@@ -11,6 +11,9 @@ from torch.utils.data.dataloader import DataLoader
 from torchvision import models, datasets, transforms
 from mlflow import log_metric, log_param
 
+# DP
+from opacus import PrivacyEngine
+from opacus.validators import ModuleValidator
 
 class MnistTrainer:
     def __init__(
@@ -21,6 +24,9 @@ class MnistTrainer:
         lr=0.01,
         epochs=1,
         batch_size=64,
+        dp=False,
+        dp_noise_multiplier=1.0,
+        dp_max_grad_norm=1.0,
         experiment_name="default-experiment",
         iteration_num=1,
     ):
@@ -32,6 +38,9 @@ class MnistTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01
             epochs (int, optional): Epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64
+            dp (bool, optional): Differential Privacy
+            dp_noise_multiplier (float, optional): DP noise multiplier
+            dp_max_grad_norm (float, optional): DP max gradient norm
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
 
@@ -67,6 +76,7 @@ class MnistTrainer:
         self.loss_ = nn.CrossEntropyLoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
 
+        # Data Loader
         self.train_dataset_, self.test_dataset_ = self.load_dataset(
             train_data_dir, test_data_dir
         )
@@ -76,6 +86,29 @@ class MnistTrainer:
         self.test_loader_ = DataLoader(
             self.test_dataset_, batch_size=batch_size, shuffle=True
         )
+
+        print(f"DP: {dp}")
+        
+        # DP
+        if dp:
+            if not ModuleValidator.is_valid(self.model_):
+                self.model_ = ModuleValidator.fix(self.model_)
+
+        self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
+
+        if dp:
+            privacy_engine = PrivacyEngine(secure_mode=False)
+            (
+                self.model_,
+                self.optimizer_,
+                self.train_loader_,
+            ) = privacy_engine.make_private(
+                module=self.model_,
+                optimizer=self.optimizer_,
+                data_loader=self.train_loader_,
+                noise_multiplier=dp_noise_multiplier,
+                max_grad_norm=dp_max_grad_norm,
+            )
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -148,7 +181,7 @@ class MnistTrainer:
         """
 
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt", map_location=self.device_))
 
         with mlflow.start_run() as mlflow_run:
 
@@ -160,7 +193,6 @@ class MnistTrainer:
             # log params
             self.log_params(mlflow_client, root_run_id)
 
-            self.model_.train()
             logger.debug("Local training started")
 
             training_loss = 0.0
@@ -171,7 +203,7 @@ class MnistTrainer:
 
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
-
+                self.model_.train()
                 for i, batch in enumerate(self.train_loader_):
 
                     images, labels = batch[0].to(self.device_), batch[1].to(
@@ -300,6 +332,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
+    )
+    parser.add_argument(
+        "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
     return parser
 
 
@@ -316,6 +355,10 @@ def run(args):
         model_path=args.model + "/model.pt",
         lr=args.lr,
         epochs=args.epochs,
+        batch_size=args.batch_size,
+        dp=args.dp,
+        dp_noise_multiplier=args.dp_noise_multiplier,
+        dp_max_grad_norm=args.dp_max_grad_norm,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
     )
