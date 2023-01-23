@@ -75,7 +75,6 @@ class MnistTrainer:
         self._model_path = model_path
 
         self.loss_ = nn.CrossEntropyLoss()
-        self.optimizer_ = SGD(self.model_.parameters(), lr=lr, momentum=0.9)
 
         # Data Loader
         self.train_dataset_, self.test_dataset_ = self.load_dataset(
