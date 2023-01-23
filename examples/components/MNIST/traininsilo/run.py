@@ -16,6 +16,7 @@ from distutils.util import strtobool
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 
+
 class MnistTrainer:
     def __init__(
         self,
@@ -180,7 +181,9 @@ class MnistTrainer:
         """
 
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt", map_location=self.device_))
+            self.model_.load_state_dict(
+                torch.load(checkpoint + "/model.pt", map_location=self.device_)
+            )
 
         with mlflow.start_run() as mlflow_run:
 
@@ -331,7 +334,9 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-    parser.add_argument("--dp", type=strtobool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp", type=strtobool, required=False, help="differential privacy"
+    )
     parser.add_argument(
         "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
     )
