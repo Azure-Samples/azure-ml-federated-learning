@@ -186,6 +186,7 @@ class CCFraudTrainer:
         self.criterion_ = nn.BCELoss()
 
         # DP
+        logger.info(f"DP: {dp}")
         if dp:
             if not ModuleValidator.is_valid(self.model_):
                 self.model_ = ModuleValidator.fix(self.model_)
@@ -510,7 +511,7 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument("--dp", type=strtobool, required=False, help="differential privacy")
     parser.add_argument(
         "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
     )

@@ -75,7 +75,7 @@ training_parameters:
   num_of_iterations: 2
   
   # Differential privacy
-  dp: True
+  dp: true
   dp_noise_multiplier: 1.0
   dp_max_grad_norm: 1.0
 
