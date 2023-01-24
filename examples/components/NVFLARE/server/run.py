@@ -97,8 +97,6 @@ def run_cli_command(cli_command: list, timeout: int = None):
     logger.info(f"Launching cli with command: {cli_command}")
     cli_command_call = subprocess.run(
         cli_command,
-        # stdout=PIPE,
-        # stderr=PIPE,
         universal_newlines=True,
         check=False,  # will not raise an exception if subprocess fails
         timeout=timeout,  # TODO: more than a minute would be weird?
