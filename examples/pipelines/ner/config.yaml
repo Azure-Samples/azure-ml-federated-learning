@@ -77,6 +77,6 @@ training_parameters:
   batch_size: 16 # batch size
 
   # Differential privacy
-  dp: True
+  dp: false
   dp_noise_multiplier: 1.0
   dp_max_grad_norm: 1.0

@@ -19,6 +19,7 @@ from torch.utils.data.distributed import DistributedSampler
 from typing import List
 import models as models
 import datasets as datasets
+from distutils.util import strtobool
 
 # DP
 from opacus import PrivacyEngine
@@ -511,7 +512,9 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-    parser.add_argument("--dp", type=strtobool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp", type=strtobool, required=False, help="differential privacy"
+    )
     parser.add_argument(
         "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
     )

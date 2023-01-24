@@ -16,10 +16,6 @@ from distutils.util import strtobool
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 
-# DP
-from opacus import PrivacyEngine
-from opacus.validators import ModuleValidator
-
 
 class MnistTrainer:
     def __init__(

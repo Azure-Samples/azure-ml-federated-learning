@@ -24,7 +24,7 @@ inputs:
   dp:
     type: boolean
     description: differential privacy
-    default: False
+    default: false
     optional: true
   dp_noise_multiplier:
     type: number

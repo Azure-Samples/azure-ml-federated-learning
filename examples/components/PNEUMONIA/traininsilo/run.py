@@ -4,6 +4,7 @@ import argparse
 import logging
 import sys
 import os.path
+from distutils.util import strtobool
 
 import mlflow
 from mlflow import log_metric, log_param
@@ -136,6 +137,7 @@ class PTLearner:
         logger.info(f"Test loader steps: {len(self.test_loader_)}")
 
         # DP
+        logger.info(f"DP: {dp}")
         if dp:
             if not ModuleValidator.is_valid(self.model_):
                 self.model_ = ModuleValidator.fix(self.model_)
@@ -393,7 +395,9 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training.",
     )
-    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp", type=strtobool, required=False, help="differential privacy"
+    )
     parser.add_argument(
         "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
     )

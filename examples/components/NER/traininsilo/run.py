@@ -22,6 +22,7 @@ import numpy as np
 import evaluate
 import mlflow
 import torch
+from distutils.util import strtobool
 
 # DP
 from opacus import PrivacyEngine
@@ -536,7 +537,9 @@ def get_arg_parser(parser=None):
         "--tokenizer_name", type=str, required=False, help="Tokenizer model name"
     )
     parser.add_argument("--model_name", type=str, required=False, help="Model name")
-    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp", type=strtobool, required=False, help="differential privacy"
+    )
     parser.add_argument(
         "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
     )
