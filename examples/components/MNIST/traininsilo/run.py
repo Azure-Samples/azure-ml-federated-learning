@@ -40,9 +40,9 @@ class MnistTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01
             epochs (int, optional): Epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64
-            dp (bool, optional): Differential Privacy
-            dp_noise_multiplier (float, optional): DP noise multiplier
-            dp_max_grad_norm (float, optional): DP max gradient norm
+            dp (bool, optional): Differential Privacy. Default is False
+            dp_noise_multiplier (float, optional): DP noise multiplier. Default is 1.0
+            dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
 
