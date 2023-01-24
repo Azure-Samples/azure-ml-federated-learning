@@ -25,4 +25,4 @@ command: >-
 
 environment: 
   build:
-    path: ./env/context/
+    path: ./environment/context/
