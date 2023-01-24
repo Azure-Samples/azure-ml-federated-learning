@@ -10,6 +10,11 @@ from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torchvision import models, datasets, transforms
 from mlflow import log_metric, log_param
+from distutils.util import strtobool
+
+# DP
+from opacus import PrivacyEngine
+from opacus.validators import ModuleValidator
 
 # DP
 from opacus import PrivacyEngine
@@ -88,6 +93,7 @@ class MnistTrainer:
         )
 
         # DP
+        logger.info(f"DP: {dp}")
         if dp:
             if not ModuleValidator.is_valid(self.model_):
                 self.model_ = ModuleValidator.fix(self.model_)
@@ -203,7 +209,7 @@ class MnistTrainer:
                 self.model_.train()
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
-
+                self.model_.train()
                 for i, batch in enumerate(self.train_loader_):
 
                     images, labels = batch[0].to(self.device_), batch[1].to(
@@ -332,7 +338,9 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-    parser.add_argument("--dp", type=bool, required=False, help="differential privacy")
+    parser.add_argument(
+        "--dp", type=strtobool, required=False, help="differential privacy"
+    )
     parser.add_argument(
         "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
     )
