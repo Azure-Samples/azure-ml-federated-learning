@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class SimpleLinearBottom(nn.Module):
-    """Bottom part of the model composed of only Linear model interleaved with ReLU activations
+    """Bottom (Contributor) part of the model composed of only Linear model interleaved with ReLU activations
 
     Args:
         input_dim (int):
@@ -48,12 +48,7 @@ class SimpleLinearBottom(nn.Module):
 
 
 class SimpleLinearTop(nn.Module):
-    """Top part of the model composed of only Linear model interleaved with ReLU activations
-
-    Args:
-        input_dim (int):
-        number of features to be consumed by the model
-    """
+    """Top (Host) part of the model composed of only Linear model interleaved with ReLU activations"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -77,7 +72,7 @@ class SimpleLinearTop(nn.Module):
 
 
 class SimpleLSTMBottom(nn.Module):
-    """Model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
+    """Bottom (Contributor) part of the model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
 
     Args:
         input_dim (int):
@@ -103,9 +98,7 @@ class SimpleLSTMBottom(nn.Module):
 
     def _init_weights(self):
         for m in self.modules():
-            if isinstance(m, nn.Embedding):
-                torch.nn.init.uniform_(m.weight, -0.001, 0.001)
-            elif isinstance(m, nn.Linear):
+            if isinstance(m, nn.Linear):
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.01)
 
@@ -116,15 +109,7 @@ class SimpleLSTMBottom(nn.Module):
 
 
 class SimpleLSTMTop(nn.Module):
-    """Model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
-
-    Args:
-        input_dim (int):
-        number of features to be consumed by the model
-
-    Note:
-        Input must be 3D such that it contains time-dependent sequences
-    """
+    """Top (Host) part of the model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations"""
 
     def __init__(self) -> None:
         super().__init__()
@@ -149,9 +134,7 @@ class SimpleLSTMTop(nn.Module):
 
     def _init_weights(self):
         for m in self.modules():
-            if isinstance(m, nn.Embedding):
-                torch.nn.init.uniform_(m.weight, -0.001, 0.001)
-            elif isinstance(m, nn.Linear):
+            if isinstance(m, nn.Linear):
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.01)
 
@@ -161,7 +144,7 @@ class SimpleLSTMTop(nn.Module):
 
 
 class SimpleVAEBottom(nn.Module):
-    """LSTM based VAE with head composed of Linear layers interleaved by ReLU activations
+    """Bottom (Contributor) part of the LSTM based VAE with head composed of Linear layers interleaved by ReLU activations
 
     Args:
         input_dim (int):
@@ -178,8 +161,7 @@ class SimpleVAEBottom(nn.Module):
         self._hidden_dim = 128
         self._num_layers = 2
         self._bidirectional = False
-        self._hidden_factor = (2 if self._bidirectional else 1) * self._num_layers
-        self._latent_dim = 256
+        self._latent_dim = 1000
         self._embedding_dropout = 0.5
 
         # Encoder Part
@@ -264,19 +246,11 @@ class SimpleVAEBottom(nn.Module):
 
 
 class SimpleVAETop(nn.Module):
-    """LSTM based VAE with head composed of Linear layers interleaved by ReLU activations
-
-    Args:
-        input_dim (int):
-        number of features to be consumed by the model
-
-    Note:
-        Input must be 3D such that it contains time-dependent sequences
-    """
+    """Top (Host) part of the LSTM based VAE with head composed of Linear layers interleaved by ReLU activations"""
 
     def __init__(self) -> None:
         super().__init__()
-        self._latent_dim = 256
+        self._latent_dim = 1000
 
         self.output = torch.nn.Linear(
             in_features=self._latent_dim,

@@ -1,4 +1,4 @@
-"""Federated Learning Cross-Silo Vertical basic pipeline for MNIST.
+"""Federated Learning Cross-Silo Vertical basic pipeline for ccfraud.
 
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
@@ -189,7 +189,7 @@ pipeline_identifier = getUniqueIdentifier()
 @pipeline(
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
-def fl_mnist_vertical_basic():
+def fl_ccfraud_vertical_basic():
     ######################
     ### PRE-PROCESSING ###
     ######################
@@ -308,7 +308,7 @@ def fl_mnist_vertical_basic():
     return outputs
 
 
-pipeline_job = fl_mnist_vertical_basic()
+pipeline_job = fl_ccfraud_vertical_basic()
 
 # Inspect built pipeline
 print(pipeline_job)
@@ -318,7 +318,7 @@ if args.submit:
 
     ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_demo_mnist_vertical"
+        pipeline_job, experiment_name="fl_demo_ccfraud_vertical"
     )
 
     print("The url to see your live job running is returned by the sdk:")

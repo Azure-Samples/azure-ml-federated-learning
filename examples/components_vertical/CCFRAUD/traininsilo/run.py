@@ -5,6 +5,7 @@ import sys
 import copy
 import datetime
 import os
+from aml_comm import AMLComm
 
 import pythonping
 import mlflow
@@ -85,7 +86,7 @@ class CCFraudTrainer:
         model_name,
         global_rank,
         global_size,
-        global_group,
+        global_comm,
         train_data_dir="./",
         test_data_dir="./",
         model_path=None,
@@ -123,9 +124,10 @@ class CCFraudTrainer:
         self._iteration_name = iteration_name
         self._global_rank = global_rank
         self._global_size = global_size
-        self._global_group = global_group
+        self._global_comm = global_comm
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        logger.info(f"Using device: {self.device_}")
 
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
             train_data_dir, test_data_dir, model_name
@@ -258,48 +260,40 @@ class CCFraudTrainer:
                     if self._global_rank != 0:
                         output, net_loss = self.model_(data)
                         output = output.contiguous()
-                        dist.send(output, 0, self._global_group)
+                        self._global_comm.send(output, 0)
                         if net_loss is not None:
                             net_loss += net_loss * 1e-5
                             net_loss.backward(retain_graph=True)
-                        gradient = torch.zeros_like(output).to(self.device_)
-                        dist.recv(gradient, 0, self._global_group)
+                        gradient = self._global_comm.recv(0).to(self.device_)
                         output.backward(gradient)
                         self.optimizer_.step()
                         continue
 
                     outputs = []
                     for j in range(1, self._global_size):
-                        if self._model_name == "SimpleLinear":
-                            output = torch.zeros((len(batch), 4), dtype=torch.float32)
-                        else:
-                            output = torch.zeros(
-                                (len(batch), 100, 256), dtype=torch.float32
-                            )
-                        dist.recv(output, j, self._global_group)
+                        output = torch.tensor(
+                            self._global_comm.recv(j), requires_grad=True
+                        )
+                        output = output.to(self.device_)
                         outputs.append(output)
 
                     # Average all intermediate results
                     outputs = torch.stack(outputs)
-                    outputs.requires_grad = True
-                    outputs = outputs.mean(dim=0)
 
-                    predictions, net_loss = self.model_(outputs)
+                    predictions, net_loss = self.model_(outputs.mean(dim=0))
+                    # Compute loss
                     self.criterion_.weight = (
                         ((data == 1) * (self.fraud_weight_ - 1)) + 1
                     ).to(self.device_)
-                    # Compute loss
                     loss = self.criterion_(predictions, data.to(torch.float32))
-                    if net_loss is not None:
-                        loss += net_loss * 1e-5
 
                     # Compute gradients and adjust learning weights
                     loss.backward(retain_graph=True)
-                    gradients = torch.autograd.grad(loss, outputs)
+                    gradients = torch.autograd.grad(loss, outputs)[0]
                     self.optimizer_.step()
 
                     for j in range(1, self._global_size):
-                        dist.send(gradients[j - 1], j, self._global_group)
+                        self._global_comm.send(gradients[j - 1], j)
 
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=data
@@ -404,18 +398,13 @@ class CCFraudTrainer:
 
                 if self._global_rank != 0:
                     output = self.model_(data)[0].contiguous()
-                    dist.send(output, 0, self._global_group)
+
+                    self._global_comm.send(output, 0)
                     continue
 
                 outputs = []
                 for j in range(1, self._global_size):
-                    if self._model_name == "SimpleLinear":
-                        output = torch.zeros((len(batch), 4), dtype=torch.float32)
-                    else:
-                        output = torch.zeros(
-                            (len(batch), 100, 256), dtype=torch.float32
-                        )
-                    dist.recv(output, j, self._global_group)
+                    output = self._global_comm.recv(j).to(self.device_)
                     outputs.append(output)
 
                 outputs = torch.stack(outputs).mean(dim=0)
@@ -510,7 +499,7 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def run(args, global_group):
+def run(args, global_comm):
     """Run script with arguments (the core of the component).
 
     Args:
@@ -529,7 +518,7 @@ def run(args, global_group):
         iteration_name=args.iteration_name,
         global_rank=args.global_rank,
         global_size=args.global_size,
-        global_group=global_group,
+        global_comm=global_comm,
     )
     trainer.execute(args.checkpoint)
 
@@ -592,59 +581,20 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    # communicate to clients through mlflow root (magic)
+    root_run_id = None
     with mlflow.start_run() as mlflow_run:
         mlflow_client = mlflow.tracking.client.MlflowClient()
         logger.info(f"run tags: {mlflow_run.data.tags}")
         logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
         root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
-        host_ip, host_port = retrieve_host_address(
-            mlflow_client, root_run_id, args.global_rank
-        )
-        distributed_method = f"tcp://{host_ip}:{host_port}"
 
-        if args.global_rank == 0:
-            mlflow_client.set_tag(run_id=root_run_id, key="aml_host_ip", value=host_ip)
-            mlflow_client.set_tag(
-                run_id=root_run_id, key="aml_host_port", value=host_port
-            )
+    global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
 
-        import socket
-
-        local_hostname = socket.gethostname()
-        local_ip = str(socket.gethostbyname(local_hostname))
-        world_size, rank = int(args.global_size), int(args.global_rank)
-        logger.info(f"Local IP: {local_ip}")
-        logger.info(f"World size: {args.global_size}, Rank: {args.global_rank}")
-        logger.info(distributed_method)
-
-        response_list = pythonping.ping(host_ip, count=5)
-        for response in response_list:
-            logger.info(str(response))
-
-        import time
-
-        start_time = time.time()
-        while time.time() - start_time < 600:
-            try:
-                logger.info(f"Initializing distributed process group")
-                global_group = dist.init_process_group(
-                    dist.Backend.GLOO,
-                    rank=rank,
-                    world_size=world_size,
-                    init_method=distributed_method,
-                    timeout=datetime.timedelta(minutes=100),
-                )
-                logger.info("Distributed process group initialized")
-                break
-            except Exception as e:
-                logger.exception(e)
-                continue
-
+    logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
-    run(args, global_group)
+    run(args, global_comm)
     logger.info("Destroying distributed process group")
-    dist.destroy_process_group(global_group)
+    global_comm.close()
 
 
 if __name__ == "__main__":
