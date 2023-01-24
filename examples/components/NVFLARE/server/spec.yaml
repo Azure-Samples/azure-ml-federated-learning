@@ -14,6 +14,7 @@ inputs:
   federation_identifier:
     type: string
     description: "a unique identifier for the group of clients and server to find each other"
+    default: "fed-0000"
   server_config:
     type: uri_folder
     description: "the NVFlare workspace folder for this server"

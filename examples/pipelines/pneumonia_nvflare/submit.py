@@ -175,23 +175,6 @@ def custom_fl_data_path(
     return data_path
 
 
-def getUniqueIdentifier(length=8):
-    """Generates a random string and concatenates it with today's date
-
-    Args:
-        length (int): length of the random string (default: 8)
-
-    """
-    str = string.ascii_lowercase
-    date = datetime.date.today().strftime("%Y_%m_%d_")
-    return date + "".join(random.choice(str) for i in range(length))
-
-
-# we're using some runtime identifier within the pipeline
-# to identify this federation of server/clients
-fed_id = getUniqueIdentifier()
-
-
 @pipeline(
     description=f"NVFlare experimental FL pipeline using AzureML",
 )
@@ -252,8 +235,6 @@ def fl_pneumonia_nvflare():
 
         # create a client component for the silo
         silo_client_step = client_component(
-            # an identifier so that client and server find each other
-            federation_identifier=fed_id,
             # it will be given this client's workspace config folder
             client_config=Input(
                 type=AssetTypes.URI_FOLDER,
@@ -277,8 +258,6 @@ def fl_pneumonia_nvflare():
 
     # create a server component as a "gather" step
     server_step = server_component(
-        # an identifier so that client and server find each other
-        federation_identifier=fed_id,
         # it will be given the server workspace config folder
         server_config=Input(
             path=nvflare_workspace_datapath
