@@ -14,7 +14,7 @@ At Contoso, one person is responsible for provisioning the FL setup and ensuring
 
 At Fabrikam (one of the silos), one person owns the compute and the data. We'll call that person the **Silo Admin**.
 
-> The title of every subsection in the **Procedure** section clearly indicates who of the **FL Admin** or **Silo Admin** should be performing the tasks. **Silo Admin** will only be involved in [step C](#c-silo-admin-connects-the-existing-k8s-cluster-to-azure-arc).
+> Both **FL Admin** and **Silo Admin** have some prerequisites to meet. The **Prerequisites** section explains what is required of whom. After that, the title of every subsection in the **Procedure** section clearly indicates who of the **FL Admin** or **Silo Admin** should be performing the tasks. **Silo Admin** will only be involved in [step C](#c-silo-admin-connects-the-existing-k8s-cluster-to-azure-arc).
 
 In all that follows, when we talk about an **Azure subscription** we mean the subscription where the Azure ML workspace and the orchestrator will be deployed. This subscription belongs to Contoso.
 
