@@ -26,7 +26,7 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning.
 
-**IMPORTANT**: Provision a [quickstart eyes-off/vnet-based setup](../quickstart.md) and select `applyVnetPeering=true` to apply peering to the orchestrator and silos vnet. Without this setting, this demo will NOT work.
+**IMPORTANT**: Provision a [quickstart eyes-off/vnet-based setup](../quickstart.md) and select `applyVNetPeering="true"` to apply peering to the orchestrator and silos vnet. Without this setting, this demo will NOT work.
 
 In the following tutorial, we will use the same names for the computes and datastores created by default during this quickstart.
 
@@ -38,7 +38,7 @@ Follow the instructions in the [pneumonia real-world-example](../real-world-exam
 
 ## Run the demo experiment
 
-1. If you are not using the quickstart setup, adjust the config file `project.yaml` in `examples/pipelines/pneumonia_flwr/` to match your setup.
+1. If you are not using the quickstart setup, adjust the config file `config.yaml` in `examples/pipelines/pneumonia_flwr/` to match your setup.
 
 2. Submit the Flower+AzureML experiment by running:
 
@@ -54,7 +54,7 @@ This will create a job in AzureML, this job will submit 4 other jobs within a pi
 
 Those jobs connect to one another: each silo client will directly connect to the server job using its private IP through the vnet peering, using the Flower protocol. This works thanks to a trick using mlflow: the server job will report its private IP address as an mlflow tag, and the client jobs will fetch it from there. This currently works only through vnets and private IPs.
 
-During the execution, you can check out the logs in each of both the server and the clients jobs::
+During the execution, you can check out the logs in each of both the server and the clients jobs:
 - `user_logs/std_log.txt` : the logs of the Flower application
 
 Also, if you click on the server job, you will see the MLFlow metrics reporting there.
