@@ -14,6 +14,8 @@ At Contoso, one person is responsible for provisioning the FL setup and ensuring
 
 At Fabrikam (one of the silos), one person owns the compute and the data. We'll call that person the **Silo Admin**.
 
+> Both **FL Admin** and **Silo Admin** have some prerequisites to meet. The **Prerequisites** section explains what is required of whom. After that, the title of every subsection in the **Procedure** section clearly indicates who of the **FL Admin** or **Silo Admin** should be performing the tasks. **Silo Admin** will only be involved in [step C](#c-silo-admin-connects-the-existing-k8s-cluster-to-azure-arc).
+
 In all that follows, when we talk about an **Azure subscription** we mean the subscription where the Azure ML workspace and the orchestrator will be deployed. This subscription belongs to Contoso.
 
 For common FL terms such as **silo** or **orchestrator**, please refer to the [glossary](../glossary.md).
@@ -103,7 +105,7 @@ az k8s-extension show --name <extension-name> --cluster-type connectedClusters -
 
 In the response, look for `"name"` and `"provisioningState": "Succeeded"`. Note that this step can take 10-15 minutes and will show `"provisioningState": "Pending"` at first.
 
-### E. FL Admin attaches the Arc cluster to the orchestrator workspace
+### E. **FL Admin** attaches the Arc cluster to the orchestrator workspace
 > (Detailed instructions for this phase, including steps for verification or for slightly different use cases can be found [there](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-attach-kubernetes-to-workspace?tabs=cli).)
 
 1. Create a user-assigned identity (UAI) that will later be assigned to the Azure ML attached compute:
@@ -144,7 +146,7 @@ In the response, look for `"name"` and `"provisioningState": "Succeeded"`. Note 
     4.5. Repeat the same steps for the storage account of your orchestrator (this storage account should be named `storch` if you kept the default value for the `pairBaseName` parameter suggested in [step A](#a-fl-admin-creates-the-azure-ml-workspace-and-the-orchestrator), otherwise it will be the value you chose for `pairBaseName`, appended to `st`).    
 
 
-### F. Run a test job
+### F. **FL Admin** runs a test job
 To validate everything is wired properly we are going to run a degenerate (using only one silo) HELLOWORLD-type FL job.
 
 First, open the [config.yaml](../../examples/pipelines/fl_cross_silo_literal/config.yaml) file located in the `examples/pipelines/fl_cross_silo_literal` directory, and do the following.
