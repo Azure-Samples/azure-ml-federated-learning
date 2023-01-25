@@ -5,7 +5,7 @@ We run an NVFlare federated learning job to detect pneumonia from chest radiogra
 
 :warning: Experimental :warning: This tutorial is relying on some experimental code. It will work on our quickstart sandbox, but running it outside of this controlled setup might not work. We're actively working to release a more robust and generic solution.
 
-**Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._.
+**Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._. The code has been modified only to allow for the ingestion of training data from a mounted AzureML datastore.
 
 ## Install the required dependencies
 
@@ -26,7 +26,7 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning.
 
-**IMPORTANT**: Provision a [quickstart eyes-off/vnet-based setup](../quickstart.md) and select `applyVNetPeering=true` to apply peering to the orchestrator and silos vnet. Without this setting, this demo will NOT work.
+**IMPORTANT**: Provision a [quickstart eyes-off/vnet-based setup](../quickstart.md) and select `applyVNetPeering="true"` to apply peering to the orchestrator and silos vnet. Without this setting, this demo will NOT work.
 
 In the following tutorial, we will use the same names for the computes and datastores created by default during this quickstart.
 
