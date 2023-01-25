@@ -3,9 +3,9 @@
 **Scenario** - This tutorial is an extension of the [pneumonia / radiography classification tutorial](../real-world-examples/pneumonia.md) using the Flower framework instead.  
 We run an Flower federated learning job to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
 
-:warning: Experimental :warning: This tutorial is relying on some experiment code. It will work on our quickstart sandbox, but running it outside of this controlled setup might not work. We're actively working to release a more robust and generic solution.
+:warning: Experimental :warning: This tutorial is relying on some experimental code. It will work on our quickstart sandbox, but running it outside of this controlled setup might not work. We're actively working to release a more robust and generic solution.
 
-**Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._.
+**Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._, but the code has been modified to fit in the Flower framework.
 
 ## Install the required dependencies
 

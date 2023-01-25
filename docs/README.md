@@ -83,6 +83,7 @@ If you are already using a specific FL framework, you can port your code to work
 | Framework | Status |
 | :-- | :-- |
 | [**Flower**](./frameworks/flower.md) | Experimental, works only with in-cloud FL. |
+| [**NVFlare**](./frameworks/nvflare.md) | Experimental, works only with in-cloud FL. |
 
 ## Targeted tutorials
 Besides the full end-to-end real-world examples, we also provide targeted tutorials for specific scenarios.
