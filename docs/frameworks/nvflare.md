@@ -26,7 +26,7 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 
 To run this example, you will need to provision an AzureML workspace ready for Federated Learning.
 
-**IMPORTANT**: Provision a [quickstart eyes-off/vnet-based setup](../quickstart.md) and select `applyVnetPeering=true` to apply peering to the orchestrator and silos vnet. Without this setting, this demo will NOT work.
+**IMPORTANT**: Provision a [quickstart eyes-off/vnet-based setup](../quickstart.md) and select `applyVNetPeering=true` to apply peering to the orchestrator and silos vnet. Without this setting, this demo will NOT work.
 
 In the following tutorial, we will use the same names for the computes and datastores created by default during this quickstart.
 
