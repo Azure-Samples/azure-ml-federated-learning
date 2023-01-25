@@ -1,0 +1,36 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: flower_server
+version: 0.0.5
+display_name: Flower server
+type: command
+description: This component runs a Flower server inside an AzureML job.
+is_deterministic: true
+tags:
+  flower: 1.2.0
+  url: https://github.com/Azure-Samples/azure-ml-federated-learning
+
+inputs:
+  federation_identifier:
+    type: string
+  expected_clients:
+    type: integer
+  wait_for_clients_timeout:
+    type: integer
+    default: 600
+
+outputs:
+  job_artefacts:
+    type: uri_folder
+
+code: "."
+
+command: >-
+  python run.py 
+  --federation_identifier ${{inputs.federation_identifier}} 
+  --expected_clients ${{inputs.expected_clients}} 
+  --output_dir ${{outputs.job_artefacts}} 
+  --wait_for_clients_timeout ${{inputs.wait_for_clients_timeout}}
+
+environment: 
+  build:
+    path: ../flower_pytorch_env/context/
