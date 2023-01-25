@@ -98,6 +98,13 @@ class MnistTrainer:
 
         if dp:
             privacy_engine = PrivacyEngine(secure_mode=False)
+            """secure_mode: Set to True if cryptographically strong DP guarantee is
+            required. secure_mode=True uses secure random number generator for
+            noise and shuffling (as opposed to pseudo-rng in vanilla PyTorch) and
+            prevents certain floating-point arithmetic-based attacks.
+            See :meth:~opacus.optimizers.optimizer._generate_noise for details.
+            When set to True requires torchcsprng to be installed"""
+            
             (
                 self.model_,
                 self.optimizer_,
