@@ -46,12 +46,14 @@ During this phase, you will be training a model on real, sensitive data, in a _s
 First, if you haven't already, now is time to create a setup leveraging VNets and private endpoints for added security. Again, please refer to our [provisioning README](./provisioning/README.md) to identify which ingredients you will need. Note that it is possible to create "hybrid" setups, with both internal and external silos. Also note that VNets and private endpoints are a step in the right direction, but they are NOT silver bullets that guarantee 100% security. For instance, you will want to triple check your code to make sure data are not exposed by accident, or implement privacy-preserving algorithms such as Secure Aggregation or Differential Privacy. We will add instructions about these to our repository, so stay tuned!
 
 After that, you should connect your _sensitive_ data to your workspace. Depending on your use case, you have several options.
-1. Internal silos or External silos in a different Azure tenant.
+1. Internal silos
     - If your data already live in an Azure storage account and you haven't created your silo yet, consider following our [instructions for creating a silo using an already-existing storage account](./provisioning/silo_vnet_existingstorage.md). The compute in the silo will have R/W access to the storage account (but the orchestrator compute in the central Azure ML workspace will not).
     - If your data already live in an Azure storage account and you have already created your silo but didn't link it to the existing storage account, you can always do that at a later stage. Navigate to the Azure portal to find your resource group, find the **Managed Identity** corresponding to your silo compute, and give it the following roles (towards the storage account): "Storage Blob Data Contributor", "Reader and Data Access", "Storage Account Key Operator Service Role".
 2. External silos on-premises
     - If your data live on the same machine hosting the kubernetes cluster making up your external silo, you can expose the data to the Azure ML job following [these instructions](./targeted-tutorials/read-local-data-in-k8s-silo.md).
     - If your data live in an on-premises data server, work with your local IT admin to make sure the data can be pulled from the Azure ML job (no Azure constructs should be required for this). 
+3. External silos in a different Azure tenant
+    - :construction: **Work In Progress** :construction:If your data are located in a storage account corresponding to a different tenant, you will need to...
 
 After all that, you're ready to cook with gas! Iterate on your training algorithm until you are satisfied with the outcome.
 
