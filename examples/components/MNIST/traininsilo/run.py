@@ -30,9 +30,9 @@ class MnistTrainer:
         dp_target_epsilon=50.0,
         dp_target_delta=1e-5,
         dp_max_grad_norm=1.0,
+        total_num_of_iterations=1,
         experiment_name="default-experiment",
         iteration_num=1,
-        total_num_of_iterations=1,
     ):
         """MNIST Trainer trains RESNET18 model on the MNIST dataset.
 
@@ -42,13 +42,13 @@ class MnistTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01
             epochs (int, optional): Epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64
-            dp (bool, optional): Differential Privacy. Default is False
+            dp (bool, optional): Differential Privacy. Default is False (Note: dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy)
             dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
             dp_target_delta (float, optional): DP target delta. Default is 1e-5
             dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
+            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
-            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
 
         Attributes:
             model_: RESNET18 model
@@ -399,9 +399,9 @@ def run(args):
         dp_target_epsilon=args.dp_target_epsilon,
         dp_target_delta=args.dp_target_delta,
         dp_max_grad_norm=args.dp_max_grad_norm,
+        total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
-        total_num_of_iterations=args.total_num_of_iterations,
     )
     trainer.execute(args.checkpoint)
 

@@ -24,11 +24,6 @@ inputs:
     description: Iteration number
     default: 1
     optional: true
-  total_num_of_iterations:
-    type: integer
-    description: Total num of iterations
-    default: 1
-    optional: true
   checkpoint:
     type: uri_folder
     description: a given pre-existing checkpoint
@@ -48,7 +43,7 @@ inputs:
     description: batch size
     default: 64
     optional: true
-  dp:
+  dp: # dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy
     type: boolean
     description: differential privacy
     default: false
@@ -67,6 +62,11 @@ inputs:
     type: number
     description: DP max gradient norm
     default: 1.0
+    optional: true
+  total_num_of_iterations:
+    type: integer
+    description: Total num of iterations
+    default: 1
     optional: true
 
 outputs:
