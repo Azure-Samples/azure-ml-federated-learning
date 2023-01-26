@@ -76,8 +76,13 @@ training_parameters:
 
   # Differential privacy
   dp: true # Flag to enable/disable differential privacy
-  dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
+  dp_target_epsilon: 50.0 # DP target epsilon
+  dp_target_delta: 1e-5 # DP target delta
   dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
+
+  # if you want to use the privacy_engine.make_private method, please set the value of dp_noise_multiplier parameter
+  # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
+  
 
   # then typical training parameters
   epochs: 3 # number of epochs per iteration (in-silo training) 

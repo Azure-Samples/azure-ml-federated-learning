@@ -27,7 +27,9 @@ class MnistTrainer:
         epochs=1,
         batch_size=64,
         dp=False,
-        dp_noise_multiplier=1.0,
+        dp_epochs=6,
+        dp_target_epsilon=50.0,
+        dp_target_delta=1e-5,
         dp_max_grad_norm=1.0,
         experiment_name="default-experiment",
         iteration_num=1,
@@ -41,7 +43,9 @@ class MnistTrainer:
             epochs (int, optional): Epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64
             dp (bool, optional): Differential Privacy. Default is False
-            dp_noise_multiplier (float, optional): DP noise multiplier. Default is 1.0
+            dp_epochs (int, optional): DP epochs. Default is 6
+            dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
+            dp_target_delta (float, optional): DP target delta. Default is 1e-5
             dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
@@ -104,18 +108,31 @@ class MnistTrainer:
             prevents certain floating-point arithmetic-based attacks.
             See :meth:~opacus.optimizers.optimizer._generate_noise for details.
             When set to True requires torchcsprng to be installed"""
-            
             (
                 self.model_,
                 self.optimizer_,
                 self.train_loader_,
-            ) = privacy_engine.make_private(
+            ) = privacy_engine.make_private_with_epsilon(
+                module=self.model_,
+                optimizer=self.optimizer_,
+                data_loader=self.train_loader_,
+                epochs=dp_epochs,
+                target_epsilon=dp_target_epsilon,
+                target_delta=dp_target_delta,
+                max_grad_norm=dp_max_grad_norm,
+            )
+
+            """
+            You can also obtain their counterparts by passing the noise multiplier. 
+            Please refer to the following function.
+            privacy_engine.make_private(
                 module=self.model_,
                 optimizer=self.optimizer_,
                 data_loader=self.train_loader_,
                 noise_multiplier=dp_noise_multiplier,
                 max_grad_norm=dp_max_grad_norm,
             )
+            """
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -344,8 +361,12 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--dp", type=strtobool, required=False, help="differential privacy"
     )
+    parser.add_argument("--dp_epochs", type=int, required=False, help="DP epochs")
     parser.add_argument(
-        "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
+        "--dp_target_epsilon", type=float, required=False, help="DP target epsilon"
+    )
+    parser.add_argument(
+        "--dp_target_delta", type=float, required=False, help="DP target delta"
     )
     parser.add_argument(
         "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
@@ -368,7 +389,9 @@ def run(args):
         epochs=args.epochs,
         batch_size=args.batch_size,
         dp=args.dp,
-        dp_noise_multiplier=args.dp_noise_multiplier,
+        dp_epochs=args.dp_epochs,
+        dp_target_epsilon=args.dp_target_epsilon,
+        dp_target_delta=args.dp_target_delta,
         dp_max_grad_norm=args.dp_max_grad_norm,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
