@@ -284,9 +284,6 @@ def fl_cross_silo_internal_basic():
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Differential Privacy
                 dp=YAML_CONFIG.training_parameters.dp,
-                # DP epochs
-                dp_epochs=YAML_CONFIG.training_parameters.num_of_iterations
-                * YAML_CONFIG.training_parameters.epochs,
                 # DP target epsilon
                 dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
                 # DP target delta
@@ -297,6 +294,8 @@ def fl_cross_silo_internal_basic():
                 metrics_prefix=silo_config.name,
                 # Iteration number
                 iteration_num=iteration,
+                # Total num of iterations
+                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"

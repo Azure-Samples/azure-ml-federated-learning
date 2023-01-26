@@ -27,12 +27,12 @@ class MnistTrainer:
         epochs=1,
         batch_size=64,
         dp=False,
-        dp_epochs=6,
         dp_target_epsilon=50.0,
         dp_target_delta=1e-5,
         dp_max_grad_norm=1.0,
         experiment_name="default-experiment",
         iteration_num=1,
+        total_num_of_iterations=1,
     ):
         """MNIST Trainer trains RESNET18 model on the MNIST dataset.
 
@@ -43,12 +43,12 @@ class MnistTrainer:
             epochs (int, optional): Epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64
             dp (bool, optional): Differential Privacy. Default is False
-            dp_epochs (int, optional): DP epochs. Default is 6
             dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
             dp_target_delta (float, optional): DP target delta. Default is 1e-5
             dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
+            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
 
         Attributes:
             model_: RESNET18 model
@@ -116,7 +116,7 @@ class MnistTrainer:
                 module=self.model_,
                 optimizer=self.optimizer_,
                 data_loader=self.train_loader_,
-                epochs=dp_epochs,
+                epochs=total_num_of_iterations * epochs,
                 target_epsilon=dp_target_epsilon,
                 target_delta=dp_target_delta,
                 max_grad_norm=dp_max_grad_norm,
@@ -350,7 +350,12 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--iteration_num", type=int, required=False, help="Iteration number"
     )
-
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
+    )
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -364,7 +369,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--dp", type=strtobool, required=False, help="differential privacy"
     )
-    parser.add_argument("--dp_epochs", type=int, required=False, help="DP epochs")
     parser.add_argument(
         "--dp_target_epsilon", type=float, required=False, help="DP target epsilon"
     )
@@ -392,12 +396,12 @@ def run(args):
         epochs=args.epochs,
         batch_size=args.batch_size,
         dp=args.dp,
-        dp_epochs=args.dp_epochs,
         dp_target_epsilon=args.dp_target_epsilon,
         dp_target_delta=args.dp_target_delta,
         dp_max_grad_norm=args.dp_max_grad_norm,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
+        total_num_of_iterations=args.total_num_of_iterations,
     )
     trainer.execute(args.checkpoint)
 
