@@ -133,6 +133,9 @@ class MnistTrainer:
                 max_grad_norm=dp_max_grad_norm,
             )
             """
+            logger.info(
+                f"Target epsilon: {dp_target_epsilon}, delta: {dp_target_delta} and noise multiplier: {self.optimizer_.noise_multiplier}"
+            )
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
