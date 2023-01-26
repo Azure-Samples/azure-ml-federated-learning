@@ -17,7 +17,7 @@ import torch.distributed.optim as dist_optim
 import torch.distributed as dist
 from torch import nn
 from torchmetrics.functional import precision_recall, accuracy
-from torch.optim import AdamW
+from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Dataset
 from mlflow import log_metric, log_param
@@ -150,9 +150,7 @@ class CCFraudTrainer:
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
-        self.optimizer_ = AdamW(
-            self.model_.parameters(), lr=self._lr, weight_decay=1e-5
-        )
+        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
         """Load dataset from {train_data_dir} and {test_data_dir}

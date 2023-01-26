@@ -8,6 +8,9 @@ aml:
 
 # Parameters to generate the FL graph
 federated_learning:
+  host:
+    compute: orchestrator-01
+    datastore: datastore_orchestrator
   silos: # silos are provided as a list
     - compute: silo0-01 # name of the compute for silo X
       datastore: datastore_silo0 # name of the datastore for silo X

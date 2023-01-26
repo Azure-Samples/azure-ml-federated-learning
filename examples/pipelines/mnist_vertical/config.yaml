@@ -9,11 +9,11 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: cpu-orchestrator
+    compute: orchestrator-01
     datastore: datastore_orchestrator
 
-  host: 
-    compute: cpu-orchestrator
+  host:
+    compute: orchestrator-01
     datastore: datastore_orchestrator
     training_data:
       type: uri_file
@@ -24,20 +24,40 @@ federated_learning:
       mode: 'download'
       path: azureml://datastores/datastore_orchestrator/paths/federated_learning/mnist_vertical/raw_test_data
 
-  contributors:
-    - compute: cpu-silo0-westus
-      datastore: datastore_silo0_westus
+  silos:
+    - compute: silo0-01
+      datastore: datastore_silo0
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_train_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/mnist_vertical/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/mnist_vertical/raw_test_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/mnist_vertical/raw_test_data
+    - compute: silo1-01
+      datastore: datastore_silo1
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/mnist_vertical/raw_train_data
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/mnist_vertical/raw_test_data
+    - compute: silo2-01
+      datastore: datastore_silo2
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/mnist_vertical/raw_train_data
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/mnist_vertical/raw_test_data
 
 # training parameters
 training_parameters:
-  epochs: 4 # number of epochs per iteration (in-silo training) 
+  epochs: 2 # number of epochs per iteration (in-silo training) 
   lr: 1e-3 # learning rate
   batch_size: 128 # batch size
