@@ -523,49 +523,6 @@ def run(args, global_comm):
     trainer.execute(args.checkpoint)
 
 
-def get_open_port():
-    from contextlib import closing
-    import socket
-
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("", 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return str(s.getsockname()[1])
-
-
-def retrieve_host_address(mlflow_client, root_run_id, global_rank):
-    host_ip, host_port = None, None
-    if global_rank == 0:
-        import socket
-
-        host_port = get_open_port()
-        local_hostname = socket.gethostname()
-        host_ip = str(socket.gethostbyname(local_hostname))
-    else:
-        import time
-
-        host_ip, host_port = None, None
-        fetch_start_time = time.time()
-
-        while host_ip is None or host_port is None:
-            logger.info(f"Checking out tag aml_host_ip and aml_host_port...")
-            mlflow_root_run = mlflow_client.get_run(root_run_id)
-
-            if "aml_host_ip" in mlflow_root_run.data.tags:
-                host_ip = mlflow_root_run.data.tags["aml_host_ip"]
-                logger.info(f"host_ip found: {host_ip}")
-
-            if "aml_host_port" in mlflow_root_run.data.tags:
-                host_port = mlflow_root_run.data.tags["aml_host_port"]
-                logger.info(f"host_port found: {host_port}")
-
-            if (host_ip is None) and (time.time() - fetch_start_time > 600):
-                raise RuntimeError("Could not fetch the tag within timeout.")
-            else:
-                time.sleep(10)
-    return host_ip, host_port
-
-
 def main(cli_args=None):
     """Component main function.
 
@@ -583,10 +540,9 @@ def main(cli_args=None):
 
     root_run_id = None
     with mlflow.start_run() as mlflow_run:
-        mlflow_client = mlflow.tracking.client.MlflowClient()
         logger.info(f"run tags: {mlflow_run.data.tags}")
-        logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
-        root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
+        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+        logger.info(f"root runId: {root_run_id}")
 
     global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
 

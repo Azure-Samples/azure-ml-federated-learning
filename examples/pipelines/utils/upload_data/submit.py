@@ -88,17 +88,21 @@ parser.add_argument(
 
 args = parser.parse_args()
 
+if args.vertical:
+    assert args.example in ["CCFRAUD", "MNIST"]
+
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "components", args.example
+    os.path.dirname(__file__),
+    "..",
+    "..",
+    "..",
+    "components_vertical" if args.vertical else "components",
+    args.example,
 )
-if args.vertical:
-    COMPONENTS_FOLDER = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "components_vertical", args.example
-    )
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -168,7 +172,15 @@ def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
 )
 def fl_cross_silo_upload_data():
 
-    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+    if args.vertical:
+        silos = [
+            YAML_CONFIG.federated_learning.host,
+            ...(YAML_CONFIG.federated_learning.silos),
+        ]
+    else:
+        silos = YAML_CONFIG.federated_learning.silos
+
+    for silo_index, silo_config in enumerate(silos):
         # create step for upload component
         silo_upload_data_step = upload_data_component(
             silo_count=len(YAML_CONFIG.federated_learning.silos), silo_index=silo_index

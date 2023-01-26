@@ -129,19 +129,8 @@ def connect_to_aml():
 ####################################
 
 # Loading the component from their yaml specifications
-preprocessing_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
-)
-
 training_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
-)
-# training_component = load_component(
-#     source=os.path.join("..", "..", "..", "experimental", "mcd_component", "mcd_job_vfl.yaml")
-# )
-
-aggregate_component = load_component(
-    source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
 
@@ -197,8 +186,7 @@ def fl_mnist_vertical_basic():
     outputs = {}
     # for each silo, run a distinct training with its own inputs and outputs
     for silo_index, silo_config in enumerate(
-        [YAML_CONFIG.federated_learning.host]
-        + YAML_CONFIG.federated_learning.contributors
+        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
 
         # we're using training component here
@@ -221,16 +209,16 @@ def fl_mnist_vertical_basic():
             batch_size=YAML_CONFIG.training_parameters.batch_size,
             # Silo name/identifier
             metrics_prefix=silo_config.compute,
-            global_size=len(YAML_CONFIG.federated_learning.contributors) + 1,
+            global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
             global_rank=silo_index,
             local_size=1,
             local_rank=0,
         )
         # add a readable name to the step
         if silo_index == 0:
-            silo_training_step.name = f"silo_top_training"
+            silo_training_step.name = f"host_training"
         else:
-            silo_training_step.name = f"silo_bottom_{silo_index}_training"
+            silo_training_step.name = f"silo_{silo_index}_training"
 
         # make sure the compute corresponds to the silo
         silo_training_step.compute = silo_config.compute

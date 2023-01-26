@@ -7,6 +7,7 @@ import multiprocessing as mt
 from functools import partial
 
 from tqdm.contrib.concurrent import process_map
+from tqdm import tqdm
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
@@ -57,6 +58,20 @@ def process_sample(processed_data_dir, dataset, idx):
     save_image(data, output_path)
 
 
+def remove_dir_contents(dir):
+    import shutil
+
+    for filename in tqdm(os.listdir(dir)):
+        file_path = os.path.join(dir, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except Exception as e:
+            print("Failed to delete %s. Reason: %s" % (file_path, e))
+
+
 def preprocess_data(
     raw_training_data,
     raw_testing_data,
@@ -88,10 +103,17 @@ def preprocess_data(
     print(train_data.head)
     print(train_data.shape)
 
+    # Make sure directories exist and are empty, otherwise
+    # there might be images that we have not accounted for
     if not os.path.exists(train_data_dir):
         os.makedirs(train_data_dir, exist_ok=True)
+    else:
+        remove_dir_contents(train_data_dir)
+
     if not os.path.exists(test_data_dir):
         os.makedirs(test_data_dir, exist_ok=True)
+    else:
+        remove_dir_contents(test_data_dir)
 
     if silo_index == 0:
         train_data[["label"]].to_csv(f"{train_data_dir}/train.csv")

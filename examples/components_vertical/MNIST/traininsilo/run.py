@@ -3,26 +3,23 @@ import argparse
 import logging
 import sys
 import os
-import io
+from aml_comm import AMLComm
 
-import socket
 import mlflow
 import torch
 import pandas as pd
 from torch import nn
-import torch.distributed as dist
 from torch.optim import SGD
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
 from torchvision import models, transforms
-from mlflow import log_metric, log_param
 from PIL import Image
 
 
 class BottomModel(nn.Module):
     def __init__(self) -> None:
         super(BottomModel, self).__init__()
-        self._model = models.resnet18(pretrained=True)
+        self._model = models.resnet18(pretrained=True, progress=False)
         self._model.conv1 = nn.Conv2d(
             1, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
         )
@@ -38,7 +35,7 @@ class TopModel(nn.Module):
         self._model = nn.Linear(512, 10)
 
     def forward(self, x) -> torch.tensor:
-        return self._model(x)
+        return self._model(x.squeeze())
 
 
 class BottomDataset(Dataset):
@@ -63,7 +60,6 @@ class BottomDataset(Dataset):
                 ]
             )
         )
-        logger.info(str(self.images))
 
     def __len__(self):
         return len(self.images)
@@ -110,7 +106,7 @@ class MnistTrainer:
         self,
         global_size,
         global_rank,
-        global_group,
+        global_comm,
         train_data_dir="./",
         test_data_dir="./",
         model_path=None,
@@ -151,7 +147,7 @@ class MnistTrainer:
         self._iteration_num = iteration_num
         self._global_size = global_size
         self._global_rank = global_rank
-        self._global_group = global_group
+        self._global_comm = global_comm
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -197,7 +193,7 @@ class MnistTrainer:
             )
 
             train_dataset = BottomDataset(train_data_dir, transformer)
-            test_dataset = BottomDataset(train_data_dir, transformer)
+            test_dataset = BottomDataset(test_data_dir, transformer)
 
         return train_dataset, test_dataset
 
@@ -279,32 +275,31 @@ class MnistTrainer:
 
                     if self._global_rank != 0:
                         output = self.model_(data)
-                        dist.send(output, 0, self._global_group)
-                        gradient = torch.zeros_like(output).to(self.device_)
-                        dist.recv(gradient, 0, self._global_group)
+                        self._global_comm.send(output, 0)
+                        gradient = self._global_comm.recv(0).to(self.device_)
                         output.backward(gradient)
                         self.optimizer_.step()
                         continue
 
                     outputs = []
                     for j in range(1, self._global_size):
-                        output = torch.zeros((data.shape[0], 512), dtype=torch.float32)
-                        dist.recv(output, j, self._global_group)
+                        output = torch.tensor(
+                            self._global_comm.recv(j), requires_grad=True
+                        ).to(self.device_)
                         outputs.append(output)
 
                     # Average all intermediate results
                     outputs = torch.stack(outputs)
-                    outputs.requires_grad = True
                     outputs_avg = outputs.mean(dim=0)
 
                     predictions = self.model_(outputs_avg)
                     loss = self.loss_(predictions, data)
                     loss.backward(retain_graph=True)
-                    gradients = torch.autograd.grad(loss, outputs)
+                    gradients = torch.autograd.grad(loss, outputs)[0]
                     self.optimizer_.step()
 
                     for j in range(1, self._global_size):
-                        dist.send(gradients[j - 1], j, self._global_group)
+                        self._global_comm.send(gradients[j - 1], j)
 
                     running_loss += loss.item() / data.shape[0]
                     running_acc += (
@@ -329,6 +324,9 @@ class MnistTrainer:
                         running_acc = 0.0
 
                 test_loss, test_acc = self.test()
+
+                if self._global_rank != 0:
+                    continue
 
                 # log test metrics after each epoch
                 self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
@@ -362,26 +360,24 @@ class MnistTrainer:
         self.model_.eval()
         test_loss = 0
         correct = 0
+
         with torch.no_grad():
             for data in self.test_loader_:
                 data = data.to(self.device_)
 
                 if self._global_rank != 0:
                     output = self.model_(data)
-                    dist.send(output, 0, self._global_group)
+                    self._global_comm.send(output, 0)
                     continue
 
                 outputs = []
                 for i in range(1, self._global_size):
-                    output = torch.zeros((data.shape[0], 512))
-                    dist.recv(output, i, self._global_group)
+                    output = self._global_comm.recv(i)
                     outputs.append(output)
 
                 # Average all intermediate results
-                outputs = torch.autograd.Variable(torch.stack(outputs))
-                outputs = outputs.to(torch.float32).mean(dim=0)
-
-                predictions = self.model_(outputs)
+                outputs = torch.stack(outputs)
+                predictions = self.model_(outputs.mean(dim=0))
                 test_loss += self.loss_(predictions, data).item()
 
                 predictions = predictions.argmax(dim=1, keepdim=True)
@@ -471,7 +467,7 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def run(global_group, args):
+def run(global_comm, args):
     """Run script with arguments (the core of the component).
 
     Args:
@@ -488,52 +484,9 @@ def run(global_group, args):
         iteration_num=args.iteration_num,
         global_size=args.global_size,
         global_rank=args.global_rank,
-        global_group=global_group,
+        global_comm=global_comm,
     )
     trainer.execute(args.checkpoint)
-
-
-def get_open_port():
-    from contextlib import closing
-    import socket
-
-    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
-        s.bind(("", 0))
-        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        return str(s.getsockname()[1])
-
-
-def retrieve_host_address(mlflow_client, root_run_id, global_rank):
-    host_ip, host_port = None, None
-    if global_rank == 0:
-        import socket
-
-        host_port = get_open_port()
-        local_hostname = socket.gethostname()
-        host_ip = str(socket.gethostbyname(local_hostname))
-    else:
-        import time
-
-        host_ip, host_port = None, None
-        fetch_start_time = time.time()
-
-        while host_ip is None or host_port is None:
-            logger.info(f"Checking out tag aml_host_ip and aml_host_port...")
-            mlflow_root_run = mlflow_client.get_run(root_run_id)
-
-            if "aml_host_ip" in mlflow_root_run.data.tags:
-                host_ip = mlflow_root_run.data.tags["aml_host_ip"]
-                logger.info(f"host_ip found: {host_ip}")
-
-            if "aml_host_port" in mlflow_root_run.data.tags:
-                host_port = mlflow_root_run.data.tags["aml_host_port"]
-                logger.info(f"host_port found: {host_port}")
-
-            if (host_ip is None) and (time.time() - fetch_start_time > 600):
-                raise RuntimeError("Could not fetch the tag within timeout.")
-            else:
-                time.sleep(1)
-    return host_ip, host_port
 
 
 def main(cli_args=None):
@@ -554,61 +507,19 @@ def main(cli_args=None):
     logger.info(args.train_data)
     logger.info(args.test_data)
 
-    # communicate to clients through mlflow root (magic)
+    root_run_id = None
     with mlflow.start_run() as mlflow_run:
-        mlflow_client = mlflow.tracking.client.MlflowClient()
         logger.info(f"run tags: {mlflow_run.data.tags}")
-        logger.info(f"parent runId: {mlflow_run.data.tags.get('mlflow.parentRunId')}")
-        root_run_id = mlflow_run.data.tags.get("mlflow.parentRunId")
-        host_ip, host_port = retrieve_host_address(
-            mlflow_client, root_run_id, args.global_rank
-        )
-        distributed_method = f"tcp://{host_ip}:{host_port}"
+        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+        logger.info(f"root runId: {root_run_id}")
 
-        if args.global_rank == 0:
-            mlflow_client.set_tag(run_id=root_run_id, key="aml_host_ip", value=host_ip)
-            mlflow_client.set_tag(
-                run_id=root_run_id, key="aml_host_port", value=host_port
-            )
-
-        import socket
-
-        local_hostname = socket.gethostname()
-        local_ip = str(socket.gethostbyname(local_hostname))
-        world_size, rank = int(args.global_size), int(args.global_rank)
-        logger.info(f"Local IP: {local_ip}")
-        logger.info(f"World size: {args.global_size}, Rank: {args.global_rank}")
-        logger.info(distributed_method)
-
-        # initialize the process group
-        retries = 0
-        while retries < 10:
-            try:
-                import datetime
-
-                logger.info("Initializing process group...")
-                global_group = dist.init_process_group(
-                    dist.Backend.GLOO,
-                    rank=rank,
-                    world_size=world_size,
-                    init_method=distributed_method,
-                    timeout=datetime.timedelta(seconds=10000),
-                )
-                logger.info("Process group initialized")
-                break
-            except Exception as e:
-                import time
-
-                logger.exception(e)
-
-                time.sleep(10)
-                retries += 1
+    global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
 
     print(f"Running script with arguments: {args}")
-    run(global_group, args)
+    run(global_comm, args)
 
-    # destroy the process group
-    dist.destroy_process_group(global_group)
+    # destroy communication group
+    global_comm.close()
 
 
 if __name__ == "__main__":

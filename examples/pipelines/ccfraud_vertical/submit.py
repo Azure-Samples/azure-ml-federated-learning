@@ -86,11 +86,6 @@ COMPONENTS_FOLDER = os.path.join(
     os.path.dirname(__file__), "..", "..", "components_vertical", "CCFRAUD"
 )
 
-# path to the shared components
-SHARED_COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", "utils"
-)
-
 ###########################
 ### CONNECT TO AZURE ML ###
 ###########################
@@ -135,13 +130,6 @@ preprocessing_component = load_component(
 
 training_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
-)
-# training_component = load_component(
-#     source=os.path.join("..", "..", "..", "experimental", "mcd_component", "mcd_job_vfl.yaml")
-# )
-
-aggregate_component = load_component(
-    source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
 
@@ -202,8 +190,7 @@ def fl_ccfraud_vertical_basic():
     silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
 
     for silo_index, silo_config in enumerate(
-        [YAML_CONFIG.federated_learning.host]
-        + YAML_CONFIG.federated_learning.contributors
+        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
         # run the pre-processing component once
         silo_pre_processing_step = preprocessing_component(
@@ -222,11 +209,9 @@ def fl_ccfraud_vertical_basic():
 
         # add a readable name to the step
         if silo_index == 0:
-            silo_pre_processing_step.name = f"silo_host_preprocessing"
+            silo_pre_processing_step.name = f"host_preprocessing"
         else:
-            silo_pre_processing_step.name = (
-                f"silo_contributor_{silo_index}_preprocessing"
-            )
+            silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
@@ -259,8 +244,7 @@ def fl_ccfraud_vertical_basic():
     outputs = {}
     # for each silo, run a distinct training with its own inputs and outputs
     for silo_index, silo_config in enumerate(
-        [YAML_CONFIG.federated_learning.host]
-        + YAML_CONFIG.federated_learning.contributors
+        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
 
         # we're using training component here
@@ -279,15 +263,15 @@ def fl_ccfraud_vertical_basic():
             metrics_prefix=silo_config.compute,
             # Model name
             model_name=YAML_CONFIG.training_parameters.model_name,
-            global_size=len(YAML_CONFIG.federated_learning.contributors) + 1,
+            global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
             global_rank=silo_index,
         )
 
         # add a readable name to the step
         if silo_index == 0:
-            silo_training_step.name = f"silo_host_training"
+            silo_training_step.name = f"host_training"
         else:
-            silo_training_step.name = f"silo_contributor_{silo_index}_training"
+            silo_training_step.name = f"silo_{silo_index}_training"
 
         # make sure the compute corresponds to the silo
         silo_training_step.compute = silo_config.compute
