@@ -219,8 +219,10 @@ def silo_scatter_subgraph(
     epochs: int = 3,
     batch_size: int = 64,
     dp: bool = False,
-    dp_noise_multiplier: float = 1.0,
+    dp_target_epsilon: float = 50.0,
+    dp_target_delta: float = 1e-5,
     dp_max_grad_norm: float = 1.0,
+    total_num_of_iterations: int = 1,
 ):
     """Create silo/training subgraph.
 
@@ -237,8 +239,10 @@ def silo_scatter_subgraph(
         epochs (int, optional): Number of epochs. Defaults to 3.
         batch_size (int, optional): Batch size. Defaults to 64.
         dp (bool, optional): Differential Privacy
-        dp_noise_multiplier (float, optional): DP noise multiplier
+        dp_target_epsilon (float, optional): DP target epsilon
+        dp_target_delta (float, optional): DP target delta
         dp_max_grad_norm (float, optional): DP max gradient norm
+        total_num_of_iterations (int, optional): Total number of iterations
 
     Returns:
         Dict[str, Outputs]: a map of the outputs
@@ -271,14 +275,18 @@ def silo_scatter_subgraph(
         batch_size=batch_size,
         # Differential Privacy
         dp=dp,
-        # DP noise multiplier
-        dp_noise_multiplier=dp_noise_multiplier,
+        # DP target epsilon
+        dp_target_epsilon=dp_target_epsilon,
+        # DP target delta
+        dp_target_delta=dp_target_delta,
         # DP max gradient norm
         dp_max_grad_norm=dp_max_grad_norm,
         # Silo name/identifier
         metrics_prefix=scatter_name,
         # Iteration number
         iteration_num=iteration_num,
+        # Total number of iterations
+        total_num_of_iterations=total_num_of_iterations,
     )
 
     # Assigning the silo's second compute to the training component
@@ -370,9 +378,16 @@ pipeline_job = builder.build_flexible_fl_pipeline(
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
     epochs=YAML_CONFIG.training_parameters.epochs,
+    # Differential Privacy
     dp=YAML_CONFIG.training_parameters.dp,
-    dp_noise_multiplier=YAML_CONFIG.training_parameters.dp_noise_multiplier,
+    # DP target epsilon
+    dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
+    # DP target delta
+    dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
+    # DP max gradient norm
     dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
+    # Total num of iterations
+    total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
 )
 
 # 4. Validate the pipeline using soft rules
