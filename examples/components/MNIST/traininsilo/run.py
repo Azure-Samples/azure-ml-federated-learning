@@ -351,12 +351,6 @@ def get_arg_parser(parser=None):
         "--iteration_num", type=int, required=False, help="Iteration number"
     )
     parser.add_argument(
-        "--total_num_of_iterations",
-        type=int,
-        required=False,
-        help="Total number of iterations",
-    )
-    parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
     parser.add_argument(
@@ -377,6 +371,12 @@ def get_arg_parser(parser=None):
     )
     parser.add_argument(
         "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
     )
     return parser
 
