@@ -296,7 +296,6 @@ def fl_cross_silo_internal_basic():
                 metrics_prefix=silo_config.name,
                 # Iteration number
                 iteration_num=iteration,
-
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
