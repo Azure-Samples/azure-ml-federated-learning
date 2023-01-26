@@ -1,6 +1,7 @@
 import argparse
 import logging
 import sys
+import os
 
 from transformers import (
     DataCollatorForTokenClassification,
@@ -8,7 +9,11 @@ from transformers import (
     AutoTokenizer,
     get_scheduler,
 )
+import torch.distributed as dist
+import torch.multiprocessing as mp
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
+from torch.utils.data.distributed import DistributedSampler
 from datasets import load_from_disk
 from torch.optim import AdamW
 from tqdm.auto import tqdm
@@ -32,20 +37,24 @@ class NERTrainer:
         batch_size=64,
         experiment_name="default-experiment",
         iteration_num=1,
+        device_id=None,
+        distributed=False,
     ):
         """NER Trainer trains BERT-base model (default) on the MultiNERD dataset.
 
         Args:
-            tokenizer_name(str): Tokenizer name
-            model_name(str): Model name
-            train_data_dir(str, optional): Training data directory path
-            test_data_dir(str, optional): Testing data directory path
-            model_path (str, optional): Model path. Defaults to None
-            lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): number of epochs. Defaults to 1
-            batch_size (int, optional): DataLoader batch size. Defaults to 64
-            experiment_name (str, optional): Experiment name. Default is default-experiment
-            iteration_num (int, optional): Iteration number. Defaults to 1
+            tokenizer_name(str): Tokenizer name.
+            model_name(str): Model name.
+            train_data_dir(str, optional): Training data directory path.
+            test_data_dir(str, optional): Testing data directory path.
+            model_path (str, optional): Model path. Defaults to None.
+            lr (float, optional): Learning rate. Defaults to 0.01.
+            epochs (int, optional): number of epochs. Defaults to 1.
+            batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            experiment_name (str, optional): Experiment name. Default is default-experiment.
+            iteration_num (int, optional): Iteration number. Defaults to 1.
+            device_id (int, optional): Device id to run training on. Default to None.
+            distributed (bool, optional): Whether to run distributed training. Default to False.
 
         Attributes:
             model_: Huggingface bert-base (default) pretrained model
@@ -65,9 +74,23 @@ class NERTrainer:
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
         self._model_path = model_path
+        self._distributed = distributed
 
         # device
-        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.device_ = (
+            torch.device(
+                torch.device("cuda", device_id) if torch.cuda.is_available() else "cpu"
+            )
+            if device_id is not None
+            else torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        )
+        logger.info(f"Using device: {self.device_}")
+
+        if self._distributed:
+            self._rank = device_id
+            logger.info(f"Rank: {self._rank}")
+        else:
+            self._rank = None
 
         # tokenizer
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
@@ -75,15 +98,31 @@ class NERTrainer:
         # dataset and data loader
         data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
         train_dataset, test_dataset = self.load_dataset(train_data_dir, test_data_dir)
+
+        if self._distributed:
+            logger.info("Setting up distributed samplers.")
+            self.train_sampler_ = DistributedSampler(self.train_dataset_)
+            self.test_sampler_ = DistributedSampler(self.test_dataset_)
+        else:
+            self.train_sampler_ = None
+            self.test_sampler_ = None
+
         self.train_loader_ = DataLoader(
             train_dataset,
             shuffle=True,
             collate_fn=data_collator,
             batch_size=self._batch_size,
+            sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
-            test_dataset, collate_fn=data_collator, batch_size=self._batch_size
+            test_dataset,
+            collate_fn=data_collator,
+            batch_size=self._batch_size,
+            sampler=self.train_sampler_,
         )
+
+        logger.info(f"Train loader steps: {len(self.train_loader_)}")
+        logger.info(f"Test loader steps: {len(self.test_loader_)}")
 
         # training params
         self.labelToId_ = pd.read_json("./labels.json", typ="series").to_dict()
@@ -93,6 +132,12 @@ class NERTrainer:
             id2label=self.idToLabel_,
             label2id=self.labelToId_,
         )
+        if self._distributed:
+            self.model_ = DDP(
+                self.model_,
+                device_ids=[self._rank] if self._rank is not None else None,
+                output_device=self._rank,
+            )
         self.model_.to(self.device_)
         self.metric_ = evaluate.load("seqeval")
         self.optimizer_ = AdamW(self.model_.parameters(), lr=2e-5)
@@ -238,7 +283,11 @@ class NERTrainer:
         """
 
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            if self._distributed:
+                # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+                self.model_.module.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            else:
+                self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
             # get Mlflow client and root run id
@@ -298,30 +347,32 @@ class NERTrainer:
                             f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
                         )
 
-                        # log train loss
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            "Train Loss",
-                            training_loss,
-                        )
-
-                        # log evaluation metrics
-                        results = self.metric_.compute()
-                        for key in ["precision", "recall", "f1", "accuracy"]:
+                        if not self._distributed or self._rank == 0:
+                            # log train loss
                             self.log_metrics(
                                 mlflow_client,
                                 root_run_id,
-                                f"Train {key}",
-                                results[f"overall_{key}"],
+                                "Train Loss",
+                                training_loss,
                             )
+
+                            # log evaluation metrics
+                            results = self.metric_.compute()
+                            for key in ["precision", "recall", "f1", "accuracy"]:
+                                self.log_metrics(
+                                    mlflow_client,
+                                    root_run_id,
+                                    f"Train {key}",
+                                    results[f"overall_{key}"],
+                                )
 
                         running_loss = 0.0
 
                 test_loss, metric_results = self.test()
 
                 # log test loss for each epoch
-                self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
+                if not self._distributed or self._rank == 0:
+                    self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
                 logger.info(f"Epoch: {epoch}, Test Loss: {test_loss}")
 
                 # log test metric for each epoch
@@ -329,33 +380,39 @@ class NERTrainer:
                     logger.info(
                         f"Epoch: {epoch}: Test {key} is {metric_results[f'overall_{key}']}"
                     )
+                    if not self._distributed or self._rank == 0:
+                        self.log_metrics(
+                            mlflow_client,
+                            root_run_id,
+                            f"Test {key}",
+                            metric_results[f"overall_{key}"],
+                        )
+
+            # log metrics for each FL iteration
+            if not self._distributed or self._rank == 0:
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Train Loss",
+                    training_loss,
+                    pipeline_level=True,
+                )
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Test Loss",
+                    test_loss,
+                    pipeline_level=True,
+                )
+
+                for key in ["precision", "recall", "f1", "accuracy"]:
                     self.log_metrics(
                         mlflow_client,
                         root_run_id,
                         f"Test {key}",
                         metric_results[f"overall_{key}"],
+                        pipeline_level=True,
                     )
-
-            # log metrics for each FL iteration
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Train Loss",
-                training_loss,
-                pipeline_level=True,
-            )
-            self.log_metrics(
-                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
-            )
-
-            for key in ["precision", "recall", "f1", "accuracy"]:
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    f"Test {key}",
-                    metric_results[f"overall_{key}"],
-                    pipeline_level=True,
-                )
 
     def test(self):
         """Test the trained model and report test loss and metrics"""
@@ -391,9 +448,15 @@ class NERTrainer:
         logger.debug("Start training")
         self.local_train(checkpoint)
 
-        logger.debug("Save model")
-        torch.save(self.model_.state_dict(), self._model_path)
-        logger.info(f"Model saved to {self._model_path}")
+        if not self._distributed:
+            logger.debug("Save model")
+            torch.save(self.model_.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
+        elif self._rank == 0:
+            # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+            logger.debug("Save model")
+            torch.save(self.model_.module.state_dict(), self._model_path)
+            logger.info(f"Model saved to {self._model_path}")
 
 
 def get_arg_parser(parser=None):
@@ -447,6 +510,17 @@ def run(args):
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
+    logger.info(f"Distributed process rank: {os.environ['RANK']}")
+    logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
+
+    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+        dist.init_process_group(
+            "nccl",
+            rank=int(os.environ["RANK"]),
+            world_size=int(os.environ["WORLD_SIZE"]),
+        )
+    elif int(os.environ["WORLD_SIZE"]) > 1:
+        dist.init_process_group("gloo")
 
     trainer = NERTrainer(
         tokenizer_name=args.tokenizer_name,
@@ -459,8 +533,13 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         batch_size=args.batch_size,
+        device_id=int(os.environ["RANK"]),
+        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
+
+    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+        dist.destroy_process_group()
 
 
 def main(cli_args=None):
