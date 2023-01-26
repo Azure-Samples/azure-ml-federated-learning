@@ -1,7 +1,7 @@
 # Ramp-up plan to Federated Learning on Azure ML
 
 ## Contents
-Here we propose a ramp-up plan to Federated Learning (FL) on Azure ML. The plan follows the Crawl-Walk-Run<!-- -Fly--> framework, where we suggest to start with a simple example, and then progressively add more complexity.
+This page provides a general ramp-up plan to Federated Learning (FL) on Azure ML. The plan follows the Crawl-Walk-Run<!-- -Fly--> framework, where we suggest to start with a simple example, and then progressively add more complexity.
 
 The plan is meant to guide all people involved in the (federated) ML lifecycle. _Team leads_ will find the whole plan useful to get an overall picture of what onboarding to FL on Azure ML might look like. _Data Scientists_ (the folks designing models) will likely focus on the **Crawl** and **Walk** phases. _Data/ML Engineers_ (the people training and deploying models in production) will find the most value in the **Walk** and **Run** phases. <!-- _MLOps engineers_ (handling models and infrastructure at scale) will be interested in the **Fly** phase. --> 
 
