@@ -16,6 +16,7 @@
     - [Glossary](#glossary)
 - [Tutorials](#tutorials)
     - [What this repo has to offer](#what-this-repo-has-to-offer)
+    - [Provisioning guide](#provisioning-guide)
     - [Adapt the code from this repo](#how-to-adapt-the-literal-and-the-factory-code-for-your-own-scenario)
     - [Use local data when running on-prem](#read-local-data-in-an-on-premises-kubernetes-silo)
 - [Troubleshooting guide](#troubleshooting-guide)
@@ -101,6 +102,10 @@ This repo provides some code samples for running a federated learning pipeline i
 | :--- | :--- |
 | [examples](../examples) | Scripts and pipelines to run FL sample experiments. |
 | [mlops](../mlops) | Provisioning scripts. See instructions [here](./provisioning/README.md). |
+
+## Provisioning guide
+
+This guide will help you adapt your own setup depending on your provisioning strategy and your constraints. See [here](./provisioning/README.md) for detailed instructions.
 
 ## How to adapt the "literal" and the "factory" code for your own scenario
 The complete tutorial can be found [**here**](./tutorials/literal-factory-tutorial.md)
