@@ -34,7 +34,12 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--iteration_num", type=int, required=False, help="Iteration number"
     )
-
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
+    )
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -49,7 +54,10 @@ def get_arg_parser(parser=None):
         "--dp", type=strtobool, required=False, help="differential privacy"
     )
     parser.add_argument(
-        "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
+        "--dp_target_epsilon", type=float, required=False, help="DP target epsilon"
+    )
+    parser.add_argument(
+        "--dp_target_delta", type=float, required=False, help="DP target delta"
     )
     parser.add_argument(
         "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
