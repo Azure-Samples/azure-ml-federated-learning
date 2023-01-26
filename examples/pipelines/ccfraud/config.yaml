@@ -65,6 +65,10 @@ training_parameters:
   model_name: SimpleLinear
 
   # Differential privacy
-  dp: false
-  dp_noise_multiplier: 1.0
-  dp_max_grad_norm: 1.0
+  dp: true # Flag to enable/disable differential privacy
+  dp_target_epsilon: 50.0 # Smaller epsilon means more privacy, more noise
+  dp_target_delta: 1e-5 # The target δ of the (ϵ,δ)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. 
+  dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
+
+  # if you want to use the privacy_engine.make_private method, please set the value of dp_noise_multiplier parameter
+  # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)

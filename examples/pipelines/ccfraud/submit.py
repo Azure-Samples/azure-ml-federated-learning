@@ -310,14 +310,18 @@ def fl_ccfraud_basic():
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Differential Privacy
                 dp=YAML_CONFIG.training_parameters.dp,
-                # DP noise multiplier
-                dp_noise_multiplier=YAML_CONFIG.training_parameters.dp_noise_multiplier,
+                # DP target epsilon
+                dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
+                # DP target delta
+                dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
                 # DP max gradient norm
                 dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
                 # Silo name/identifier
                 metrics_prefix=silo_config.name,
                 # Iteration name
                 iteration_name=f"Iteration-{iteration}",
+                # Total num of iterations
+                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
                 # Model name
                 model_name=YAML_CONFIG.training_parameters.model_name,
             )

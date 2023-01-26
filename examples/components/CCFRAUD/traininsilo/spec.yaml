@@ -32,6 +32,11 @@ inputs:
     description: Iteration name
     default: Default-iteration
     optional: true
+  total_num_of_iterations:
+    type: integer
+    description: Total num of iterations
+    default: 1
+    optional: true
   checkpoint:
     type: uri_folder
     description: a given pre-existing checkpoint
@@ -60,10 +65,15 @@ inputs:
     description: differential privacy
     default: false
     optional: true
-  dp_noise_multiplier:
+  dp_target_epsilon:
     type: number
-    description: DP noise multiplier
-    default: 1.0
+    description: DP target epsilon
+    default: 50.0
+    optional: true
+  dp_target_delta:
+    type: number
+    description: DP target delta
+    default: 1e-5
     optional: true
   dp_max_grad_norm:
     type: number
@@ -86,12 +96,14 @@ command: >-
   --model_name ${{inputs.model_name}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--iteration_name ${{inputs.iteration_name}}]]
+  $[[--total_num_of_iterations ${{inputs.total_num_of_iterations}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
   $[[--dp ${{inputs.dp}}]] 
-  $[[--dp_noise_multiplier ${{inputs.dp_noise_multiplier}}]] 
+  $[[--dp_target_epsilon ${{inputs.dp_target_epsilon}}]] 
+  $[[--dp_target_delta ${{inputs.dp_target_delta}}]]
   $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
 environment: 
   conda_file: ./conda.yaml

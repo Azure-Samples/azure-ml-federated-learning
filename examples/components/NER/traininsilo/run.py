@@ -611,7 +611,6 @@ def run(args):
         model_path=args.model + "/model.pt",
         lr=args.lr,
         epochs=args.epochs,
-        batch_size=args.batch_size,
         dp=args.dp,
         dp_target_epsilon=args.dp_target_epsilon,
         dp_target_delta=args.dp_target_delta,
