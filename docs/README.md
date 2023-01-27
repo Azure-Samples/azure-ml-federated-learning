@@ -11,6 +11,7 @@
 - [What this repo as to offer?](#what-this-repo-as-to-offer)
 - [Tutorial on how to adapt the "literal" and the "factory" code](#tutorial-on-how-to-adapt-the-literal-and-the-factory-code)
 - [Real-world examples](#real-world-examples)
+- [Vertical federated learning](#vertical-federated-learning)
 - [Glossary](#glossary)
 
 ## Motivation
@@ -75,6 +76,24 @@ This example shows how to train a federated model for the Named Entity Recogniti
 
 ### Credit card fraud detection using synthetic transactional data
 This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud.md) for detailed instructions on how to run this example.
+
+## Vertical federated learning
+
+> - :warning: EXPERIMENTAL :warning: This is experimental feature and we are still working on improving it.
+
+Vertical federated learning is a branch of federated learning where the data are split across the features (vertically) instead of across the samples (horizontally). This provides communication challenges as the nodes running the code needs to exchange intermediate outputs and their corresponding gradients of aligned samples.
+
+We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes.
+
+The pipelines can be found here:
+- [MNIST Pipeline](../examples/pipelines/mnist_vertical)
+- [CCFRAUD Pipeline](../examples/pipelines/ccfraud_vertical/)
+
+These pipelines deploy following components:
+- [MNIST](../examples/components_vertical/MNIST/)
+- [CCFRAUD Pipeline](../examples/components_vertical/CCFRAUD/)
+
+>Note: In order to run this samples you will need to provision the sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet from [quickstart](./quickstart.md)
 
 ## Targeted tutorials
 Besides the full end-to-end real-world examples, we also provide targeted tutorials for specific scenarios.
