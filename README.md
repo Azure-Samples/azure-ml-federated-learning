@@ -9,17 +9,22 @@ This repo provides some code samples for running a federated learning pipeline i
 
 ## Table of contents
 
-- [Getting started](#zap-getting-started)
-- [Real world examples](#real-world-examples)
-- [Documentation](#documentation)
-- [Support](#need-support)
-- [Contributing](#contributing)
+- [Federated Learning in Azure ML](#federated-learning-in-azure-ml)
+  - [Table of contents](#table-of-contents)
+    - [:zap: Getting Started](#zap-getting-started)
+    - [Real world examples](#real-world-examples)
+    - [FL Frameworks](#fl-frameworks)
+    - [Documentation](#documentation)
+    - [Need Support?](#need-support)
+    - [Contributing](#contributing)
 
 ### :zap: Getting Started
 
 No time to read? Go directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
 
-For an overview of the onboarding process, please check our [**ramp-up plan**](./docs/ramp-up-plan.md).
+To understand the journey to acheve production-ready Federated Learning, please check our guide to [**Plan Your FL Project**](./docs/concepts/plan-your-fl-project.md).
+
+To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./docs/provisioning/README.md).
 
 ### Real world examples
 
@@ -45,7 +50,7 @@ Please find a full documentation of this project [**here**](docs/README.md).
 
 ### Need Support?
 
-Please check the [**troubleshooting guide**](./docs/tsg.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
+Please check the [**troubleshooting guide**](./docs/troubleshoot.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
 
 If you have any feature requests, technical questions, or find any bugs, please do not hesitate to reach out to us.
 
