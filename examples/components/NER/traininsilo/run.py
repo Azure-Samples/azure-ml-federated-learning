@@ -36,7 +36,9 @@ class DataCollatorForPrivateTokenClassification(DataCollatorForTokenClassificati
     def __init__(self, tokenizer: PreTrainedTokenizer):
         super().__init__(tokenizer=tokenizer)
 
-    def __call__(self, examples: List[Union[List[int], torch.Tensor, Dict[str, torch.Tensor]]]) -> Dict[str, torch.Tensor]:
+    def __call__(
+        self, examples: List[Union[List[int], torch.Tensor, Dict[str, torch.Tensor]]]
+    ) -> Dict[str, torch.Tensor]:
         batch = super().__call__(examples)
 
         # Huggingface's default way of constructing position_ids is not compatible with Opacus
@@ -49,6 +51,7 @@ class DataCollatorForPrivateTokenClassification(DataCollatorForTokenClassificati
                 input_ids.shape[1], dtype=torch.long, device=input_ids.device
             ).repeat(input_ids.shape[0], 1)
         return batch
+
 
 class NERTrainer:
     def __init__(
@@ -465,9 +468,7 @@ class NERTrainer:
 
                 # log test loss for each epoch
                 if not self._distributed or self._rank == 0:
-                    self.log_metrics(
-                        mlflow_client, root_run_id, "Test Loss", test_loss
-                    )
+                    self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
                 logger.info(f"Epoch: {epoch}, Test Loss: {test_loss}")
 
                 # log test metric for each epoch
