@@ -10,13 +10,16 @@ This repo provides some code samples for running a federated learning pipeline i
 ## Table of contents
 
 - [Getting started](#zap-getting-started)
+- [Real world examples](#real-world-examples)
 - [Documentation](#documentation)
 - [Support](#need-support)
 - [Contributing](#contributing)
 
 ### :zap: Getting Started
 
-No time to read? Get directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
+No time to read? Go directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
+
+For an overview of the onboarding process, please check our [**ramp-up plan**](./docs/ramp-up-plan.md).
 
 ### Real world examples
 
