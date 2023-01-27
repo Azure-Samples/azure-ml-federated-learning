@@ -27,8 +27,10 @@ class MnistTrainer:
         epochs=1,
         batch_size=64,
         dp=False,
-        dp_noise_multiplier=1.0,
+        dp_target_epsilon=50.0,
+        dp_target_delta=1e-5,
         dp_max_grad_norm=1.0,
+        total_num_of_iterations=1,
         experiment_name="default-experiment",
         iteration_num=1,
     ):
@@ -40,9 +42,11 @@ class MnistTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01
             epochs (int, optional): Epochs. Defaults to 1
             batch_size (int, optional): DataLoader batch size. Defaults to 64
-            dp (bool, optional): Differential Privacy
-            dp_noise_multiplier (float, optional): DP noise multiplier
-            dp_max_grad_norm (float, optional): DP max gradient norm
+            dp (bool, optional): Differential Privacy. Default is False (Note: dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy)
+            dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
+            dp_target_delta (float, optional): DP target delta. Default is 1e-5
+            dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
+            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
             experiment_name (str, optional): Experiment name. Default is default-experiment
             iteration_num (int, optional): Iteration number. Defaults to 1
 
@@ -98,16 +102,39 @@ class MnistTrainer:
 
         if dp:
             privacy_engine = PrivacyEngine(secure_mode=False)
+            """secure_mode: Set to True if cryptographically strong DP guarantee is
+            required. secure_mode=True uses secure random number generator for
+            noise and shuffling (as opposed to pseudo-rng in vanilla PyTorch) and
+            prevents certain floating-point arithmetic-based attacks.
+            See :meth:~opacus.optimizers.optimizer._generate_noise for details.
+            When set to True requires torchcsprng to be installed"""
             (
                 self.model_,
                 self.optimizer_,
                 self.train_loader_,
-            ) = privacy_engine.make_private(
+            ) = privacy_engine.make_private_with_epsilon(
+                module=self.model_,
+                optimizer=self.optimizer_,
+                data_loader=self.train_loader_,
+                epochs=total_num_of_iterations * epochs,
+                target_epsilon=dp_target_epsilon,
+                target_delta=dp_target_delta,
+                max_grad_norm=dp_max_grad_norm,
+            )
+
+            """
+            You can also obtain their counterparts by passing the noise multiplier. 
+            Please refer to the following function.
+            privacy_engine.make_private(
                 module=self.model_,
                 optimizer=self.optimizer_,
                 data_loader=self.train_loader_,
                 noise_multiplier=dp_noise_multiplier,
                 max_grad_norm=dp_max_grad_norm,
+            )
+            """
+            logger.info(
+                f"Target epsilon: {dp_target_epsilon}, delta: {dp_target_delta} and noise multiplier: {self.optimizer_.noise_multiplier}"
             )
 
     def load_dataset(self, train_data_dir, test_data_dir):
@@ -323,7 +350,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--iteration_num", type=int, required=False, help="Iteration number"
     )
-
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -338,10 +364,19 @@ def get_arg_parser(parser=None):
         "--dp", type=strtobool, required=False, help="differential privacy"
     )
     parser.add_argument(
-        "--dp_noise_multiplier", type=float, required=False, help="DP noise multiplier"
+        "--dp_target_epsilon", type=float, required=False, help="DP target epsilon"
+    )
+    parser.add_argument(
+        "--dp_target_delta", type=float, required=False, help="DP target delta"
     )
     parser.add_argument(
         "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
     )
     return parser
 
@@ -361,8 +396,10 @@ def run(args):
         epochs=args.epochs,
         batch_size=args.batch_size,
         dp=args.dp,
-        dp_noise_multiplier=args.dp_noise_multiplier,
+        dp_target_epsilon=args.dp_target_epsilon,
+        dp_target_delta=args.dp_target_delta,
         dp_max_grad_norm=args.dp_max_grad_norm,
+        total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
     )

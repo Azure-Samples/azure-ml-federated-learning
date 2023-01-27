@@ -5,6 +5,7 @@
 ## Prerequisites
 
 To run these deployment options, you first need:
+
 - an existing Azure ML workspace (see [cookbook](README.md#create-an-azure-ml-workspace))
 - an existing orchestrator (see [tutorial](orchestrator_open.md))
 - have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
@@ -59,12 +60,11 @@ The option 1 wraps up multiple provisioning steps from multiple sections of the 
 
 4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
 
-
 ## Create InstanceType
 
-InstanceType sets restrictions for each job running on the AKS cluster. You can create multiple InstanceType(s) for different type of jobs. For example, job for pre-processing data is usually less demanding than a training job and thus the InstanceType can provide process with less resources. You can find example InstanceType definition in [`mlops/k8_templates/instance-type.yaml`](../../mlops/k8_templates/instance-type.yaml). To create InstanceType follow these steps:
+InstanceType sets restrictions for each job running on the AKS cluster. You can create multiple InstanceType(s) for different type of jobs. For example, job for pre-processing data is usually less demanding than a training job and thus the InstanceType can provide process with less resources. You can find example InstanceType definition in [`mlops/k8_templates/instance-type.yaml`](../../mlops/k8s_templates/instance-type.yaml). To create InstanceType follow these steps:
 
-> Note: Make sure you have `kubectl` tool installed: https://kubernetes.io/docs/tasks/tools/
+> Note: Make sure you have `kubectl` tool installed: <https://kubernetes.io/docs/tasks/tools/>
 
 1. Update `mlops/k8_templates/instance-type.yaml` file to reflect minimum and limit resources for the job you intend to deploy (for simplicity you can just set the limit to resources provided by provisioned node in the AKS cluster)
 2. Update `name` property under `metadata` section in the `mlops/k8_templates/instance-type.yaml` file. Please remember this name as you will need it later on.
@@ -72,4 +72,4 @@ InstanceType sets restrictions for each job running on the AKS cluster. You can 
 4. Run `az account set --subscription <your-subscription-id>`
 5. Run `az aks get-credentials --resource-group <rg-name> --name <aks-name>`
 6. Navigate to `mlops/kube` folder and run: `kubectl apply -f instance-type.yaml`
-7. Add `instance_type` property to your pipeline config for the AKS silo and set value to the name set in the step 2 
+7. Add `instance_type` property to your pipeline config for the AKS silo and set value to the name set in the step 2
