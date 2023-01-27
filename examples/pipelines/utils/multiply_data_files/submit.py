@@ -86,7 +86,6 @@ COMPONENTS_FOLDER = os.path.join(
     "..",
     "components",
     "utils",
-    "multiply_data_files",
 )
 
 
@@ -129,7 +128,7 @@ def connect_to_aml():
 
 # Loading the component from their yaml specifications
 multiply_data_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "multiply_data", "spec.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "multiply_data_files", "spec.yaml")
 )
 
 
