@@ -6,17 +6,14 @@ This repo provides some code samples for running a federated learning pipeline i
 
 :warning: Running a full federated learning pipeline raises **security questions that you need to address** before using this repository for production purpose. Please consider this repository as a sample only.
 
-
 ## Table of contents
 
-- [Federated Learning in Azure ML](#federated-learning-in-azure-ml)
-  - [Table of contents](#table-of-contents)
-    - [:zap: Getting Started](#zap-getting-started)
-    - [Real world examples](#real-world-examples)
-    - [FL Frameworks](#fl-frameworks)
-    - [Documentation](#documentation)
-    - [Need Support?](#need-support)
-    - [Contributing](#contributing)
+- [:zap: Getting Started](#zap-getting-started)
+- [Real world examples](#real-world-examples)
+- [FL Frameworks](#fl-frameworks)
+- [Documentation](#documentation)
+- [Need Support?](#need-support)
+- [Contributing](#contributing)
 
 ### :zap: Getting Started
 
@@ -32,7 +29,7 @@ Please also check our industry use cases below.
 
 | Medical Imaging | Named Entity Recognition | Fraud Detection |
 | :-: | :-: | :-: |
-| [![](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
+| [![medical imaging icon](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![ner icon](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
 | [pneumonia.md](./docs/real-world-examples/pneumonia.md) | [ner.md](./docs/real-world-examples/ner.md) | [ccfraud.md](./docs/real-world-examples/ccfraud.md) |
 
 ### FL Frameworks
@@ -58,7 +55,7 @@ For bug reports and feature requests, you are welcome to open an [**issue**](htt
 
 ### Contributing
 
-This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>.
 
 To contribute, please start by creating a self-assigned [**issue**](https://github.com/Azure-Samples/azure-ml-federated-learning/issues/new) giving a high-level overview of what you'd like to do. Once any discussion there concludes, follow up with a PR.
 
