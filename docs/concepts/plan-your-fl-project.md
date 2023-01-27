@@ -2,7 +2,7 @@
 
 Adopting a Federated Learning strategy can be complex because it requires both machine learning skills on one side, and infrastructure and security skills on the other. This page provides a general ramp-up plan for a team that is new to Federated Learning (FL), and wants to leverage this technology at scale using Azure ML.
 
-The plan follows the Crawl-Walk-Run<!-- -Fly--> framework, where we suggest to start with a simple example, and then progressively add more complexity.
+The plan follows the Crawl-Walk-Run-Fly framework, where we suggest to start with a simple example, and then progressively add more complexity.
 
 Multiple actors will ne needed to successfully implement a production-ready FL stack:
 - For **Team leads**, this whole guide provides a holistic project structure and investment areas for onboarding FL on Azure ML.
@@ -14,6 +14,20 @@ Multiple actors will ne needed to successfully implement a production-ready FL s
 - [:turtle: **Crawl** - Kick the tires and get a feel for the technology](#i-turtle-crawl---kick-the-tires-and-get-a-feel-for-the-technology)
 - [:walking: **Walk** - Provision a custom setup, connect non-sensitive data, train first FL model](#ii-walking-walk---provision-a-custom-setup-connect-non-sensitive-data-train-first-fl-model)
 - [:running: **Run** - Provision a custom and _secure_ setup, connect to sensitive data, train real FL model](#iii-running-run---provision-a-custom-and-secure-setup-connect-to-sensitive-data-train-real-fl-model)
+- [:flying: **Fly** - Provision a custom and _secure_ setup, connect to sensitive data, train real FL model](#iii-running-run---provision-a-custom-and-secure-setup-connect-to-sensitive-data-train-real-fl-model)
+
+Establish a proof of concept (PoC) for FL on Azure ML, using non-sensitive data. This will help you understand the different components of the FL training process, and how to customize them. And should you make a mistake with the security settings or inadvertently expose some data, that is okay because it is non-sensitive data.
+
+Prototype a production-ready FL stack on Azure ML, using production data in a secure environment.
+
+Integrate FL into your production environment, using production data in a secure and reproducible environment.
+
+## Federated Learning Readiness
+
+- Infrastructure readiness
+- Framework readiness
+- Policy readiness
+- Privacy readiness
 
 ## I. :turtle: **Crawl** - Kick the tires and get a feel for the technology
 
