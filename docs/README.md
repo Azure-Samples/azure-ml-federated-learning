@@ -122,6 +122,9 @@ The complete tutorial can be found [**here**](./tutorials/literal-factory-tutori
 
 This tutorial will show you how to access, within an Azure ML job running on an on-premises Kubernetes (k8s) cluster, some data in the local file system. It will guide you through the entire process: k8s cluster creation and configuration, attachment to Azure ML as an external silo, and finally test job. See [here](./tutorials/read-local-data-in-k8s-silo.md) for detailed instructions.
 
+## Differential privacy for cross-silo horizontal federated learning
+The complete tutorial can be found [**here**](./tutorials/dp-for-cross-silo-horizontal-fl.md).
+
 # Troubleshooting guide
 
 If you experience an issue using this repository, please check the [**troubleshooting guide**](./troubleshoot.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
