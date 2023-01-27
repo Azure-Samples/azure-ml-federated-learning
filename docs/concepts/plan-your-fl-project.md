@@ -1,21 +1,65 @@
-# Ramp-up plan to Federated Learning on Azure ML
+# Plan your journey towards Federated Learning on Azure ML
 
-## Contents
-This page provides a general ramp-up plan to Federated Learning (FL) on Azure ML. The plan follows the Crawl-Walk-Run<!-- -Fly--> framework, where we suggest to start with a simple example, and then progressively add more complexity.
+Adopting a Federated Learning strategy can be complex because it requires both machine learning skills on one side, and infrastructure and security skills on the other. This page provides a general ramp-up plan for a team that is new to Federated Learning (FL), and wants to leverage this technology at scale using Azure ML.
 
-The plan is meant to guide all people involved in the (federated) ML lifecycle. _Team leads_ will find the whole plan useful to get an overall picture of what onboarding to FL on Azure ML might look like. _Data Scientists_ (the folks designing models) will likely focus on the **Crawl** and **Walk** phases. _Data/ML Engineers_ (the people training and deploying models in production) will find the most value in the **Walk** and **Run** phases. <!-- _MLOps engineers_ (handling models and infrastructure at scale) will be interested in the **Fly** phase. --> 
+The plan follows the Crawl-Walk-Run<!-- -Fly--> framework, where we suggest to start with a simple example, and then progressively add more complexity.
+
+Multiple actors will ne needed to successfully implement a production-ready FL stack:
+- For **Team leads**, this whole guide provides a holistic project structure and investment areas for onboarding FL on Azure ML.
+- For **Data Scientists**, the **Crawl** and **Walk** phases of this guide will show how to tackle FL from an ML perspective.
+- For **Data/ML Engineers**, the **Walk** and **Run** phases will explain the areas of investment in the infrastructure.
+
+## Table of contents
+
+- [:turtle: **Crawl** - Kick the tires and get a feel for the technology](#i-turtle-crawl---kick-the-tires-and-get-a-feel-for-the-technology)
+- [:walking: **Walk** - Provision a custom setup, connect non-sensitive data, train first FL model](#ii-walking-walk---provision-a-custom-setup-connect-non-sensitive-data-train-first-fl-model)
+- [:running: **Run** - Provision a custom and _secure_ setup, connect to sensitive data, train real FL model](#iii-running-run---provision-a-custom-and-secure-setup-connect-to-sensitive-data-train-real-fl-model)
 
 ## I. :turtle: **Crawl** - Kick the tires and get a feel for the technology
 
-This will likely apply to any organization that hasn't done any FL training before, or that has practiced some FL using available open source frameworks in a simulated environment.
+- Prerequisites: none, this is done even before starting a project
+- Who: data scientists, ML engineers
+- Investment: 1-2 days
+
+The **goals** of this phase are to:
+- get a feel for the technology and the Azure ML platform,
+- identify the key areas of your future work plan and investments,
+- understand the different components of the FL training process, and how to customize them.
+
+Any organization that hasn't done any FL training before will have to learn about multiple aspects of the stack: machine (federated) learning itself, but also infrastructure setup and security, as well as Azure ML as a cloud provider. A reasonable first goal for you or your team is to provision a sandbox environment you can use to learn about FL, then run some hands-on examples and why not adapt them for a first prototype.
 
 During this phase, we recommend you to get used to both the scientific and the infrastructure aspects of FL.
 
-To do so, your first few steps should be to provision a basic setup for FL and try to run a simple example. This will help you get a feel for the technology and the Azure ML platform. Great news, our [quickstart](./quickstart.md) will help you do just that!
+We recommend you to go through the following hands-on content:
+- Run our [quickstart](./quickstart.md), it takes 5-10 minutes, and shows off the entire stack.
+- Run our [industry-relevant examples](./README.md#real-world-examples), they take 30-60 minutes, and show how to train FL models on real-world data, on samples.
 
->**:checkered_flag: :turtle: Checkpoint:** You are able to reproduce a simple FL training run.
+While doing so, there are key concepts that you'll want to understand:
+- the notion of orchestrator and silo,
+- the notion of an Azure ML pipeline and how steps are running some in the silos, some in the orchestrator, to support FL,
+- how FL ensures the privacy and co-location of the data in different regions,
+- the different kinds of silos and how they are connected to the orchestrator (see our [provisioning guide](../provisioning/README.md) as a starting point),
+- how the FL machine learning code is different from centralized machine learning code (for instance the use of aggregation).
+
+Once you've run a few examples, we recommend using the sandbox Azure ML workspace as a way to try things out and explore how you could transpose the sample code for your use case. In particular, here's a few questions you will want to answer before moving to the next phase:
+- In your use case, what kind of silos would you need? internal or external? same tenant or different tenants?
+- What kind of constraints will impact your own FL project? (data location constraints? privacy constraints? legal IP/agreement constraints?)
+- Is your FL workflow horizontal or vertical?
+
+**:checkered_flag: Checkpoint - you can move on to the next phase once you have:**
+- Run some sample FL training jobs,
+- Identified which kind of federation you will work with.
+
 
 ## II. :walking: **Walk** - Provision a custom setup, connect non-sensitive data, train first FL model
+
+- Who: data scientists, ML engineers
+- Investment: 1-2 weeks
+
+The **goals** of this phase are to:
+- ML: implement a proof of concept FL pipeline,
+- Infra: provision a custom sandbox environment,
+- Project: identify a path to production.
 
 This will likely apply to any organization that has minimal FL experience on Azure ML and that is ready to build its first prototype.
 
