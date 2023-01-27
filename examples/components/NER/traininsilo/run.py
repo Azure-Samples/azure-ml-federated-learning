@@ -8,6 +8,7 @@ from transformers import (
     AutoModelForTokenClassification,
     AutoTokenizer,
     get_scheduler,
+    PreTrainedTokenizer,
 )
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -27,8 +28,27 @@ from distutils.util import strtobool
 # DP
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
-from opacus.utils.batch_memory_manager import BatchMemoryManager
+from typing import List, Dict, Union
 
+
+# Custom data collator for differential privacy
+class DataCollatorForPrivateTokenClassification(DataCollatorForTokenClassification):
+    def __init__(self, tokenizer: PreTrainedTokenizer):
+        super().__init__(tokenizer=tokenizer)
+
+    def __call__(self, examples: List[Union[List[int], torch.Tensor, Dict[str, torch.Tensor]]]) -> Dict[str, torch.Tensor]:
+        batch = super().__call__(examples)
+
+        # Huggingface's default way of constructing position_ids is not compatible with Opacus
+        # since Opacus is not able to deduce the batch size from the input. Here we manually
+        # generate a position_ids tensor which has the same values as Huggingface's default tensor
+        # but it is constructed in a way that is compatile with Opacus by using expand_as.
+        if "position_ids" not in batch:
+            input_ids = batch["input_ids"]
+            batch["position_ids"] = torch.arange(
+                input_ids.shape[1], dtype=torch.long, device=input_ids.device
+            ).repeat(input_ids.shape[0], 1)
+        return batch
 
 class NERTrainer:
     def __init__(
@@ -112,7 +132,7 @@ class NERTrainer:
         tokenizer = AutoTokenizer.from_pretrained(tokenizer_name)
 
         # dataset and data loader
-        data_collator = DataCollatorForTokenClassification(tokenizer=tokenizer)
+        data_collator = DataCollatorForPrivateTokenClassification(tokenizer=tokenizer)
         train_dataset, test_dataset = self.load_dataset(train_data_dir, test_data_dir)
 
         if self._distributed:
@@ -194,7 +214,6 @@ class NERTrainer:
                 target_epsilon=dp_target_epsilon,
                 target_delta=dp_target_delta,
                 max_grad_norm=dp_max_grad_norm,
-                batch_first=False,
             )
 
             """
@@ -390,111 +409,105 @@ class NERTrainer:
                 num_of_batches_before_logging = 100
                 # Training
                 self.model_.train()
-                MAX_PHYSICAL_BATCH_SIZE = 16
-                with BatchMemoryManager(
-                    data_loader=self.train_loader_,
-                    max_physical_batch_size=MAX_PHYSICAL_BATCH_SIZE,
-                    optimizer=self.optimizer_,
-                ) as memory_safe_data_loader:
-                    for i, batch in enumerate(memory_safe_data_loader):
-                        batch = {
-                            key: value.to(self.device_) for key, value in batch.items()
-                        }
-                        outputs = self.model_(**batch)
-                        loss = outputs.loss
-                        loss.backward()
-                        self.optimizer_.step()
-                        lr_scheduler.step()
-                        self.optimizer_.zero_grad()
-                        progress_bar.update(1)
+                for i, batch in enumerate(self.train_loader_):
+                    batch = {
+                        key: value.to(self.device_) for key, value in batch.items()
+                    }
+                    outputs = self.model_(**batch)
+                    loss = outputs.loss
+                    loss.backward()
+                    self.optimizer_.step()
+                    lr_scheduler.step()
+                    self.optimizer_.zero_grad()
+                    progress_bar.update(1)
 
-                        # calculate metric
-                        true_predictions, true_labels = self.postprocess(
-                            outputs.logits.argmax(dim=-1), batch["labels"]
-                        )
-                        self.metric_.add_batch(
-                            predictions=true_predictions, references=true_labels
-                        )
+                    # calculate metric
+                    true_predictions, true_labels = self.postprocess(
+                        outputs.logits.argmax(dim=-1), batch["labels"]
+                    )
+                    self.metric_.add_batch(
+                        predictions=true_predictions, references=true_labels
+                    )
 
-                        running_loss += float(loss) / len(batch)
+                    running_loss += float(loss) / len(batch)
 
-                        del outputs
-                        del batch
+                    del outputs
+                    del batch
 
-                        if i != 0 and i % num_of_batches_before_logging == 0:
-                            training_loss = running_loss / num_of_batches_before_logging
-                            logger.info(
-                                f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
-                            )
-
-                            if not self._distributed or self._rank == 0:
-                                # log train loss
-                                self.log_metrics(
-                                    mlflow_client,
-                                    root_run_id,
-                                    "Train Loss",
-                                    training_loss,
-                                )
-
-                                # log evaluation metrics
-                                results = self.metric_.compute()
-                                for key in ["precision", "recall", "f1", "accuracy"]:
-                                    self.log_metrics(
-                                        mlflow_client,
-                                        root_run_id,
-                                        f"Train {key}",
-                                        results[f"overall_{key}"],
-                                    )
-
-                            running_loss = 0.0
-
-                    test_loss, metric_results = self.test()
-
-                    # log test loss for each epoch
-                    if not self._distributed or self._rank == 0:
-                        self.log_metrics(
-                            mlflow_client, root_run_id, "Test Loss", test_loss
-                        )
-                    logger.info(f"Epoch: {epoch}, Test Loss: {test_loss}")
-
-                    # log test metric for each epoch
-                    for key in ["precision", "recall", "f1", "accuracy"]:
+                    if i != 0 and i % num_of_batches_before_logging == 0:
+                        training_loss = running_loss / num_of_batches_before_logging
                         logger.info(
-                            f"Epoch: {epoch}: Test {key} is {metric_results[f'overall_{key}']}"
+                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}"
                         )
+
                         if not self._distributed or self._rank == 0:
+                            # log train loss
                             self.log_metrics(
                                 mlflow_client,
                                 root_run_id,
-                                f"Test {key}",
-                                metric_results[f"overall_{key}"],
+                                "Train Loss",
+                                training_loss,
                             )
 
-                # log metrics for each FL iteration
+                            # log evaluation metrics
+                            results = self.metric_.compute()
+                            for key in ["precision", "recall", "f1", "accuracy"]:
+                                self.log_metrics(
+                                    mlflow_client,
+                                    root_run_id,
+                                    f"Train {key}",
+                                    results[f"overall_{key}"],
+                                )
+
+                        running_loss = 0.0
+
+                test_loss, metric_results = self.test()
+
+                # log test loss for each epoch
                 if not self._distributed or self._rank == 0:
                     self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        "Train Loss",
-                        training_loss,
-                        pipeline_level=True,
+                        mlflow_client, root_run_id, "Test Loss", test_loss
                     )
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        "Test Loss",
-                        test_loss,
-                        pipeline_level=True,
-                    )
+                logger.info(f"Epoch: {epoch}, Test Loss: {test_loss}")
 
-                    for key in ["precision", "recall", "f1", "accuracy"]:
+                # log test metric for each epoch
+                for key in ["precision", "recall", "f1", "accuracy"]:
+                    logger.info(
+                        f"Epoch: {epoch}: Test {key} is {metric_results[f'overall_{key}']}"
+                    )
+                    if not self._distributed or self._rank == 0:
                         self.log_metrics(
                             mlflow_client,
                             root_run_id,
                             f"Test {key}",
                             metric_results[f"overall_{key}"],
-                            pipeline_level=True,
                         )
+
+            # log metrics for each FL iteration
+            if not self._distributed or self._rank == 0:
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Train Loss",
+                    training_loss,
+                    pipeline_level=True,
+                )
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Test Loss",
+                    test_loss,
+                    pipeline_level=True,
+                )
+
+                for key in ["precision", "recall", "f1", "accuracy"]:
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        f"Test {key}",
+                        metric_results[f"overall_{key}"],
+                        pipeline_level=True,
+                    )
 
     def test(self):
         """Test the trained model and report test loss and metrics"""
