@@ -88,7 +88,7 @@ We wrote a generic guide on how to get started, ramp-up and mature your [FL proj
 
 ## Glossary
 
-The complete glossary list can be seen [**here**](./concepts/glossary.md).
+The complete glossary list can be seen [**here**](./concepts/concepts/glossary.md).
 
 # Tutorials
 

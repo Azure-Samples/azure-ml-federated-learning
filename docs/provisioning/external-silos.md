@@ -18,7 +18,7 @@ At Fabrikam (one of the silos), one person owns the compute and the data. We'll 
 
 In all that follows, when we talk about an **Azure subscription** we mean the subscription where the Azure ML workspace and the orchestrator will be deployed. This subscription belongs to Contoso.
 
-For common FL terms such as **silo** or **orchestrator**, please refer to the [glossary](../glossary.md).
+For common FL terms such as **silo** or **orchestrator**, please refer to the [glossary](../concepts/glossary.md).
 
 
 ## Prerequisites

@@ -31,14 +31,14 @@ Click on the buttons below depending on your goal. It will open in Azure Portal 
 
 In this section, we will use [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) scripts to automatically provision a minimal set of resources for an FL sandbox demo.
 
-This will help you provision a Federated Learning setup with [_internal silos_](./glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
+This will help you provision a Federated Learning setup with [_internal silos_](./concepts/glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
 
 In this setup, the communications between the silos and the orchestrator are secure, and the silos will not have any access to the other silos' data.
 
 We will provision:
 - 1 Azure ML workspace
-- 1 CPU cluster and 1 blob storage account for the [orchestrator](./glossary.md)
-- 3 [internal silos](./glossary.md) in 3 different regions (`westus`, `francecentral`, `brazilsouth`) with their respective compute cluster and storage account
+- 1 CPU cluster and 1 blob storage account for the [orchestrator](./concepts/glossary.md)
+- 3 [internal silos](./concepts/glossary.md) in 3 different regions (`westus`, `francecentral`, `brazilsouth`) with their respective compute cluster and storage account
 - 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict access to the silo's storage accounts.
 
 1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
