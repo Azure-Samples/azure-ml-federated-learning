@@ -76,9 +76,9 @@ jobs:
           ccfraud-upload-data:
             - 'examples/components/CCFRAUD/upload_data/**'
           pneumonia-multiply-data:
-            - 'examples/components/PNEUMONIA/multiply_data/**'
+            - 'examples/components/utils/multiple_data_files/**'
           utils-multiply-data:
-            - 'examples/pipelines/utils/multiply_data/**'
+            - 'examples/pipelines/utils/multiple_data_files/**'
 
   open-sandbox-test:
     runs-on: ubuntu-latest
@@ -319,4 +319,3 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: ${{ secrets.RESOURCE_GROUP }}
         workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
-        example: PNEUMONIA

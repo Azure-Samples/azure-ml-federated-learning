@@ -47,13 +47,6 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--example",
-    required=True,
-    choices=["PNEUMONIA"],
-    help="dataset name",
-)
-
-parser.add_argument(
     "--subscription_id",
     type=str,
     required=False,

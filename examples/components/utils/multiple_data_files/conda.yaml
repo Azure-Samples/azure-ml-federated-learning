@@ -1,4 +1,4 @@
-name: pneumonia_multiply_data_conda_env
+name: multiply_data_conda_env
 channels:
   - defaults
 dependencies:

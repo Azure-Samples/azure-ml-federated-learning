@@ -1,9 +1,9 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: multiply_pneumonia_data
+name: multiple_data_files
 version: 0.3.0
-display_name: Multiply Pneumonia Data
+display_name: Multiply Data Files
 type: command
-description: Component that multiplies the pneumonia dataset on each silo.
+description: Component that multiplies the dataset on each silo.
 is_deterministic: true
 
 inputs:
