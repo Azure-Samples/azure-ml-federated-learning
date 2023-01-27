@@ -1,4 +1,4 @@
-# FL using NVFlare in AzureML [Experimental]
+# FL using NVFlare in AzureML (Experimental)
 
 **Scenario** - This tutorial is an extension of the [pneumonia / radiography classification tutorial](../real-world-examples/pneumonia.md) using the NVFlare framework instead.  
 We run an NVFlare federated learning job to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
