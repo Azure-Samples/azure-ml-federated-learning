@@ -37,7 +37,7 @@ In those contexts, the data cannot be gathered in a central location, as is usua
 
 No time to read? Get directly to the [**quickstart**](./quickstart.md) to provision a demo within minutes in your own subscription.
 
-To understand the journey to acheve production-ready Federated Learning, please check our guide to [**Plan Your FL Project**](./concepts/plan-your-fl-project.md).
+To understand the journey to achieve production-ready Federated Learning, please check our guide to [**Plan Your FL Project**](./concepts/plan-your-fl-project.md).
 
 To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./provisioning/README.md).
 
