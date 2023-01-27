@@ -39,6 +39,7 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```bash
    python ./examples/pipelines/utils/upload_data/submit.py --example NER --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
@@ -54,10 +55,11 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```bash
    python ./examples/pipelines/ner/submit.py --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
-#### References
+## References
 
 - [HuggingFace Token Classification](https://huggingface.co/course/chapter7/2?fw=pt#token-classification)
