@@ -392,10 +392,10 @@ class NERTrainer:
                 self.model_.train()
                 MAX_PHYSICAL_BATCH_SIZE = 16
                 with BatchMemoryManager(
-                        data_loader=self.train_loader_, 
-                        max_physical_batch_size=MAX_PHYSICAL_BATCH_SIZE, 
-                        optimizer=self.optimizer_
-                    ) as memory_safe_data_loader:
+                    data_loader=self.train_loader_,
+                    max_physical_batch_size=MAX_PHYSICAL_BATCH_SIZE,
+                    optimizer=self.optimizer_,
+                ) as memory_safe_data_loader:
                     for i, batch in enumerate(memory_safe_data_loader):
                         batch = {
                             key: value.to(self.device_) for key, value in batch.items()
@@ -452,7 +452,9 @@ class NERTrainer:
 
                     # log test loss for each epoch
                     if not self._distributed or self._rank == 0:
-                        self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
+                        self.log_metrics(
+                            mlflow_client, root_run_id, "Test Loss", test_loss
+                        )
                     logger.info(f"Epoch: {epoch}, Test Loss: {test_loss}")
 
                     # log test metric for each epoch
