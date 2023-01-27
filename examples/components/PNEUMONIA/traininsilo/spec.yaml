@@ -41,17 +41,17 @@ inputs:
     description: DP max gradient norm
     default: 1.0
     optional: true
+  total_num_of_iterations:
+    type: integer
+    description: Total num of iterations
+    default: 1
+    optional: true
   dataset_name:
     type: uri_folder
     description: the data asset in Azure ML
   iteration_num:
     type: integer
     description: Iteration number
-    default: 1
-    optional: true
-  total_num_of_iterations:
-    type: integer
-    description: Total num of iterations
     default: 1
     optional: true
   checkpoint:

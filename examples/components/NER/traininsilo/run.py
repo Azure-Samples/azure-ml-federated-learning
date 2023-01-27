@@ -44,9 +44,9 @@ class NERTrainer:
         dp_target_epsilon=50.0,
         dp_target_delta=1e-5,
         dp_max_grad_norm=1.0,
+        total_num_of_iterations=1,
         experiment_name="default-experiment",
         iteration_num=1,
-        total_num_of_iterations=1,
         device_id=None,
         distributed=False,
     ):
@@ -61,13 +61,13 @@ class NERTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01.
             epochs (int, optional): number of epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
-            dp (bool, optional): Differential Privacy. Default is False
+            dp (bool, optional): Differential Privacy. Default is False (Note: dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy)
             dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
             dp_target_delta (float, optional): DP target delta. Default is 1e-5
             dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
+            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
             experiment_name (str, optional): Experiment name. Default is default-experiment.
             iteration_num (int, optional): Iteration number. Defaults to 1.
-            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
             device_id (int, optional): Device id to run training on. Default to None.
             distributed (bool, optional): Whether to run distributed training. Default to False.
 
@@ -147,6 +147,14 @@ class NERTrainer:
             id2label=self.idToLabel_,
             label2id=self.labelToId_,
         )
+        trainable_layers = [self.model_.bert.encoder.layer[-1], self.model_.classifier]
+        trainable_params=0
+        for layer in trainable_layers:
+            for p in layer.parameters():
+                p.requires_grad = True
+                trainable_params += p.numel()
+        logger.info(f"Trainable parameters: {trainable_params}")
+
         self.model_.train()
         if self._distributed:
             self.model_ = DDP(
@@ -185,6 +193,7 @@ class NERTrainer:
                 target_epsilon=dp_target_epsilon,
                 target_delta=dp_target_delta,
                 max_grad_norm=dp_max_grad_norm,
+                batch_first=False,
             )
 
             """
@@ -551,12 +560,6 @@ def get_arg_parser(parser=None):
         "--iteration_num", type=int, required=False, help="Iteration number"
     )
     parser.add_argument(
-        "--total_num_of_iterations",
-        type=int,
-        required=False,
-        help="Total number of iterations",
-    )
-    parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
     parser.add_argument(
@@ -581,6 +584,12 @@ def get_arg_parser(parser=None):
     )
     parser.add_argument(
         "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
     )
     return parser
 
@@ -615,9 +624,9 @@ def run(args):
         dp_target_epsilon=args.dp_target_epsilon,
         dp_target_delta=args.dp_target_delta,
         dp_max_grad_norm=args.dp_max_grad_norm,
+        total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
-        total_num_of_iterations=args.total_num_of_iterations,
         batch_size=args.batch_size,
         device_id=int(os.environ["RANK"]),
         distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),

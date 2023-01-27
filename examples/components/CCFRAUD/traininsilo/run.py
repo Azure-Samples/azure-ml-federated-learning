@@ -109,7 +109,7 @@ class CCFraudTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01.
             epochs (int, optional): Epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
-            dp (bool, optional): Differential Privacy. Default is False
+            dp (bool, optional): Differential Privacy. Default is False (Note: dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy)
             dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
             dp_target_delta (float, optional): DP target delta. Default is 1e-5
             dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
@@ -529,12 +529,6 @@ def get_arg_parser(parser=None):
         "--iteration_name", type=str, required=False, help="Iteration name"
     )
     parser.add_argument(
-        "--total_num_of_iterations",
-        type=int,
-        required=False,
-        help="Total number of iterations",
-    )
-    parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
     parser.add_argument(
@@ -555,6 +549,12 @@ def get_arg_parser(parser=None):
     )
     parser.add_argument(
         "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
     )
     return parser
 
