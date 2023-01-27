@@ -1,0 +1,43 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: nvflare_client
+version: 0.0.5
+display_name: NVFlare client
+type: command
+description: This component runs an NVFlare client inside an AzureML job.
+is_deterministic: true
+tags:
+  nvflare: 2.2.3
+  url: https://github.com/Azure-Samples/azure-ml-federated-learning
+
+inputs:
+  federation_identifier:
+    type: string
+    description: "a unique identifier for the group of clients and server to find each other"
+    default: "fed-0000"
+  client_config:
+    type: uri_folder
+    description: "the NVFlare workspace folder for this client"
+  client_data:
+    type: uri_folder
+    optional: true
+    description: "an optional folder containing data for the client to use"
+  client_data_env_var:
+    type: string
+    default: CLIENT_DATA_PATH
+    description: "the name of the env variable to set with the mount path of the client_data folder"
+  start:
+    type: uri_file
+    description: "input to trigger the job to start, not actually used"
+
+code: "."
+
+command: >-
+  python run.py 
+  --federation_identifier ${{inputs.federation_identifier}} 
+  --client_config ${{inputs.client_config}} 
+  $[[--client_data ${{inputs.client_data}}]] 
+  --client_data_env_var ${{inputs.client_data_env_var}}
+
+environment: 
+  build:
+    path: ./environment/context/
