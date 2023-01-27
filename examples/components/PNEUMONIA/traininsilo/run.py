@@ -52,7 +52,7 @@ class PTLearner:
             dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
             dp_target_delta (float, optional): DP target delta. Default is 1e-5
             dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
-            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1 
+            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
             dataset_dir (str, optional): Name of data asset in Azure ML. Defaults to "pneumonia-alldata".
             experiment_name (str, optional): Experiment name. Default is "default-experiment".
             iteration_num (int, optional): Iteration number. Defaults to 1.

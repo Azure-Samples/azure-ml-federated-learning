@@ -148,7 +148,7 @@ class NERTrainer:
             label2id=self.labelToId_,
         )
         trainable_layers = [self.model_.bert.encoder.layer[-1], self.model_.classifier]
-        trainable_params=0
+        trainable_params = 0
         for layer in trainable_layers:
             for p in layer.parameters():
                 p.requires_grad = True
