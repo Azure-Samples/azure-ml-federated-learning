@@ -317,12 +317,12 @@ def fl_ner_basic():
                 dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
                 # DP max gradient norm
                 dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
+                # Total num of iterations
+                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
                 # Silo name/identifier
                 metrics_prefix=silo_config.name,
                 # Iteration number
                 iteration_num=iteration,
-                # Total num of iterations
-                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
                 # Tokenizer name
                 tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
                 # Model name

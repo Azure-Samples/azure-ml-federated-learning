@@ -281,12 +281,12 @@ def silo_scatter_subgraph(
         dp_target_delta=dp_target_delta,
         # DP max gradient norm
         dp_max_grad_norm=dp_max_grad_norm,
+        # Total number of iterations
+        total_num_of_iterations=total_num_of_iterations,
         # Silo name/identifier
         metrics_prefix=scatter_name,
         # Iteration number
         iteration_num=iteration_num,
-        # Total number of iterations
-        total_num_of_iterations=total_num_of_iterations,
     )
 
     # Assigning the silo's second compute to the training component
