@@ -86,7 +86,7 @@ COMPONENTS_FOLDER = os.path.join(
     "..",
     "components",
     "utils",
-    "multiple_data_files",
+    "multiply_data_files",
 )
 
 
