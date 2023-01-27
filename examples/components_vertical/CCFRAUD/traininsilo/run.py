@@ -3,24 +3,17 @@ import argparse
 import logging
 import sys
 import copy
-import datetime
-import os
+from distutils.util import strtobool
 from aml_comm import AMLComm
 
-import pythonping
 import mlflow
 import torch
 import pandas as pd
 import numpy as np
-import torch.distributed.rpc as rpc
-import torch.distributed.optim as dist_optim
-import torch.distributed as dist
 from torch import nn
 from torchmetrics.functional import precision_recall, accuracy
-from torch.optim import SGD
+from torch.optim import AdamW
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Dataset
-from mlflow import log_metric, log_param
 from typing import List
 import models as models
 import datasets as datasets
@@ -150,7 +143,9 @@ class CCFraudTrainer:
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
-        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
+        self.optimizer_ = AdamW(
+            self.model_.parameters(), lr=self._lr, weight_decay=1e-5
+        )
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -493,6 +488,13 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training",
     )
+    parser.add_argument(
+        "--encrypted",
+        type=strtobool,
+        required=False,
+        default=False,
+        help="Encrypt messages exchanged between the nodes",
+    )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
     return parser
 
@@ -542,7 +544,16 @@ def main(cli_args=None):
         root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
         logger.info(f"root runId: {root_run_id}")
 
-    global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
+    encryption = None
+    if args.encrypted:
+        from aml_spmc import AMLSPMC
+
+        encryption = AMLSPMC()
+
+    logger.info(f"Training encrypted: {encryption is not None}")
+    global_comm = AMLComm(
+        args.global_rank, args.global_size, root_run_id, encryption=encryption
+    )
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")

@@ -265,6 +265,7 @@ def fl_ccfraud_vertical_basic():
             model_name=YAML_CONFIG.training_parameters.model_name,
             global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
             global_rank=silo_index,
+            encrypted=YAML_CONFIG.training_parameters.encrypted,
         )
 
         # add a readable name to the step

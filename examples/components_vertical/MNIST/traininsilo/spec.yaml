@@ -49,12 +49,10 @@ inputs:
   global_rank:
     type: number
     optional: false
-  local_size:
-    type: number
-    optional: false
-  local_rank:
-    type: number
-    optional: false
+  encrypted:
+    type: boolean
+    description: Encrypt messages exchanged between the nodes
+    optional: true
 
 outputs:
   model:
@@ -74,10 +72,9 @@ command: >-
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
+  $[[--encrypted ${{inputs.encrypted}}]]
   --global_size ${{inputs.global_size}}
   --global_rank ${{inputs.global_rank}}
-  --local_size ${{inputs.local_size}}
-  --local_rank ${{inputs.local_rank}}
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

@@ -44,13 +44,14 @@ class AMLComm:
     using pickle library.
     """
 
-    def __init__(self, rank, world_size, run_id) -> None:
+    def __init__(self, rank, world_size, run_id, encryption=None) -> None:
         """Initializes AMLComm communicator
 
         Args:
             rank: rank of the current node, must be between 0 and world_size-1
             world_size: number of nodes in our setup, must be positive integer larger than 1
             run_id: specifier of the run share across the nodes
+            encryption (Optional): encryption used for messaging (must expose API like AMLSPMC)
         """
 
         assert rank >= 0 and rank <= world_size - 1
@@ -60,7 +61,9 @@ class AMLComm:
         self._world_size = world_size
         self._run_id = run_id
         self._connections = {}
+        self._encryption = None
         self._setup_master()
+        self._setup_encryption(encryption)
 
     def _get_open_port(self):
         from contextlib import closing
@@ -110,7 +113,7 @@ class AMLComm:
         self._host_port = host_port
         self._local_ip = str(socket.gethostbyname(socket.gethostname()))
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(6000)  # Initial timeout for connecting with other nodes
+        self._socket.settimeout(1000)  # Set timeout so receive does nto wait forever
 
         if self._rank == 0:
             self._socket.bind(("", int(self._host_port)))
@@ -149,10 +152,23 @@ class AMLComm:
             logger.info(f"Received from host: {msg}")
             assert msg["flag"] == FLAGS.OK_CONN
 
-        # Once connected allow only for 10s delay
-        self._socket.settimeout(600)
+    def _setup_encryption(self, encryption):
+        if encryption is None:
+            return
 
-    def _send(self, data, destination, flag, ok_flag):
+        pub_key = encryption.get_public_key()
+        if self._rank == 0:
+            for c in self._connections:
+                self.send(pub_key, c)
+                encryption.add_remote_public_key(c, self.recv(c))
+
+        else:
+            encryption.add_remote_public_key(0, self.recv(0))
+            self.send(pub_key, 0)
+
+        self._encryption = encryption
+
+    def _send(self, msg, destination, flag, ok_flag):
         assert destination != self._rank
         if self._rank != 0:
             assert destination == 0
@@ -164,29 +180,29 @@ class AMLComm:
 
         time_start = time.time()
         tries = 0
-        while time.time() - time_start < 60 and tries < 3:
+        while True:
             try:
-                msg = pickle.dumps({"flag": flag, "data": data})
                 conn.sendall(msg)
 
-                msg = conn.recv(1024)
-                msg = pickle.loads(msg)
-                if "flag" in msg and msg["flag"] == ok_flag:
+                response = conn.recv(1024)
+                if self._encryption is not None:
+                    response = self._encryption.decrypt(response)
+                response = pickle.loads(response)
+
+                if "flag" in response and response["flag"] == ok_flag:
                     break
                 else:
                     logger.exception(
-                        f"Message does not match ok flag {ok_flag}, received message: {msg}"
+                        f"Message does not match ok flag {ok_flag}, received message: {response}"
                     )
-                    continue
             except Exception as e:
                 logger.exception(e)
-                tries += 1
-                continue
 
-        if type(msg) != dict or "flag" not in msg or msg["flag"] != ok_flag:
-            raise Exception(
-                f"Failed sending message to {destination}, flag: {flag}, data: {data}"
-            )
+                tries += 1
+                if time.time() - time_start >= 60 or tries >= 3:
+                    raise Exception(
+                        f"Failed sending message to {destination}, flag: {flag}", e
+                    )
 
     def _receive(self, source, flag, ok_flag, msg_size=None):
         assert source != self._rank
@@ -206,7 +222,7 @@ class AMLComm:
         time_start = time.time()
         data = None
         tries = 0
-        while time.time() - time_start < 60 and tries < 3:
+        while True:
             try:
                 msg = b""
                 # The socket may use buffers smaller than suggested size
@@ -219,6 +235,8 @@ class AMLComm:
                     if msg_size is None:
                         break
 
+                if self._encryption is not None:
+                    msg = self._encryption.decrypt(msg)
                 msg = pickle.loads(msg)
                 if "flag" in msg and msg["flag"] == flag:
                     data = msg["data"]
@@ -232,20 +250,26 @@ class AMLComm:
                 # Purge the socket buffer
                 conn.setblocking(0)
                 conn.setblocking(1)
-                tries += 1
-                time.sleep(1)
-                # Send information about failure
-                conn.sendall(pickle.dumps({"flag": FLAGS.FAIL, "data": None}))
-                continue
 
-        if data is None:
-            raise Exception(
-                f"Failed receiving message from {source}, flag: {flag}, msg: {msg}"
-            )
+                msg_fail = pickle.dumps({"flag": FLAGS.FAIL, "data": None})
+                if self._encryption is not None:
+                    msg_fail = self._encryption.encrypt(msg_fail, source)
+                # Send information about failure
+                conn.sendall(msg_fail)
+
+                tries += 1
+                if time.time() - time_start >= 60 and tries >= 3:
+                    raise Exception(
+                        f"Failed receiving message from {source}, flag: {flag}, msg: {msg}",
+                        e,
+                    )
+                time.sleep(1)
 
         # Send confirmation about received payload size information
-        bytes_str = pickle.dumps({"flag": ok_flag, "data": None})
-        conn.sendall(bytes_str)
+        msg_success = pickle.dumps({"flag": ok_flag, "data": None})
+        if self._encryption is not None:
+            msg_success = self._encryption.encrypt(msg_success, source)
+        conn.sendall(msg_success)
         return data
 
     def send(self, data, destination):
@@ -257,14 +281,19 @@ class AMLComm:
         """
 
         # Get size of the payload
-        bytes_str_tensor = pickle.dumps({"flag": FLAGS.DATA, "data": data})
-        size = sys.getsizeof(bytes_str_tensor)
+        msg_payload = pickle.dumps({"flag": FLAGS.DATA, "data": data})
+        if self._encryption is not None:
+            msg_payload = self._encryption.encrypt(msg_payload, destination)
+        size = sys.getsizeof(msg_payload)
 
         # Notify destination about size of the payload and wait for confirmation
-        self._send(size, destination, FLAGS.SIZE, FLAGS.OK_SIZE)
+        msg_size = pickle.dumps({"flag": FLAGS.SIZE, "data": size})
+        if self._encryption is not None:
+            msg_size = self._encryption.encrypt(msg_size, destination)
+        self._send(msg_size, destination, FLAGS.SIZE, FLAGS.OK_SIZE)
 
         # Send the payload
-        self._send(data, destination, FLAGS.DATA, FLAGS.OK_DATA)
+        self._send(msg_payload, destination, FLAGS.DATA, FLAGS.OK_DATA)
 
     def recv(self, source):
         """Receive tensor from the source rank node

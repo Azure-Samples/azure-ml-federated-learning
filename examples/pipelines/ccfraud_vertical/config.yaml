@@ -59,6 +59,7 @@ federated_learning:
 # training parameters
 training_parameters:
   epochs: 3 # number of epochs per iteration (in-silo training) 
-  lr: 1e-5 # learning rate
-  batch_size: 100 # batch size
-  model_name: SimpleVAE
+  lr: 1e-3 # learning rate
+  batch_size: 1000 # batch size
+  model_name: SimpleLinear
+  encrypted: true

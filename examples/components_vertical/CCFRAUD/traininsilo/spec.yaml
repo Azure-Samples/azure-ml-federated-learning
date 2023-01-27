@@ -58,6 +58,10 @@ inputs:
   global_rank:
     type: number
     optional: false
+  encrypted:
+    type: boolean
+    description: Encrypt messages exchanged between the nodes
+    optional: true
 
 outputs:
   model:
@@ -72,14 +76,15 @@ command: >-
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}
   --model_name ${{inputs.model_name}}
-  --global_size ${{inputs.global_size}}
-  --global_rank ${{inputs.global_rank}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--iteration_name ${{inputs.iteration_name}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
+  $[[--encrypted ${{inputs.encrypted}}]]
+  --global_size ${{inputs.global_size}}
+  --global_rank ${{inputs.global_rank}}
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

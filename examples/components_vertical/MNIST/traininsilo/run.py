@@ -3,6 +3,7 @@ import argparse
 import logging
 import sys
 import os
+from distutils.util import strtobool
 from aml_comm import AMLComm
 
 import mlflow
@@ -436,18 +437,6 @@ def get_arg_parser(parser=None):
         help="Index of the current silo",
     )
     parser.add_argument(
-        "--local_size",
-        type=int,
-        required=True,
-        help="Number of silos",
-    )
-    parser.add_argument(
-        "--local_rank",
-        type=int,
-        required=True,
-        help="Index of the current silo",
-    )
-    parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
     parser.add_argument(
@@ -462,6 +451,13 @@ def get_arg_parser(parser=None):
         type=int,
         required=False,
         help="Total number of epochs for local training",
+    )
+    parser.add_argument(
+        "--encrypted",
+        type=strtobool,
+        required=False,
+        default=False,
+        help="Encrypt messages exchanged between the nodes",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
     return parser
@@ -513,7 +509,16 @@ def main(cli_args=None):
         root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
         logger.info(f"root runId: {root_run_id}")
 
-    global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
+    encryption = None
+    if args.encrypted:
+        from aml_spmc import AMLSPMC
+
+        encryption = AMLSPMC()
+
+    logger.info(f"Training encrypted: {encryption is not None}")
+    global_comm = AMLComm(
+        args.global_rank, args.global_size, root_run_id, encryption=encryption
+    )
 
     print(f"Running script with arguments: {args}")
     run(global_comm, args)
