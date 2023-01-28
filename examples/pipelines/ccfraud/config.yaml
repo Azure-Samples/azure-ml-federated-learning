@@ -8,8 +8,6 @@ aml:
 
 # federated learning parameters
 federated_learning:
-  run_data_analysis: true
-  
   orchestrator:
     compute: cpu-orchestrator
     datastore: datastore_orchestrator
@@ -60,3 +58,4 @@ training_parameters:
   # file for the CCFRAUD component. Options include: 
   # SimpleLinear, SimpleLSTM, SimpleVAE
   model_name: SimpleLSTM
+  run_data_analysis: false

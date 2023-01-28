@@ -140,8 +140,8 @@ aggregate_component = load_component(
 )
 
 if (
-    hasattr(YAML_CONFIG.federated_learning, "run_data_analysis")
-    and YAML_CONFIG.federated_learning.run_data_analysis
+    hasattr(YAML_CONFIG.training_parameters, "run_data_analysis")
+    and YAML_CONFIG.training_parameters.run_data_analysis
 ):
     data_analysis_component = load_component(
         source=os.path.join(SHARED_COMPONENTS_FOLDER, "data_analysis", "spec.yaml")
@@ -197,7 +197,10 @@ def fl_ccfraud_basic():
     ### DATA-ANALYSIS ###
     #####################
 
-    if YAML_CONFIG.federated_learning.run_data_analysis:
+    if (
+        hasattr(YAML_CONFIG.training_parameters, "run_data_analysis")
+        and YAML_CONFIG.training_parameters.run_data_analysis
+    ):
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
             # run the pre-processing component once
             silo_pre_processing_step = data_analysis_component(
@@ -212,6 +215,7 @@ def fl_ccfraud_basic():
                     path=silo_config.testing_data.path + f"/test.csv",
                 ),
                 metrics_prefix=silo_config.compute,
+                silo_index=silo_index,
                 **YAML_CONFIG.data_analysis_parameters,
             )
 

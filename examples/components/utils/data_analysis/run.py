@@ -50,6 +50,12 @@ def get_arg_parser(parser=None):
         help="Metrics prefix",
         default="default-prefix",
     )
+    parser.add_argument(
+        "--silo_index",
+        type=int,
+        required=True,
+        help="Index of the silo",
+    )
     return parser
 
 
@@ -67,11 +73,102 @@ def get_corr_fig(df):
     return fig
 
 
-def analyze_categorical_column(df, column_name, metrics_prefix):
+def log_dict(client, run_id, metrics_prefix, column_name, silo_index, key, dictionary):
+    """Log mlflow metrics
+
+    Args:
+        client (MlflowClient): Mlflow Client where metrics will be logged
+        run_id (str): Run ID
+        key (str): metrics x-axis label
+        value (float): metrics y-axis values
+        pipeline_level (bool): whether the metrics is logged at the pipeline or the job level
+
+    Returns:
+        None
+    """
+    assert run_id is not None
+    assert metrics_prefix is not None
+    assert column_name is not None
+    assert silo_index is not None
+    assert key is not None
+    assert dictionary is not None
+
+    # with mlflow.start_run() as run:
+    #     c = mlflow.MlflowClient()
+    #     c.log_dict()
+
+    client.log_dict(
+        run_id=run_id,
+        dictionary=dictionary,
+        artifact_file=f"{metrics_prefix}/{column_name}/{silo_index}/{key}.json",
+    )
+
+
+def log_figure(client, run_id, metrics_prefix, column_name, silo_index, key, figure):
+    """Log mlflow metrics
+
+    Args:
+        client (MlflowClient): Mlflow Client where metrics will be logged
+        run_id (str): Run ID
+        key (str): metrics x-axis label
+        value (float): metrics y-axis values
+        pipeline_level (bool): whether the metrics is logged at the pipeline or the job level
+
+    Returns:
+        None
+    """
+    assert run_id is not None
+    assert metrics_prefix is not None
+    assert column_name is not None
+    assert silo_index is not None
+    assert key is not None
+    assert figure is not None
+
+    client.log_figure(
+        run_id=run_id,
+        figure=figure,
+        artifact_file=f"{metrics_prefix}/{column_name}/{silo_index}/{key}.png",
+    )
+    plt.close()
+
+
+def log_metrics(client, run_id, metrics_prefix, column_name, silo_index, key, value):
+    """Log mlflow metrics
+
+    Args:
+        client (MlflowClient): Mlflow Client where metrics will be logged
+        run_id (str): Run ID
+        key (str): metrics x-axis label
+        value (float): metrics y-axis values
+        pipeline_level (bool): whether the metrics is logged at the pipeline or the job level
+
+    Returns:
+        None
+    """
+
+    # f"iteration_{self._iteration_num}/{self._experiment_name}/{key}"
+    client.log_metric(
+        run_id=run_id,
+        key=f"{metrics_prefix}/{column_name}/{silo_index}/{key}",
+        value=value,
+    )
+
+
+def analyze_categorical_column(
+    df, column_name, silo_index, mlflow_client, run_id, metrics_prefix
+):
     value_counts = {
         str(k): str(v) for k, v in dict(df[column_name].value_counts()).items()
     }
-    mlflow.log_dict(value_counts, f"{metrics_prefix}/{column_name}/value_counts.json")
+    log_dict(
+        mlflow_client,
+        run_id,
+        metrics_prefix,
+        column_name,
+        silo_index,
+        "value_counts",
+        value_counts,
+    )
 
     # Having figure larger than 30 inches is undesirable
     if len(value_counts) <= 60:
@@ -79,26 +176,44 @@ def analyze_categorical_column(df, column_name, metrics_prefix):
         fig.set_figwidth(len(value_counts) / 2)
         ax = df[column_name].value_counts().plot(kind="bar")
         ax.set_xticklabels(list(value_counts), rotation=45)
-        mlflow.log_figure(fig, f"{metrics_prefix}/{column_name}/density.png")
+        log_figure(
+            mlflow_client,
+            run_id,
+            metrics_prefix,
+            column_name,
+            silo_index,
+            "density",
+            fig,
+        )
     else:
         logger.info(
             f"Skipping plotting due too many unique values for column: {column_name}"
         )
 
 
-def analyze_numerical_column(df, column_name, metrics_prefix):
+def analyze_numerical_column(
+    df, column_name, silo_index, mlflow_client, run_id, metrics_prefix
+):
     column_description = {
         str(k): str(v) for k, v in dict(df[column_name].describe()).items()
     }
-    mlflow.log_dict(
-        column_description, f"{metrics_prefix}/{column_name}/column_description.json"
+    log_dict(
+        mlflow_client,
+        run_id,
+        metrics_prefix,
+        column_name,
+        silo_index,
+        "column_description",
+        column_description,
     )
 
     fig, ax = plt.subplots()
     ax = df[column_name].plot(
         kind="density", xlim=(df[column_name].min(), df[column_name].max())
     )
-    mlflow.log_figure(fig, f"{metrics_prefix}/{column_name}/density.png")
+    log_figure(
+        mlflow_client, run_id, metrics_prefix, column_name, silo_index, "density", fig
+    )
 
 
 def merge_onehot(df, onehot_columns_prefix):
@@ -121,6 +236,7 @@ def run_tabular_data_analysis(
     testing_data,
     categorical_columns,
     onehot_columns_prefix,
+    silo_index,
     metrics_prefix="default-prefix",
 ):
     """Run exploratory data analysis on training and test data.
@@ -138,56 +254,108 @@ def run_tabular_data_analysis(
 
     # Start MLFlow run
     logger.debug(f"Setting up MLFlow...")
-    # mlflow.set_experiment("exploratory-data-analysis")
-    mlflow_run = mlflow.start_run()
-    # root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
 
-    logger.debug(f"Loading data...")
-    train_df = pd.read_csv(training_data)
-    test_df = pd.read_csv(testing_data)
+    with mlflow.start_run() as mlflow_run:
+        # get Mlflow client and root run id
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
+        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
 
-    mlflow.log_metric(
-        key=f"{metrics_prefix}/train/Number of datapoints",
-        value=f"{train_df.shape[0]}",
-    )
+        logger.debug(f"Loading data...")
+        train_df = pd.read_csv(training_data)
+        test_df = pd.read_csv(testing_data)
 
-    mlflow.log_metric(
-        key=f"{metrics_prefix}/test/Number of datapoints",
-        value=f"{test_df.shape[0]}",
-    )
+        log_metrics(
+            mlflow_client,
+            root_run_id,
+            metrics_prefix,
+            "summary/train",
+            silo_index,
+            "number_of_datapoints",
+            f"{train_df.shape[0]}",
+        )
+        log_metrics(
+            mlflow_client,
+            root_run_id,
+            metrics_prefix,
+            "summary/test",
+            silo_index,
+            "number_of_datapoints",
+            f"{test_df.shape[0]}",
+        )
 
-    # We are merging one hot encoded columns and creating categorical columns
-    categorical_columns.extend([prefix[:-1] for prefix in onehot_columns_prefix])
+        # We are merging one hot encoded columns and creating categorical columns
+        categorical_columns.extend([prefix[:-1] for prefix in onehot_columns_prefix])
 
-    logger.debug(f"Train data analysis...")
-    train_df = merge_onehot(train_df, onehot_columns_prefix)
-    mlflow.log_figure(get_corr_fig(train_df), f"{metrics_prefix}/train/correlation.png")
+        logger.debug(f"Train data analysis...")
+        train_df = merge_onehot(train_df, onehot_columns_prefix)
+        log_figure(
+            mlflow_client,
+            root_run_id,
+            metrics_prefix,
+            "summary/train",
+            silo_index,
+            "correlation",
+            get_corr_fig(train_df),
+        )
 
-    for column in train_df.columns:
-        logger.info(f"Processing training dataset column: {column}")
-        if column in categorical_columns:
-            analyze_categorical_column(train_df, column, f"{metrics_prefix}/train")
-        elif is_numeric_dtype(train_df[column]):
-            analyze_numerical_column(train_df, column, f"{metrics_prefix}/train")
-        else:
-            logger.info(f"Skipping analysis for column: {column}")
-    plt.close()
+        for column in train_df.columns:
+            logger.info(f"Processing training dataset column: {column}")
+            if column in categorical_columns:
+                analyze_categorical_column(
+                    train_df,
+                    column,
+                    silo_index,
+                    mlflow_client,
+                    root_run_id,
+                    f"{metrics_prefix}/train",
+                )
+            elif is_numeric_dtype(train_df[column]):
+                analyze_numerical_column(
+                    train_df,
+                    column,
+                    silo_index,
+                    mlflow_client,
+                    root_run_id,
+                    f"{metrics_prefix}/train",
+                )
+            else:
+                logger.info(f"Skipping analysis for column: {column}")
 
-    logger.debug(f"Test data analysis...")
-    test_df = merge_onehot(test_df, onehot_columns_prefix)
-    mlflow.log_figure(get_corr_fig(test_df), f"{metrics_prefix}/test/correlation.png")
+        logger.debug(f"Test data analysis...")
+        test_df = merge_onehot(test_df, onehot_columns_prefix)
+        log_figure(
+            mlflow_client,
+            root_run_id,
+            metrics_prefix,
+            "summary/test",
+            silo_index,
+            "correlation",
+            get_corr_fig(test_df),
+        )
 
-    for column in test_df.columns:
-        logger.info(f"Processing test dataset column: {column}")
-        if column in categorical_columns:
-            analyze_categorical_column(test_df, column, f"{metrics_prefix}/test")
-        elif is_numeric_dtype(test_df[column]):
-            analyze_numerical_column(test_df, column, f"{metrics_prefix}/test")
-        else:
-            logger.info(f"Skipping analysis for column: {column}")
-    plt.close()
-    # End MLFlow run
-    mlflow.end_run()
+        for column in test_df.columns:
+            logger.info(f"Processing test dataset column: {column}")
+            if column in categorical_columns:
+                analyze_categorical_column(
+                    test_df,
+                    column,
+                    silo_index,
+                    mlflow_client,
+                    root_run_id,
+                    f"{metrics_prefix}/test",
+                )
+            elif is_numeric_dtype(test_df[column]):
+                analyze_numerical_column(
+                    test_df,
+                    column,
+                    silo_index,
+                    mlflow_client,
+                    root_run_id,
+                    f"{metrics_prefix}/test",
+                )
+            else:
+                logger.info(f"Skipping analysis for column: {column}")
 
 
 def main(cli_args=None):
@@ -220,6 +388,7 @@ def main(cli_args=None):
             onehot_columns_prefix=args.onehot_columns_prefix.split(",")
             if args.onehot_columns_prefix
             else [],
+            silo_index=args.silo_index,
             metrics_prefix=args.metrics_prefix,
         )
 

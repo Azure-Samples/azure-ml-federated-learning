@@ -27,13 +27,18 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
+  silo_index:
+    type: integer
+    description: Silo index
+    optional: false
 
 code: .
 
 command: >-
   python run.py 
   --training_data ${{inputs.training_data}} 
-  --testing_data ${{inputs.testing_data}} 
+  --testing_data ${{inputs.testing_data}}
+  --silo_index ${{inputs.silo_index}}
   $[[--categorical_columns ${{inputs.categorical_columns}}]] 
   $[[--onehot_columns_prefix ${{inputs.onehot_columns_prefix}}]] 
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
