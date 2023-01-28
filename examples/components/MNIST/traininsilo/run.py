@@ -229,7 +229,6 @@ class MnistTrainer:
             test_acc = 0.0
 
             for epoch in range(self._epochs):
-
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
                 self.model_.train()

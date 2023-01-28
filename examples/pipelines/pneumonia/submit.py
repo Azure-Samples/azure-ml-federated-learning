@@ -244,6 +244,16 @@ def fl_pneumonia_basic():
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
                 epochs=YAML_CONFIG.training_parameters.epochs,
+                # Differential Privacy
+                dp=YAML_CONFIG.training_parameters.dp,
+                # DP target epsilon
+                dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
+                # DP target delta
+                dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
+                # DP max gradient norm
+                dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
+                # Total num of iterations
+                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
                 # Silo name/identifier
                 metrics_prefix=silo_config.name,
                 # Iteration number
