@@ -15,7 +15,6 @@ This guide is intended to support the various actors that will have to work toge
 
 ## I. Hands-on introduction to the terms of the FL problem
 
-- Prerequisites: none, this is done even before starting a project
 - Who: data scientists, ML engineers
 - Investment: 1-2 days
 
@@ -53,16 +52,16 @@ As a checkpoint for this learning phase, there are a couple key questions you wi
 - What kind of constraints will impact your own FL project? (data location constraints? privacy constraints? legal IP/agreement constraints?)
 - Is your FL workflow horizontal or vertical?
 
-## II. :walking: **Walk** - Provision a custom setup, connect non-sensitive data, train first FL model
+## II. Provision a custom setup, connect non-sensitive data, train a mock FL model
 
 - Who: data scientists, ML engineers
 - Investment: 1-2 weeks
 
 The **goals** of this phase are to:
 
-- ML: implement a proof of concept FL pipeline,
-- Infra: provision a custom sandbox environment,
-- Project: identify a path to production.
+- implement a mock FL pipeline on some public dataset,
+- provision a custom sandbox environment,
+- identify a path to production.
 
 This will likely apply to any organization that has minimal FL experience on Azure ML and that is ready to build its first prototype.
 
