@@ -2,22 +2,66 @@
 
 Adopting a Federated Learning strategy can be complex because it requires both machine learning skills on one side, and infrastructure and security skills on the other. This page provides a general ramp-up plan for a team that is new to Federated Learning (FL), and wants to leverage this technology at scale using Azure ML.
 
-## Contents
-Here we propose a ramp-up plan to Federated Learning (FL) on Azure ML. The plan follows the Crawl-Walk-Run<!-- -Fly--> framework, where we suggest to start with a simple example, and then progressively add more complexity.
+This guide is intended to support the various actors that will have to work together to implement a production-ready FL stack:
 
-The plan is meant to guide all people involved in the (federated) ML lifecycle. _Team leads_ will find the whole plan useful to get an overall picture of what onboarding to FL on Azure ML might look like. _Data Scientists_ (the folks designing models) will likely focus on the **Crawl** and **Walk** phases. _Data/ML Engineers_ (the people training and deploying models in production) will find the most value in the **Walk** and **Run** phases. <!-- _MLOps engineers_ (handling models and infrastructure at scale) will be interested in the **Fly** phase. --> 
+- For **Team leads**, this whole guide provides a holistic project structure and investment areas for onboarding FL on Azure ML.
+- For **Data Scientists**, the early phases of this onboarding process will show how to tackle FL from an ML perspective.
+- For **Data/ML Engineers**, the later phases will explain the areas of investment in the infrastructure.
 
-## I. :turtle: **Crawl** - Kick the tires and get a feel for the technology
+## Table of contents
 
-This will likely apply to any organization that hasn't done any FL training before, or that has practiced some FL using available open source frameworks in a simulated environment.
+- [I. Hands-on introduction to the terms of the FL problem](#i-hands-on-introduction-to-the-terms-of-the-fl-problem)
+- ...
 
-During this phase, we recommend you to get used to both the scientific and the infrastructure aspects of FL.
+## I. Hands-on introduction to the terms of the FL problem
 
-To do so, your first few steps should be to provision a basic setup for FL and try to run a simple example. This will help you get a feel for the technology and the Azure ML platform. Great news, our [quickstart](./quickstart.md) will help you do just that!
+- Who: data scientists, ML engineers
+- Investment: 1-2 days
 
->**:checkered_flag: :turtle: Checkpoint:** You are able to reproduce a simple FL training run.
+### Goals
 
-## II. :walking: **Walk** - Provision a custom setup, connect non-sensitive data, train first FL model
+The **goals** of this phase are to:
+
+- get a feel for the technology and the Azure ML platform,
+- understand the different components of the FL training process,
+- identify the key areas of your future work plan and investments.
+
+### Guidelines
+
+Any organization that hasn't done any federated training before will have to learn many aspects of the FL stack beyond ML itself: how to run a training in a federated fashion, how to run a training in alignment with legal or contractual obligations, how to properly and securely setup infrastructure, how to design an FL experiment, as well as how to use a cloud provide like Azure ML.
+
+On this journey, a reasonable first goal is to understand the terms of the problem. A first step is for you or your team to provision a sandbox environment you can use to learn about FL, then run some hands-on examples and get a feel at the technology. During this phase, we recommend you to get used to both the scientific and the infrastructure aspects of FL.
+
+As a starter, we recommend you to go through our hands-on content:
+
+- Run our [quickstart](./quickstart.md), it takes 5-10 minutes, and shows off the entire stack.
+- Run our [industry-relevant examples](./README.md#real-world-examples), they take 30-60 minutes, and show how to train FL models on real-world data, on samples.
+
+While doing so, there are key concepts that you'll want to observe at work during training.
+
+- the notion of orchestrator and silo, and in particular cloud resources are provisioned under what we call a "silo" (ex: see [the vnet silo](../provisioning/silo_vnet_newstorage.md)),
+- the notion of an Azure ML pipeline made on components, how the Azure ML SDK can be leveraged (ex: see [submit.py](../../examples/pipelines/fl_cross_silo_literal/submit.py)) to setup each training indepedently to run, some in silos, some in orchestrator,
+- the different kinds of silos and how they are connected or not to the orchestrator (see our [provisioning guide](../provisioning/README.md) as a starting point), and how each of those is just interchangeable within an Azure ML workspace.
+
+### :checkered_flag: Checkpoint
+
+As a checkpoint for this learning phase, there are a couple key questions you will want to answer for yourself and your organization:
+
+- In your use case, what kind of silos would you need? internal or external? same tenant or different tenants or on-prem?
+- Where will the data be located? in the cloud? on-prem?
+- What kind of constraints will impact your own FL project? (data location constraints? privacy constraints? legal IP/agreement constraints?)
+- Is your FL workflow horizontal or vertical?
+
+## II. Provision a custom setup, connect non-sensitive data, train a mock FL model
+
+- Who: data scientists, ML engineers
+- Investment: 1-2 weeks
+
+The **goals** of this phase are to:
+
+- implement a mock FL pipeline on some public dataset,
+- provision a custom sandbox environment,
+- identify a path to production.
 
 This will likely apply to any organization that has minimal FL experience on Azure ML and that is ready to build its first prototype.
 
@@ -41,19 +85,20 @@ Once you have trained your FL model, we recommend comparing it to a baseline mod
 
 ## III. :running: **Run** - Provision a custom and _secure_ setup, connect to sensitive data, train real FL model
 
-This will likely apply to an organization that has validated its first FL prototype on synthetic/non-sensitive data and is ready to train a real FL model on production data. It is assumed that the Science part (how to train the model) has been mostly figured out at this point. 
+This will likely apply to an organization that has validated its first FL prototype on synthetic/non-sensitive data and is ready to train a real FL model on production data. It is assumed that the Science part (how to train the model) has been mostly figured out at this point.
 
 During this phase, you will be training a model on real, sensitive data, in a _secure_ setup. The focus will be on infrastructure.
 
 First, if you haven't already, now is time to create a setup leveraging VNets and private endpoints for added security. Again, please refer to our [provisioning README](./provisioning/README.md) to identify which ingredients you will need. Note that it is possible to create "hybrid" setups, with both internal and external silos. Also note that VNets and private endpoints are a step in the right direction, but they are NOT silver bullets that guarantee 100% security. For instance, you will want to triple check your code to make sure data are not exposed by accident, or implement privacy-preserving algorithms such as Secure Aggregation or Differential Privacy. We will add instructions about these to our repository, so stay tuned!
 
 After that, you should connect your _sensitive_ data to your workspace. Depending on your use case, you have several options.
+
 1. Internal silos
     - If your data already live in an Azure storage account and you haven't created your silo yet, consider following our [instructions for creating a silo using an already-existing storage account](./provisioning/silo_vnet_existingstorage.md). The compute in the silo will have R/W access to the storage account (but the orchestrator compute in the central Azure ML workspace will not).
     - If your data already live in an Azure storage account and you have already created your silo but didn't link it to the existing storage account, you can always do that at a later stage. Navigate to the Azure portal to find your resource group, find the **Managed Identity** corresponding to your silo compute, and give it the following roles (towards the storage account): "Storage Blob Data Contributor", "Reader and Data Access", "Storage Account Key Operator Service Role".
 2. External silos on-premises
     - If your data live on the same machine hosting the kubernetes cluster making up your external silo, you can expose the data to the Azure ML job following [these instructions](./targeted-tutorials/read-local-data-in-k8s-silo.md).
-    - If your data live in an on-premises data server, work with your local IT admin to make sure the data can be pulled from the Azure ML job (no Azure constructs should be required for this). 
+    - If your data live in an on-premises data server, work with your local IT admin to make sure the data can be pulled from the Azure ML job (no Azure constructs should be required for this).
 3. External silos in a different Azure tenant
     - :construction: **Work In Progress** :construction:If your data are located in a storage account corresponding to a different tenant, you will need to...
 
