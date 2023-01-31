@@ -1,11 +1,11 @@
-# FL using Flower in AzureML [Experimental]
+# FL using Flower in AzureML (Experimental)
 
 **Scenario** - This tutorial is an extension of the [pneumonia / radiography classification tutorial](../real-world-examples/pneumonia.md) using the Flower framework instead.  
 We run an Flower federated learning job to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
 
-:warning: Experimental :warning: This tutorial is relying on some experiment code. It will work on our quickstart sandbox, but running it outside of this controlled setup might not work. We're actively working to release a more robust and generic solution.
+:warning: Experimental :warning: This tutorial is relying on some experimental code. It will work on our quickstart sandbox, but running it outside of this controlled setup might not work. We're actively working to release a more robust and generic solution.
 
-**Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._.
+**Dataset** - The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia) from Kaggle. This example is adapted from [another FL solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._, but the code has been modified to fit in the Flower framework.
 
 ## Install the required dependencies
 
@@ -55,6 +55,7 @@ This will create a job in AzureML, this job will submit 4 other jobs within a pi
 Those jobs connect to one another: each silo client will directly connect to the server job using its private IP through the vnet peering, using the Flower protocol. This works thanks to a trick using mlflow: the server job will report its private IP address as an mlflow tag, and the client jobs will fetch it from there. This currently works only through vnets and private IPs.
 
 During the execution, you can check out the logs in each of both the server and the clients jobs:
+
 - `user_logs/std_log.txt` : the logs of the Flower application
 
 Also, if you click on the server job, you will see the MLFlow metrics reporting there.

@@ -1,0 +1,32 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: multiply_data_files
+version: 0.3.0
+display_name: Multiply Data Files
+type: command
+description: Component that multiplies the dataset on each silo.
+is_deterministic: true
+
+inputs:
+  input_folder:
+    type: uri_folder
+    description: Input directory path
+    optional: false
+  multiply: 
+    type: integer
+    description: Multiplication factor
+    default: 10
+    optional: true
+
+outputs:
+  output_folder: # Multiplied data directory path
+    type: uri_folder
+    description: Output directory path
+
+code: .
+
+command: >-
+  python run.py --input ${{inputs.input_folder}} --output ${{outputs.output_folder}} $[[--multiply ${{inputs.multiply}}]]
+
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
