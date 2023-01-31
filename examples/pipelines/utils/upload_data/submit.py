@@ -45,17 +45,11 @@ parser.add_argument(
     action="store_true",
     help="Sets flag to not submit the experiment to AzureML",
 )
-parser.add_argument(
-    "--vertical",
-    default=False,
-    action="store_true",
-    help="Sets flag to submit vertical job",
-)
 
 parser.add_argument(
     "--example",
     required=True,
-    choices=["CCFRAUD", "NER", "PNEUMONIA", "MNIST"],
+    choices=["CCFRAUD", "NER", "PNEUMONIA", "MNIST", "CCFRAUD_VERTICAL", "MNIST_VERTICAL"],
     help="dataset name",
 )
 
@@ -88,9 +82,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.vertical:
-    assert args.example in ["CCFRAUD", "MNIST"]
-
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
 
@@ -101,8 +92,11 @@ COMPONENTS_FOLDER = os.path.join(
     "..",
     "..",
     "components",
-    args.example + "_VERTICAL" if args.vertical else args.example,
+    args.example,
 )
+
+# flag for vertical jobs
+IS_VERTICAL = args.example.endswith("_VERTICAL")
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -172,10 +166,10 @@ def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
 )
 def fl_cross_silo_upload_data():
 
-    if args.vertical:
+    if IS_VERTICAL:
         silos = [
             YAML_CONFIG.federated_learning.host,
-            ...(YAML_CONFIG.federated_learning.silos),
+            *YAML_CONFIG.federated_learning.silos,
         ]
     else:
         silos = YAML_CONFIG.federated_learning.silos
@@ -205,7 +199,7 @@ def fl_cross_silo_upload_data():
                 mode="mount",
                 path=custom_fl_data_path(
                     silo_config.datastore,
-                    f"{args.example.lower() + '_vertical' if args.vertical else ''}/raw_train_data",
+                    f"{args.example.lower()}/raw_train_data",
                 ),
             )
             silo_upload_data_step.outputs.raw_test_data = Output(
@@ -213,7 +207,7 @@ def fl_cross_silo_upload_data():
                 mode="mount",
                 path=custom_fl_data_path(
                     silo_config.datastore,
-                    f"{args.example.lower() + '_vertical' if args.vertical else ''}/raw_test_data",
+                    f"{args.example.lower()}/raw_test_data",
                 ),
             )
 
