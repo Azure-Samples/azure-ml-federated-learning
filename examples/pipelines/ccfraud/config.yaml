@@ -52,6 +52,9 @@ federated_learning:
         mode: 'download'
         path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_test_data
 
+data_analysis_parameters:
+  onehot_columns_prefix: category_,gender_,street_,city_,state_,job_,region_
+
 # training parameters
 training_parameters:
   num_of_iterations: 3
@@ -63,6 +66,7 @@ training_parameters:
   # file for the CCFRAUD component. Options include: 
   # SimpleLinear, SimpleLSTM, SimpleVAE
   model_name: SimpleLinear
+  run_data_analysis: false
 
   # Differential privacy
   dp: true # Flag to enable/disable differential privacy
