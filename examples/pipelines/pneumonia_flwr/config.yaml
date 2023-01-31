@@ -1,0 +1,69 @@
+# EXAMPLE CONFIG FILE
+
+# This file is intendedt to help contain all the parameters required
+# to orchestrate our sample federated learning experiments.
+# It is by no means necessary to run an FL experiment, just helpful.
+# See submit.py for details on how to consume this file in python.
+
+# This should work out of the box when running an experiment
+# on one of our sandbox environments.
+
+# Follow the instructions in the comments to adapt to your settings.
+
+# References to Azure ML workspace (use cli args to override)
+aml:
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
+
+# Parameters to generate the FL graph
+federated_learning:
+  orchestrator:
+    # name of compute for orchestrator
+    compute: "orchestrator-01"
+    # name of datastore for orchestrator (saving model weights + aggregate)
+    datastore: "datastore_orchestrator"
+
+  silos: # silos are provided as a list
+    - name: silo0
+      computes: 
+      - silo0-01 # name of the compute for silo X
+      datastore: datastore_silo0 # name of the datastore for silo X
+      # training inputs are specified below
+      # NOTE: in this demo, we're using public data from a url instead
+      silo_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
+
+    - name: silo1
+      computes: 
+      - silo1-01 # name of the compute for silo X
+      datastore: datastore_silo1 # name of the datastore for silo X
+      # training inputs are specified below
+      # NOTE: in this demo, we're using public data from a url instead
+      silo_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
+
+    - name: silo2
+      computes: 
+      - silo2-01 # name of the compute for silo X
+      datastore: datastore_silo2 # name of the datastore for silo X
+      # training inputs are specified below
+      # NOTE: in this demo, we're using public data from a url instead
+      silo_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/pneumonia
+
+# Training parameters
+training_parameters:
+  # how many loops of scatter-gather to run
+  num_of_iterations: 2
+  
+  # then typical training parameters
+  epochs: 3 # number of epochs per iteration (in-silo training) 
+  lr: 0.01 # learning rate
+  batch_size: 64 # batch size
