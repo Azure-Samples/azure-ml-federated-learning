@@ -83,7 +83,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components_vertical", "MNIST"
+    os.path.dirname(__file__), "..", "..", "components", "MNIST_VERTICAL"
 )
 
 # path to the shared components
@@ -129,8 +129,12 @@ def connect_to_aml():
 ####################################
 
 # Loading the component from their yaml specifications
-training_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
+training_contributor_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor", "spec.yaml")
+)
+
+training_host_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "host", "spec.yaml")
 )
 
 
@@ -189,36 +193,66 @@ def fl_mnist_vertical_basic():
         [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
 
-        # we're using training component here
-        silo_training_step = training_component(
-            train_data=Input(
-                type=silo_config.training_data.type,
-                mode=silo_config.training_data.mode,
-                path=silo_config.training_data.path,
-            ),
-            test_data=Input(
-                type=silo_config.testing_data.type,
-                mode=silo_config.testing_data.mode,
-                path=silo_config.testing_data.path,
-            ),
-            # Learning rate for local training
-            lr=YAML_CONFIG.training_parameters.lr,
-            # Number of epochs
-            epochs=YAML_CONFIG.training_parameters.epochs,
-            # Dataloader batch size
-            batch_size=YAML_CONFIG.training_parameters.batch_size,
-            # Silo name/identifier
-            metrics_prefix=silo_config.compute,
-            global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
-            global_rank=silo_index,
-            local_size=1,
-            local_rank=0,
-        )
-        # add a readable name to the step
         if silo_index == 0:
+            # we're using training component here
+            silo_training_step = training_host_component(
+                train_data=Input(
+                    type=silo_config.training_data.type,
+                    mode=silo_config.training_data.mode,
+                    path=silo_config.training_data.path,
+                ),
+                test_data=Input(
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path,
+                ),
+                # Learning rate for local training
+                lr=YAML_CONFIG.training_parameters.lr,
+                # Number of epochs
+                epochs=YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+                global_rank=silo_index,
+                local_size=1,
+                local_rank=0,
+            )
+            # add a readable name to the step
             silo_training_step.name = f"host_training"
+            outputs[f"host_output"] = silo_training_step.outputs.model
         else:
-            silo_training_step.name = f"silo_{silo_index}_training"
+            # we're using training component here
+            silo_training_step = training_contributor_component(
+                train_data=Input(
+                    type=silo_config.training_data.type,
+                    mode=silo_config.training_data.mode,
+                    path=silo_config.training_data.path,
+                ),
+                test_data=Input(
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path,
+                ),
+                # Learning rate for local training
+                lr=YAML_CONFIG.training_parameters.lr,
+                # Number of epochs
+                epochs=YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+                global_rank=silo_index,
+                local_size=1,
+                local_rank=0,
+            )
+            # add a readable name to the step
+            silo_training_step.name = f"contributor_{silo_index}_training"
+            outputs[
+                f"contributor_{silo_index}_output"
+            ] = silo_training_step.outputs.model
 
         # make sure the compute corresponds to the silo
         silo_training_step.compute = silo_config.compute
@@ -233,8 +267,6 @@ def fl_mnist_vertical_basic():
                 f"model/silo{silo_index}",
             ),
         )
-        outputs[f"silo_{silo_index}_output"] = silo_training_step.outputs.model
-        # outputs.append(silo_training_step.outputs.model)
 
     return outputs
 

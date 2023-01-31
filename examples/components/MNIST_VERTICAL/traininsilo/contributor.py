@@ -7,7 +7,6 @@ from aml_comm import AMLComm
 
 import mlflow
 import torch
-import pandas as pd
 from torch import nn
 from torch.optim import SGD
 from torch.utils.data import Dataset
@@ -27,15 +26,6 @@ class BottomModel(nn.Module):
 
     def forward(self, x) -> torch.tensor:
         return self._model(x)
-
-
-class TopModel(nn.Module):
-    def __init__(self) -> None:
-        super(TopModel, self).__init__()
-        self._model = nn.Linear(512, 10)
-
-    def forward(self, x) -> torch.tensor:
-        return self._model(x.squeeze())
 
 
 class BottomDataset(Dataset):
@@ -75,30 +65,6 @@ class BottomDataset(Dataset):
             image = self.transform(image)
 
         return image
-
-
-class TopDataset(Dataset):
-    """Image dataset."""
-
-    def __init__(self, csv_file):
-        """
-        Args:
-            csv_file (string): Path to the csv file with annotations.
-            root_dir (string): Directory with all the images.
-            transform (callable, optional): Optional transform to be applied
-                on a sample.
-        """
-        super(TopDataset, self).__init__()
-        self.labels = pd.read_csv(csv_file, index_col=0)
-
-    def __len__(self):
-        return len(self.labels)
-
-    def __getitem__(self, idx):
-        if torch.is_tensor(idx):
-            idx = idx.tolist()
-
-        return self.labels["label"][idx]
 
 
 class MnistTrainer:
@@ -152,11 +118,7 @@ class MnistTrainer:
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # Build model
-        if self._global_rank == 0:
-            self.model_ = TopModel()
-            self.loss_ = nn.CrossEntropyLoss()
-        else:
-            self.model_ = BottomModel()
+        self.model_ = BottomModel()
 
         self.train_dataset_, self.test_dataset_ = self.load_dataset(
             train_data_dir, test_data_dir
@@ -181,19 +143,15 @@ class MnistTrainer:
             test_data_dir(str, optional): Testing data directory path
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        if self._global_rank == 0:
-            train_dataset = TopDataset(train_data_dir + "/train.csv")
-            test_dataset = TopDataset(test_data_dir + "/test.csv")
-        else:
-            transformer = transforms.Compose(
-                [
-                    transforms.Grayscale(num_output_channels=1),
-                    transforms.ToTensor(),
-                ]
-            )
+        transformer = transforms.Compose(
+            [
+                transforms.Grayscale(num_output_channels=1),
+                transforms.ToTensor(),
+            ]
+        )
 
-            train_dataset = BottomDataset(train_data_dir, transformer)
-            test_dataset = BottomDataset(test_data_dir, transformer)
+        train_dataset = BottomDataset(train_data_dir, transformer)
+        test_dataset = BottomDataset(test_data_dir, transformer)
 
         return train_dataset, test_dataset
 
@@ -209,12 +167,6 @@ class MnistTrainer:
             key=f"batch_size {self._experiment_name}",
             value=self._batch_size,
         )
-        if self._global_rank == 0:
-            client.log_param(
-                run_id=run_id,
-                key=f"loss {self._experiment_name}",
-                value=self.loss_.__class__.__name__,
-            )
         client.log_param(
             run_id=run_id,
             key=f"optimizer {self._experiment_name}",
@@ -273,120 +225,24 @@ class MnistTrainer:
                     data = data.to(self.device_)
                     self.optimizer_.zero_grad()
 
-                    if self._global_rank != 0:
-                        output = self.model_(data)
-                        self._global_comm.send(output, 0)
-                        gradient = self._global_comm.recv(0).to(self.device_)
-                        output.backward(gradient)
-                        self.optimizer_.step()
-                        continue
-
-                    outputs = []
-                    for j in range(1, self._global_size):
-                        output = torch.tensor(
-                            self._global_comm.recv(j), requires_grad=True
-                        ).to(self.device_)
-                        outputs.append(output)
-
-                    # Average all intermediate results
-                    outputs = torch.stack(outputs)
-                    outputs_avg = outputs.mean(dim=0)
-
-                    predictions = self.model_(outputs_avg)
-                    loss = self.loss_(predictions, data)
-                    loss.backward(retain_graph=True)
-                    gradients = torch.autograd.grad(loss, outputs)[0]
+                    output = self.model_(data)
+                    self._global_comm.send(output, 0)
+                    gradient = self._global_comm.recv(0).to(self.device_)
+                    output.backward(gradient)
                     self.optimizer_.step()
 
-                    for j in range(1, self._global_size):
-                        self._global_comm.send(gradients[j - 1], j)
-
-                    running_loss += loss.item() / data.shape[0]
-                    running_acc += (
-                        (predictions.argmax(dim=1) == data).to(float).mean().item()
-                    )
-                    if i != 0 and i % num_of_batches_before_logging == 0:
-                        training_loss = running_loss / num_of_batches_before_logging
-                        training_accuracy = running_acc / num_of_batches_before_logging
-                        logger.info(
-                            f"Epoch: {epoch}/{self._epochs}, Iteration: {i}, Training Loss: {training_loss}, Accuracy: {training_accuracy}"
-                        )
-
-                        # log train loss
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            "Train Loss",
-                            training_loss,
-                        )
-
-                        running_loss = 0.0
-                        running_acc = 0.0
-
-                test_loss, test_acc = self.test()
-
-                if self._global_rank != 0:
-                    continue
-
-                # log test metrics after each epoch
-                self.log_metrics(mlflow_client, root_run_id, "Test Loss", test_loss)
-                self.log_metrics(mlflow_client, root_run_id, "Test Accuracy", test_acc)
-
-                logger.info(
-                    f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
-                )
-
-            # log metrics at the pipeline level
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Train Loss",
-                training_loss,
-                pipeline_level=True,
-            )
-            self.log_metrics(
-                mlflow_client, root_run_id, "Test Loss", test_loss, pipeline_level=True
-            )
-            self.log_metrics(
-                mlflow_client,
-                root_run_id,
-                "Test Accuracy",
-                test_acc,
-                pipeline_level=True,
-            )
+                self.test()
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
         self.model_.eval()
-        test_loss = 0
-        correct = 0
 
         with torch.no_grad():
             for data in self.test_loader_:
                 data = data.to(self.device_)
 
-                if self._global_rank != 0:
-                    output = self.model_(data)
-                    self._global_comm.send(output, 0)
-                    continue
-
-                outputs = []
-                for i in range(1, self._global_size):
-                    output = self._global_comm.recv(i)
-                    outputs.append(output)
-
-                # Average all intermediate results
-                outputs = torch.stack(outputs)
-                predictions = self.model_(outputs.mean(dim=0))
-                test_loss += self.loss_(predictions, data).item()
-
-                predictions = predictions.argmax(dim=1, keepdim=True)
-                correct += predictions.eq(data.view_as(predictions)).sum().item()
-
-        test_loss /= len(self.test_loader_.dataset)
-        acc = correct / len(self.test_loader_.dataset)
-
-        return test_loss, acc
+                output = self.model_(data)
+                self._global_comm.send(output, 0)
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.

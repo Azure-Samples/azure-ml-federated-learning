@@ -61,10 +61,10 @@ outputs:
     type: uri_folder
     description: the output checkpoint
 
-code: .
+code: ..
 
 command: >-
-  python run.py 
+  python host.py 
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
@@ -79,5 +79,5 @@ command: >-
   --local_size ${{inputs.local_size}}
   --local_rank ${{inputs.local_rank}}
 environment: 
-  conda_file: ./conda.yaml
+  conda_file: ../conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

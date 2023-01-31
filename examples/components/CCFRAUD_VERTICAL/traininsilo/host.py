@@ -141,12 +141,7 @@ class CCFraudTrainer:
 
         # Build model
         self._model_name = model_name
-        if self._global_rank == 0:
-            self.model_ = getattr(models, model_name + "Top")().to(self.device_)
-        else:
-            self.model_ = getattr(models, model_name + "Bottom")(self._input_dim).to(
-                self.device_
-            )
+        self.model_ = getattr(models, model_name + "Top")().to(self.device_)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
@@ -161,8 +156,7 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        if self._global_rank == 0:
-            self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
+        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
         if model_name == "SimpleLinear":
@@ -255,18 +249,6 @@ class CCFraudTrainer:
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
-                    if self._global_rank != 0:
-                        output, net_loss = self.model_(data)
-                        output = output.contiguous()
-                        self._global_comm.send(output, 0)
-                        if net_loss is not None:
-                            net_loss += net_loss * 1e-5
-                            net_loss.backward(retain_graph=True)
-                        gradient = self._global_comm.recv(0).to(self.device_)
-                        output.backward(gradient)
-                        self.optimizer_.step()
-                        continue
-
                     outputs = []
                     for j in range(1, self._global_size):
                         output = torch.tensor(
@@ -329,10 +311,6 @@ class CCFraudTrainer:
                         train_metrics.reset_step()
 
                 test_metrics = self.test()
-
-                if self._global_rank != 0:
-                    continue
-
                 log_message = [
                     f"Epoch: {epoch}/{self._epochs}",
                 ]
@@ -360,27 +338,26 @@ class CCFraudTrainer:
                 f"End of training",
             ]
 
-            if self._global_rank != 0:
-                # log metrics at the pipeline level
-                for name, value in train_metrics.get_global().items():
-                    log_message.append(f"{name}: {value}")
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        name,
-                        value,
-                        pipeline_level=True,
-                    )
+            # log metrics at the pipeline level
+            for name, value in train_metrics.get_global().items():
+                log_message.append(f"{name}: {value}")
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    name,
+                    value,
+                    pipeline_level=True,
+                )
 
-                for name, value in test_metrics.get_global().items():
-                    log_message.append(f"{name}: {value}")
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        name,
-                        value,
-                        pipeline_level=True,
-                    )
+            for name, value in test_metrics.get_global().items():
+                log_message.append(f"{name}: {value}")
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    name,
+                    value,
+                    pipeline_level=True,
+                )
             logger.info(", ".join(log_message))
 
     def test(self):
@@ -393,12 +370,6 @@ class CCFraudTrainer:
         with torch.no_grad():
             for batch in self.test_loader_:
                 data = batch.to(self.device_)
-
-                if self._global_rank != 0:
-                    output = self.model_(data)[0].contiguous()
-
-                    self._global_comm.send(output, 0)
-                    continue
 
                 outputs = []
                 for j in range(1, self._global_size):

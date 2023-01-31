@@ -100,8 +100,8 @@ COMPONENTS_FOLDER = os.path.join(
     "..",
     "..",
     "..",
-    "components_vertical" if args.vertical else "components",
-    args.example,
+    "components",
+    args.example + "_VERTICAL" if args.vertical else args.example,
 )
 
 ###########################
