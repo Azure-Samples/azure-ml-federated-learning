@@ -1,10 +1,10 @@
 # Plan your journey towards Federated Learning on Azure ML
 
-Adopting a Federated Learning strategy can be complex because it requires both machine learning skills on one side, and infrastructure and security skills on the other. This page provides a general ramp-up plan for a team that is new to Federated Learning (FL), and wants to leverage this technology at scale using Azure ML.
+Adopting a Federated Learning strategy can be complex because it requires both machine learning skills on one side, and infrastructure and security skills on the other. This page provides a general ramp-up plan for a team that is new to Federated Learning (FL), and wants to leverage this technique at scale using Azure ML.
 
 This guide is intended to support the various actors that will have to work together to implement a production-ready FL stack:
 
-- For **Team leads**, this whole guide provides a holistic project structure and investment areas for onboarding FL on Azure ML.
+- For **Team Leads**, this whole guide provides a holistic project structure and investment areas for onboarding FL on Azure ML.
 - For **Data Scientists**, the early phases of this onboarding process will show how to tackle FL from an ML perspective.
 - For **Data/ML Engineers**, the later phases will explain the areas of investment in the infrastructure.
 
@@ -15,7 +15,7 @@ This guide is intended to support the various actors that will have to work toge
 
 ## I. Hands-on introduction to the terms of the FL problem
 
-- Who: data scientists, ML engineers
+- Who: Data Scientists, ML Engineers
 - Investment: 1-2 days
 
 ### Goals
@@ -28,24 +28,24 @@ The **goals** of this phase are to:
 
 ### Guidelines
 
-Any organization that hasn't done any federated training before will have to learn many aspects of the FL stack beyond ML itself: how to run a training in a federated fashion, how to run a training in alignment with legal or contractual obligations, how to properly and securely setup infrastructure, how to design an FL experiment, as well as how to use a cloud provide like Azure ML.
+Any organization that hasn't done any federated training before will have to learn many aspects of the FL stack beyond ML itself: how to run a training in a federated fashion, how to run a training in alignment with legal or contractual obligations, how to properly and securely setup infrastructure, how to design an FL experiment, as well as how to use a cloud provider like Azure ML.
 
-On this journey, a reasonable first goal is to understand the terms of the problem. A first step is for you or your team to provision a sandbox environment you can use to learn about FL, then run some hands-on examples and get a feel at the technology. During this phase, we recommend you to get used to both the scientific and the infrastructure aspects of FL.
+On this journey, a reasonable first goal is to understand the terms of the problem. A first step is for you or your team to provision a sandbox environment you can use to learn about FL, then run some hands-on examples and get a feel for the technology. During this phase, we recommend you to get used to both the scientific and the infrastructure aspects of FL.
 
 As a starter, we recommend you to go through our hands-on content:
 
-- Run our [quickstart](./quickstart.md), it takes 5-10 minutes, and shows off the entire stack.
-- Run our [industry-relevant examples](./README.md#real-world-examples), they take 30-60 minutes, and show how to train FL models on real-world data, on samples.
+- run our [quickstart](./quickstart.md), it takes 5-10 minutes, and shows off the entire stack;
+- run our [industry-relevant examples](./README.md#real-world-examples), they take 30-60 minutes, and show how to train FL models on real-world data, on samples.
 
-While doing so, there are key concepts that you'll want to observe at work during training.
+While doing so, there are key concepts that you'll want to observe at work during training:
 
-- the notion of orchestrator and silo, and in particular cloud resources are provisioned under what we call a "silo" (ex: see [the vnet silo](../provisioning/silo_vnet_newstorage.md)),
-- the notion of an Azure ML pipeline made on components, how the Azure ML SDK can be leveraged (ex: see [submit.py](../../examples/pipelines/fl_cross_silo_literal/submit.py)) to setup each training indepedently to run, some in silos, some in orchestrator,
+- the notion of orchestrator and silo, and in particular which cloud resources are provisioned under what we call a "silo" (ex: see [the vnet silo](../provisioning/silo_vnet_newstorage.md)),
+- the notion of an Azure ML pipeline made on components, how the Azure ML SDK can be leveraged (ex: see [submit.py](../../examples/pipelines/fl_cross_silo_literal/submit.py)) to set up each component to run independently (some in silos, some in orchestrator),
 - the different kinds of silos and how they are connected or not to the orchestrator (see our [provisioning guide](../provisioning/README.md) as a starting point), and how each of those is just interchangeable within an Azure ML workspace.
 
 ### :checkered_flag: Checkpoint
 
-As a checkpoint for this learning phase, there are a couple key questions you will want to answer for yourself and your organization:
+As a checkpoint for this learning phase, there are a couple key questions you will want to answer for yourself and your organization.
 
 - In your use case, what kind of silos would you need? internal or external? same tenant or different tenants or on-prem?
 - Where will the data be located? in the cloud? on-prem?
