@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.13.1.58284",
-      "templateHash": "8189790991693936999"
+      "templateHash": "16764002456354240713"
     }
   },
   "parameters": {
@@ -54,7 +54,7 @@
     },
     "compute2": {
       "type": "bool",
-      "defaultValue": false,
+      "defaultValue": true,
       "metadata": {
         "description": "Flag whether to create a second compute or not"
       }
