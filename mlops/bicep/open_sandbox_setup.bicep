@@ -44,9 +44,20 @@ param siloRegions array = [
   'brazilsouth'
 ]
 
-@description('The VM used for creating compute clusters in orchestrator and silos.')
-param computeSKU string = 'Standard_DS3_v2'
+// param siloRegions array = [
+//   'australiaeast'
+//   'eastus'
+//   'westeurope'
+// ]
 
+@description('The VM used for creating compute clusters in orchestrator and silos.')
+param compute1SKU string = 'Standard_DS3_v2'
+
+@description('Flag whether to create a second compute or not')
+param compute2 bool = true
+
+@description('The VM used for creating a second compute cluster in orchestrator and silos.')
+param compute2SKU string = 'Standard_DS3_v2'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {
@@ -83,9 +94,13 @@ module orchestrator './modules/fl_pairs/open_compute_storage_pair.bicep' = {
 
     pairBaseName: '${demoBaseName}-orch'
 
-    computeName: 'cpu-orchestrator' // let's not use demo base name in cluster name
-    computeSKU: computeSKU
+    compute1Name: 'orchestrator-01' // let's not use demo base name in cluster name
+    compute1SKU: compute1SKU
     computeNodes: 4
+    compute2: compute2
+    compute2SKU: compute2SKU
+    compute2Name: 'orchestrator-02'
+
     datastoreName: 'datastore_orchestrator' // let's not use demo base name
 
     // identity for permissions model
@@ -111,12 +126,16 @@ module silos './modules/fl_pairs/open_compute_storage_pair.bicep' = [for i in ra
     pairRegion: siloRegions[i]
     tags: tags
 
-    pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+    pairBaseName: '${demoBaseName}-silo${i}'
 
-    computeName: 'cpu-silo${i}-${siloRegions[i]}' // let's not use demo base name
-    computeSKU: computeSKU
+    compute1Name: 'silo${i}-01' // let's not use demo base name
+    compute1SKU: compute1SKU
     computeNodes: 4
-    datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
+    compute2: compute2
+    compute2SKU: compute2SKU
+    compute2Name: 'silo${i}-02'
+
+    datastoreName: 'datastore_silo${i}' // let's not use demo base name
 
     // identity for permissions model
     identityType: identityType

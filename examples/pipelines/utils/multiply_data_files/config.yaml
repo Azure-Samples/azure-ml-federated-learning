@@ -1,0 +1,41 @@
+# CONFIG FILE FOR MULTIPLYING DATASETS
+
+# References to Azure ML workspace (use cli args to override)
+aml:
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
+
+# Parameters to generate the FL graph
+federated_learning:
+  silos: # silos are provided as a list
+    - compute: silo0-01 # name of the compute for silo X
+      datastore: datastore_silo0 # name of the datastore for silo X
+      input_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
+      output_data:
+        type: uri_folder
+        mode: 'upload'
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/pneumonia
+    - compute: silo1-01 # we are repeating over the same config for silo 2
+      datastore: datastore_silo1
+      input_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
+      output_data:
+        type: uri_folder
+        mode: 'upload'
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/pneumonia
+    - compute: silo2-01 # we are repeating over the same config for silo 3
+      datastore: datastore_silo2
+      input_data:
+        type: uri_folder
+        mode: 'download'
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/pneumonia
+      output_data:
+        type: uri_folder
+        mode: 'upload'
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/pneumonia

@@ -12,6 +12,7 @@ This tutorial applies in the case you want to create a **completely new storage*
 ## Prerequisites
 
 To run these deployment options, you first need:
+
 - an existing Azure ML workspace (see [cookbook](README.md))
 - an existing private DNS zone for storage, named `privatelink.blob.core.windows.net` (see below)
 - have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
@@ -25,7 +26,7 @@ To run these deployment options, you first need:
 
 ## Create a compute and storage pair for the orchestrator
 
-> Note: both orchestrator and [silo](./silo_vnet.md) can be deployed using the same arm/bicep script, changing **Pair Base Name** and `storagePublicNetworkAccess` accordingly.
+> Note: both orchestrator and [silo](./silo_vnet_newstorage.md) can be deployed using the same arm/bicep script, changing **Pair Base Name** and `storagePublicNetworkAccess` accordingly.
 
 :important: make sure the subnet address space is not overlapping with any other subnet in your vnet, in particular that it is unique accross all your silos and orchestrator. For instance you can use `10.0.0.0/24` for the orchestrator, then `10.0.N.0/24` for each silo, with a distinct N value.
 
