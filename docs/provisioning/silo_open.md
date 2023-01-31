@@ -5,6 +5,7 @@
 ## Prerequisites
 
 To run these deployment options, you first need:
+
 - an existing Azure ML workspace (see [cookbook](README.md#create-an-azure-ml-workspace))
 - an existing orchestrator (see [tutorial](orchestrator_open.md))
 - have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),

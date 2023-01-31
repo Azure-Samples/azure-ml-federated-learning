@@ -14,12 +14,12 @@ This tutorial applies in the case you want to create a **completely new storage*
 ## Prerequisites
 
 To run these deployment options, you first need:
+
 - an existing Azure ML workspace (see [cookbook](README.md))
 - an existing private DNS zone for storage, named `privatelink.blob.core.windows.net` (see below)
 - have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
   - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
 - Optional: [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
-
 
 > **To create a private DNS zone**  
 > If you don't already have one, you will need to [manually create a private DNS zone](https://learn.microsoft.com/en-us/azure/dns/private-dns-privatednszone) for the storage account and compute of this pair.  
@@ -32,9 +32,10 @@ In this tutorial, we're provisioning the resources according to the following sc
 
 If any of that design doesn't fit your requirements, feel free to check out the bicep provisioning script [`vnet_compute_storage_pair.bicep`](/mlops/bicep/modules/fl_pairs/vnet_compute_storage_pair.bicep) and adapt it to your needs. Also please give us feedback by filing an issue in this repo.
 
-![](../pics/vnet_silo_provisioning.png)
+![architecture schema of a silo using a vnet for securing resources](../pics/vnet_silo_provisioning.png)
 
 The provisioning script will:
+
 - create a new [vnet and subnet](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview), with a [network security group](https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview),
 - create a new [managed identity](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) (User Assigned) to manage permissions of the compute,
 - create a new [storage account](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-overview) in a given region, with a [private endpoint](https://learn.microsoft.com/en-us/azure/storage/common/storage-private-endpoints) inside the vnet,
@@ -47,14 +48,15 @@ In this scenario, the silo's blob storage account's networking settings are such
 > _You can use private endpoints for your Azure Storage accounts to allow clients on a virtual network (VNet) to securely access data over a Private Link. The private endpoint uses a separate IP address from the VNet address space for each storage account service. **Network traffic between the clients on the VNet and the storage account traverses over the VNet and a private link on the Microsoft backbone network, eliminating exposure from the public internet**._  
 >  
 > _Using private endpoints for your storage account enables you to:_  
-> * _Secure your storage account by configuring the storage firewall to block all connections on the public endpoint for the storage service._
-> * _Increase security for the virtual network (VNet), by enabling you to block exfiltration of data from the VNet._
+>
+> - _Secure your storage account by configuring the storage firewall to block all connections on the public endpoint for the storage service._
+> - _Increase security for the virtual network (VNet), by enabling you to block exfiltration of data from the VNet._
 
 In addition, the compute can interact with the **orchestrator storage account**. This storage account can either be 1) "public" meaning only regulated by RBAC, accessible through the public IP and API or 2) private and accessible only through an endpoint. Both options, and their corresponding RBAC roles and private endpoint provisioning have to be **set up separately** (see below).
 
 ## Create a compute and storage pair for the silo
 
-> Note: both orchestrator and [silo](./silo_vnet.md) can be deployed using the same arm/bicep script, changing **Pair Base Name** and `storagePublicNetworkAccess` accordingly.
+> Note: both [orchestrator](./orchestrator_vnet.md) and silo can be deployed using the same arm/bicep script, changing **Pair Base Name** and `storagePublicNetworkAccess` accordingly.
 
 :important: make sure the subnet address space is not overlapping with any other subnet in your vnet, in particular that it is unique accross all your silos and orchestrator. For instance you can use `10.0.0.0/24` for the orchestrator, then `10.0.N.0/24` for each silo, with a distinct N value.
 

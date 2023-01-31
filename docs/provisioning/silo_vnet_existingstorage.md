@@ -17,12 +17,12 @@ Typically, this would happen when using internal silos corresponding to various 
 ## Prerequisites
 
 To run these deployment options, you first need:
+
 - an existing Azure ML workspace (see [cookbook](README.md))
 - an existing private DNS zone for storage, named `privatelink.blob.core.windows.net` (see below)
 - have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
   - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
 - Optional: [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
-
 
 > **To create a private DNS zone**  
 > If you don't already have one, you will need to [manually create a private DNS zone](https://learn.microsoft.com/en-us/azure/dns/private-dns-privatednszone) for the storage account and compute of this pair.  
@@ -34,6 +34,7 @@ To run these deployment options, you first need:
 The design we used for this tutorial is identical to [a silo provisioned with a new storage](./silo_vnet_newstorage.md#important-understand-the-design). What is different in this case is that we do not provision the storage, so we rely on the previously configured storage account.
 
 It is important in this case that you set the following on your existing storage account:
+
 - make sure the storage account is **in the same tenant** as the AzureML workspace
 - in the networking settings of the storage, it is recommended to set **Public network access** to "Disabled" (access will be allowed only via a private endpoint)
 - create a container in this storage account for your fl data
@@ -57,7 +58,6 @@ It is important in this case that you set the following on your existing storage
     - Existing Storage Account Resource Group: name of the resource group in which the storage is provisioned.
     - Existing Storage Account Subscription Id: id of the subscription in which the storage is provisioned.
     - Existing Storage Container Name: name of container where the data will be located.
-
 
 ### Using az cli
 
@@ -85,7 +85,6 @@ Let's set required permissions between the silo's compute and the silo's existin
     - **Storage Account Key Operator Service Role**
 
 4. Click on **Add role assignment** and add each of these same role towards the storage account of your orchestrator.
-
 
 ## Set up interactions with the orchestrator
 

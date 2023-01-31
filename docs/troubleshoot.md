@@ -1,14 +1,30 @@
 # Troubleshooting guide
 
-**Table of Contents**
+## Table of Contents
+
 - [Deployment failures](#deployment-failures)
-    - [Issue: The storage account named staml... is already taken](#issue-the-storage-account-named-staml-is-already-taken)
-    - [Issue: A vault with the same name already exists in deleted state](#issue-a-vault-with-the-same-name-already-exists-in-deleted-state)
+  - [Issue: The storage account named staml... is already taken](#issue-the-storage-account-named-staml-is-already-taken)
+  - [Issue: A vault with the same name already exists in deleted state](#issue-a-vault-with-the-same-name-already-exists-in-deleted-state)
 - [Experiment failures](#experiment-failures)
-    - [Issue: Dataset initialization failed DataAccessError(PermissionDenied)](#issue-dataset-initialization-failed-dataaccesserrorpermissiondenied)
-    - [Issue: DataAccessError in an isolated environment](#issue-dataaccesserror-in-an-isolated-environment)
+  - [Issue: Dataset initialization failed DataAccessError(PermissionDenied)](#issue-dataset-initialization-failed-dataaccesserrorpermissiondenied)
+  - [Issue: DataAccessError in an isolated environment](#issue-dataaccesserror-in-an-isolated-environment)
 
 ## Deployment failures
+
+### Issue: The client does not have permission to perform action 'Microsoft.Authorization/roleAssignments/write'
+
+During deployment, you may encounter the following exception:
+
+```json
+{
+    "code": "InvalidTemplateDeployment",
+    "message": "Deployment failed with multiple errors: 'Authorization failed for template resource '<UUID>' of type 'Microsoft.Authorization/roleAssignments'. The client '<USERNAME>' with object id '<UUID>' does not have permission to perform action 'Microsoft.Authorization/roleAssignments/write' at scope '/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.Storage/storageAccounts/<STORAGENAME>/providers/Microsoft.Authorization/roleAssignments/<UUID>'"
+}
+```
+
+**Root cause**: To provision a sandbox workspace from our tutorials, you need to have permissions to set role assignments in a given resource group. Creating your own resource group is not enough, you need to be the _Owner_ of this Azure resource group.
+
+**Fix**: Ask your subscription admin to set you _Owner_ of the resource group you are deploying to.
 
 ### Issue: The storage account named staml... is already taken
 
@@ -68,11 +84,11 @@ During deployment, you may encounter the following exception, even if you cannot
 
 During an experiment, you may encounter the following exception:
 
-```
+```log
 Dataset initialization failed: AzureMLException:
-	Message: DataAccessError(PermissionDenied)
-	InnerException None
-	ErrorResponse
+ Message: DataAccessError(PermissionDenied)
+ InnerException None
+ ErrorResponse
 {
     "error": {
         "message": "DataAccessError(PermissionDenied)"
@@ -83,7 +99,6 @@ Dataset initialization failed: AzureMLException:
 **Root cause**: This occurs usually in the training phase of our tutorials when the silo compute tries to mount the orchestrator storage, but doesn't have the permissions to do so. In some of our tutorials, it happens routinely if, after provisioning a silo or orchestrator, you skipped the section of the tutorial to set the RBAC R/W permissions (example [for open silo](./provisioning/silo_open.md#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)). This can also happen for other reasons, but what this exception indicates is that the compute's identity doesn't have the required permissions to access/mount the data on the given datastore.
 
 **Fix**: Follow the instructions to set the permissions right for this compute to access the orchestrator storage. In particular, set the RBAC roles for the user assigned identity towards the storage account (example [for open silo](./provisioning/silo_open.md#set-permissions-for-the-silos-compute-to-rw-fromto-the-orchestrator)).
-
 
 ### Issue: DataAccessError in an isolated environment
 

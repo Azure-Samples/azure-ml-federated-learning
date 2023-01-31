@@ -219,14 +219,14 @@ def fl_cross_silo_internal_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
-            metrics_prefix=silo_config.compute,
+            metrics_prefix=silo_config.name,
         )
 
         # add a readable name to the step
         silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
         # make sure the compute corresponds to the silo
-        silo_pre_processing_step.compute = silo_config.compute
+        silo_pre_processing_step.compute = silo_config.computes[0]
 
         # assign instance type for AKS, if available
         if hasattr(silo_config, "instance_type"):
@@ -282,8 +282,18 @@ def fl_cross_silo_internal_basic():
                 epochs=YAML_CONFIG.training_parameters.epochs,
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Differential Privacy
+                dp=YAML_CONFIG.training_parameters.dp,
+                # DP target epsilon
+                dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
+                # DP target delta
+                dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
+                # DP max gradient norm
+                dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
+                # Total num of iterations
+                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
                 # Silo name/identifier
-                metrics_prefix=silo_config.compute,
+                metrics_prefix=silo_config.name,
                 # Iteration number
                 iteration_num=iteration,
             )
@@ -291,7 +301,7 @@ def fl_cross_silo_internal_basic():
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
-            silo_training_step.compute = silo_config.compute
+            silo_training_step.compute = silo_config.computes[1]
 
             # assign instance type for AKS, if available
             if hasattr(silo_config, "instance_type"):

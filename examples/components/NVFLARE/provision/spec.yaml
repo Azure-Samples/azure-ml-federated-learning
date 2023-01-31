@@ -1,0 +1,28 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: nvflare_provision
+version: 0.0.5
+display_name: NVFlare provision
+type: command
+description: Provision an NVFlare project yaml config
+is_deterministic: true
+tags:
+  nvflare: 2.2.3
+  url: https://github.com/Azure-Samples/azure-ml-federated-learning
+
+inputs:
+  project_config:
+    type: uri_file
+
+outputs:
+  workspace:
+    type: uri_folder
+  start:
+    type: uri_file
+
+command: >-
+  nvflare provision -p ${{inputs.project_config}} -w ${{outputs.workspace}} && echo "start" >> ${{outputs.start}}/start.txt
+
+environment: 
+  build:
+    path: ./environment/context/

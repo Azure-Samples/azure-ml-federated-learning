@@ -1,0 +1,61 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: nvflare_server
+version: 0.0.5
+display_name: NVFlare server
+type: command
+description: This component runs an NVFlare server inside an AzureML job.
+tags:
+  nvflare: 2.2.3
+  url: https://github.com/Azure-Samples/azure-ml-federated-learning
+
+is_deterministic: true
+
+inputs:
+  federation_identifier:
+    type: string
+    description: "a unique identifier for the group of clients and server to find each other"
+    default: "fed-0000"
+  server_config:
+    type: uri_folder
+    description: "the NVFlare workspace folder for this server"
+  admin_config:
+    type: uri_folder
+    description: "the NVFlare workspace admin folder to connect to the server"
+  app_dir:
+    type: uri_folder
+    description: "the NVFlare app code directory"
+  server_name:
+    type: string
+    description: "the name of the server/overseer expected by clients for hostname resolution"
+  expected_clients:
+    type: integer
+    description: "the number of clients expected to connect to the server before training"
+  start:
+    type: uri_file
+    description: "input to trigger the job to start, not actually used"
+  wait_for_clients_timeout:
+    type: integer
+    default: 600
+    description: "the number of seconds to wait for clients to connect before timing out"
+
+outputs:
+  job_artefacts:
+    type: uri_folder
+    description: "where the NVFlare job artefacts will be saved upon completion of the job"
+
+code: "."
+
+command: >-
+  python run.py 
+  --federation_identifier ${{inputs.federation_identifier}} 
+  --server_config ${{inputs.server_config}} 
+  --admin_config ${{inputs.admin_config}} 
+  --app_dir ${{inputs.app_dir}} 
+  --server_name ${{inputs.server_name}} 
+  --expected_clients ${{inputs.expected_clients}} 
+  --output_dir ${{outputs.job_artefacts}} 
+  --wait_for_clients_timeout ${{inputs.wait_for_clients_timeout}}
+
+environment: 
+  build:
+    path: ./environment/context/

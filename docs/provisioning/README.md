@@ -7,6 +7,7 @@ A lot of those steps are still marked :construction:, we are actively working to
 ## Prerequisites
 
 To enjoy these quickstart, you will need to:
+
 - have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
 - have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
   - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
@@ -52,7 +53,7 @@ These tutorials will let you create silos as a pair of compute and storage, opti
 
 ## Create external silos
 
-These tutorials will let you create an _external_ silo by creating a storage account and linking it to an existing kubernetes cluster, optionally behind a vnet with private endpoints. 
+These tutorials will let you create an _external_ silo by creating a storage account and linking it to an existing kubernetes cluster, optionally behind a vnet with private endpoints.
 
 | Manual | Description |
 | :-- | :-- |
