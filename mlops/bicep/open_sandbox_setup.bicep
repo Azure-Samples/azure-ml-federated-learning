@@ -39,16 +39,10 @@ param orchestratorRegion string = resourceGroup().location
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
-  'westus'
-  'francecentral'
-  'brazilsouth'
+  'australiaeast'
+  'eastus'
+  'westeurope'
 ]
-
-// param siloRegions array = [
-//   'australiaeast'
-//   'eastus'
-//   'westeurope'
-// ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param compute1SKU string = 'Standard_DS3_v2'
@@ -97,7 +91,7 @@ module orchestrator './modules/fl_pairs/open_compute_storage_pair.bicep' = {
     compute1Name: 'orchestrator-01' // let's not use demo base name in cluster name
     compute1SKU: compute1SKU
     computeNodes: 4
-    compute2: compute2
+    compute2: false
     compute2SKU: compute2SKU
     compute2Name: 'orchestrator-02'
 
