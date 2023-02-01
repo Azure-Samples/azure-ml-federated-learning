@@ -23,6 +23,12 @@ To understand the journey to achieve production-ready Federated Learning, please
 
 To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./docs/provisioning/README.md).
 
+### :star: Success stories
+
+Here are some links showing applications of FL on Azure ML in production:
+
+- [Microsoft Health & Life Sciences, Text Analytics for Health](https://customers.microsoft.com/en-us/story/1587521717158304168-microsoft-partner-professional-services-azure)
+
 ### Real world examples
 
 Please also check our industry use cases below.
