@@ -47,9 +47,9 @@ param orchestratorAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
-  'westus'
-  'francecentral'
-  'brazilsouth'
+  'australiaeast'
+  'eastus'
+  'westeurope'
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
@@ -114,7 +114,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
     compute1Name: 'orchestrator-01' // let's not use demo base name in cluster name
     compute1SKU: compute1SKU
     computeNodes: 4
-    compute2: compute2
+    compute2: false
     compute2SKU: compute2SKU
     compute2Name: 'orchestrator-02'
 

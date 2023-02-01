@@ -37,7 +37,7 @@ Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api
 1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step.
 
     ```bash
-    az ad signed-in-user show | jq ".id"
+    az ad signed-in-user show --query id
     ```
 
 2. Create a new key vault policy for yourself, and grant permissions to list, set & delete secrets.
