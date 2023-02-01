@@ -45,6 +45,12 @@ If you are already using a specific FL framework, you can port your code to work
 
 Please find a full documentation of this project [**here**](docs/README.md).
 
+### Success stories
+
+Here are some links showing applications of this repository in production:
+
+- [Microsoft Health & Life Sciences, Text Analytics for Health](https://customers.microsoft.com/en-us/story/1587521717158304168-microsoft-partner-professional-services-azure)
+
 ### Need Support?
 
 Please check the [**troubleshooting guide**](./docs/troubleshoot.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
