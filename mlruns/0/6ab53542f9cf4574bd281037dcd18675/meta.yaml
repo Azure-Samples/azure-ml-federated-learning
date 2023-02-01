@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/6ab53542f9cf4574bd281037dcd18675/artifacts
+end_time: 1675287115175
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 6ab53542f9cf4574bd281037dcd18675
+run_name: youthful-skink-515
+run_uuid: 6ab53542f9cf4574bd281037dcd18675
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675287115031
+status: 4
+tags: []
+user_id: wenwen

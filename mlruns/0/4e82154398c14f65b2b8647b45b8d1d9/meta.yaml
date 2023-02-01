@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/4e82154398c14f65b2b8647b45b8d1d9/artifacts
+end_time: 1675286992094
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 4e82154398c14f65b2b8647b45b8d1d9
+run_name: rebellious-cat-203
+run_uuid: 4e82154398c14f65b2b8647b45b8d1d9
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675286991899
+status: 4
+tags: []
+user_id: wenwen

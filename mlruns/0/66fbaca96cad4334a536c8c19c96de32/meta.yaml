@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/66fbaca96cad4334a536c8c19c96de32/artifacts
+end_time: 1675283192472
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 66fbaca96cad4334a536c8c19c96de32
+run_name: youthful-fly-148
+run_uuid: 66fbaca96cad4334a536c8c19c96de32
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675283192320
+status: 4
+tags: []
+user_id: wenwen

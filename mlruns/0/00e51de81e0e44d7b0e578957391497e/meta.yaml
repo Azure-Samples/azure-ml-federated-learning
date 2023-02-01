@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/00e51de81e0e44d7b0e578957391497e/artifacts
+end_time: 1675289339953
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 00e51de81e0e44d7b0e578957391497e
+run_name: hilarious-robin-868
+run_uuid: 00e51de81e0e44d7b0e578957391497e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675289339767
+status: 3
+tags: []
+user_id: wenwen

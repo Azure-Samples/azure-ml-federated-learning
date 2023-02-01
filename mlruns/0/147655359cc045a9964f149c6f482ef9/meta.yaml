@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/147655359cc045a9964f149c6f482ef9/artifacts
+end_time: 1675287427969
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 147655359cc045a9964f149c6f482ef9
+run_name: rogue-toad-342
+run_uuid: 147655359cc045a9964f149c6f482ef9
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675287427811
+status: 4
+tags: []
+user_id: wenwen

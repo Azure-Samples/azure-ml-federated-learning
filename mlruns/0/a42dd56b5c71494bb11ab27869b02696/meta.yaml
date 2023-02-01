@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/a42dd56b5c71494bb11ab27869b02696/artifacts
+end_time: 1675287808278
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: a42dd56b5c71494bb11ab27869b02696
+run_name: rumbling-yak-376
+run_uuid: a42dd56b5c71494bb11ab27869b02696
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675287808164
+status: 3
+tags: []
+user_id: wenwen

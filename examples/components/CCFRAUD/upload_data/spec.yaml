@@ -12,7 +12,7 @@ inputs:
   silo_index:
     type: number
     optional: false
-  additional_unfiltered_data:
+  benchmark:
     type: boolean
     optional: true
 
@@ -32,7 +32,7 @@ command: >-
   --silo_index ${{inputs.silo_index}} 
   --raw_train_data ${{outputs.raw_train_data}} 
   --raw_test_data ${{outputs.raw_test_data}} 
-  --additional_unfiltered_data $[[${{inputs.additional_unfiltered_data}}]]
+  --benchmark $[[${{inputs.benchmark}}]]
 
 environment: 
   conda_file: ./conda.yaml

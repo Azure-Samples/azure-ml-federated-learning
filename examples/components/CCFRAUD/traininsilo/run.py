@@ -14,6 +14,7 @@ from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data import Dataset
 from mlflow import log_metric, log_param
+from distutils.util import strtobool
 from typing import List
 import models as models
 import datasets as datasets
@@ -77,6 +78,8 @@ class CCFraudTrainer:
     def __init__(
         self,
         model_name,
+        benchmark,
+        train_all_data,
         train_data_dir="./",
         test_data_dir="./",
         model_path=None,
@@ -112,6 +115,8 @@ class CCFraudTrainer:
         self._batch_size = batch_size
         self._experiment_name = experiment_name
         self._iteration_name = iteration_name
+        self.benchmark = benchmark
+        self.train_all_data = train_all_data
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -141,9 +146,17 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
-        train_df = pd.read_csv(train_data_dir + "/data.csv")
-        test_df = pd.read_csv(test_data_dir + "/data.csv")
+        self.fraud_weight_ = np.loadtxt(train_data_dir + "/filtered_fraud_weight.txt").item()
+        train_df = pd.read_csv(train_data_dir + "/filtered_data.csv")
+        test_df = pd.read_csv(test_data_dir + "/filtered_data.csv")
+        
+        # if run benchmark
+        if self.benchmark:
+            if self.train_all_data:
+                self.fraud_weight_ = np.loadtxt(train_data_dir + "/unfiltered_fraud_weight.txt").item()
+                train_df = pd.read_csv(train_data_dir + "/unfiltered_data.csv")
+                test_df = pd.read_csv(test_data_dir + "/unfiltered_data.csv")
+
         if model_name == "SimpleLinear":
             train_dataset = datasets.FraudDataset(train_df)
             test_dataset = datasets.FraudDataset(test_df)
@@ -154,6 +167,8 @@ class CCFraudTrainer:
         logger.info(
             f"Train data samples: {len(train_df)}, Test data samples: {len(test_df)}"
         )
+
+
 
         return train_dataset, test_dataset, train_df.shape[1] - 1
 
@@ -417,7 +432,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+
+    parser.add_argument("--benchmark", type=strtobool, required=False, default=False, help="Whether to benchmark")
+
+    parser.add_argument("--train_all_data", type=strtobool, default=False, required=False, help="Whether to use all train data")
+
     return parser
+  
 
 
 def run(args):
@@ -437,6 +458,8 @@ def run(args):
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
+        benchmark=args.benchmark,
+        train_all_data = args.train_all_data
     )
     trainer.execute(args.checkpoint)
 

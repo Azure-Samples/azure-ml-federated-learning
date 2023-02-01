@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/f8d39a848ebf40689e7a629a90609a66/artifacts
+end_time: 1675287819461
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: f8d39a848ebf40689e7a629a90609a66
+run_name: bittersweet-sow-255
+run_uuid: f8d39a848ebf40689e7a629a90609a66
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675287819365
+status: 3
+tags: []
+user_id: wenwen

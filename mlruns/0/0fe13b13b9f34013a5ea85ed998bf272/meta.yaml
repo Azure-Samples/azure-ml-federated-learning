@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/0fe13b13b9f34013a5ea85ed998bf272/artifacts
+end_time: 1675283253325
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 0fe13b13b9f34013a5ea85ed998bf272
+run_name: abrasive-chimp-863
+run_uuid: 0fe13b13b9f34013a5ea85ed998bf272
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675283253217
+status: 4
+tags: []
+user_id: wenwen

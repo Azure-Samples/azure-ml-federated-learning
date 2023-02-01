@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/5f02797a2d0a46fc9bfa98bbad8cd57f/artifacts
+end_time: 1675288178004
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 5f02797a2d0a46fc9bfa98bbad8cd57f
+run_name: clean-sow-599
+run_uuid: 5f02797a2d0a46fc9bfa98bbad8cd57f
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675288177886
+status: 3
+tags: []
+user_id: wenwen

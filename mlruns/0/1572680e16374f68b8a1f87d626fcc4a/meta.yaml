@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/1572680e16374f68b8a1f87d626fcc4a/artifacts
+end_time: 1675283270613
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 1572680e16374f68b8a1f87d626fcc4a
+run_name: sassy-dove-463
+run_uuid: 1572680e16374f68b8a1f87d626fcc4a
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675283270460
+status: 4
+tags: []
+user_id: wenwen

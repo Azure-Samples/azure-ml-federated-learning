@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/dbb22ef33f78451cb7a6e69742373cff/artifacts
+end_time: 1675288047366
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: dbb22ef33f78451cb7a6e69742373cff
+run_name: thundering-finch-804
+run_uuid: dbb22ef33f78451cb7a6e69742373cff
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675288047269
+status: 3
+tags: []
+user_id: wenwen

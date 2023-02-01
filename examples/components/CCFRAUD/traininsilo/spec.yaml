@@ -52,6 +52,12 @@ inputs:
     type: string
     description: stringified json config for a silo
     optional: true
+  benchmark:
+    type: boolean
+    optional: true
+  train_all_data:
+    type: boolean
+    optional: true
 
 outputs:
   model:
@@ -72,6 +78,8 @@ command: >-
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
+  $[[--benchmark ${{inputs.benchmark}}]]
+  $[[--train_all_data ${{inputs.train_all_data}}]]
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

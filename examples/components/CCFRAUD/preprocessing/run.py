@@ -7,6 +7,7 @@ import numpy as np
 from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import mlflow
+from distutils.util import strtobool
 
 SCALERS = {}
 
@@ -34,6 +35,12 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_output", type=str, required=True, help="")
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
+    )
+    parser.add_argument(
+        "--benchmark",
+        type=strtobool,
+        required=False,
+        help="Whether to run benchmark comparing centralized and FL models",
     )
     return parser
 
@@ -81,6 +88,7 @@ def apply_transforms(df):
 def preprocess_data(
     raw_training_data,
     raw_testing_data,
+    benchmark,
     train_data_dir="./",
     test_data_dir="./",
     metrics_prefix="default-prefix",
@@ -101,8 +109,8 @@ def preprocess_data(
     )
 
     logger.debug(f"Loading data...")
-    train_df = pd.read_csv(raw_training_data + f"/train.csv")
-    test_df = pd.read_csv(raw_testing_data + f"/test.csv")
+    train_df = pd.read_csv(raw_training_data + f"/train_filtered.csv")
+    test_df = pd.read_csv(raw_testing_data + f"/test_filtered.csv")
 
     fraud_weight = (
         train_df["is_fraud"].value_counts()[0] / train_df["is_fraud"].value_counts()[1]
@@ -113,22 +121,51 @@ def preprocess_data(
     train_data = apply_transforms(train_df)
     test_data = apply_transforms(test_df)
 
+    
     logger.debug(f"Train data samples: {len(train_data)}")
     logger.debug(f"Test data samples: {len(test_data)}")
 
     train_data = train_data.sort_values(by="trans_date_trans_time")
     test_data = test_data.sort_values(by="trans_date_trans_time")
 
-    logger.info(f"Saving processed data to {train_data_dir} and {test_data_dir}")
-    train_data.to_csv(train_data_dir + "/data.csv", index=False)
-    np.savetxt(train_data_dir + "/fraud_weight.txt", np.array([fraud_weight]))
-    test_data.to_csv(test_data_dir + "/data.csv", index=False)
+    train_data.to_csv(train_data_dir + "/filtered_data.csv", index=False)
+    np.savetxt(train_data_dir + "/filtered_fraud_weight.txt", np.array([fraud_weight]))
+    test_data.to_csv(test_data_dir + "/filtered_data.csv", index=False)
 
     # Mlflow logging
-    log_metadata(train_data, test_data, metrics_prefix)
+    log_metadata(train_data, test_data, metrics_prefix, "filtered")
+
+    
+    # if run benchmark, process all data too
+    if benchmark:
+
+        train_df_unfiltered  = pd.read_csv(raw_training_data + f"/train_unfiltered.csv")
+        test_df_unfiltered = pd.read_csv(raw_testing_data + f"/test_unfiltered.csv")
+        fraud_weight_unfiltered = (
+            train_df_unfiltered["is_fraud"].value_counts()[0] / train_df_unfiltered["is_fraud"].value_counts()[1]
+        )
+        logger.debug(f"Fraud weight unfiltered: {fraud_weight_unfiltered}")
+        train_data_unfiltered = apply_transforms(train_df_unfiltered)
+        test_data_unfiltered = apply_transforms(test_df_unfiltered)
+        logger.debug(f"Train data samples unfiltered: {len(train_data_unfiltered)}")
+        logger.debug(f"Test data samples unfiltered: {len(test_data_unfiltered)}")
+        train_data_unfiltered = train_data_unfiltered.sort_values(by="trans_date_trans_time")
+        test_data_unfiltered = test_data_unfiltered.sort_values(by="trans_date_trans_time")
+        train_data_unfiltered.to_csv(train_data_dir + "/unfiltered_data.csv", index=False)
+        np.savetxt(train_data_dir + "/unfiltered_fraud_weight.txt", np.array([fraud_weight_unfiltered]))
+        test_data_unfiltered.to_csv(test_data_dir + "/unfiltered_data.csv", index=False)
+
+        log_metadata(train_data_unfiltered, test_data_unfiltered, metrics_prefix, "unfiltered")
+
+    # Mlflow logging
+    logger.info(f"Saving processed data to {train_data_dir} and {test_data_dir}")
+    
+
+    
+    
 
 
-def log_metadata(train_df, test_df, metrics_prefix):
+def log_metadata(train_df, test_df, metrics_prefix, property):
     with mlflow.start_run() as mlflow_run:
         # get Mlflow client
         mlflow_client = mlflow.tracking.client.MlflowClient()
@@ -136,13 +173,13 @@ def log_metadata(train_df, test_df, metrics_prefix):
         root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
         mlflow_client.log_metric(
             run_id=root_run_id,
-            key=f"{metrics_prefix}/Number of train datapoints",
+            key=f"{metrics_prefix}/Number of {property} train datapoints",
             value=f"{train_df.shape[0]}",
         )
 
         mlflow_client.log_metric(
             run_id=root_run_id,
-            key=f"{metrics_prefix}/Number of test datapoints",
+            key=f"{metrics_prefix}/Number of {property} test datapoints",
             value=f"{test_df.shape[0]}",
         )
 
@@ -171,9 +208,11 @@ def main(cli_args=None):
         preprocess_data(
             args.raw_training_data,
             args.raw_testing_data,
+            args.benchmark,
             args.train_output,
             args.test_output,
             args.metrics_prefix,
+
         )
 
     run()

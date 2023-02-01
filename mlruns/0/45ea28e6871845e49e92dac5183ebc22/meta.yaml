@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/45ea28e6871845e49e92dac5183ebc22/artifacts
+end_time: 1675283091709
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 45ea28e6871845e49e92dac5183ebc22
+run_name: powerful-finch-933
+run_uuid: 45ea28e6871845e49e92dac5183ebc22
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675283091482
+status: 4
+tags: []
+user_id: wenwen

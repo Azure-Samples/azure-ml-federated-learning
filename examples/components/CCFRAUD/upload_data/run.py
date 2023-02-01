@@ -8,6 +8,7 @@ from distutils.util import strtobool
 import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.feature_extraction import FeatureHasher
 from zipfile import ZipFile
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
@@ -20,6 +21,7 @@ SPLITS = {
 }
 CATEGORICAL_PROPS = ["category", "region", "gender", "state", "job"]
 ENCODERS = {}
+N_FEATURE=30
 
 
 def get_kaggle_client(kv: Keyvault):
@@ -51,9 +53,9 @@ def fit_encoders(df):
     for column in CATEGORICAL_PROPS:
         if column not in ENCODERS:
             print(f"Creating encoder for column: {column}")
-            # Simply set all zeros if the category is unseen
-            encoder = OneHotEncoder(handle_unknown="ignore")
-            encoder.fit(df[column].values.reshape(-1, 1))
+            # Simply set all zeros if the category is unseen 
+            encoder = FeatureHasher(n_features=N_FEATURE, input_type='string')
+            encoder.fit(df[column])
             ENCODERS[column] = encoder
 
 
@@ -95,12 +97,13 @@ def preprocess_data(df):
 
     for column in categorical:
         encoder = ENCODERS.get(column)
-        encoded_data = encoder.transform(df[column].values.reshape(-1, 1)).toarray()
+        encoded_data = encoder.transform(df[column]).toarray()
+        logging.info(f"encoded_data shape: {encoded_data.shape}")
         encoded_df = pd.DataFrame(
             encoded_data,
             columns=[
-                column + "_" + "_".join(x.split("_")[1:])
-                for x in encoder.get_feature_names()
+                column + "_" + str(x)
+                for x in range(encoded_data.shape[1])
             ],
         )
         encoded_df.index = df.index
@@ -162,8 +165,8 @@ def run(args):
     regions = SPLITS[args.silo_count][args.silo_index]
 
     print(f"Filtering regions: {regions}")
-    train_path = f"{args.raw_train_data}/train.csv"
-    test_path = f"{args.raw_test_data}/test.csv"
+    train_path = f"{args.raw_train_data}/train_filtered.csv"
+    test_path = f"{args.raw_test_data}/test_filtered.csv"
 
     train_data_filtered = df_train[df_train["region"].isin(regions)].copy()
     test_data_filtered = df_test[df_test["region"].isin(regions)].copy()
@@ -178,7 +181,8 @@ def run(args):
 
     del train_data_filtered, test_data_filtered
 
-    if args.additional_unfiltered_data:
+    # if run benchmark, then all data need to be uploaded
+    if args.benchmark:
         train_path = f"{args.raw_train_data}/train_unfiltered.csv"
         test_path = f"{args.raw_test_data}/test_unfiltered.csv"
 
@@ -237,10 +241,11 @@ def get_arg_parser(parser=None):
         help="Output folder for test data",
     )
     parser.add_argument(
-        "--additional_unfiltered_data",
+        "--benchmark",
         type=strtobool,
         required=False,
-        help="Whether to store also unfiltered data",
+        default=False,
+        help="Whether to run benchmark comparing centralized and FL models",
     )
     return parser
 

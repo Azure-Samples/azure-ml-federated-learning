@@ -22,6 +22,8 @@ from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
+import mlflow
+from mlflow import log_metric
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
@@ -139,6 +141,10 @@ aggregate_component = load_component(
     source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
 
+evaluate_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "evaluation", "spec.yaml")
+)
+
 
 ########################
 ### BUILD A PIPELINE ###
@@ -210,6 +216,7 @@ def fl_ccfraud_basic():
                 path=silo_config.testing_data.path,
             ),
             metrics_prefix=silo_config.compute,
+            benchmark = YAML_CONFIG.federated_learning.benchmark
         )
 
         # add a readable name to the step
@@ -242,6 +249,7 @@ def fl_ccfraud_basic():
     ################
     ### TRAINING ###
     ################
+    start_time = time.time()
 
     running_checkpoint = None  # for iteration 1, we have no pre-existing checkpoint
 
@@ -272,6 +280,10 @@ def fl_ccfraud_basic():
                 iteration_name=f"Iteration-{iteration}",
                 # Model name
                 model_name=YAML_CONFIG.training_parameters.model_name,
+                # Whether to benchmark
+                benchmark = YAML_CONFIG.federated_learning.benchmark,
+                # Whether to train with all data
+                train_all_data = YAML_CONFIG.federated_learning.train_all_data
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -319,6 +331,49 @@ def fl_ccfraud_basic():
 
         # let's keep track of the checkpoint to be used as input for next iteration
         running_checkpoint = aggregate_weights_step.outputs.aggregated_output
+    
+    
+    end_time = time.time()
+    training_duration = end_time - start_time
+
+    #log training time
+    with mlflow.start_run() as mlflow_run:
+        #root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+        mlflow.log_metric(key="Training_Duration", value=training_duration)
+
+
+    ################
+    ## EVALUATION ##
+    ################
+
+    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+        evaluation_step = evaluate_component(
+            test_data_dir=silo_preprocessed_test_data[silo_index],
+            # and the checkpoint from previous iteration (or None if iteration == 1)
+            checkpoint=aggregate_weights_step.outputs.aggregated_output,
+            # batch size
+            batch_size=YAML_CONFIG.training_parameters.eval_batch_size,
+            # Silo name/identifier
+            metrics_prefix=silo_config.compute,
+            # Model name
+            model_name=YAML_CONFIG.training_parameters.model_name,
+            fraud_weight_path = silo_preprocessed_train_data[silo_index]
+
+        )
+        evaluation_step.compute = silo_config.compute
+        # add a readable name to the step
+        evaluation_step.name = f"silo_{silo_index}_evaluation"
+
+        # make sure the data is written in the right datastore
+        evaluation_step.outputs.predictions = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=custom_fl_data_path(
+                silo_config.datastore,
+                "predictions",
+                unique_id=pipeline_identifier,
+            ),
+        )
 
     return {"final_aggregated_model": running_checkpoint}
 
@@ -333,7 +388,7 @@ if args.submit:
 
     ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_demo_ccfraud"
+        pipeline_job, experiment_name="fl_demo_ccfraud_nonfl_comparison"
     )
 
     print("The url to see your live job running is returned by the sdk:")
@@ -344,6 +399,7 @@ if args.submit:
     if args.wait:
         job_name = pipeline_job.name
         status = pipeline_job.status
+        pipeline_job.restart_from_latest = True
 
         while status not in ["Failed", "Completed", "Canceled"]:
             print(f"Job current status is {status}")
