@@ -156,7 +156,6 @@ def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
     description=f"FL cross-silo multiply data pipeline.",
 )
 def fl_cross_silo_multiply_data():
-
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
         # create step for multiplying component
         silo_multiply_data_step = multiply_data_component(

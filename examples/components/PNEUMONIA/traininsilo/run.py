@@ -189,7 +189,6 @@ class PTLearner:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
             root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
@@ -211,7 +210,6 @@ class PTLearner:
                 num_of_batches_before_logging = 100
 
                 for i, batch in enumerate(self.train_loader_):
-
                     images, labels = batch[0].to(self.device_), batch[1].to(
                         self.device_
                     )
@@ -419,7 +417,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

@@ -311,7 +311,6 @@ class NERTrainer:
             progress_bar = tqdm(range(num_training_steps))
 
             for epoch in range(self._epochs):
-
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
                 # Training
@@ -562,7 +561,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
