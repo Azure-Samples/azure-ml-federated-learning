@@ -70,7 +70,7 @@ During this phase, we recommend you start building your FL infrastructure (the _
 
 _Infrastructure track_
 
-First, you will want to provision a FL setup relevant to your use case (internal geographically-distributed silos, external silos, etc...). Start with our [provisioning README](./provisioning/README.md) to identify which ingredients you will need, and provision your custom setup using our Bicep templates. Note that since you will not be working with sensitive data, you don't have to use the templates using VNets` and Private Endpoints. If you do though, it will make phase III below a bit easier, since your setup will already have these safety measures applied - up to you.
+First, you will want to provision a FL setup relevant to your use case (internal geographically-distributed silos, external silos, etc...). Start with our [provisioning README](./provisioning/README.md) to identify which ingredients you will need, and provision your custom setup using our Bicep templates. Note that since you will not be working with sensitive data, you don't have to use the templates using VNets and Private Endpoints. If you do though, it will make phase III below a bit easier, since your setup will already have these safety measures applied - up to you.
 
 Next, you will want to connect your non-sensitive data to your FL setup, by creating a [data asset](https://learn.microsoft.com/en-us/azure/machine-learning/concept-azure-machine-learning-v2?tabs=cli#data). There are various ways to do so. For instance, you can manually upload data to your Azure ML workspace via the UI, or [use the CLI](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-create-data-assets?tabs=cli).
 
@@ -88,7 +88,7 @@ Once you have trained your FL model, we recommend comparing it to a baseline mod
 ## III. Do FL on sensitive data in a Production setting
 
 - Who: ML Engineers
-- Investment: ~2 weeks
+- Investment: several weeks at least, depending on security review.
 
 ### Goals
 The **goals** of this phase are to:
