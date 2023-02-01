@@ -25,7 +25,7 @@ To know more about the resource provisioning alternatives, please go to the prov
 
 ### :star: Success stories
 
-Here are some links showing applications of this repository in production:
+Here are some links showing applications of FL on Azure ML in production:
 
 - [Microsoft Health & Life Sciences, Text Analytics for Health](https://customers.microsoft.com/en-us/story/1587521717158304168-microsoft-partner-professional-services-azure)
 
