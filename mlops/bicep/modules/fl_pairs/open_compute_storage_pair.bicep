@@ -27,10 +27,10 @@ param storageAccountName string = replace('st${pairBaseName}','-','') // replace
 param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 
 @description('Name of the default compute cluster for the pair')
-param computeName string = 'cpu-cluster-${pairBaseName}'
+param compute1Name string = '${pairBaseName}-01'
 
 @description('VM size for the compute cluster')
-param computeSKU string = 'Standard_DS3_v2'
+param compute1SKU string = 'Standard_DS3_v2'
 
 @description('VM nodes for the compute cluster')
 param computeNodes int = 4
@@ -38,11 +38,20 @@ param computeNodes int = 4
 @allowed(['UserAssigned','SystemAssigned'])
 param identityType string = 'UserAssigned'
 
-@description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
-param uaiName string = 'uai-${pairBaseName}'
-
 @description('Allow compute cluster to access storage account with R/W permissions (using UAI)')
 param applyDefaultPermissions bool = true
+
+@description('Flag whether to create a second compute or not')
+param compute2 bool = false
+
+@description('The second VM used for creating compute clusters in orchestrator and silos.')
+param compute2SKU string = 'Standard_DS3_v2'
+
+@description('Name of the default compute cluster for the pair')
+param compute2Name string = '${pairBaseName}-02'
+
+@description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
+param computeUaiName string = 'uai-${pairBaseName}'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -62,19 +71,43 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
   }
 }
 
+// provision a user assigned identify for a compute
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
+  name: computeUaiName
+  location: pairRegion
+  tags: tags
+}
+
 // create new Azure ML compute
-module computeDeployment '../computes/open_new_aml_compute.bicep' = {
-  name: '${pairBaseName}-open-aml-compute'
+module computeDeployment1 '../computes/open_new_aml_compute.bicep' = {
+  name: '${pairBaseName}-open-aml-compute-01'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
     machineLearningRegion: machineLearningRegion
-    computeName: computeName
+    computeName: compute1Name
     computeRegion: pairRegion
-    computeSKU: computeSKU
+    computeSKU: compute1SKU
     computeNodes: computeNodes
     computeIdentityType: identityType
-    computeUaiName: uaiName
+    computeUaiName: uai.name
+    tags: tags
+  }
+}
+
+// create new second Azure ML compute
+module computeDeployment2 '../computes/open_new_aml_compute.bicep' = if(compute2) {
+  name: '${pairBaseName}-open-aml-compute-02'
+  scope: resourceGroup()
+  params: {
+    machineLearningName: machineLearningName
+    machineLearningRegion: machineLearningRegion
+    computeName: compute2Name
+    computeRegion: pairRegion
+    computeSKU: compute2SKU
+    computeNodes: computeNodes
+    computeIdentityType: identityType
+    computeUaiName: uai.name
     tags: tags
   }
 }
@@ -85,17 +118,17 @@ module pairInternalPermissions '../permissions/msi_storage_rw.bicep' = if(applyD
   scope: resourceGroup()
   params: {
     storageAccountName: storageDeployment.outputs.storageName
-    identityPrincipalId: computeDeployment.outputs.identityPrincipalId
+    identityPrincipalId: computeDeployment1.outputs.identityPrincipalId
   }
   dependsOn: [
     storageDeployment
-    computeDeployment
+    computeDeployment1
   ]
 }
 
 // output the pair config for next actions (permission model)
-output identityPrincipalId string = computeDeployment.outputs.identityPrincipalId
+output identityPrincipalId string = computeDeployment1.outputs.identityPrincipalId
 output storageName string = storageDeployment.outputs.storageName
 output storageServiceId string = storageDeployment.outputs.storageId
-output computeName string = computeDeployment.outputs.compute
+output compute1Name string = computeDeployment1.outputs.compute
 output region string = pairRegion

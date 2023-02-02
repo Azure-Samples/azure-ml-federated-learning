@@ -63,10 +63,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 parser.add_argument(
     "--debug",
@@ -208,7 +208,9 @@ def silo_scatter_subgraph(
     # user defined accumulator
     aggregated_checkpoint: Input(optional=True),
     # factory inputs (contract)
-    scatter_compute: str,
+    scatter_compute1: str,
+    scatter_compute2: str,
+    scatter_name: str,
     scatter_datastore: str,
     gather_datastore: str,
     iteration_num: int,
@@ -216,6 +218,11 @@ def silo_scatter_subgraph(
     lr: float = 0.01,
     epochs: int = 3,
     batch_size: int = 64,
+    dp: bool = False,
+    dp_target_epsilon: float = 50.0,
+    dp_target_delta: float = 1e-5,
+    dp_max_grad_norm: float = 1.0,
+    total_num_of_iterations: int = 1,
 ):
     """Create silo/training subgraph.
 
@@ -223,13 +230,19 @@ def silo_scatter_subgraph(
         raw_train_data (Input): raw train data
         raw_test_data (Input): raw test data
         aggregated_checkpoint (Input): if not None, the checkpoint obtained from previous iteration (see orchestrator_aggregation())
-        scatter_compute (str): Silo compute name
+        scatter_compute1 (str): Silo compute1 name
+        scatter_compute2 (str): Silo compute2 name
         scatter_datastore (str): Silo datastore name
         gather_datastore (str): Orchestrator datastore name
         iteration_num (int): Iteration number
         lr (float, optional): Learning rate. Defaults to 0.01.
         epochs (int, optional): Number of epochs. Defaults to 3.
         batch_size (int, optional): Batch size. Defaults to 64.
+        dp (bool, optional): Differential Privacy
+        dp_target_epsilon (float, optional): DP target epsilon
+        dp_target_delta (float, optional): DP target delta
+        dp_max_grad_norm (float, optional): DP max gradient norm
+        total_num_of_iterations (int, optional): Total number of iterations
 
     Returns:
         Dict[str, Outputs]: a map of the outputs
@@ -240,8 +253,11 @@ def silo_scatter_subgraph(
         raw_training_data=raw_train_data,
         raw_testing_data=raw_test_data,
         # here we're using the name of the silo compute as a metrics prefix
-        metrics_prefix=scatter_compute,
+        metrics_prefix=scatter_name,
     )
+
+    # Assigning the silo's first compute to the preprocessing component
+    silo_pre_processing_step.compute = scatter_compute1
 
     # we're using our own training component
     silo_training_step = training_component(
@@ -257,11 +273,24 @@ def silo_scatter_subgraph(
         epochs=epochs,
         # Dataloader batch size
         batch_size=batch_size,
+        # Differential Privacy
+        dp=dp,
+        # DP target epsilon
+        dp_target_epsilon=dp_target_epsilon,
+        # DP target delta
+        dp_target_delta=dp_target_delta,
+        # DP max gradient norm
+        dp_max_grad_norm=dp_max_grad_norm,
+        # Total number of iterations
+        total_num_of_iterations=total_num_of_iterations,
         # Silo name/identifier
-        metrics_prefix=scatter_compute,
+        metrics_prefix=scatter_name,
         # Iteration number
         iteration_num=iteration_num,
     )
+
+    # Assigning the silo's second compute to the training component
+    silo_training_step.compute = scatter_compute2
 
     # IMPORTANT: we will assume that any output provided here can be exfiltrated into the orchestrator
     return {
@@ -293,7 +322,8 @@ builder.set_orchestrator(
 for silo_config in YAML_CONFIG.federated_learning.silos:
     builder.add_silo(
         # provide settings for this silo
-        silo_config.compute,
+        silo_config.name,
+        silo_config.computes,
         silo_config.datastore,
         # any additional custom kwarg will be sent to silo_preprocessing() as is
         raw_train_data=Input(
@@ -348,6 +378,16 @@ pipeline_job = builder.build_flexible_fl_pipeline(
     lr=YAML_CONFIG.training_parameters.lr,
     batch_size=YAML_CONFIG.training_parameters.batch_size,
     epochs=YAML_CONFIG.training_parameters.epochs,
+    # Differential Privacy
+    dp=YAML_CONFIG.training_parameters.dp,
+    # DP target epsilon
+    dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
+    # DP target delta
+    dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
+    # DP max gradient norm
+    dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
+    # Total num of iterations
+    total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
 )
 
 # 4. Validate the pipeline using soft rules
@@ -369,7 +409,7 @@ builder.soft_validate(
 
 # 5. Submit to Azure ML
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
     ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
@@ -402,4 +442,4 @@ if args.submit:
             sys.exit(1)
 
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")

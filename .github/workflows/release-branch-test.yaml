@@ -1,9 +1,12 @@
 name: Release-branch-test
 
 on:
-  pull_request:
-    branches:
-    - release**
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Describe reason'     
+        required: false
+        default: "To test the release branch"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -18,6 +21,7 @@ jobs:
       vnet-sandbox: ${{ steps.filter.outputs.vnet-sandbox }}
       components-helloworld: ${{ steps.filter.outputs.components-helloworld }}
       components-mnist: ${{ steps.filter.outputs.components-mnist }}
+      components-utils: ${{ steps.filter.outputs.components-utils }}
       literal: ${{ steps.filter.outputs.literal }}
       factory: ${{ steps.filter.outputs.factory }}
       components-pneumonia: ${{ steps.filter.outputs.components-pneumonia }}
@@ -30,6 +34,8 @@ jobs:
       pneumonia-upload-data: ${{ steps.filter.outputs.pneumonia-upload-data }}
       ner-upload-data: ${{ steps.filter.outputs.ner-upload-data }}
       ccfraud-upload-data: ${{ steps.filter.outputs.ccfraud-upload-data }}
+      pneumonia-multiply-data: ${{ steps.filter.outputs.pneumonia-multiply-data }}
+      utils-multiply-data: ${{ steps.filter.outputs.utils-multiply-data }}
     steps:
     - uses: actions/checkout@v2
     - uses: dorny/paths-filter@v2
@@ -46,6 +52,8 @@ jobs:
             - 'examples/components/HELLOWORLD/**'
           components-mnist:
             - 'examples/components/MNIST/**'
+          components-utils:
+            - 'examples/components/utils/**'
           literal:
             - 'examples/pipelines/fl_cross_silo_literal/**'
           factory:
@@ -70,6 +78,10 @@ jobs:
             - 'examples/components/NER/upload_data/**'
           ccfraud-upload-data:
             - 'examples/components/CCFRAUD/upload_data/**'
+          pneumonia-multiply-data:
+            - 'examples/components/utils/multiple_data_files/**'
+          utils-multiply-data:
+            - 'examples/pipelines/utils/multiple_data_files/**'
 
   open-sandbox-test:
     runs-on: ubuntu-latest
@@ -199,7 +211,7 @@ jobs:
   pneumonia-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.pneumonia-upload-data == 'true') || (needs.paths-filter.outputs.components-pneumonia == 'true') || (needs.paths-filter.outputs.pneumonia == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.pneumonia-upload-data == 'true') || (needs.paths-filter.outputs.components-pneumonia == 'true') || (needs.paths-filter.outputs.pneumonia == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -228,7 +240,7 @@ jobs:
   ner-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ner-upload-data == 'true') || (needs.paths-filter.outputs.components-ner == 'true') || (needs.paths-filter.outputs.ner == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ner-upload-data == 'true') || (needs.paths-filter.outputs.components-ner == 'true') || (needs.paths-filter.outputs.ner == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -257,7 +269,7 @@ jobs:
   ccfraud-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ccfraud-upload-data == 'true') || (needs.paths-filter.outputs.components-ccfraud == 'true') || (needs.paths-filter.outputs.ccfraud == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ccfraud-upload-data == 'true') || (needs.paths-filter.outputs.components-ccfraud == 'true') || (needs.paths-filter.outputs.ccfraud == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -282,3 +294,31 @@ jobs:
         resource-group: ${{ secrets.RESOURCE_GROUP }}
         workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
         example: ccfraud
+
+  pneumonia-multiply-dataset:
+    runs-on: ubuntu-latest
+    needs: paths-filter
+    if: ${{ (needs.paths-filter.outputs.pneumonia-multiply-data == 'true') || (needs.paths-filter.outputs.utils-multiply-data == 'true') }} 
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit the PNEUMONIA upload data pipeline
+      uses: ./.github/actions/submit-upload-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: PNEUMONIA
+
+    - name: Submit the PNEUMONIA multiply data pipeline
+      uses: ./.github/actions/submit-multiply-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}

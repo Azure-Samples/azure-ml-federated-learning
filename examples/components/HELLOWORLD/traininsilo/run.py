@@ -4,6 +4,7 @@ import logging
 import sys
 import glob
 import os
+from distutils.util import strtobool
 
 
 def get_arg_parser(parser=None):
@@ -33,7 +34,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--iteration_num", type=int, required=False, help="Iteration number"
     )
-
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -44,6 +44,24 @@ def get_arg_parser(parser=None):
         help="Total number of iterations for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--dp", type=strtobool, required=False, help="differential privacy"
+    )
+    parser.add_argument(
+        "--dp_target_epsilon", type=float, required=False, help="DP target epsilon"
+    )
+    parser.add_argument(
+        "--dp_target_delta", type=float, required=False, help="DP target delta"
+    )
+    parser.add_argument(
+        "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
+    )
     return parser
 
 
@@ -88,7 +106,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

@@ -59,10 +59,13 @@ class MnistDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
+        if self.Y is None:
+            if self.transform is not None:
+                return self.transform(self.X[idx])
+            else:
+                return self.X[idx]
         if self.transform is not None:
             return self.transform(self.X[idx]), self.Y[idx]
-        elif self.Y is None:
-            return [self.X[idx]]
         return self.X[idx], self.Y[idx]
 
 
@@ -139,19 +142,20 @@ def log_metadata(X_train, X_test, metrics_prefix):
     with mlflow.start_run() as mlflow_run:
         # get Mlflow client
         mlflow_client = mlflow.tracking.client.MlflowClient()
-        logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
         root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-        mlflow_client.log_metric(
-            run_id=root_run_id,
-            key=f"{metrics_prefix}/Number of train datapoints",
-            value=f"{X_train.size(dim=0)}",
-        )
+        logger.debug(f"Root runId: {root_run_id}")
+        if root_run_id:
+            mlflow_client.log_metric(
+                run_id=root_run_id,
+                key=f"{metrics_prefix}/Number of train datapoints",
+                value=f"{X_train.size(dim=0)}",
+            )
 
-        mlflow_client.log_metric(
-            run_id=root_run_id,
-            key=f"{metrics_prefix}/Number of test datapoints",
-            value=f"{X_test.size(dim=0)}",
-        )
+            mlflow_client.log_metric(
+                run_id=root_run_id,
+                key=f"{metrics_prefix}/Number of test datapoints",
+                value=f"{X_test.size(dim=0)}",
+            )
 
 
 def run(args):
@@ -189,7 +193,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

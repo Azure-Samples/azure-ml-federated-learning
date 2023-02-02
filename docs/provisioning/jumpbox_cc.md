@@ -7,6 +7,7 @@ This tutorial will let you create a jumpbox VM inside a vnet, optionally by usin
 ## Prerequisites
 
 To enjoy these quickstart, you will need to:
+
 - have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
 - have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
   - Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
