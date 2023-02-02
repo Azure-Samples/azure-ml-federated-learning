@@ -27,7 +27,7 @@ federated_learning:
   silos: # silos are provided as a list
     - name: silo0
       computes: 
-      - silo0-01 # name of the compute for silo X
+      - silo0-02 # name of the compute for silo X 
       datastore: datastore_silo0 # name of the datastore for silo X
       training_data:
         type: uri_folder
@@ -40,7 +40,7 @@ federated_learning:
 
     - name: silo1
       computes: 
-      - silo1-01 # we are repeating over the same config for silo 2
+      - silo1-02 # we are repeating over the same config for silo 2
       datastore: datastore_silo1
       training_data:
         type: uri_folder
@@ -53,7 +53,7 @@ federated_learning:
 
     - name: silo2
       computes: 
-      - silo2-01 # we are repeating over the same config for silo 3
+      - silo2-02 # we are repeating over the same config for silo 3
       datastore: datastore_silo2
       training_data:
         type: uri_folder
