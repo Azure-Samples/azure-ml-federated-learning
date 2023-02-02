@@ -8,7 +8,7 @@ Here below we list all the new features. The most significant changes are the in
 
 ### FL Experience
 - Implemented _Differential Privacy_ in all 3 industry-relevant examples, and added a [tutorial](./docs/tutorials/dp-for-cross-silo-horizontal-fl.md) that explains the process.
-- Introduced experimental support for third-party FL frameworks. The [pneumonia example](./docs/real-world-examples/pneumonia.md) can now be run using _NVFlare_ (see [this tutorial](./docs/frameworks/nvflare.md)) or _Flower_ (see [that tutorial](./docs/frameworks/flower.md)). 
+- Introduced experimental support for third-party FL frameworks. The [pneumonia example](./docs/real-world-examples/pneumonia.md) can now be run using _NVFlare_ (see [tutorial](./docs/frameworks/nvflare.md)) or _Flower_ (see [tutorial](./docs/frameworks/flower.md)). 
 - Implemented distributed training (in each silo individually) in all 3 industry-relevant examples for scalable training.
 - Introduced support for multiple computes per silo (for instance: to use CPU's for pre-processing and GPU's for training).
 - Introduced resources for Exploratory Data Analysis on the [credit card fraud example](./docs/real-world-examples/ccfraud.md).
