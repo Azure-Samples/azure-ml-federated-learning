@@ -1,5 +1,38 @@
 # FL Accelerator Changelog
 
+##  January 2023 release
+
+We are excited to announce the release of the November iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
+
+Here below we list all the new features. The most significant changes are the introduction of a guide to help onboard people to FL on Azure ML, the addition of a tutorial explaining how to implement _Differential Privacy_, the support of third-party FL frameworks (_NVFlare_ and _Flower_), and the support on parallelized training.
+
+### FL Experience
+- Introduced support for third-party FL frameworks. The [pneumonia example](./docs/real-world-examples/pneumonia.md) can now be run using _NVFlare_ (instructions [here](./docs/frameworks/nvflare.md)) or _Flower_ (instructions [there](./docs/frameworks/flower.md)). 
+- Added support for DistributedDataParallel (parallelized training in each individual silo) to all industry-relevant examples.
+- Introduced resources for Exploratory Data Analysis on the [credit card fraud example](./docs/real-world-examples/ccfraud.md).
+- Incremental improvements:
+  - Made sure component scripts can run locally to facilitate authoring and debugging.
+  - Introduced support for multiple computes per silo (in case users want to use different machine for pre-processing vs training, for instance).
+  - Introduced silo names in config files to give users more flexibility (in case they want to provision silos with names different from the defaults).
+  - Fixed a bug about data loading for the MNIST example.
+
+### Provisioning
+- Added [instructions on how to properly configure Confidential Computes](./docs/provisioning/silo_open_aks_with_cc.md) so all of the resources can be properly utilized.
+
+### Documentation
+- Introduced a [guide to help people plan their onboarding to FL on Azure ML](./docs/concepts/plan-your-fl-project.md).
+- Added a [tutorial](./docs/tutorials/dp-for-cross-silo-horizontal-fl.md) explaining how to add _Differential Privacy_ to an FL job (and modified all examples to support DP out-of-the-box).
+- Incremental improvements: 
+  - Made it clear that hybrid setups (containing both internal and external silos) are possible.
+  - Clarified who of FL Admin or Silo admin needs to do what when provisioning external silos.
+
+<!-- ### Repository structure
+-->
+
+To get started, go [here](./docs/quickstart.md)!
+
+If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
+
 ##  November 2022 release
 
 We are excited to announce the release of the November iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
@@ -22,10 +55,6 @@ Here below we list all the new features. The most significant ones are the addit
 ### Repository structure
 - Improved the [documentation home page](./docs/README.md) by adding some pictures and introducing the industry-relevant examples.
 - Revisited our CI/CD processes for better agility (enable concurrent jobs, accommodate token expiration issue).
-
-To get started, go [here](./docs/quickstart.md)!
-
-If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
 
 
 ##  October 2022 release
