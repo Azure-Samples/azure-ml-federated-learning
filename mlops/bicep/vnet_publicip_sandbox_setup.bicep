@@ -53,7 +53,7 @@ param siloRegions array = [
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param compute1SKU string = 'Standard_DS3_v2'
+param compute1SKU string = 'Standard_NC6'
 
 @description('Flag whether to create a second compute or not')
 param compute2 bool = true
