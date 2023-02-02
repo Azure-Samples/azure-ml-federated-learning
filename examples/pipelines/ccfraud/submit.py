@@ -334,13 +334,9 @@ def fl_ccfraud_basic():
     
     
     end_time = time.time()
+    global training_duration
     training_duration = end_time - start_time
-
-    #log training time
-    with mlflow.start_run() as mlflow_run:
-        #root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-        mlflow.log_metric(key="Training_Duration", value=training_duration)
-
+  
 
     ################
     ## EVALUATION ##
@@ -390,6 +386,8 @@ if args.submit:
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_demo_ccfraud_nonfl_comparison"
     )
+    mlflow.log_metric("Training_duration", training_duration)
+
 
     print("The url to see your live job running is returned by the sdk:")
     print(pipeline_job.services["Studio"].endpoint)

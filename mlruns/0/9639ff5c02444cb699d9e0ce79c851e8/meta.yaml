@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/9639ff5c02444cb699d9e0ce79c851e8/artifacts
+end_time: 1675296199265
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 9639ff5c02444cb699d9e0ce79c851e8
+run_name: defiant-boar-84
+run_uuid: 9639ff5c02444cb699d9e0ce79c851e8
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675296199048
+status: 3
+tags: []
+user_id: wenwen

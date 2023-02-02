@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/2bcd4cbace8645a6abd5bcdd7777a0ab/artifacts
+end_time: 1675301030877
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: 2bcd4cbace8645a6abd5bcdd7777a0ab
+run_name: selective-hare-290
+run_uuid: 2bcd4cbace8645a6abd5bcdd7777a0ab
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675301030722
+status: 3
+tags: []
+user_id: wenwen

@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/d3b583a2fbfd4ed0a96911401288a735/artifacts
+end_time: 1675299611035
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: d3b583a2fbfd4ed0a96911401288a735
+run_name: brawny-asp-764
+run_uuid: d3b583a2fbfd4ed0a96911401288a735
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675299610843
+status: 3
+tags: []
+user_id: wenwen

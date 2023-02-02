@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/ab9f6b319c634f4aa8620785b26cafe0/artifacts
+end_time: 1675295183312
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: ab9f6b319c634f4aa8620785b26cafe0
+run_name: intrigued-mouse-793
+run_uuid: ab9f6b319c634f4aa8620785b26cafe0
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675295183205
+status: 3
+tags: []
+user_id: wenwen
