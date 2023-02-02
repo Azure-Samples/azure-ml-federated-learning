@@ -77,7 +77,7 @@ training_parameters:
   batch_size: 16 # batch size
 
   # Differential privacy
-  dp: true # Flag to enable/disable differential privacy
+  dp: false # Flag to enable/disable differential privacy
   dp_target_epsilon: 50.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
   dp_target_delta: 1e-5 # The target δ of the (ϵ,δ)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. 
   dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
