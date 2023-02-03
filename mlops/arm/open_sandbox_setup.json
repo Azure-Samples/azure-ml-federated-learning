@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.6.61914",
-      "templateHash": "10189092140339368298"
+      "templateHash": "3058786123964988002"
     }
   },
   "parameters": {
@@ -47,7 +47,7 @@
     },
     "compute1SKU": {
       "type": "string",
-      "defaultValue": "Standard_DS3_v2",
+      "defaultValue": "Standard_DS4_v2",
       "metadata": {
         "description": "The VM used for creating compute clusters in orchestrator and silos."
       }
@@ -401,7 +401,7 @@
             "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
           },
           "compute2": {
             "value": false
@@ -1285,7 +1285,7 @@
             "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
           },
           "compute2": {
             "value": "[parameters('compute2')]"
