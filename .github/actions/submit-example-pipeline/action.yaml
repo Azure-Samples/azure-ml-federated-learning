@@ -48,5 +48,5 @@ runs:
 
     - name: Submit example pipeline
       shell: bash
-      run: python examples/pipelines/${{ inputs.example }}/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --submit --wait || [ $? == 5 ]
+      run: python examples/pipelines/${{ inputs.example }}/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --wait || [ $? == 5 ]
 

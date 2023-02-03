@@ -1,0 +1,52 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: flower_client
+version: 0.0.5
+display_name: Flower client
+type: command
+description: This component runs a Flower client inside an AzureML job.
+is_deterministic: true
+tags:
+  flower: 1.2.0
+  url: https://github.com/Azure-Samples/azure-ml-federated-learning
+
+inputs:
+  federation_identifier:
+    type: string
+  client_data:
+    type: uri_folder
+    optional: true
+    description: "an optional folder containing data for the client to use"
+  lr:
+    type: number
+    description: learning rate
+    default: 0.01
+    optional: true
+  epochs:
+    type: integer
+    description: total number of epochs for local training
+    default: 3
+    optional: true
+  checkpoint:
+    type: uri_folder
+    description: a given pre-existing model checkpoint
+    optional: true
+  metrics_prefix:
+    type: string
+    description: Metrics prefix
+    default: Default-prefix
+    optional: true
+
+code: "."
+
+command: >-
+  python run.py 
+  --federation_identifier ${{inputs.federation_identifier}} 
+  $[[--client_data ${{inputs.client_data}}]] 
+  $[[--checkpoint ${{inputs.checkpoint}}]] 
+  $[[--lr ${{inputs.lr}}]] 
+  $[[--epochs ${{inputs.epochs}}]] 
+  $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+
+environment: 
+  build:
+    path: ../flower_pytorch_env/context/

@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.13.1.58284",
-      "templateHash": "6599410893352774755"
+      "version": "0.14.6.61914",
+      "templateHash": "3058786123964988002"
     }
   },
   "parameters": {
@@ -37,19 +37,33 @@
     "siloRegions": {
       "type": "array",
       "defaultValue": [
-        "westus",
-        "francecentral",
-        "brazilsouth"
+        "australiaeast",
+        "eastus",
+        "westeurope"
       ],
       "metadata": {
         "description": "List of each region in which to create an internal silo."
       }
     },
-    "computeSKU": {
+    "compute1SKU": {
       "type": "string",
-      "defaultValue": "Standard_DS3_v2",
+      "defaultValue": "Standard_DS4_v2",
       "metadata": {
         "description": "The VM used for creating compute clusters in orchestrator and silos."
+      }
+    },
+    "compute2": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Flag whether to create a second compute or not"
+      }
+    },
+    "compute2SKU": {
+      "type": "string",
+      "defaultValue": "Standard_NC6",
+      "metadata": {
+        "description": "The VM used for creating a second compute cluster in orchestrator and silos."
       }
     },
     "tags": {
@@ -102,8 +116,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "2700657795304116427"
+              "version": "0.14.6.61914",
+              "templateHash": "2572246011779950217"
             }
           },
           "parameters": {
@@ -380,14 +394,23 @@
           "pairBaseName": {
             "value": "[format('{0}-orch', parameters('demoBaseName'))]"
           },
-          "computeName": {
-            "value": "cpu-orchestrator"
+          "compute1Name": {
+            "value": "orchestrator-01"
           },
-          "computeSKU": {
-            "value": "[parameters('computeSKU')]"
+          "compute1SKU": {
+            "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
+          },
+          "compute2": {
+            "value": false
+          },
+          "compute2SKU": {
+            "value": "[parameters('compute2SKU')]"
+          },
+          "compute2Name": {
+            "value": "orchestrator-02"
           },
           "datastoreName": {
             "value": "datastore_orchestrator"
@@ -405,8 +428,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "14782062007341213755"
+              "version": "0.14.6.61914",
+              "templateHash": "4729737185569727763"
             }
           },
           "parameters": {
@@ -450,14 +473,14 @@
                 "description": "Name of the datastore for attaching the storage to the AzureML workspace."
               }
             },
-            "computeName": {
+            "compute1Name": {
               "type": "string",
-              "defaultValue": "[format('cpu-cluster-{0}', parameters('pairBaseName'))]",
+              "defaultValue": "[format('{0}-01', parameters('pairBaseName'))]",
               "metadata": {
                 "description": "Name of the default compute cluster for the pair"
               }
             },
-            "computeSKU": {
+            "compute1SKU": {
               "type": "string",
               "defaultValue": "Standard_DS3_v2",
               "metadata": {
@@ -479,18 +502,39 @@
                 "SystemAssigned"
               ]
             },
-            "uaiName": {
-              "type": "string",
-              "defaultValue": "[format('uai-{0}', parameters('pairBaseName'))]",
-              "metadata": {
-                "description": "Name of the UAI for the pair compute cluster (if identityType==UserAssigned)"
-              }
-            },
             "applyDefaultPermissions": {
               "type": "bool",
               "defaultValue": true,
               "metadata": {
                 "description": "Allow compute cluster to access storage account with R/W permissions (using UAI)"
+              }
+            },
+            "compute2": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Flag whether to create a second compute or not"
+              }
+            },
+            "compute2SKU": {
+              "type": "string",
+              "defaultValue": "Standard_DS3_v2",
+              "metadata": {
+                "description": "The second VM used for creating compute clusters in orchestrator and silos."
+              }
+            },
+            "compute2Name": {
+              "type": "string",
+              "defaultValue": "[format('{0}-02', parameters('pairBaseName'))]",
+              "metadata": {
+                "description": "Name of the default compute cluster for the pair"
+              }
+            },
+            "computeUaiName": {
+              "type": "string",
+              "defaultValue": "[format('uai-{0}', parameters('pairBaseName'))]",
+              "metadata": {
+                "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
               }
             },
             "tags": {
@@ -502,6 +546,14 @@
             }
           },
           "resources": [
+            {
+              "condition": "[equals(parameters('identityType'), 'UserAssigned')]",
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2022-01-31-preview",
+              "name": "[parameters('computeUaiName')]",
+              "location": "[parameters('pairRegion')]",
+              "tags": "[parameters('tags')]"
+            },
             {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
@@ -540,8 +592,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "11798981346718210369"
+                      "version": "0.14.6.61914",
+                      "templateHash": "2695881379459560593"
                     }
                   },
                   "parameters": {
@@ -765,7 +817,7 @@
             {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
-              "name": "[format('{0}-open-aml-compute', parameters('pairBaseName'))]",
+              "name": "[format('{0}-open-aml-compute-01', parameters('pairBaseName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -779,13 +831,13 @@
                     "value": "[parameters('machineLearningRegion')]"
                   },
                   "computeName": {
-                    "value": "[parameters('computeName')]"
+                    "value": "[parameters('compute1Name')]"
                   },
                   "computeRegion": {
                     "value": "[parameters('pairRegion')]"
                   },
                   "computeSKU": {
-                    "value": "[parameters('computeSKU')]"
+                    "value": "[parameters('compute1SKU')]"
                   },
                   "computeNodes": {
                     "value": "[parameters('computeNodes')]"
@@ -794,7 +846,7 @@
                     "value": "[parameters('identityType')]"
                   },
                   "computeUaiName": {
-                    "value": "[parameters('uaiName')]"
+                    "value": "[parameters('computeUaiName')]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -806,8 +858,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "12473331180732336644"
+                      "version": "0.14.6.61914",
+                      "templateHash": "14867471260931984608"
                     }
                   },
                   "parameters": {
@@ -836,6 +888,12 @@
                         "description": "Specifies the location of the compute resources."
                       }
                     },
+                    "computeUaiName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
+                      }
+                    },
                     "computeSKU": {
                       "type": "string",
                       "defaultValue": "Standard_DS3_v2",
@@ -858,13 +916,6 @@
                         "SystemAssigned"
                       ]
                     },
-                    "computeUaiName": {
-                      "type": "string",
-                      "defaultValue": "[format('uai-{0}', parameters('computeName'))]",
-                      "metadata": {
-                        "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
-                      }
-                    },
                     "tags": {
                       "type": "object",
                       "defaultValue": {},
@@ -877,14 +928,6 @@
                     "userAssignedIdentities": "[if(equals(parameters('computeIdentityType'), 'SystemAssigned'), null(), createObject(format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{2}', subscription().subscriptionId, resourceGroup().name, parameters('computeUaiName')), createObject()))]"
                   },
                   "resources": [
-                    {
-                      "condition": "[equals(parameters('computeIdentityType'), 'UserAssigned')]",
-                      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-                      "apiVersion": "2022-01-31-preview",
-                      "name": "[parameters('computeUaiName')]",
-                      "location": "[parameters('computeRegion')]",
-                      "tags": "[parameters('tags')]"
-                    },
                     {
                       "type": "Microsoft.MachineLearningServices/workspaces/computes",
                       "apiVersion": "2021-07-01",
@@ -912,10 +955,7 @@
                           "remoteLoginPortPublicAccess": "Disabled",
                           "subnet": "[json('null')]"
                         }
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))]"
-                      ]
+                      }
                     }
                   ],
                   "outputs": {
@@ -933,7 +973,175 @@
                     }
                   }
                 }
-              }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('compute2')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('{0}-open-aml-compute-02', parameters('pairBaseName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "machineLearningName": {
+                    "value": "[parameters('machineLearningName')]"
+                  },
+                  "machineLearningRegion": {
+                    "value": "[parameters('machineLearningRegion')]"
+                  },
+                  "computeName": {
+                    "value": "[parameters('compute2Name')]"
+                  },
+                  "computeRegion": {
+                    "value": "[parameters('pairRegion')]"
+                  },
+                  "computeSKU": {
+                    "value": "[parameters('compute2SKU')]"
+                  },
+                  "computeNodes": {
+                    "value": "[parameters('computeNodes')]"
+                  },
+                  "computeIdentityType": {
+                    "value": "[parameters('identityType')]"
+                  },
+                  "computeUaiName": {
+                    "value": "[parameters('computeUaiName')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.6.61914",
+                      "templateHash": "14867471260931984608"
+                    }
+                  },
+                  "parameters": {
+                    "machineLearningName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of AzureML workspace to attach compute+storage to."
+                      }
+                    },
+                    "machineLearningRegion": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
+                      "metadata": {
+                        "description": "The region of the machine learning workspace"
+                      }
+                    },
+                    "computeName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the compute cluster to create"
+                      }
+                    },
+                    "computeRegion": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Specifies the location of the compute resources."
+                      }
+                    },
+                    "computeUaiName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
+                      }
+                    },
+                    "computeSKU": {
+                      "type": "string",
+                      "defaultValue": "Standard_DS3_v2",
+                      "metadata": {
+                        "description": "VM size for the default compute cluster"
+                      }
+                    },
+                    "computeNodes": {
+                      "type": "int",
+                      "defaultValue": 4,
+                      "metadata": {
+                        "description": "VM nodes for the default compute cluster"
+                      }
+                    },
+                    "computeIdentityType": {
+                      "type": "string",
+                      "defaultValue": "UserAssigned",
+                      "allowedValues": [
+                        "UserAssigned",
+                        "SystemAssigned"
+                      ]
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Tags to curate the resources in Azure."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "userAssignedIdentities": "[if(equals(parameters('computeIdentityType'), 'SystemAssigned'), null(), createObject(format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{2}', subscription().subscriptionId, resourceGroup().name, parameters('computeUaiName')), createObject()))]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.MachineLearningServices/workspaces/computes",
+                      "apiVersion": "2021-07-01",
+                      "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('computeName'))]",
+                      "location": "[parameters('machineLearningRegion')]",
+                      "identity": {
+                        "type": "[parameters('computeIdentityType')]",
+                        "userAssignedIdentities": "[variables('userAssignedIdentities')]"
+                      },
+                      "properties": {
+                        "computeType": "AmlCompute",
+                        "computeLocation": "[parameters('computeRegion')]",
+                        "disableLocalAuth": true,
+                        "properties": {
+                          "vmPriority": "Dedicated",
+                          "vmSize": "[parameters('computeSKU')]",
+                          "osType": "Linux",
+                          "scaleSettings": {
+                            "maxNodeCount": "[parameters('computeNodes')]",
+                            "minNodeCount": 0,
+                            "nodeIdleTimeBeforeScaleDown": "PT300S"
+                          },
+                          "enableNodePublicIp": true,
+                          "isolatedNetwork": false,
+                          "remoteLoginPortPublicAccess": "Disabled",
+                          "subnet": "[json('null')]"
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "identityPrincipalId": {
+                      "type": "string",
+                      "value": "[if(equals(parameters('computeIdentityType'), 'UserAssigned'), reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName')), '2022-01-31-preview').principalId, reference(resourceId('Microsoft.MachineLearningServices/workspaces/computes', parameters('machineLearningName'), parameters('computeName')), '2021-07-01', 'full').identity.principalId)]"
+                    },
+                    "compute": {
+                      "type": "string",
+                      "value": "[parameters('computeName')]"
+                    },
+                    "region": {
+                      "type": "string",
+                      "value": "[parameters('computeRegion')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))]"
+              ]
             },
             {
               "condition": "[parameters('applyDefaultPermissions')]",
@@ -950,7 +1158,7 @@
                     "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
                   },
                   "identityPrincipalId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
                   }
                 },
                 "template": {
@@ -959,8 +1167,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "8496672138142568903"
+                      "version": "0.14.6.61914",
+                      "templateHash": "3643080677981037081"
                     }
                   },
                   "parameters": {
@@ -1008,7 +1216,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName')))]",
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName')))]",
                 "[resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))]"
               ]
             }
@@ -1016,7 +1224,7 @@
           "outputs": {
             "identityPrincipalId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
             },
             "storageName": {
               "type": "string",
@@ -1026,9 +1234,9 @@
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
             },
-            "computeName": {
+            "compute1Name": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
             },
             "region": {
               "type": "string",
@@ -1068,19 +1276,28 @@
             "value": "[parameters('tags')]"
           },
           "pairBaseName": {
-            "value": "[format('{0}-silo{1}-{2}', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()], parameters('siloRegions')[range(0, variables('siloCount'))[copyIndex()]])]"
+            "value": "[format('{0}-silo{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]"
           },
-          "computeName": {
-            "value": "[format('cpu-silo{0}-{1}', range(0, variables('siloCount'))[copyIndex()], parameters('siloRegions')[range(0, variables('siloCount'))[copyIndex()]])]"
+          "compute1Name": {
+            "value": "[format('silo{0}-01', range(0, variables('siloCount'))[copyIndex()])]"
           },
-          "computeSKU": {
-            "value": "[parameters('computeSKU')]"
+          "compute1SKU": {
+            "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
+          },
+          "compute2": {
+            "value": "[parameters('compute2')]"
+          },
+          "compute2SKU": {
+            "value": "[parameters('compute2SKU')]"
+          },
+          "compute2Name": {
+            "value": "[format('silo{0}-02', range(0, variables('siloCount'))[copyIndex()])]"
           },
           "datastoreName": {
-            "value": "[format('datastore_silo{0}_{1}', range(0, variables('siloCount'))[copyIndex()], parameters('siloRegions')[range(0, variables('siloCount'))[copyIndex()]])]"
+            "value": "[format('datastore_silo{0}', range(0, variables('siloCount'))[copyIndex()])]"
           },
           "identityType": {
             "value": "[parameters('identityType')]"
@@ -1095,8 +1312,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "14782062007341213755"
+              "version": "0.14.6.61914",
+              "templateHash": "4729737185569727763"
             }
           },
           "parameters": {
@@ -1140,14 +1357,14 @@
                 "description": "Name of the datastore for attaching the storage to the AzureML workspace."
               }
             },
-            "computeName": {
+            "compute1Name": {
               "type": "string",
-              "defaultValue": "[format('cpu-cluster-{0}', parameters('pairBaseName'))]",
+              "defaultValue": "[format('{0}-01', parameters('pairBaseName'))]",
               "metadata": {
                 "description": "Name of the default compute cluster for the pair"
               }
             },
-            "computeSKU": {
+            "compute1SKU": {
               "type": "string",
               "defaultValue": "Standard_DS3_v2",
               "metadata": {
@@ -1169,18 +1386,39 @@
                 "SystemAssigned"
               ]
             },
-            "uaiName": {
-              "type": "string",
-              "defaultValue": "[format('uai-{0}', parameters('pairBaseName'))]",
-              "metadata": {
-                "description": "Name of the UAI for the pair compute cluster (if identityType==UserAssigned)"
-              }
-            },
             "applyDefaultPermissions": {
               "type": "bool",
               "defaultValue": true,
               "metadata": {
                 "description": "Allow compute cluster to access storage account with R/W permissions (using UAI)"
+              }
+            },
+            "compute2": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Flag whether to create a second compute or not"
+              }
+            },
+            "compute2SKU": {
+              "type": "string",
+              "defaultValue": "Standard_DS3_v2",
+              "metadata": {
+                "description": "The second VM used for creating compute clusters in orchestrator and silos."
+              }
+            },
+            "compute2Name": {
+              "type": "string",
+              "defaultValue": "[format('{0}-02', parameters('pairBaseName'))]",
+              "metadata": {
+                "description": "Name of the default compute cluster for the pair"
+              }
+            },
+            "computeUaiName": {
+              "type": "string",
+              "defaultValue": "[format('uai-{0}', parameters('pairBaseName'))]",
+              "metadata": {
+                "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
               }
             },
             "tags": {
@@ -1192,6 +1430,14 @@
             }
           },
           "resources": [
+            {
+              "condition": "[equals(parameters('identityType'), 'UserAssigned')]",
+              "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+              "apiVersion": "2022-01-31-preview",
+              "name": "[parameters('computeUaiName')]",
+              "location": "[parameters('pairRegion')]",
+              "tags": "[parameters('tags')]"
+            },
             {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
@@ -1230,8 +1476,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "11798981346718210369"
+                      "version": "0.14.6.61914",
+                      "templateHash": "2695881379459560593"
                     }
                   },
                   "parameters": {
@@ -1455,7 +1701,7 @@
             {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
-              "name": "[format('{0}-open-aml-compute', parameters('pairBaseName'))]",
+              "name": "[format('{0}-open-aml-compute-01', parameters('pairBaseName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -1469,13 +1715,13 @@
                     "value": "[parameters('machineLearningRegion')]"
                   },
                   "computeName": {
-                    "value": "[parameters('computeName')]"
+                    "value": "[parameters('compute1Name')]"
                   },
                   "computeRegion": {
                     "value": "[parameters('pairRegion')]"
                   },
                   "computeSKU": {
-                    "value": "[parameters('computeSKU')]"
+                    "value": "[parameters('compute1SKU')]"
                   },
                   "computeNodes": {
                     "value": "[parameters('computeNodes')]"
@@ -1484,7 +1730,7 @@
                     "value": "[parameters('identityType')]"
                   },
                   "computeUaiName": {
-                    "value": "[parameters('uaiName')]"
+                    "value": "[parameters('computeUaiName')]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -1496,8 +1742,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "12473331180732336644"
+                      "version": "0.14.6.61914",
+                      "templateHash": "14867471260931984608"
                     }
                   },
                   "parameters": {
@@ -1526,6 +1772,12 @@
                         "description": "Specifies the location of the compute resources."
                       }
                     },
+                    "computeUaiName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
+                      }
+                    },
                     "computeSKU": {
                       "type": "string",
                       "defaultValue": "Standard_DS3_v2",
@@ -1548,13 +1800,6 @@
                         "SystemAssigned"
                       ]
                     },
-                    "computeUaiName": {
-                      "type": "string",
-                      "defaultValue": "[format('uai-{0}', parameters('computeName'))]",
-                      "metadata": {
-                        "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
-                      }
-                    },
                     "tags": {
                       "type": "object",
                       "defaultValue": {},
@@ -1567,14 +1812,6 @@
                     "userAssignedIdentities": "[if(equals(parameters('computeIdentityType'), 'SystemAssigned'), null(), createObject(format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{2}', subscription().subscriptionId, resourceGroup().name, parameters('computeUaiName')), createObject()))]"
                   },
                   "resources": [
-                    {
-                      "condition": "[equals(parameters('computeIdentityType'), 'UserAssigned')]",
-                      "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-                      "apiVersion": "2022-01-31-preview",
-                      "name": "[parameters('computeUaiName')]",
-                      "location": "[parameters('computeRegion')]",
-                      "tags": "[parameters('tags')]"
-                    },
                     {
                       "type": "Microsoft.MachineLearningServices/workspaces/computes",
                       "apiVersion": "2021-07-01",
@@ -1602,10 +1839,7 @@
                           "remoteLoginPortPublicAccess": "Disabled",
                           "subnet": "[json('null')]"
                         }
-                      },
-                      "dependsOn": [
-                        "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))]"
-                      ]
+                      }
                     }
                   ],
                   "outputs": {
@@ -1623,7 +1857,175 @@
                     }
                   }
                 }
-              }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))]"
+              ]
+            },
+            {
+              "condition": "[parameters('compute2')]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('{0}-open-aml-compute-02', parameters('pairBaseName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "machineLearningName": {
+                    "value": "[parameters('machineLearningName')]"
+                  },
+                  "machineLearningRegion": {
+                    "value": "[parameters('machineLearningRegion')]"
+                  },
+                  "computeName": {
+                    "value": "[parameters('compute2Name')]"
+                  },
+                  "computeRegion": {
+                    "value": "[parameters('pairRegion')]"
+                  },
+                  "computeSKU": {
+                    "value": "[parameters('compute2SKU')]"
+                  },
+                  "computeNodes": {
+                    "value": "[parameters('computeNodes')]"
+                  },
+                  "computeIdentityType": {
+                    "value": "[parameters('identityType')]"
+                  },
+                  "computeUaiName": {
+                    "value": "[parameters('computeUaiName')]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.6.61914",
+                      "templateHash": "14867471260931984608"
+                    }
+                  },
+                  "parameters": {
+                    "machineLearningName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of AzureML workspace to attach compute+storage to."
+                      }
+                    },
+                    "machineLearningRegion": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
+                      "metadata": {
+                        "description": "The region of the machine learning workspace"
+                      }
+                    },
+                    "computeName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the compute cluster to create"
+                      }
+                    },
+                    "computeRegion": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Specifies the location of the compute resources."
+                      }
+                    },
+                    "computeUaiName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)"
+                      }
+                    },
+                    "computeSKU": {
+                      "type": "string",
+                      "defaultValue": "Standard_DS3_v2",
+                      "metadata": {
+                        "description": "VM size for the default compute cluster"
+                      }
+                    },
+                    "computeNodes": {
+                      "type": "int",
+                      "defaultValue": 4,
+                      "metadata": {
+                        "description": "VM nodes for the default compute cluster"
+                      }
+                    },
+                    "computeIdentityType": {
+                      "type": "string",
+                      "defaultValue": "UserAssigned",
+                      "allowedValues": [
+                        "UserAssigned",
+                        "SystemAssigned"
+                      ]
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Tags to curate the resources in Azure."
+                      }
+                    }
+                  },
+                  "variables": {
+                    "userAssignedIdentities": "[if(equals(parameters('computeIdentityType'), 'SystemAssigned'), null(), createObject(format('/subscriptions/{0}/resourceGroups/{1}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/{2}', subscription().subscriptionId, resourceGroup().name, parameters('computeUaiName')), createObject()))]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.MachineLearningServices/workspaces/computes",
+                      "apiVersion": "2021-07-01",
+                      "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('computeName'))]",
+                      "location": "[parameters('machineLearningRegion')]",
+                      "identity": {
+                        "type": "[parameters('computeIdentityType')]",
+                        "userAssignedIdentities": "[variables('userAssignedIdentities')]"
+                      },
+                      "properties": {
+                        "computeType": "AmlCompute",
+                        "computeLocation": "[parameters('computeRegion')]",
+                        "disableLocalAuth": true,
+                        "properties": {
+                          "vmPriority": "Dedicated",
+                          "vmSize": "[parameters('computeSKU')]",
+                          "osType": "Linux",
+                          "scaleSettings": {
+                            "maxNodeCount": "[parameters('computeNodes')]",
+                            "minNodeCount": 0,
+                            "nodeIdleTimeBeforeScaleDown": "PT300S"
+                          },
+                          "enableNodePublicIp": true,
+                          "isolatedNetwork": false,
+                          "remoteLoginPortPublicAccess": "Disabled",
+                          "subnet": "[json('null')]"
+                        }
+                      }
+                    }
+                  ],
+                  "outputs": {
+                    "identityPrincipalId": {
+                      "type": "string",
+                      "value": "[if(equals(parameters('computeIdentityType'), 'UserAssigned'), reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName')), '2022-01-31-preview').principalId, reference(resourceId('Microsoft.MachineLearningServices/workspaces/computes', parameters('machineLearningName'), parameters('computeName')), '2021-07-01', 'full').identity.principalId)]"
+                    },
+                    "compute": {
+                      "type": "string",
+                      "value": "[parameters('computeName')]"
+                    },
+                    "region": {
+                      "type": "string",
+                      "value": "[parameters('computeRegion')]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('computeUaiName'))]"
+              ]
             },
             {
               "condition": "[parameters('applyDefaultPermissions')]",
@@ -1640,7 +2042,7 @@
                     "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
                   },
                   "identityPrincipalId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
                   }
                 },
                 "template": {
@@ -1649,8 +2051,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "8496672138142568903"
+                      "version": "0.14.6.61914",
+                      "templateHash": "3643080677981037081"
                     }
                   },
                   "parameters": {
@@ -1698,7 +2100,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName')))]",
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName')))]",
                 "[resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName')))]"
               ]
             }
@@ -1706,7 +2108,7 @@
           "outputs": {
             "identityPrincipalId": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName'))), '2020-10-01').outputs.identityPrincipalId.value]"
             },
             "storageName": {
               "type": "string",
@@ -1716,9 +2118,9 @@
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
             },
-            "computeName": {
+            "compute1Name": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-open-aml-compute-01', parameters('pairBaseName'))), '2020-10-01').outputs.compute.value]"
             },
             "region": {
               "type": "string",
@@ -1758,8 +2160,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "8496672138142568903"
+              "version": "0.14.6.61914",
+              "templateHash": "3643080677981037081"
             }
           },
           "parameters": {

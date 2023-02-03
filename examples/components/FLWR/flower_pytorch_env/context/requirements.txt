@@ -1,0 +1,2 @@
+azureml-mlflow==1.48.0
+flwr==1.2.0

@@ -7,6 +7,9 @@ type: command
 description: Component to train a pneumonia detection model on chest radiographs
 is_deterministic: true
 
+distribution:
+  type: pytorch
+  
 inputs:
   lr:
     type: number
@@ -17,6 +20,31 @@ inputs:
     type: integer
     description: total number of epochs for local training
     default: 3
+    optional: true
+  dp:
+    type: boolean
+    description: differential privacy
+    default: false
+    optional: true
+  dp_target_epsilon:
+    type: number
+    description: DP target epsilon
+    default: 50.0
+    optional: true
+  dp_target_delta:
+    type: number
+    description: DP target delta
+    default: 1e-5
+    optional: true
+  dp_max_grad_norm:
+    type: number
+    description: DP max gradient norm
+    default: 1.0
+    optional: true
+  total_num_of_iterations:
+    type: integer
+    description: Total num of iterations
+    default: 1
     optional: true
   dataset_name:
     type: uri_folder
@@ -44,7 +72,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--dp ${{inputs.dp}}]] $[[--total_num_of_iterations ${{inputs.total_num_of_iterations}}]] $[[--dp_target_epsilon ${{inputs.dp_target_epsilon}}]] $[[--dp_target_delta ${{inputs.dp_target_delta}}]] $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
 
 environment: 
   conda_file: ./conda.yaml

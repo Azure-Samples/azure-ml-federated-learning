@@ -6,17 +6,28 @@ This repo provides some code samples for running a federated learning pipeline i
 
 :warning: Running a full federated learning pipeline raises **security questions that you need to address** before using this repository for production purpose. Please consider this repository as a sample only.
 
-
 ## Table of contents
 
-- [Getting started](#zap-getting-started)
+- [:zap: Getting Started](#zap-getting-started)
+- [Real world examples](#real-world-examples)
+- [FL Frameworks](#fl-frameworks)
 - [Documentation](#documentation)
-- [Support](#need-support)
+- [Need Support?](#need-support)
 - [Contributing](#contributing)
 
 ### :zap: Getting Started
 
-No time to read? Get directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
+No time to read? Go directly to the [**quickstart**](./docs/quickstart.md) to provision a demo within minutes in your own subscription.
+
+To understand the journey to achieve production-ready Federated Learning, please check our guide to [**Plan Your FL Project**](./docs/concepts/plan-your-fl-project.md).
+
+To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./docs/provisioning/README.md).
+
+### :star: Success stories
+
+Here are some links showing applications of FL on Azure ML in production:
+
+- [Microsoft Health & Life Sciences, Text Analytics for Health](https://customers.microsoft.com/en-us/story/1587521717158304168-microsoft-partner-professional-services-azure)
 
 ### Real world examples
 
@@ -24,8 +35,17 @@ Please also check our industry use cases below.
 
 | Medical Imaging | Named Entity Recognition | Fraud Detection |
 | :-: | :-: | :-: |
-| [![](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
+| [![medical imaging icon](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![ner icon](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
 | [pneumonia.md](./docs/real-world-examples/pneumonia.md) | [ner.md](./docs/real-world-examples/ner.md) | [ccfraud.md](./docs/real-world-examples/ccfraud.md) |
+
+### FL Frameworks
+
+If you are already using a specific FL framework, you can port your code to work with AzureML. The following table shows the tested frameworks and the corresponding code samples.
+
+| Framework | Status |
+| :-- | :-- |
+| [**NVFlare**](./docs/frameworks/nvflare.md) | Experimental, works only with in-cloud FL. |
+| [**Flower**](./docs/frameworks/flower.md) | Experimental, works only with in-cloud FL. |
 
 ### Documentation
 
@@ -33,7 +53,7 @@ Please find a full documentation of this project [**here**](docs/README.md).
 
 ### Need Support?
 
-Please check the [**troubleshooting guide**](./docs/tsg.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
+Please check the [**troubleshooting guide**](./docs/troubleshoot.md) for possible solutions. If you are unable to find a solution, please open an issue in this repository.
 
 If you have any feature requests, technical questions, or find any bugs, please do not hesitate to reach out to us.
 
@@ -41,7 +61,7 @@ For bug reports and feature requests, you are welcome to open an [**issue**](htt
 
 ### Contributing
 
-This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit https://cla.opensource.microsoft.com.
+This project welcomes contributions and suggestions. Most contributions require you to agree to a Contributor License Agreement (CLA) declaring that you have the right to, and actually do, grant us the rights to use your contribution. For details, visit <https://cla.opensource.microsoft.com>.
 
 To contribute, please start by creating a self-assigned [**issue**](https://github.com/Azure-Samples/azure-ml-federated-learning/issues/new) giving a high-level overview of what you'd like to do. Once any discussion there concludes, follow up with a PR.
 
