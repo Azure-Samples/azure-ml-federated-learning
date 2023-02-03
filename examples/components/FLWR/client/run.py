@@ -146,7 +146,6 @@ class PTLearner:
             num_of_batches_before_logging = 100
 
             for i, batch in enumerate(self.train_loader_):
-
                 images, labels = batch[0].to(self.device_), batch[1].to(self.device_)
                 self.optimizer_.zero_grad()
 
