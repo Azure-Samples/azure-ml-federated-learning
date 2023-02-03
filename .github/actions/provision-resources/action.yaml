@@ -54,6 +54,13 @@ runs:
       shell: bash
       run: az group create --name ${{ inputs.resource-group }} --location ${{ inputs.region }}
 
+    - name: Azure login # re-login as the token may have expired
+      uses: azure/login@v1
+      with:
+          client-id: ${{ inputs.client-id }}
+          tenant-id: ${{ inputs.tenant-id }}
+          subscription-id: ${{ inputs.subscription-id }}
+
     - name: Deploy the demo resources in your resource group
       shell: bash
       run: az deployment group create --template-file ${{ inputs.deployment-file-path }} --resource-group ${{ inputs.resource-group }} --parameters demoBaseName=${{ inputs.demo-base-name }} --name ${{ inputs.deployment-name }}

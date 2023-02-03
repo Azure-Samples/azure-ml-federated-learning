@@ -25,7 +25,7 @@ from typing import List, Optional, Union
 from typing import Callable, Dict
 from dataclasses import dataclass
 import itertools
-from azure.ai.ml.entities._job.pipeline._io import NodeOutput
+from azure.ai.ml.entities._job.pipeline._io import NodeOutput, PipelineInput
 from azure.ai.ml.exceptions import ValidationException
 
 
@@ -50,17 +50,18 @@ class FederatedLearningPipelineFactory:
         """
         self.orchestrator = {"compute": compute, "datastore": datastore}
 
-    def add_silo(self, compute: str, datastore: str, **custom_input_args):
+    def add_silo(self, name: str, computes: list, datastore: str, **custom_input_args):
         """Add a silo to the internal configuration of the builder.
 
         Args:
-            compute (str): name of the compute target
+            computes (list): list of silo's computes
             datastore (str): name of the datastore
             **custom_input_args: any of those will be passed to the preprocessing step as-is
         """
         self.silos.append(
             {
-                "compute": compute,
+                "name": name,
+                "computes": computes,
                 "datastore": datastore,
                 "custom_input_args": custom_input_args or {},
             }
@@ -272,7 +273,6 @@ class FederatedLearningPipelineFactory:
 
             # for each silo, run a distinct training with its own inputs and outputs
             for silo_index, silo_config in enumerate(self.silos):
-
                 scatter_arguments = {}
                 # custom scatter data inputs
                 scatter_arguments.update(silo_config["custom_input_args"])
@@ -285,20 +285,27 @@ class FederatedLearningPipelineFactory:
 
                 # reserved scatter inputs
                 scatter_arguments["iteration_num"] = iteration_num
-                scatter_arguments["scatter_compute"] = silo_config["compute"]
+                scatter_arguments["scatter_compute1"] = silo_config["computes"][0]
+                scatter_arguments["scatter_compute2"] = (
+                    silo_config["computes"][1]
+                    if len(silo_config["computes"]) > 1
+                    else silo_config["computes"][0]
+                )
+                scatter_arguments["scatter_name"] = silo_config["name"]
                 scatter_arguments["scatter_datastore"] = silo_config["datastore"]
                 scatter_arguments["gather_datastore"] = self.orchestrator["datastore"]
 
                 silo_subgraph_step = scatter(**scatter_arguments)
                 silo_subgraph_step.name = f"silo_subgraph_{silo_index}"
 
-                # every step within the silo_subgraph_step needs to be anchored in the SILO
-                self.anchor_step_in_silo(
-                    silo_subgraph_step,
-                    compute=silo_config["compute"],
-                    output_datastore=silo_config["datastore"],
-                    _path="silo_subgraph_step",  # to help with debug logging
-                )
+                for silo_compute in silo_config["computes"]:
+                    # every step within the silo_subgraph_step needs to be anchored in the SILO
+                    self.anchor_step_in_silo(
+                        silo_subgraph_step,
+                        compute=silo_compute,
+                        output_datastore=silo_config["datastore"],
+                        _path="silo_subgraph_step",  # to help with debug logging
+                    )
 
                 # BUT the outputs of the scatter() subgraph/component
                 # are exfiltrated to the orchestrator instead
@@ -430,32 +437,33 @@ class FederatedLearningPipelineFactory:
 
         # silo permissions
         for silo in self.silos:
-            self.set_affinity(
-                silo["compute"], silo["datastore"], self.OPERATION_READ, True
-            )
-            self.set_affinity(
-                silo["compute"], silo["datastore"], self.OPERATION_WRITE, True
-            )
+            for silo_compute in silo["computes"]:
+                self.set_affinity(
+                    silo_compute, silo["datastore"], self.OPERATION_READ, True
+                )
+                self.set_affinity(
+                    silo_compute, silo["datastore"], self.OPERATION_WRITE, True
+                )
 
-            # it's actually ok to read from anywhere?
-            self.set_affinity(
-                silo["compute"], self.DATASTORE_UNKNOWN, self.OPERATION_READ, True
-            )
+                # it's actually ok to read from anywhere?
+                self.set_affinity(
+                    silo_compute, self.DATASTORE_UNKNOWN, self.OPERATION_READ, True
+                )
 
-            self.set_affinity(
-                silo["compute"],
-                self.orchestrator["datastore"],
-                self.OPERATION_READ,
-                True,
-                data_type=AssetTypes.CUSTOM_MODEL,
-            )  # OK to get a model our of the orchestrator
-            self.set_affinity(
-                silo["compute"],
-                self.orchestrator["datastore"],
-                self.OPERATION_WRITE,
-                True,
-                data_type=AssetTypes.CUSTOM_MODEL,
-            )  # OK to write a model into the orchestrator
+                self.set_affinity(
+                    silo_compute,
+                    self.orchestrator["datastore"],
+                    self.OPERATION_READ,
+                    True,
+                    data_type=AssetTypes.URI_FOLDER,
+                )  # OK to get a model our of the orchestrator
+                self.set_affinity(
+                    silo_compute,
+                    self.orchestrator["datastore"],
+                    self.OPERATION_WRITE,
+                    True,
+                    data_type=AssetTypes.URI_FOLDER,
+                )  # OK to write a model into the orchestrator
 
             self.set_affinity(
                 self.orchestrator["compute"],
@@ -697,6 +705,11 @@ class FederatedLearningPipelineFactory:
             # if the job is an actual command, we need to validate the command itself
 
             # validate that the compute is anchored (unspecified compute is not accepted)
+            job_compute = (
+                job.compute._data
+                if isinstance(job.compute, PipelineInput)
+                else job.compute
+            )
             if job.compute is None:
                 soft_validation_report.append(
                     f"{_path}: job name={job.name} has no compute"
@@ -730,22 +743,27 @@ class FederatedLearningPipelineFactory:
                     datastore = self.DATASTORE_UNKNOWN
 
                 self.logger.debug(
-                    f"{_path}: validating job input={input_key} on datastore={datastore} against compute={job.compute}"
+                    f"{_path}: validating job input={input_key} on datastore={datastore} against compute={job_compute}"
                 )
 
                 # verify affinity and log errors if they occur
                 if not self.check_affinity(
-                    job.compute,
+                    job_compute,
                     datastore,
                     self.OPERATION_READ,
                     job.inputs[input_key].type,
                 ):
                     soft_validation_report.append(
-                        f"In job {_path}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job.compute}"
+                        f"In job {_path}, input={input_key} of type={job.inputs[input_key].type} is located on datastore={datastore} which should not have READ access by compute={job_compute}"
                     )
 
             # loop on all the outputs
             for output_key in job.outputs:
+                job_compute = (
+                    job.compute._data
+                    if isinstance(job.compute, PipelineInput)
+                    else job.compute
+                )
                 # resolve the output path by recursing through the references
                 output_type, output_path = self._resolve_pipeline_data_path(
                     data_key=output_key,
@@ -770,13 +788,13 @@ class FederatedLearningPipelineFactory:
 
                 # verify affinity and log errors if they occur
                 if not self.check_affinity(
-                    job.compute,
+                    job_compute,
                     datastore,
                     self.OPERATION_WRITE,
                     job.outputs[output_key].type,
                 ):
                     soft_validation_report.append(
-                        f"In job {_path}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job.compute}"
+                        f"In job {_path}, output={output_key} of type={job.outputs[output_key].type} will be saved on datastore={datastore} which should not have WRITE access by compute={job_compute}"
                     )
 
             # return the report
@@ -820,7 +838,9 @@ class FederatedLearningPipelineFactory:
             )
 
         # check if there's overlap in the configured computes
-        silo_computes_names = set([_silo["compute"] for _silo in self.silos])
+        silo_computes_names = set(
+            [silo_compute for _silo in self.silos for silo_compute in _silo["computes"]]
+        )
         if len(silo_computes_names) == 0:
             soft_validation_report.append("No silo computes have been configured.")
         elif len(silo_computes_names) < len(self.silos):

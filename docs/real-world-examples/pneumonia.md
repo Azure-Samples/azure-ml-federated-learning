@@ -34,40 +34,50 @@ Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api
 
 ### Option 1: using Azure CLI
 
-1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step. 
-```bash
-az ad signed-in-user show | jq ".id"
-```
+1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step.
+
+    ```bash
+    az ad signed-in-user show --query id
+    ```
+
 2. Create a new key vault policy for yourself, and grant permissions to list, set & delete secrets.
-```bash
-az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
-```
-> Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
-3. With your newly created permissions, you can now create a secret to store the `kaggleusername`. 
-```bash
-az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
-```
-> Make sure to provide your *Kaggle Username*.
+
+    ```bash
+    az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
+    ```
+
+    > Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
+
+3. With your newly created permissions, you can now create a secret to store the `kaggleusername`.
+
+    ```bash
+    az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
+    ```
+
+    > Make sure to provide your _Kaggle Username_.
+
 4. Create a secret to store the `kagglekey`.
-```bash
-az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
-```
-> Make sure to provide the *[Kaggle API Token]((https://github.com/Kaggle/kaggle-api#api-credentials))*.
+
+    ```bash
+    az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
+    ```
+
+    > Make sure to provide the *[Kaggle API Token]((<https://github.com/Kaggle/kaggle-api#api-credentials>))*.
 
 ### Option 2: using Azure UI
 
 1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the newly created key vault and click "Create".
 
-2. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
+2. Select _List, Set & Delete_ right under "Secret Management Operations" and press "Next".
 
-3. Lookup currently logged in user (using user id or an email), select it and press "Next". 
+3. Lookup currently logged in user (using user id or an email), select it and press "Next".
 
 4. Press "Next" and "Create" in the next screens.
 
     We are now able to create a secret in the key vault.
 
 5. Open the "Secrets" tab. Create two plain text secrets:
-    
+
     - **kaggleusername** - specifies your Kaggle user name
     - **kagglekey** - this is the API key that can be obtained from your account page on the Kaggle website.
 
@@ -80,8 +90,10 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 2. Submit the experiment by running:
 
    ```bash
-   python ./examples/pipelines/utils/upload_data/submit.py --submit --example PNEUMONIA --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/utils/upload_data/submit.py --example PNEUMONIA --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
@@ -94,7 +106,9 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 2. Submit the FL experiment by running:
 
    ```bash
-   python ./examples/pipelines/pneumonia/submit.py --submit --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/pneumonia/submit.py --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.

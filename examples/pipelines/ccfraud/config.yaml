@@ -9,49 +9,70 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: cpu-orchestrator
+    compute: orchestrator-01
     datastore: datastore_orchestrator
 
   silos:
-    - compute: cpu-silo0-westus
-      datastore: datastore_silo0_westus
+    - name: silo0
+      computes: 
+      - silo0-01 # name of the compute for silo X
+      datastore: datastore_silo0
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_test_data
-    - compute: cpu-silo1-francecentral
-      datastore: datastore_silo1_francecentral
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_test_data
+
+    - name: silo1
+      computes: 
+      - silo1-01 # we are repeating over the same config for silo 2
+      datastore: datastore_silo1
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_test_data
-    - compute: cpu-silo2-brazilsouth
-      datastore: datastore_silo2_brazilsouth
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_test_data
+
+    - name: silo2
+      computes: 
+      - silo2-01 # we are repeating over the same config for silo 3
+      datastore: datastore_silo2
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_test_data
+
+data_analysis_parameters:
+  onehot_columns_prefix: category_,gender_,street_,city_,state_,job_,region_
 
 # training parameters
 training_parameters:
   num_of_iterations: 3
   epochs: 3
   lr: 1e-3
-  batch_size: 1000
+  batch_size: 500
   # Property model_name defines model to be used for training and 
   # must be one of the models defined in the traininsilo/model.py 
   # file for the CCFRAUD component. Options include: 
   # SimpleLinear, SimpleLSTM, SimpleVAE
-  model_name: SimpleLSTM
+  model_name: SimpleLinear
+  run_data_analysis: false
+
+  # Differential privacy
+  dp: false # Flag to enable/disable differential privacy
+  dp_target_epsilon: 50.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
+  dp_target_delta: 1e-5 # The target δ of the (ϵ,δ)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. 
+  dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
+
+  # if you want to use the privacy_engine.make_private method, please set the value of dp_noise_multiplier parameter
+  # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)

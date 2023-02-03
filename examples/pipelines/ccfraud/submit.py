@@ -41,10 +41,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
@@ -122,6 +122,33 @@ def connect_to_aml():
     return ML_CLIENT
 
 
+#############################################
+### GET ML_CLIENT AND COMPUTE INFORMATION ###
+#############################################
+
+if not args.offline:
+    ML_CLIENT = connect_to_aml()
+    COMPUTE_SIZES = ML_CLIENT.compute.list_sizes()
+
+
+def get_gpus_count(compute_name):
+    if not args.offline:
+        ws_compute = ML_CLIENT.compute.get(compute_name)
+        if hasattr(ws_compute, "size"):
+            silo_compute_size_name = ws_compute.size
+            silo_compute_info = next(
+                (
+                    x
+                    for x in COMPUTE_SIZES
+                    if x.name.lower() == silo_compute_size_name.lower()
+                ),
+                None,
+            )
+            if silo_compute_info is not None and silo_compute_info.gpus >= 1:
+                return silo_compute_info.gpus
+    return 1
+
+
 ####################################
 ### LOAD THE PIPELINE COMPONENTS ###
 ####################################
@@ -138,6 +165,14 @@ training_component = load_component(
 aggregate_component = load_component(
     source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
+
+if (
+    hasattr(YAML_CONFIG.training_parameters, "run_data_analysis")
+    and YAML_CONFIG.training_parameters.run_data_analysis
+):
+    data_analysis_component = load_component(
+        source=os.path.join(SHARED_COMPONENTS_FOLDER, "data_analysis", "spec.yaml")
+    )
 
 
 ########################
@@ -185,6 +220,38 @@ pipeline_identifier = getUniqueIdentifier()
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_ccfraud_basic():
+    #####################
+    ### DATA-ANALYSIS ###
+    #####################
+
+    if (
+        hasattr(YAML_CONFIG.training_parameters, "run_data_analysis")
+        and YAML_CONFIG.training_parameters.run_data_analysis
+    ):
+        for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+            # run the pre-processing component once
+            silo_pre_processing_step = data_analysis_component(
+                training_data=Input(
+                    type=silo_config.training_data.type,
+                    mode=silo_config.training_data.mode,
+                    path=silo_config.training_data.path + "/train.csv",
+                ),
+                testing_data=Input(
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path + f"/test.csv",
+                ),
+                metrics_prefix=silo_config.compute,
+                silo_index=silo_index,
+                **YAML_CONFIG.data_analysis_parameters,
+            )
+
+            # add a readable name to the step
+            silo_pre_processing_step.name = f"silo_{silo_index}_data_analysis"
+
+            # make sure the compute corresponds to the silo
+            silo_pre_processing_step.compute = silo_config.compute
+
     ######################
     ### PRE-PROCESSING ###
     ######################
@@ -209,14 +276,20 @@ def fl_ccfraud_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
-            metrics_prefix=silo_config.compute,
+            metrics_prefix=silo_config.name,
         )
 
         # add a readable name to the step
         silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
         # make sure the compute corresponds to the silo
-        silo_pre_processing_step.compute = silo_config.compute
+        silo_pre_processing_step.compute = silo_config.computes[0]
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            silo_pre_processing_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
 
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
@@ -252,6 +325,15 @@ def fl_ccfraud_basic():
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+            # Determine number of processes to deploy on a given compute cluster node
+            silo_processes = get_gpus_count(silo_config.computes[0])
+
+            # We need to reload component because otherwise all the instances will share same
+            # value for process_count_per_instance
+            training_component = load_component(
+                source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
+            )
+
             # we're using training component here
             silo_training_step = training_component(
                 # with the train_data from the pre_processing step
@@ -266,8 +348,18 @@ def fl_ccfraud_basic():
                 epochs=YAML_CONFIG.training_parameters.epochs,
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Differential Privacy
+                dp=YAML_CONFIG.training_parameters.dp,
+                # DP target epsilon
+                dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
+                # DP target delta
+                dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
+                # DP max gradient norm
+                dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
+                # Total num of iterations
+                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
                 # Silo name/identifier
-                metrics_prefix=silo_config.compute,
+                metrics_prefix=silo_config.name,
                 # Iteration name
                 iteration_name=f"Iteration-{iteration}",
                 # Model name
@@ -277,7 +369,26 @@ def fl_ccfraud_basic():
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
-            silo_training_step.compute = silo_config.compute
+            silo_training_step.compute = silo_config.computes[0]
+
+            # set distribution according to the number of available GPUs (1 in case of only CPU available)
+            silo_training_step.distribution.process_count_per_instance = silo_processes
+
+            # set number of instances to distribute training across
+            if hasattr(silo_config, "instance_count"):
+                if silo_training_step.resources is None:
+                    silo_training_step.resources = {}
+                silo_training_step.resources[
+                    "instance_count"
+                ] = silo_config.instance_count
+
+            # assign instance type for AKS, if available
+            if hasattr(silo_config, "instance_type"):
+                if silo_training_step.resources is None:
+                    silo_training_step.resources = {}
+                silo_training_step.resources[
+                    "instance_type"
+                ] = silo_config.instance_type
 
             # make sure the data is written in the right datastore
             silo_training_step.outputs.model = Output(
@@ -302,6 +413,11 @@ def fl_ccfraud_basic():
         aggregate_weights_step.compute = (
             YAML_CONFIG.federated_learning.orchestrator.compute
         )
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            aggregate_weights_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
         # add a readable name to the step
         aggregate_weights_step.name = f"iteration_{iteration}_aggregation"
 
@@ -328,10 +444,8 @@ pipeline_job = fl_ccfraud_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
-
-    ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_demo_ccfraud"
     )
@@ -361,4 +475,4 @@ if args.submit:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")

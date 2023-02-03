@@ -1,0 +1,9 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: my-kind-cluster
+nodes:
+- role: control-plane
+  image: kindest/node:v1.24.6@sha256:97e8d00bc37a7598a0b32d1fabd155a96355c49fa0d4d4790aab0f161bf31be1 # We recommend keeping that 1.24.6 k8s version that we used in our tests.
+  extraMounts:
+  - hostPath: `/path/to/data` # The path to the folder you want to expose. If you're using linux, this is the verbatim path; if you're using Windows and your data are located at C:\path\to\data, the path should be: /run/desktop/mnt/host/c/path/to/data
+    containerPath: /localdata # Path on the docker file system where to mount the local folder.
