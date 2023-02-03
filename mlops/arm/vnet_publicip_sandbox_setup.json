@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.6.61914",
-      "templateHash": "7356236187865161176"
+      "templateHash": "14663977455005304538"
     }
   },
   "parameters": {
@@ -65,14 +65,14 @@
     },
     "compute2": {
       "type": "bool",
-      "defaultValue": true,
+      "defaultValue": false,
       "metadata": {
         "description": "Flag whether to create a second compute or not"
       }
     },
     "compute2SKU": {
       "type": "string",
-      "defaultValue": "Standard_DS3_v2",
+      "defaultValue": "Standard_NC6",
       "metadata": {
         "description": "The VM used for creating a second compute cluster in orchestrator and silos."
       }
