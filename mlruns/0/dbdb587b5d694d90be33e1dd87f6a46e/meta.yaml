@@ -1,0 +1,15 @@
+artifact_uri: file:///C:/Users/wenwen/Documents/Federated-learning-all-branches/azure-ml-federated-learning/mlruns/0/dbdb587b5d694d90be33e1dd87f6a46e/artifacts
+end_time: 1675381639214
+entry_point_name: ''
+experiment_id: '0'
+lifecycle_stage: active
+run_id: dbdb587b5d694d90be33e1dd87f6a46e
+run_name: serious-lark-146
+run_uuid: dbdb587b5d694d90be33e1dd87f6a46e
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1675381638995
+status: 3
+tags: []
+user_id: wenwen

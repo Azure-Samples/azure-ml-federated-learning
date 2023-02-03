@@ -281,7 +281,7 @@ def fl_ccfraud_basic():
                 mode=silo_config.testing_data.mode,
                 path=silo_config.testing_data.path,
             ),
-            metrics_prefix=silo_config.compute,
+            metrics_prefix=silo_config.name,
             benchmark = YAML_CONFIG.federated_learning.benchmark
         )
 
@@ -374,7 +374,7 @@ def fl_ccfraud_basic():
                 # Whether to benchmark
                 benchmark = YAML_CONFIG.federated_learning.benchmark,
                 # Whether to train with all data
-                train_all_data = YAML_CONFIG.federated_learning.train_all_data
+                train_all_data = YAML_CONFIG.federated_learning.benchmark_train_all_data
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -449,8 +449,8 @@ def fl_ccfraud_basic():
     
     
     end_time = time.time()
-    global training_duration
     training_duration = end_time - start_time
+    print(f"The total training duration is: ", training_duration)
   
 
     ################
@@ -458,25 +458,49 @@ def fl_ccfraud_basic():
     ################
 
     for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
-        evaluation_step = evaluate_component(
+
+        silo_processes = get_gpus_count(silo_config.computes[0])
+        
+        silo_evaluation_step = evaluate_component(
             test_data_dir=silo_preprocessed_test_data[silo_index],
             # and the checkpoint from previous iteration (or None if iteration == 1)
             checkpoint=aggregate_weights_step.outputs.aggregated_output,
             # batch size
             batch_size=YAML_CONFIG.training_parameters.eval_batch_size,
             # Silo name/identifier
-            metrics_prefix=silo_config.compute,
+            metrics_prefix=silo_config.name,
             # Model name
             model_name=YAML_CONFIG.training_parameters.model_name,
-            fraud_weight_path = silo_preprocessed_train_data[silo_index]
+            fraud_weight_path = silo_preprocessed_train_data[silo_index],
+            benchmark = YAML_CONFIG.federated_learning.benchmark,
 
         )
-        evaluation_step.compute = silo_config.compute
+        silo_evaluation_step.compute = silo_config.computes[0]
         # add a readable name to the step
-        evaluation_step.name = f"silo_{silo_index}_evaluation"
+        silo_evaluation_step.name = f"silo_{silo_index}_evaluation"
+
+        # set distribution according to the number of available GPUs (1 in case of only CPU available)
+        silo_evaluation_step.distribution.process_count_per_instance = silo_processes
+
+        # set number of instances to distribute training across
+        if hasattr(silo_config, "instance_count"):
+            if silo_evaluation_step.resources is None:
+                silo_evaluation_step.resources = {}
+            silo_evaluation_step.resources[
+                "instance_count"
+            ] = silo_config.instance_count
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_evaluation_step.resources is None:
+                silo_evaluation_step.resources = {}
+            silo_evaluation_step.resources[
+                "instance_type"
+            ] = silo_config.instance_type
+
 
         # make sure the data is written in the right datastore
-        evaluation_step.outputs.predictions = Output(
+        silo_evaluation_step.outputs.predictions = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
@@ -499,7 +523,7 @@ if not args.offline:
     pipeline_job = ML_CLIENT.jobs.create_or_update(
         pipeline_job, experiment_name="fl_demo_ccfraud_nonfl_comparison"
     )
-    mlflow.log_metric("Training_duration", training_duration)
+ 
 
 
     print("The url to see your live job running is returned by the sdk:")

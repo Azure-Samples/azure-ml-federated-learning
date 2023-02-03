@@ -14,6 +14,11 @@ from torchmetrics.functional import precision_recall, accuracy
 from torch.utils.data.dataloader import DataLoader
 from mlflow import log_metric, log_param
 from typing import List
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.data.distributed import DistributedSampler
+from distutils.util import strtobool
+from collections import OrderedDict
 
 
 TRAIN_COMPONENT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../traininsilo"))
@@ -24,7 +29,7 @@ import datasets as datasets
 
 
 
-def load_dataset( test_data_dir, model_name):
+def load_dataset( test_data_dir, model_name, benchmark):
     """Load dataset from {test_data_dir}
 
     Args:
@@ -32,7 +37,13 @@ def load_dataset( test_data_dir, model_name):
         model_name(str): Name of the model to use
     """
     logger.info(f" Test data dir: {test_data_dir}")
-    test_df = pd.read_csv(test_data_dir + "/unfiltered_data.csv")
+
+    # if not running FL benchmark, 
+    if benchmark:
+        test_df = pd.read_csv(test_data_dir + "/unfiltered_data.csv")
+    else:
+        test_df = pd.read_csv(test_data_dir + "/filtered_data.csv")
+
     if model_name == "SimpleLinear":
         test_dataset = datasets.FraudDataset(test_df)
     else:
@@ -55,24 +66,66 @@ def log_metrics(client, run_id, key, value, experiment_name="default-experiment"
 
 
 
-def test(args):
+def test(args, device_id=None, distributed=False):
 
     """Test the trained model and report test loss and accuracy"""
     test_metrics = RunningMetrics(
         ["loss", "accuracy", "precision", "recall"], prefix="test"
     )
-    device =  torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    test_dataset, input_dim = load_dataset(args.test_data_dir, args.model_name)
-    test_dataloader =  DataLoader(
-            test_dataset, batch_size=args.batch_size, shuffle=True
+    device = (
+        torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
+        if device_id is not None 
+        else torch.device(f"cuda:0" if torch.cuda.is_available() else "cpu")
     )
+
+    if distributed:
+        rank = device_id
+        logger.info(f"Rank: {rank}")
+    else:
+        rank = None
+
+
+    test_dataset, input_dim = load_dataset(args.test_data_dir, args.model_name, args.benchmark)
+
+    if distributed:
+        logger.info("Setting up distributed samplers.")
+        test_sampler = DistributedSampler(test_dataset)
+    else:
+        test_sampler = None
+
+    test_dataloader = DataLoader(
+        test_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+        sampler=test_sampler,
+    )
+
+    logger.info(f"Test loader steps: {len(test_dataloader)}")
+
+
     fraud_weight = np.loadtxt(args.fraud_weight_path + "/unfiltered_fraud_weight.txt").item()
     model_path = os.path.join(args.checkpoint, "model.pt")
+    DDP_state_dict = torch.load(model_path)
+    state_dict = OrderedDict()
+    for k, v in DDP_state_dict.items():
+        if "_module" in k:
+            k = k.replace("_module.","")
+            state_dict[k] = v
+        else:
+            state_dict[k] = v
+
+
     model = getattr(models, args.model_name)(input_dim).to(device)
-    model.load_state_dict(torch.load(model_path))
+    if distributed:
+        model = DDP(
+            model,
+            device_ids=[rank] if rank is not None else None,
+            output_device=rank,
+        )
+    model.load_state_dict(state_dict)
     model.eval()
     criterion = nn.BCELoss()
-    all_predictions = None
+    #all_predictions = None
     with mlflow.start_run() as mlflow_run:
         mlflow_client = mlflow.tracking.client.MlflowClient()
         root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
@@ -80,10 +133,10 @@ def test(args):
             for i, (data, target) in enumerate(test_dataloader):
                 data, labels = data.to(device), target.to(device)
                 predictions, net_loss = model(data)
-                if i == 0:
+                '''if i == 0:
                     all_predictions = predictions
                 else:
-                    np.concatenate((all_predictions, predictions), axis=0)
+                    np.concatenate((all_predictions, predictions), axis=0)'''
                 criterion.weight = (((labels == 1) * (fraud_weight - 1)) + 1).to(device)
                 loss = criterion(predictions, labels.type(torch.float)).item()
                 if net_loss is not None:
@@ -101,7 +154,7 @@ def test(args):
                 test_metrics.add_metric("loss", loss / data.shape[0])
                 test_metrics.step()
 
-        np.savetxt(f"{args.predictions_path}/predictions.txt", all_predictions)
+        '''np.savetxt(f"{args.predictions_path}/predictions.txt", all_predictions)'''
         log_message = []
         for name, value in test_metrics.get_global().items():
             log_message.append(f"{name}: {value}")
@@ -132,7 +185,7 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--test_data_dir", type=str, required=True, help="")
+    parser.add_argument("--test_data_dir", type=str, required=True, help="Path to input test data")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
 
     parser.add_argument(
@@ -140,9 +193,10 @@ def get_arg_parser(parser=None):
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
 
-    parser.add_argument("--model_name", type=str, required=True, help="")
-    parser.add_argument("--fraud_weight_path", type=str, required=True, help="")
-    parser.add_argument("--predictions_path", type=str, required=True, help="")
+    parser.add_argument("--model_name", type=str, required=True, help="Class name of the model")
+    parser.add_argument("--fraud_weight_path", type=str, required=True, help="Path to the fraud_weight")
+    parser.add_argument("--predictions_path", type=str, required=True, help="Path to save the final predictions")
+    parser.add_argument("--benchmark", type=strtobool, required=False, default=False, help="Whether to perform FL vs Centralized benchmark")
     return parser
 
 
@@ -163,7 +217,23 @@ def main(cli_args=None):
     args = parser.parse_args(cli_args)
 
     print(f"Running script with arguments: {args}")
-    test(args)
+
+    logger.info(f"Distributed process rank: {os.environ['RANK']}")
+    logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
+
+    if int(os.environ['WORLD_SIZE']) > 1 and torch.cuda.is_available():
+        dist.init_process_group(
+            "nccl",
+            rank=int(os.environ['RANK']),
+            world_size=int(os.environ['WORLD_SIZE']),
+    )
+    elif int(os.environ['WORLD_SIZE']) > 1:
+        dist.init_process_group("gloo")
+
+    test(args, device_id=int(os.environ['RANK']), distributed=int(os.environ['WORLD_SIZE']) > 1 and torch.cuda.is_available())
+
+    if torch.cuda.is_available() or int(os.environ['WORLD_SIZE']) > 1:
+        dist.destroy_process_group()
 
 
 if __name__ == "__main__":

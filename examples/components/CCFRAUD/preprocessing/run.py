@@ -174,13 +174,13 @@ def log_metadata(train_df, test_df, metrics_prefix, property):
         if root_run_id:
             mlflow_client.log_metric(
                 run_id=root_run_id,
-                key=f"{metrics_prefix}/Number of train datapoints",
+                key=f"{metrics_prefix}/Number of {property} train datapoints",
                 value=f"{train_df.shape[0]}",
             )
 
             mlflow_client.log_metric(
                 run_id=root_run_id,
-                key=f"{metrics_prefix}/Number of test datapoints",
+                key=f"{metrics_prefix}/Number of {property} test datapoints",
                 value=f"{test_df.shape[0]}",
             )
 

@@ -60,6 +60,7 @@ inputs:
     optional: true
   train_all_data:
     type: boolean
+    optional: true
   dp: # dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy
     type: boolean
     description: differential privacy

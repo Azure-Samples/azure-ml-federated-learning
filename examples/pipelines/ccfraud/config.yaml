@@ -8,51 +8,52 @@ aml:
 
 # federated learning parameters
 federated_learning:
+  # Whether to benchmark FL VS Centralized
   benchmark: true
-  train_all_data: false
+  benchmark_train_all_data: false
   orchestrator:
-    compute: orchestrator-01
+    compute: cpu-orchestrator
     datastore: datastore_orchestrator
 
   silos:
     - name: silo0
       computes: 
-      - silo0-01 # name of the compute for silo X
-      datastore: datastore_silo0
+      - cpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_test_data
 
     - name: silo1
       computes: 
-      - silo1-01 # we are repeating over the same config for silo 2
-      datastore: datastore_silo1
+      - cpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_test_data
 
     - name: silo2
       computes: 
-      - silo2-01 # we are repeating over the same config for silo 3
-      datastore: datastore_silo2
+      - cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_test_data
 
 data_analysis_parameters:
   onehot_columns_prefix: category_,gender_,street_,city_,state_,job_,region_

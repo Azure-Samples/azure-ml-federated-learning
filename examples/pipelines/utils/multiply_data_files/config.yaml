@@ -9,33 +9,33 @@ aml:
 # Parameters to generate the FL graph
 federated_learning:
   silos: # silos are provided as a list
-    - compute: silo0-01 # name of the compute for silo X
-      datastore: datastore_silo0 # name of the datastore for silo X
+    - compute: cpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus # name of the datastore for silo X
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/pneumonia
-    - compute: silo1-01 # we are repeating over the same config for silo 2
-      datastore: datastore_silo1
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/multiplied_data/ccfraud
+    - compute: cpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/pneumonia
-    - compute: silo2-01 # we are repeating over the same config for silo 3
-      datastore: datastore_silo2
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/multiplied_data/ccfraud
+    - compute: cpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/pneumonia
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/multiplied_data/ccfraud

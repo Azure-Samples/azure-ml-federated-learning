@@ -614,7 +614,7 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
         benchmark=args.benchmark,
-        train_all_data = args.train_all_data
+        train_all_data=args.train_all_data,
         device_id=int(os.environ["RANK"]),
         distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
     )
