@@ -301,7 +301,7 @@ def fl_cross_silo_internal_basic():
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
-            silo_training_step.compute = silo_config.computes[1]
+            silo_training_step.compute = silo_config.computes[0]
 
             # assign instance type for AKS, if available
             if hasattr(silo_config, "instance_type"):

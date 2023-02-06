@@ -273,7 +273,6 @@ class FederatedLearningPipelineFactory:
 
             # for each silo, run a distinct training with its own inputs and outputs
             for silo_index, silo_config in enumerate(self.silos):
-
                 scatter_arguments = {}
                 # custom scatter data inputs
                 scatter_arguments.update(silo_config["custom_input_args"])

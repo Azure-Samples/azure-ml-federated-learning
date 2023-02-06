@@ -23,7 +23,7 @@ Click on the buttons below depending on your goal. It will open in Azure Portal 
 | Button | Description |
 | :-- | :-- |
 | [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fopen_sandbox_setup.json) | Deploy a completely open sandbox to allow you to try things out in an eyes-on environment. This setup is intended only for demo purposes. The data is still accessible by the users of your subscription when opening the storage accounts, and data exfiltration is possible. |
-| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | :warning: Experimental :warning: - Deploy a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | Deploy a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. |
 
 > Notes:
 >
@@ -73,8 +73,9 @@ We will provision:
     > Notes:
       > * If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
       > * :warning: **IMPORTANT** :warning: This setup is intended only for demo purposes. The data is still accessible by the users of your subscription when opening the storage accounts, and data exfiltration is possible.
-      > * :warning: EXPERIMENTAL :warning: alternatively, you can try provisioning a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. To try it out, use template file `mlops/bicep/vnet_publicip_sandbox_setup.bicep` instead. All the code samples below remains the same. Please check the header of that bicep file to understand its capabilities and limitations.
-      > * By default, two computes are created for each silo to demonstrate how preprocessing, training, etc would work on various computes. Please set the `compute2` parameter to `false` if you wish to keep just one compute/silo.
+      > * Alternatively, you can try provisioning a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. To try it out, use `--template-file ./mlops/bicep/vnet_publicip_sandbox_setup.bicep` instead. Please check the header of that bicep file to understand its capabilities and limitations. To enable VNet Peering, set the `applyVNetPeering` parameter to `true`.
+      > * By default, only one CPU compute is created for each silo. Please set the `compute2` parameter to `true` if you wish to create both CPU & GPU computes for each silo.
+      > * Some regions don't have enough quota to provision GPU computes. Please look at the headers of the `bicep` script to change the `region`/`computeSKU`.
 
 ## Launch the demo experiment
 
@@ -100,7 +101,7 @@ In this section, we'll use a sample python script to submit a federated learning
     ```
     > Notes: 
         > * You can use --offline flag when running the job to just build and validate pipeline without submitting it.
-        > * Differential privacy is enabled by default, but you can quickly turn it off by setting the `config.yaml` file's `dp` parameter to `false`.
+        > * Differential privacy is disabled by default, but you can quickly turn it on by setting the `config.yaml` file's `dp` parameter to `true`.
     
     Note: you can also create a `config.json` file at the root of this repo to provide the above information. Follow the instructions on how to get this from the [Azure ML documentation](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-configure-environment#workspace).
 

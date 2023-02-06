@@ -9,6 +9,11 @@ This tutorial will go through a high level intuitive explanation of DP concept, 
 ### DP concept
 The theory for DP is complex, but the main idea is quite simple -- it clips datum gradient and adds Gaussian noise before model update to avoid privacy leakage. DP-SGD is an algorithm described in this [paper](https://arxiv.org/pdf/1607.00133.pdf); [Opacus](https://github.com/pytorch/opacus/blob/main/docs/faq.md) is its Pytorch implementation. Please refer to [this blog post](https://medium.com/pytorch/differential-privacy-series-part-1-dp-sgd-algorithm-explained-12512c3959a3) to read more about DP-SGD. 
 
+### How to apply DP in the MNIST example
+
+1. Follow the instructions given in the [quickstart](../quickstart.md).
+2. Set the `dp` parameter to `true` while submitting the [pipeline](../quickstart.md#launch-the-demo-experiment).
+
 ### How to apply DP in FL experiments
 When applying DP to cross-silo horizontal FL experiments, we just need to add DP-SGD to the silos training step, and the implementation using Opacus DP library is quite elegant. The example FL experiments in the current repo provide straightforward and clear demonstration of using DP for cross-silo FL experiments, which you could easily mimic/adapt to your own cross-silo horizontal FL scenarios. Taking the fl_cross_silo_literal experiment using MNIST dataset as an example, briefly speaking, to implement DP-SGD, what you need are:
 1. Adding DP libarary opacus dependencies to the [conda env yaml file](../../examples/components/MNIST/traininsilo/conda.yaml)

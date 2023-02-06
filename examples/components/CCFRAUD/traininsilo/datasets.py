@@ -40,7 +40,6 @@ class FraudTimeDataset(Dataset):
     """
 
     def __init__(self, df, time_steps=100):
-
         self.X = torch.tensor(
             df.loc[:, df.columns != "is_fraud"].values, dtype=torch.float
         )

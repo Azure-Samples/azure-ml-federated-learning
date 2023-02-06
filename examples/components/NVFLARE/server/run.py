@@ -235,7 +235,7 @@ def run_server(
     )
 
     # create hosts file to resolve ip adresses
-    with (open("/etc/hosts", "a")) as f:
+    with open("/etc/hosts", "a") as f:
         # write server address
         f.write(f"{overseer_ip}\t{overseer_name}\n")
 
