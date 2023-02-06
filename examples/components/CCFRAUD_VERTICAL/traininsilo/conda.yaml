@@ -10,6 +10,7 @@ dependencies:
   - pytorch-cuda=11.6
   - pip:
     - azureml-mlflow==1.48.0
+    - azure-servicebus==7.8.1
     - pandas==1.5.2
     - torchmetrics==0.10.3
     - pythonping==1.1.3

@@ -1,13 +1,22 @@
-import pickle
+from abc import ABC
+import os
+import math
 import sys
+import datetime
 import time
-import sys
+import pickle
 import logging
 import socket
 
-import mlflow
-
 from enum import Enum
+
+import mlflow
+from azure.core.exceptions import ResourceNotFoundError
+from azure.servicebus.exceptions import SessionLockLostError
+from azure.servicebus import ServiceBusClient, ServiceBusReceiver, ServiceBusSender
+from azure.servicebus.management import ServiceBusAdministrationClient
+from azure.servicebus import ServiceBusMessage
+from azure.identity import ManagedIdentityCredential
 
 # Set logging to sys.out
 logger = logging.getLogger(__name__)
@@ -36,7 +45,41 @@ class FLAGS(Enum):
 DEFAULT_MSG_SIZE = 4096
 
 
-class AMLComm:
+class AMLComm(ABC):
+    def __init__(self, rank, world_size, run_id) -> None:
+        """Initializes AMLComm communicator
+
+        Args:
+            rank: rank of the current node, must be between 0 and world_size-1
+            world_size: number of nodes in our setup, must be positive integer larger than 1
+            run_id: specifier of the run share across the nodes
+        """
+        super().__init__()
+
+        assert rank >= 0 and rank <= world_size - 1
+        assert world_size > 1
+
+        self._rank = rank
+        self._world_size = world_size
+        self._run_id = run_id
+        self._stats = {
+            "msg_received": 0,
+            "msg_sent": 0,
+            "sending_time": 0.0,
+            "receiving_time": 0.0,
+            "waiting_time": 0.0,
+        }
+
+    def log_stats(self, mlflow_client: mlflow.MlflowClient):
+        for key, value in self._stats.items():
+            mlflow_client.log_metric(
+                self._run_id,
+                f"{self.__class__.__name__}_rank_{self._rank}_{key}",
+                value,
+            )
+
+
+class AMLCommSocket(AMLComm):
     """AMLComm provides simple communication layer across nodes in AzureML.
     The communication capabilities are limited to scatter-gather pattern,
     where node 0 is considered as a host(master) node. Communication
@@ -52,13 +95,8 @@ class AMLComm:
             world_size: number of nodes in our setup, must be positive integer larger than 1
             run_id: specifier of the run share across the nodes
         """
+        super(AMLCommSocket, self).__init__(rank, world_size, run_id)
 
-        assert rank >= 0 and rank <= world_size - 1
-        assert world_size > 1
-
-        self._rank = rank
-        self._world_size = world_size
-        self._run_id = run_id
         self._connections = {}
         self._setup_master()
 
@@ -110,7 +148,9 @@ class AMLComm:
         self._host_port = host_port
         self._local_ip = str(socket.gethostbyname(socket.gethostname()))
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(6000)  # Initial timeout for connecting with other nodes
+        self._socket.settimeout(
+            6000
+        )  # Set timeout so we do not wait for any request indefinitely
 
         if self._rank == 0:
             self._socket.bind(("", int(self._host_port)))
@@ -149,9 +189,6 @@ class AMLComm:
             logger.info(f"Received from host: {msg}")
             assert msg["flag"] == FLAGS.OK_CONN
 
-        # Once connected allow only for 10s delay
-        self._socket.settimeout(600)
-
     def _send(self, data, destination, flag, ok_flag):
         assert destination != self._rank
         if self._rank != 0:
@@ -188,6 +225,9 @@ class AMLComm:
                 f"Failed sending message to {destination}, flag: {flag}, data: {data}"
             )
 
+        self._stats["msg_sent"] += 1
+        self._stats["sending_time"] += time.time() - time_start
+
     def _receive(self, source, flag, ok_flag, msg_size=None):
         assert source != self._rank
         if self._rank != 0:
@@ -213,6 +253,7 @@ class AMLComm:
                 # and thus we may receive multiple of them
                 while sys.getsizeof(msg) < packet_max_size:
                     packet = conn.recv(packet_max_size)
+                    self._stats["waiting_time"] += time.time() - time_start
                     if not packet:
                         break
                     msg += packet
@@ -246,6 +287,10 @@ class AMLComm:
         # Send confirmation about received payload size information
         bytes_str = pickle.dumps({"flag": ok_flag, "data": None})
         conn.sendall(bytes_str)
+
+        self._stats["msg_received"] += 1
+        self._stats["receiving_time"] += time.time() - time_start
+
         return data
 
     def send(self, data, destination):
@@ -286,3 +331,277 @@ class AMLComm:
                 self._connections[c][0].close()
 
         self._socket.close()
+
+    def __del__(self):
+        """Close the communication channels gracefully on object dereferencing"""
+        self.close()
+
+
+class AMLCommSBAuthMethod(Enum):
+    MANAGED_IDENTITY = 1
+    CONNECTION_STRING = 2
+
+
+class AMLCommSB(AMLComm):
+    """AMLCommSB provides simple communication layer across nodes in AzureML
+    using ServiceBus. The communication capabilities are limited to scatter-gather
+    pattern, where node 0 is considered as a host(master) node. Communication
+    channel is established over Python sockets and data are serialized
+    using pickle library.
+    """
+
+    READY_TOKEN_MESSAGE = "READY"
+
+    def __init__(
+        self,
+        rank: int,
+        world_size: int,
+        run_id: str,
+        auth_method: AMLCommSBAuthMethod,
+        sb_namespace: str = None,
+        connection_string: str = None,
+        queue_discovery_timeout=0,
+    ) -> None:
+        """Initializes AMLCommSB communicator
+
+        Args:
+            rank: rank of the current node, must be between 0 and world_size-1
+            world_size: number of nodes in our setup, must be positive integer larger than 1
+            run_id: specifier of the run share across the nodes
+        """
+        super(AMLCommSB, self).__init__(rank, world_size, run_id)
+
+        assert (
+            auth_method == AMLCommSBAuthMethod.MANAGED_IDENTITY
+            and sb_namespace is not None
+        ) or (
+            auth_method == AMLCommSBAuthMethod.CONNECTION_STRING
+            and connection_string is not None
+        )
+
+        self._sb_namespace = sb_namespace
+        self._auth_method = auth_method
+        self._connection_string = connection_string
+        self._queue_discovery_timeout = queue_discovery_timeout
+
+        self._senders: dict[str, ServiceBusSender] = {}
+        self._receivers: dict[str, ServiceBusReceiver] = {}
+
+        self._authenticate()
+        self._client: ServiceBusClient = self._initialize_client()
+        self._admin_client: ServiceBusAdministrationClient = (
+            self._initialize_admin_client()
+        )
+
+        if self._rank == 0:
+            # Let server create the queue to be used for communication
+            # self._admin_client.create_queue(self._run_id, requires_session=True, auto_delete_on_idle=datetime.timedelta(seconds=300))
+            self._init_server()
+        else:
+            self._init_client()
+
+    def _init_server(self):
+        if self._run_id not in [q["name"] for q in self._admin_client.list_queues()]:
+            self._admin_client.create_queue(
+                self._run_id,
+                requires_session=True,
+                auto_delete_on_idle=datetime.timedelta(seconds=300),
+            )
+
+        for destination in range(1, self._world_size):
+            session_id = self._get_session_id(destination, self._rank)
+            self._receivers[session_id] = self._client.get_queue_receiver(
+                self._run_id, session_id=session_id
+            )
+            session_id = self._get_session_id(self._rank, destination)
+            self._senders[session_id] = self._client.get_queue_sender(
+                self._run_id, session_id=session_id
+            )
+
+            message_size = ServiceBusMessage(
+                self.READY_TOKEN_MESSAGE, session_id=session_id
+            )
+            self._senders[session_id].send_messages(message_size)
+
+    def _init_client(self):
+        start_time = time.time()
+        session_id = self._get_session_id(self._rank, 0)
+        self._senders[session_id] = self._client.get_queue_sender(
+            self._run_id, session_id=session_id
+        )
+
+        session_id = self._get_session_id(0, self._rank)
+        self._receivers[session_id] = self._client.get_queue_receiver(
+            self._run_id, session_id=session_id
+        )
+
+        while True:
+            try:
+                # Make sure that the queue exists
+                self._admin_client.get_queue(self._run_id)
+
+                # Receive ready messages
+                message = self._receivers[session_id].receive_messages()[0]
+                self._receivers[session_id].complete_message(message)
+                if str(message) == self.READY_TOKEN_MESSAGE:
+                    return
+            except ResourceNotFoundError as e:
+                logger.warning(
+                    f"Requested queue '{self._run_id}' does not exist, waiting..."
+                )
+                time.sleep(10)
+
+                if (
+                    self._queue_discovery_timeout > 0
+                    and time.time() - start_time > self._queue_discovery_timeout
+                ):
+                    raise e
+            except SessionLockLostError:
+                self._receivers[session_id].close()
+                self._receivers[session_id] = self._client.get_queue_receiver(
+                    queue_name=self._run_id, session_id=session_id
+                )
+            except Exception as e:
+                logger.warning(f"Message does not contain start token, receiving...")
+                if (
+                    self._queue_discovery_timeout > 0
+                    and time.time() - start_time > self._queue_discovery_timeout
+                ):
+                    raise e
+
+    def _authenticate(self):
+        if self._auth_method == AMLCommSBAuthMethod.MANAGED_IDENTITY:
+            if "DEFAULT_IDENTITY_CLIENT_ID" in os.environ:
+                self.logger.info(
+                    "Using default identity client id {}".format(
+                        os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
+                    )
+                )
+                self._credential = ManagedIdentityCredential(
+                    client_id=os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
+                )
+            else:
+                self._credential = ManagedIdentityCredential()
+        elif self._auth_method == AMLCommSBAuthMethod.CONNECTION_STRING:
+            if self._connection_string is not None:
+                return
+            elif "AMLCOMMSB_CONNECTION_STRING" in os.environ:
+                self._connection_string = os.environ.get("AMLCOMMSB_CONNECTION_STRING")
+            else:
+                from azureml.core import Run
+
+                run = Run.get_context()
+                ws = run.experiment.workspace
+                kv = ws.get_default_keyvault()
+                self._connection_string = kv.get_secret("AMLCOMMSB_CONNECTION_STRING")
+        else:
+            raise Exception("Unknown auth_method {}".format(self._auth_method))
+
+    def _initialize_client(self) -> ServiceBusClient:
+        if self._auth_method == AMLCommSBAuthMethod.CONNECTION_STRING:
+            return ServiceBusClient.from_connection_string(self._connection_string)
+        elif self._auth_method == AMLCommSBAuthMethod.MANAGED_IDENTITY:
+            return ServiceBusClient(
+                self._sb_namespace,
+                self._credential,
+            )
+
+    def _initialize_admin_client(self) -> ServiceBusAdministrationClient:
+        if self._auth_method == AMLCommSBAuthMethod.CONNECTION_STRING:
+            return ServiceBusAdministrationClient.from_connection_string(
+                self._connection_string
+            )
+        elif self._auth_method == AMLCommSBAuthMethod.MANAGED_IDENTITY:
+            return ServiceBusAdministrationClient(
+                self._sb_namespace,
+                self._credential,
+            )
+
+    def _get_session_id(self, source: int, destination: int, flag: FLAGS = None):
+        if flag is None:
+            return f"{source}=>{destination}"
+        return f"{source}=>{destination}:{FLAGS[flag].name}"
+
+    def _send(self, session_id, data):
+        try:
+            packet = ServiceBusMessage(data, session_id=session_id)
+            self._senders[session_id].send_messages(packet)
+        except Exception as e:
+            logger.exception(f"Sending failed with exception:{e}")
+            raise e
+
+    def send(self, data, destination) -> None:
+        session_id = self._get_session_id(self._rank, destination)
+        message = pickle.dumps(data)
+
+        # Message needs to be split into packets smaller than 256KB,
+        # in our case the target is 250KB due to ServiceBus envelope
+        total_packets = math.ceil(sys.getsizeof(message) / (250 * 1024))
+        packet_size = len(message) // total_packets
+        time_start = time.time()
+
+        # Inform destination about number of packets to be received
+        self._send(session_id, str(total_packets))
+
+        # Send the packets one by one, these packets are usually too large to send them in batches
+        for i in range(total_packets):
+            packet = (
+                message[i * packet_size : (i + 1) * packet_size]
+                if i < total_packets - 1
+                else message[i * packet_size :]
+            )
+            self._send(session_id, packet)
+
+        self._stats["msg_sent"] += 1
+        self._stats["sending_time"] += time.time() - time_start
+
+    def _recv(self, session_id, total_packets=1):
+        message = []
+        received_packets = 0
+        while received_packets < total_packets:
+            try:
+                packets = self._receivers[session_id].receive_messages(
+                    total_packets - received_packets
+                )
+                for packet in packets:
+                    message.extend([seq for seq in packet.body])
+                    # message += b"".join(seq for seq in packet.body)
+                    self._receivers[session_id].complete_message(packet)
+                    received_packets += 1
+            except SessionLockLostError:
+                self._receivers[session_id].close()
+                self._receivers[session_id] = self._client.get_queue_receiver(
+                    queue_name=self._run_id, session_id=session_id
+                )
+            except Exception as e:
+                logger.exception(f"Receiving failed with exception:{e}")
+                raise e
+        return message
+
+    def recv(self, source):
+        session_id = self._get_session_id(source, self._rank)
+        time_start = time.time()
+
+        message = self._recv(session_id, 1)
+        total_packets = int(message[0])
+        self._stats["waiting_time"] += time.time() - time_start
+
+        message = self._recv(session_id, total_packets)
+
+        try:
+            data = b"".join(packet for packet in message)
+            data = pickle.loads(data)
+        except Exception as e:
+            logger.exception(f"Failed to load received message: {message}")
+            logger.exception(f"Failed to load received data: {data}")
+            raise e
+
+        self._stats["msg_received"] += 1
+        self._stats["receiving_time"] += time.time() - time_start
+
+        return data
+
+    def __del__(self):
+        logger.info("Closing ServiceBus clients")
+        self._client.close()
+        self._admin_client.close()

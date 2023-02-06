@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 import os
-from aml_comm import AMLComm
+from aml_comm import AMLCommSocket, AMLCommSB, AMLCommSBAuthMethod
 
 import mlflow
 import torch
@@ -12,8 +12,6 @@ from torch import nn
 from torch.optim import SGD
 from torch.utils.data import Dataset
 from torch.utils.data.dataloader import DataLoader
-from torchvision import models, transforms
-from PIL import Image
 
 
 class TopModel(nn.Module):
@@ -182,8 +180,8 @@ class MnistTrainer:
 
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
-            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            root_run_id = os.environ.get("AZUREML_ROOT_RUN_ID")
+            logger.debug(f"Root runId: {root_run_id}")
 
             # log params
             self.log_params(mlflow_client, root_run_id)
@@ -423,19 +421,17 @@ def main(cli_args=None):
     logger.info(args.train_data)
     logger.info(args.test_data)
 
-    root_run_id = None
-    with mlflow.start_run() as mlflow_run:
-        logger.info(f"run tags: {mlflow_run.data.tags}")
-        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-        logger.info(f"root runId: {root_run_id}")
-
-    global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
+    global_comm = AMLCommSocket(
+        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+    )
 
     print(f"Running script with arguments: {args}")
     run(global_comm, args)
 
-    # destroy communication group
-    global_comm.close()
+    # log messaging stats
+    with mlflow.start_run() as mlflow_run:
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        global_comm.log_stats(mlflow_client)
 
 
 if __name__ == "__main__":

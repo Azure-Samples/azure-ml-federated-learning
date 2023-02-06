@@ -15,8 +15,8 @@ from azure.core.exceptions import ResourceNotFoundError
 from azure.servicebus.exceptions import SessionLockLostError
 from azure.servicebus import ServiceBusClient, ServiceBusReceiver, ServiceBusSender
 from azure.servicebus.management import ServiceBusAdministrationClient
-from azure.servicebus import ServiceBusMessage, ServiceBusMessageBatch
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
+from azure.servicebus import ServiceBusMessage
+from azure.identity import ManagedIdentityCredential
 
 # Set logging to sys.out
 logger = logging.getLogger(__name__)
@@ -527,7 +527,7 @@ class AMLCommSB(AMLComm):
             packet = ServiceBusMessage(data, session_id=session_id)
             self._senders[session_id].send_messages(packet)
         except Exception as e:
-            logger.exception(e)
+            logger.exception(f"Sending failed with exception:{e}")
             raise e
 
     def send(self, data, destination) -> None:
@@ -574,7 +574,7 @@ class AMLCommSB(AMLComm):
                     queue_name=self._run_id, session_id=session_id
                 )
             except Exception as e:
-                logger.exception(e)
+                logger.exception(f"Receiving failed with exception:{e}")
                 raise e
         return message
 
@@ -587,8 +587,14 @@ class AMLCommSB(AMLComm):
         self._stats["waiting_time"] += time.time() - time_start
 
         message = self._recv(session_id, total_packets)
-        message = b"".join(packet for packet in message)
-        data = pickle.loads(message)
+
+        try:
+            data = b"".join(packet for packet in message)
+            data = pickle.loads(data)
+        except Exception as e:
+            logger.exception(f"Failed to load received message: {message}")
+            logger.exception(f"Failed to load received data: {data}")
+            raise e
 
         self._stats["msg_received"] += 1
         self._stats["receiving_time"] += time.time() - time_start
@@ -599,4 +605,3 @@ class AMLCommSB(AMLComm):
         logger.info("Closing ServiceBus clients")
         self._client.close()
         self._admin_client.close()
-

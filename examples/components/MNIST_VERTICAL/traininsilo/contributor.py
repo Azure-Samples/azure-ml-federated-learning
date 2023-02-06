@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 import os
-from aml_comm import AMLComm
+from aml_comm import AMLCommSocket, AMLCommSB, AMLCommSBAuthMethod
 
 import mlflow
 import torch
@@ -199,11 +199,10 @@ class MnistTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
-            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            root_run_id = os.environ.get("AZUREML_ROOT_RUN_ID")
+            logger.debug(f"Root runId: {root_run_id}")
 
             # log params
             self.log_params(mlflow_client, root_run_id)
@@ -211,17 +210,8 @@ class MnistTrainer:
             self.model_.train()
             logger.debug("Local training started")
 
-            training_loss = 0.0
-            test_loss = 0.0
-            test_acc = 0.0
-
-            for epoch in range(self._epochs):
-
-                running_loss = 0.0
-                running_acc = 0.0
-                num_of_batches_before_logging = 100
-
-                for i, data in enumerate(self.train_loader_):
+            for _ in range(self._epochs):
+                for data in self.train_loader_:
                     data = data.to(self.device_)
                     self.optimizer_.zero_grad()
 
@@ -363,19 +353,17 @@ def main(cli_args=None):
     logger.info(args.train_data)
     logger.info(args.test_data)
 
-    root_run_id = None
-    with mlflow.start_run() as mlflow_run:
-        logger.info(f"run tags: {mlflow_run.data.tags}")
-        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-        logger.info(f"root runId: {root_run_id}")
-
-    global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
+    global_comm = AMLCommSocket(
+        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+    )
 
     print(f"Running script with arguments: {args}")
     run(global_comm, args)
 
-    # destroy communication group
-    global_comm.close()
+    # log messaging stats
+    with mlflow.start_run() as mlflow_run:
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        global_comm.log_stats(mlflow_client)
 
 
 if __name__ == "__main__":

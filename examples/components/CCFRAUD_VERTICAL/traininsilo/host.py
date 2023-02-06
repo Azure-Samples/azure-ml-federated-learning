@@ -3,24 +3,17 @@ import argparse
 import logging
 import sys
 import copy
-import datetime
 import os
-from aml_comm import AMLComm
+from aml_comm import AMLCommSocket, AMLCommSB, AMLCommSBAuthMethod
 
-import pythonping
 import mlflow
 import torch
 import pandas as pd
 import numpy as np
-import torch.distributed.rpc as rpc
-import torch.distributed.optim as dist_optim
-import torch.distributed as dist
 from torch import nn
 from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
-from torch.utils.data import Dataset
-from mlflow import log_metric, log_param
 from typing import List
 import models as models
 import datasets as datasets
@@ -507,19 +500,18 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    root_run_id = None
-    with mlflow.start_run() as mlflow_run:
-        logger.info(f"run tags: {mlflow_run.data.tags}")
-        root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
-        logger.info(f"root runId: {root_run_id}")
-
-    global_comm = AMLComm(args.global_rank, args.global_size, root_run_id)
+    global_comm = AMLCommSocket(
+        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+    )
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
     run(args, global_comm)
-    logger.info("Destroying distributed process group")
-    global_comm.close()
+    
+    # log messaging stats
+    with mlflow.start_run() as mlflow_run:
+        mlflow_client = mlflow.tracking.client.MlflowClient()
+        global_comm.log_stats(mlflow_client)
 
 
 if __name__ == "__main__":
