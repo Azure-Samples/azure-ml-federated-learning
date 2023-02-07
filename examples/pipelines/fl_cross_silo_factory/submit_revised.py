@@ -197,85 +197,46 @@ aggregate_component = load_component(
 # in the docstrings.
 
 def get_gather_config():
-    return {
-        "compute": "cpu-cluster-1",
-        "datastore": "flgathermodels",
-        }
+    return YAML_CONFIG.federated_learning.orchestrator
 
 @pipeline
 def gather_pipeline(
     input_silo_1: Input,
     input_silo_2: Input,
+    input_silo_3: Input,
 ):
     gather_test = aggregate_component(
         input_silo_1=input_silo_1,
-        input_silo_2=input_silo_2)
+        input_silo_2=input_silo_2,
+        input_silo_3=input_silo_3)
     return {
             "aggregated_output": gather_test.outputs.aggregated_output
         }
 
 
 
-def get_silo_configs():
-    silo_configs = [
-        {
-            "compute": "cpu-cluster-westeurope",
-            "datastore": "workspaceblobstorewesteurope",
-            "inputs": {
+def get_scatter_configs():
+    scatter_configs = []
+    for silo_config in YAML_CONFIG.federated_learning.silos:
+        scatter_config = {}
+        scatter_config["inputs"] = {
                 # feeds into the user defined inputs
                 "raw_train_data": Input(
-                    type=AssetTypes.URI_FILE,
-                    mode="download",
-                    # path="azureml://datastores/workspaceblobstorewesteurope/paths/trainingdata/train.csv"
-                    path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
+                    type=silo_config.training_data.type,
+                    mode=silo_config.training_data.mode,
+                    path=silo_config.training_data.path,
                 ),
                 "raw_test_data": Input(
-                    type=AssetTypes.URI_FILE,
-                    mode="download",
-                    path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
-                    # path="azureml://datastores/workspaceblobstorewesteurope/paths/testdata/t10k.csv",
-                )},
-        },
-        {
-            "compute": "cpu-cluster-westeurope",
-            "datastore": "workspaceblobstorewesteurope",
-            "inputs": {
-                # feeds into the user defined inputs
-                "raw_train_data": Input(
-                    type=AssetTypes.URI_FILE,
-                    mode="download",
-                    # path="azureml://datastores/workspaceblobstorewesteurope/paths/trainingdata/train.csv"
-                    path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
-                ),
-                "raw_test_data": Input(
-                    type=AssetTypes.URI_FILE,
-                    mode="download",
-                    path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
-                    # path="azureml://datastores/workspaceblobstorewesteurope/paths/testdata/t10k.csv",
-                )},
-        },
-        {
-            "compute": "cpu-cluster-australiaeast",
-            "datastore": "workspaceblobstoreaustraliaeast",
-            "inputs": {
-                # feeds into the user defined inputs
-                "raw_train_data": Input(
-                    type=AssetTypes.URI_FILE,
-                    mode="download",
-                    # path="azureml://datastores/workspaceblobstoreaustraliaeast/paths/trainingdata/train.csv",
-                    path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
-                ),
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path,
+                )}
+        scatter_config["computes"] = silo_config["computes"]
+        scatter_config["datastore"] = silo_config["datastore"]
+        scatter_config["name"] = silo_config["name"]
+        scatter_configs.append(scatter_config)
 
-                "raw_test_data": Input(
-                    type=AssetTypes.URI_FILE,
-                    mode="download",
-                    # path="azureml://datastores/workspaceblobstoreaustraliaeast/paths/testdata/t10k.csv",
-                    path="https://azureopendatastorage.blob.core.windows.net/mnist/processed/train.csv",
-                )},
-        }
-    ]
-
-    return silo_configs
+    return scatter_configs
 
 @pipeline(
     name="Silo Federated Learning Subgraph",
@@ -286,13 +247,13 @@ def silo_scatter_subgraph(
     raw_train_data: Input,
     raw_test_data: Input,
     # user defined accumulator
-    aggregated_checkpoint: Input(optional=True),
+    checkpoint: Input(optional=True),
     # factory inputs (contract)
-    scatter_compute1: str,
-    scatter_compute2: str,
-    scatter_name: str,
-    scatter_datastore: str,
-    gather_datastore: str,
+    silo_compute: str,
+    # scatter_compute2: str,
+    silo_name: str,
+    # scatter_datastore: str,
+    # gather_datastore: str,
     iteration_num: int,
     # user defined training arguments
     lr: float = 0.01,
@@ -302,7 +263,7 @@ def silo_scatter_subgraph(
     dp_target_epsilon: float = 50.0,
     dp_target_delta: float = 1e-5,
     dp_max_grad_norm: float = 1.0,
-    total_num_of_iterations: int = 1,
+    num_of_iterations: int = 1,
 ):
     """Create silo/training subgraph.
 
@@ -333,11 +294,11 @@ def silo_scatter_subgraph(
         raw_training_data=raw_train_data,
         raw_testing_data=raw_test_data,
         # here we're using the name of the silo compute as a metrics prefix
-        metrics_prefix=scatter_name,
+        metrics_prefix=silo_name,
     )
 
     # Assigning the silo's first compute to the preprocessing component
-    silo_pre_processing_step.compute = scatter_compute1
+    silo_pre_processing_step.compute = silo_compute
 
     # we're using our own training component
     silo_training_step = training_component(
@@ -346,7 +307,7 @@ def silo_scatter_subgraph(
         # with the test_data from the pre_processing step
         test_data=silo_pre_processing_step.outputs.processed_test_data,
         # and the checkpoint from previous iteration (or None if iteration == 1)
-        checkpoint=aggregated_checkpoint,
+        checkpoint=checkpoint,
         # Learning rate for local training
         lr=lr,
         # Number of epochs
@@ -362,24 +323,26 @@ def silo_scatter_subgraph(
         # DP max gradient norm
         dp_max_grad_norm=dp_max_grad_norm,
         # Total number of iterations
-        total_num_of_iterations=total_num_of_iterations,
+        total_num_of_iterations=num_of_iterations,
         # Silo name/identifier
-        metrics_prefix=scatter_name,
+        metrics_prefix=silo_name,
         # Iteration number
         iteration_num=iteration_num,
     )
 
     # Assigning the silo's second compute to the training component
-    silo_training_step.compute = scatter_compute2
+    silo_training_step.compute = silo_compute
 
     # IMPORTANT: we will assume that any output provided here can be exfiltrated into the orchestrator
     return {
         # NOTE: the key you use is custom
         # a map function scatter_to_gather_map needs to be provided
         # to map the name here to the expected input from gather
-        "input_silo": silo_training_step.outputs.model
+        "model": silo_training_step.outputs.model
     }
 
+def get_scatter_constant_inputs():
+    return YAML_CONFIG.training_parameters
 
 #######################
 ### D. FACTORY CODE ###
@@ -476,19 +439,22 @@ def silo_scatter_subgraph(
 #######################
 
 from fl_utils import scatter_gather_iteration
-silo_configs = get_silo_configs()
+scatter_configs = get_scatter_configs()
 gather_config = get_gather_config()
+scatter_constant_inputs = get_scatter_constant_inputs()
+
 pipeline_job = scatter_gather_iteration(
     scatter=silo_scatter_subgraph,
-    gather=aggregate_models,
-    scatter_strategy=silo_configs,
+    gather=gather_pipeline,
+    scatter_strategy=scatter_configs,
     gather_strategy=gather_config,
-    scatter_constant_inputs={"lr": 0.01, "batch_size": 32, "epochs": 3},
+    # scatter_constant_inputs={"lr": 0.01, "batch_size": 32, "epochs": 3},
     # scatter_to_gather_map=lambda output_name, silo_index: f"input_silo_{silo_index}",
     # Check with Jeff about this
-    scatter_to_gather_map={"model": (lambda output_name, silo_index: f"input_silo_{silo_index}")},
-    gather_to_scatter_map={"aggregated_output": "checkpoint"},
-    iterations=2
+    scatter_to_gather_map=lambda output_name, silo_index: f"input_silo_{silo_index}",
+    gather_to_scatter_map=lambda output_name: "checkpoint",
+    iterations=2,
+    scatter_constant_inputs=scatter_constant_inputs
 )
 
 # 4. Validate the pipeline using soft rules
