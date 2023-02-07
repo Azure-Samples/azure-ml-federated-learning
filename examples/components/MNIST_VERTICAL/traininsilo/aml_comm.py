@@ -13,9 +13,13 @@ from enum import Enum
 import mlflow
 from azure.core.exceptions import ResourceNotFoundError
 from azure.servicebus.exceptions import SessionLockLostError
-from azure.servicebus import ServiceBusClient, ServiceBusReceiver, ServiceBusSender
+from azure.servicebus import (
+    ServiceBusClient,
+    ServiceBusReceiver,
+    ServiceBusSender,
+    ServiceBusMessage,
+)
 from azure.servicebus.management import ServiceBusAdministrationClient
-from azure.servicebus import ServiceBusMessage
 from azure.identity import ManagedIdentityCredential
 
 # Set logging to sys.out
@@ -71,12 +75,29 @@ class AMLComm(ABC):
         }
 
     def log_stats(self, mlflow_client: mlflow.MlflowClient):
+
+        self._stats["sending_time_avg"] = self._stats["sending_time"] / float(
+            self._stats["msg_sent"]
+        )
+        self._stats["receiving_time_avg_w_waiting"] = self._stats[
+            "receiving_time"
+        ] / float(self._stats["msg_received"])
+        self._stats["receiving_time_avg_wo_waiting"] = (
+            self._stats["receiving_time"] - self._stats["waiting_time"]
+        ) / float(self._stats["msg_received"])
+
         for key, value in self._stats.items():
             mlflow_client.log_metric(
                 self._run_id,
                 f"{self.__class__.__name__}_rank_{self._rank}_{key}",
                 value,
             )
+
+        mlflow_client.log_dict(
+            self._run_id,
+            self._stats,
+            f"{self.__class__.__name__}_rank_{self._rank}_stats_summary.json",
+        )
 
 
 class AMLCommSocket(AMLComm):
@@ -524,8 +545,8 @@ class AMLCommSB(AMLComm):
 
     def _send(self, session_id, data):
         try:
-            packet = ServiceBusMessage(data, session_id=session_id)
-            self._senders[session_id].send_messages(packet)
+            message = ServiceBusMessage(data, session_id=session_id)
+            self._senders[session_id].send_messages(message)
         except Exception as e:
             logger.exception(f"Sending failed with exception:{e}")
             raise e

@@ -1,7 +1,7 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: mnist_train_in_silo
-version: 0.3.0
+name: mnist_vertical_train_in_silo_contributor
+version: 0.0.1
 display_name: MNIST Train (in silo)
 type: command
 description: Component to train a model on MNIST dataset.
@@ -64,7 +64,7 @@ outputs:
 code: ..
 
 command: >-
-  python host.py 
+  python contributor.py 
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]

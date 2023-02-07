@@ -186,7 +186,6 @@ class MnistTrainer:
             # log params
             self.log_params(mlflow_client, root_run_id)
 
-            self.model_.train()
             logger.debug("Local training started")
 
             training_loss = 0.0
@@ -194,6 +193,7 @@ class MnistTrainer:
             test_acc = 0.0
 
             for epoch in range(self._epochs):
+                self.model_.train()
 
                 running_loss = 0.0
                 running_acc = 0.0

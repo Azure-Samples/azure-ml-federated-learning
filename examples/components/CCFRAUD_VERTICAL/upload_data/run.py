@@ -11,7 +11,7 @@ from zipfile import ZipFile
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
 
-CATEGORICAL_PROPS = ["category", "region", "gender", "state", "job"]
+CATEGORICAL_PROPS = ["category", "region", "gender", "state"]
 ENCODERS = {}
 
 
@@ -66,7 +66,6 @@ def filter_useful_columns(df: pd.DataFrame):
         "lat",
         "long",
         "city_pop",
-        # "job",
         "trans_date_trans_time",
         "is_fraud",
     ]
@@ -298,7 +297,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

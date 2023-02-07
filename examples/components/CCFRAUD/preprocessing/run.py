@@ -116,6 +116,9 @@ def preprocess_data(
     logger.debug(f"Train data samples: {len(train_data)}")
     logger.debug(f"Test data samples: {len(test_data)}")
 
+    os.makedirs(train_data_dir, exist_ok=True)
+    os.makedirs(test_data_dir, exist_ok=True)
+
     train_data = train_data.sort_values(by="trans_date_trans_time")
     test_data = test_data.sort_values(by="trans_date_trans_time")
 

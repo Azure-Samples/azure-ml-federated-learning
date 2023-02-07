@@ -246,14 +246,14 @@ class CCFraudTrainer:
                     for j in range(1, self._global_size):
                         output = torch.tensor(
                             self._global_comm.recv(j), requires_grad=True
-                        )
-                        output = output.to(self.device_)
+                        ).to(self.device_)
                         outputs.append(output)
 
                     # Average all intermediate results
                     outputs = torch.stack(outputs)
+                    outputs_avg = outputs.mean(dim=0)
 
-                    predictions, net_loss = self.model_(outputs.mean(dim=0))
+                    predictions, net_loss = self.model_(outputs_avg)
                     # Compute loss
                     self.criterion_.weight = (
                         ((data == 1) * (self.fraud_weight_ - 1)) + 1
@@ -507,7 +507,7 @@ def main(cli_args=None):
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
     run(args, global_comm)
-    
+
     # log messaging stats
     with mlflow.start_run() as mlflow_run:
         mlflow_client = mlflow.tracking.client.MlflowClient()
