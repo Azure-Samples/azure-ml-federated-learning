@@ -118,13 +118,6 @@ args = parser.parse_args()
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
 
-# dict of training parameters
-training_kwargs = {
-    "lr": YAML_CONFIG.training_parameters.lr,
-    "batch_size": YAML_CONFIG.training_parameters.batch_size,
-    "epochs": YAML_CONFIG.training_parameters.epochs,
-}
-
 ###########################
 ### CONNECT TO AZURE ML ###
 ###########################
@@ -194,7 +187,7 @@ aggregate_component = load_component(
 # in the docstrings.
 
 def get_gather_config():
-    return YAML_CONFIG.federated_learning.orchestrator
+    return YAML_CONFIG.orchestrator
 
 @pipeline
 def gather_pipeline(
@@ -212,18 +205,18 @@ def gather_pipeline(
 
 def get_scatter_configs():
     scatter_configs = []
-    for silo_config in YAML_CONFIG.federated_learning.silos:
+    for silo_config in YAML_CONFIG.strategy.horizontal:
         scatter_config = {}
         scatter_config["inputs"] = {
             "raw_train_data": Input(
-                type=silo_config.training_data.type,
-                mode=silo_config.training_data.mode,
-                path=silo_config.training_data.path,
+                type=silo_config.inputs.raw_training_data.type,
+                mode=silo_config.inputs.raw_training_data.mode,
+                path=silo_config.inputs.raw_training_data.path,
             ),
             "raw_test_data": Input(
-                type=silo_config.testing_data.type,
-                mode=silo_config.testing_data.mode,
-                path=silo_config.testing_data.path,
+                type=silo_config.inputs.raw_testing_data.type,
+                mode=silo_config.inputs.raw_testing_data.mode,
+                path=silo_config.inputs.raw_testing_data.path,
             )}
         scatter_config["computes"] = silo_config["computes"]
         scatter_config["datastore"] = silo_config["datastore"]
@@ -337,7 +330,7 @@ def silo_scatter_subgraph(
     }
 
 def get_scatter_constant_inputs():
-    return YAML_CONFIG.training_parameters
+    return YAML_CONFIG.inputs
 
 #######################
 ### D. FL Contract ###
@@ -355,7 +348,7 @@ pipeline_job = scatter_gather(
     gather_strategy=gather_config,
     scatter_to_gather_map=lambda _, silo_index: f"input_silo_{silo_index}",
     gather_to_scatter_map=lambda _: "checkpoint",
-    iterations=YAML_CONFIG.training_parameters.num_of_iterations,
+    iterations=YAML_CONFIG.iterations,
     scatter_constant_inputs=scatter_constant_inputs
 )
 
