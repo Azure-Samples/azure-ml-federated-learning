@@ -699,14 +699,13 @@ class FederatedLearningPipelineFactory:
 
 
 
-def scatter_gather_iteration(
+def scatter_gather(
     scatter,
     gather,
     scatter_strategy,
     gather_strategy,
     scatter_to_gather_map: Callable,
     gather_to_scatter_map: Callable,
-    accumulator=None,
     iterations=1,
     scatter_constant_inputs=None,
 ):
@@ -726,27 +725,20 @@ def scatter_gather_iteration(
     fl_factory = FederatedLearningPipelineFactory()
     fl_factory.orchestrator["datastore"] = gather_strategy["datastore"]
     # type checking
-    # assert isinstance(accumulator, dict), "accumulator must be an dict"
-    # assert "name" in accumulator, "accumulator must have a key 'name'"
-    # if "initial_input" in accumulator:
-    #     if accumulator["initial_input"] is not None:
-    #         assert isinstance(
-    #             accumulator["initial_input"], Input
-    #         ), "accumulator['initial_input'] must be an Input (or None)"
-    # assert callable(
-    #     scatter_to_gather_map
-    # ), "scatter_to_gather_map must be a function"
-    # assert callable(
-    #     gather_to_accumulator_map
-    # ), "gather_to_accumulator_map must be a function"
-    # assert isinstance(iterations, int), "iterations must be an int"
-    # assert iterations > 0, "iterations must be > 0"
+    assert callable(
+        scatter_to_gather_map
+    ), "scatter_to_gather_map must be a function"
+    assert callable(
+        gather_to_scatter_map
+    ), "gather_to_scatter_map must be a function"
+    assert isinstance(iterations, int), "iterations must be an int"
+    assert iterations > 0, "iterations must be > 0"
 
     @pipeline(
         name="FL Scatter-Gather Iteration",
         description="Pipeline includes preprocessing, training and aggregation components",
     )
-    def scatter_gather_iter(
+    def scatter_gather_iteration(
         iteration_input: Input(optional=True), iteration_num: int
     ):
         """Pipeline for a single iteration of the scatter-gather graph.
@@ -763,27 +755,18 @@ def scatter_gather_iteration(
             scatter_arguments = {}
             # custom scatter data inputs
             scatter_arguments.update(silo_config["inputs"])
-            scatter_arguments.update(**scatter_constant_inputs)
-            scatter_arguments["silo_compute"] = silo_config["computes"][0]
-            scatter_arguments["silo_name"] = silo_config["name"]
 
-            # # custom accumulator input
+            # initial checkpoint
             scatter_arguments["checkpoint"] = iteration_input
 
-            # # custom training args
-            # scatter_arguments.update(constant_scatter_args)
+            # custom training args
+            scatter_arguments.update(**scatter_constant_inputs)
 
-            # # reserved scatter inputs
+            # reserved scatter inputs
             scatter_arguments["iteration_num"] = iteration_num
-            # scatter_arguments["scatter_compute1"] = silo_config["computes"][0]
-            # scatter_arguments["scatter_compute2"] = (
-            #     silo_config["computes"][1]
-            #     if len(silo_config["computes"]) > 1
-            #     else silo_config["computes"][0]
-            # )
-            # scatter_arguments["scatter_name"] = silo_config["name"]
-            # scatter_arguments["scatter_datastore"] = silo_config["datastore"]
-            # scatter_arguments["gather_datastore"] = self.orchestrator["datastore"]
+            scatter_arguments["silo_compute1"] = silo_config["computes"][0]
+            scatter_arguments["silo_compute2"] = silo_config["computes"][1] if len(silo_config["computes"])>1 else silo_config["computes"][0]
+            scatter_arguments["silo_name"] = silo_config["name"]
 
             silo_subgraph_step = scatter(**scatter_arguments)
             silo_subgraph_step.name = f"silo_subgraph_{silo_index}"
@@ -797,11 +780,8 @@ def scatter_gather_iteration(
                     _path="silo_subgraph_step",  # to help with debug logging
                 )
 
-            # # BUT the outputs of the scatter() subgraph/component
-            # # are exfiltrated to the orchestrator instead
-
-            # for job_name, job in silo_subgraph_step.component.jobs.items():
-            #     job.compute = silo_config["computes"][0]
+            # BUT the outputs of the scatter() subgraph/component
+            # are exfiltrated to the orchestrator instead
 
             for key in silo_subgraph_step.outputs:
                 setattr(
@@ -815,20 +795,20 @@ def scatter_gather_iteration(
 
         # a couple of basic tests before gathering
         # do we even have outputs?
-        # assert (
-        #     len(scatter_subgraphs_outputs) > 0
-        # ), "The list of scattered outputs is empty, did you define a list of silos with add_silo() method?"
-        # # do we have enough?
-        # assert len(scatter_subgraphs_outputs) == len(
-        #     self.silos
-        # ), "The list of scattered outputs has length that doesn't match the number of silos provided with add_silo() method."
+        assert (
+            len(scatter_subgraphs_outputs) > 0
+        ), "The list of scattered outputs is empty."
+        # do we have enough?
+        assert len(scatter_subgraphs_outputs) == len(
+            scatter_strategy
+        ), "The list of scattered outputs has length that doesn't match the number of silos."
 
         # prepare inputs with their respective keys for the gather() step
         gather_inputs_list = []
-        for i, scatter_output in enumerate(scatter_subgraphs_outputs):
+        for i, scatter_output in enumerate(scatter_subgraphs_outputs, 1):
             # map keys of outputs of scatter subgraph into inputs of gather
             gather_inputs_list.append(
-                (scatter_to_gather_map(key, i+1), scatter_output[key])
+                (scatter_to_gather_map(key, i), scatter_output[key])
             )
         # create a dict to feed to gather() using **
         gather_inputs_dict = dict(gather_inputs_list)
@@ -836,14 +816,13 @@ def scatter_gather_iteration(
         # call gather() to aggregate all scattered outputs into one
         aggregation_step = gather(**gather_inputs_dict)
 
-        # # and let's anchor the output of gather() in the ORCHESTRATOR
+        # and let's anchor the output of gather() in the ORCHESTRATOR
         fl_factory.anchor_step_in_silo(
             aggregation_step,
             compute=gather_strategy["compute"],
             output_datastore=gather_strategy["datastore"],
             _path="aggregation_step",  # to help with debug logging
         )
-        # aggregation_step.compute = gather_strategy["compute"]
         # now let's map the output of gather() to the accumulator for next iteration
         iteration_outputs = {}
         for key in aggregation_step.outputs:
@@ -860,13 +839,12 @@ def scatter_gather_iteration(
     def fl_pipeline():
         """The entire scatter-gather pipeline."""
         # initialize the accumulator
-        # running_accumulator = accumulator.get("initial_input", None)
         checkpoint = None
 
         # now for each iteration, run scatter-gather subgraph
         for iteration_num in range(1, iterations + 1):
             # call scatter-gather() for each iteration
-            iteration_step = scatter_gather_iter(
+            iteration_step = scatter_gather_iteration(
                 iteration_input=checkpoint, iteration_num=iteration_num
             )
 

@@ -42,9 +42,6 @@ from azure.ai.ml.entities._job.pipeline._io import NodeOutput
 # to handle yaml config easily
 from omegaconf import OmegaConf
 
-# local imports
-from fl_factory import FederatedLearningPipelineFactory
-
 # Note: This code is using subgraphs (a.k.a. pipeline component) which is currently a PrivatePreview feature subject to change.
 # For an FL experience relying only on GA features, please refer to the literal version of the code.
 os.environ["AZURE_ML_CLI_PRIVATE_FEATURES_ENABLED"] = "true"
@@ -213,24 +210,21 @@ def gather_pipeline(
             "aggregated_output": gather_test.outputs.aggregated_output
         }
 
-
-
 def get_scatter_configs():
     scatter_configs = []
     for silo_config in YAML_CONFIG.federated_learning.silos:
         scatter_config = {}
         scatter_config["inputs"] = {
-                # feeds into the user defined inputs
-                "raw_train_data": Input(
-                    type=silo_config.training_data.type,
-                    mode=silo_config.training_data.mode,
-                    path=silo_config.training_data.path,
-                ),
-                "raw_test_data": Input(
-                    type=silo_config.testing_data.type,
-                    mode=silo_config.testing_data.mode,
-                    path=silo_config.testing_data.path,
-                )}
+            "raw_train_data": Input(
+                type=silo_config.training_data.type,
+                mode=silo_config.training_data.mode,
+                path=silo_config.training_data.path,
+            ),
+            "raw_test_data": Input(
+                type=silo_config.testing_data.type,
+                mode=silo_config.testing_data.mode,
+                path=silo_config.testing_data.path,
+            )}
         scatter_config["computes"] = silo_config["computes"]
         scatter_config["datastore"] = silo_config["datastore"]
         scatter_config["name"] = silo_config["name"]
@@ -249,7 +243,8 @@ def silo_scatter_subgraph(
     # user defined accumulator
     checkpoint: Input(optional=True),
     # factory inputs (contract)
-    silo_compute: str,
+    silo_compute1: str,
+    silo_compute2: str,
     # scatter_compute2: str,
     silo_name: str,
     # scatter_datastore: str,
@@ -298,7 +293,7 @@ def silo_scatter_subgraph(
     )
 
     # Assigning the silo's first compute to the preprocessing component
-    silo_pre_processing_step.compute = silo_compute
+    silo_pre_processing_step.compute = silo_compute1
 
     # we're using our own training component
     silo_training_step = training_component(
@@ -331,7 +326,7 @@ def silo_scatter_subgraph(
     )
 
     # Assigning the silo's second compute to the training component
-    silo_training_step.compute = silo_compute
+    silo_training_step.compute = silo_compute2
 
     # IMPORTANT: we will assume that any output provided here can be exfiltrated into the orchestrator
     return {
@@ -345,115 +340,22 @@ def get_scatter_constant_inputs():
     return YAML_CONFIG.training_parameters
 
 #######################
-### D. FACTORY CODE ###
-#######################
-
-# In this section, we're using a wrapper to build the full FL pipeline
-# based on the custom methods you implemented in section C.
-
-# 1. create an instance of the factory
-# builder = FederatedLearningPipelineFactory()
-
-# # 2. feed it with FL parameters
-
-# builder.set_orchestrator(
-#     # provide settings for orchestrator
-#     YAML_CONFIG.federated_learning.orchestrator.compute,
-#     YAML_CONFIG.federated_learning.orchestrator.datastore,
-# )
-
-# for silo_config in YAML_CONFIG.federated_learning.silos:
-#     builder.add_silo(
-#         # provide settings for this silo
-#         silo_config.name,
-#         silo_config.computes,
-#         silo_config.datastore,
-#         # any additional custom kwarg will be sent to silo_preprocessing() as is
-#         raw_train_data=Input(
-#             type=silo_config.training_data.type,
-#             mode=silo_config.training_data.mode,
-#             path=silo_config.training_data.path,
-#         ),
-#         raw_test_data=Input(
-#             type=silo_config.testing_data.type,
-#             mode=silo_config.testing_data.mode,
-#             path=silo_config.testing_data.path,
-#         ),
-#     )
-
-# # 3. use a pipeline factory method
-# # 3.1 build flexible fl pipeline
-
-# # DEBUG
-# if args.debug:
-#     logger = logging.getLogger()
-#     logger.setLevel(logging.DEBUG)
-#     log_format = logging.Formatter("[%(levelname)s] - %(message)s")
-#     handler = logging.StreamHandler(sys.stdout)
-#     handler.setLevel(logging.DEBUG)
-#     handler.setFormatter(log_format)
-#     logger.addHandler(handler)
-
-# pipeline_job = builder.build_flexible_fl_pipeline(
-#     # building the FL graph requires two arguments that can be either a component or a pipeline
-#     # scatter is our subgraph above
-#     scatter=silo_scatter_subgraph,
-#     # gather is directly a command component
-#     gather=aggregate_component,
-#     # a function to map name of outputs from each scatter into a name for the inputs of gather
-#     scatter_to_gather_map=lambda output_name, silo_index: f"input_silo_{silo_index+1}",
-#     # a function to map name of outputs of gather to inputs of scatter
-#     gather_to_accumulator_map=lambda output_name: "aggregated_checkpoint",
-#     # a dictionary describing the "accumulator"
-#     # i.e. the input that is passed from gather to scatter in the next iteration
-#     accumulator={
-#         # this key needs to be the name of the input expected by scatter
-#         # factory will use gather_to_accumulator_map(key) to map
-#         # to the input name required by scatter
-#         "name": "aggregated_checkpoint",
-#         # we can provide an initial input for the first iteration
-#         # but this is an optional input
-#         "initial_input": None,
-#     },
-#     # how many iterations
-#     iterations=YAML_CONFIG.training_parameters.num_of_iterations,
-#     # any additional kwarg is considered constant and given to scatter as is
-#     lr=YAML_CONFIG.training_parameters.lr,
-#     batch_size=YAML_CONFIG.training_parameters.batch_size,
-#     epochs=YAML_CONFIG.training_parameters.epochs,
-#     # Differential Privacy
-#     dp=YAML_CONFIG.training_parameters.dp,
-#     # DP target epsilon
-#     dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
-#     # DP target delta
-#     dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
-#     # DP max gradient norm
-#     dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
-#     # Total num of iterations
-#     total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
-# )
-
-
-#######################
 ### D. FL Contract ###
 #######################
 
-from fl_utils import scatter_gather_iteration
+from fl_utils import scatter_gather
 scatter_configs = get_scatter_configs()
 gather_config = get_gather_config()
 scatter_constant_inputs = get_scatter_constant_inputs()
 
-pipeline_job = scatter_gather_iteration(
+pipeline_job = scatter_gather(
     scatter=silo_scatter_subgraph,
     gather=gather_pipeline,
     scatter_strategy=scatter_configs,
     gather_strategy=gather_config,
-    # scatter_constant_inputs={"lr": 0.01, "batch_size": 32, "epochs": 3},
-    # scatter_to_gather_map=lambda output_name, silo_index: f"input_silo_{silo_index}",
-    # Check with Jeff about this
-    scatter_to_gather_map=lambda output_name, silo_index: f"input_silo_{silo_index}",
-    gather_to_scatter_map=lambda output_name: "checkpoint",
-    iterations=2,
+    scatter_to_gather_map=lambda _, silo_index: f"input_silo_{silo_index}",
+    gather_to_scatter_map=lambda _: "checkpoint",
+    iterations=YAML_CONFIG.training_parameters.num_of_iterations,
     scatter_constant_inputs=scatter_constant_inputs
 )
 
