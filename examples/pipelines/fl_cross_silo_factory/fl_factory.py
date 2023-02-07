@@ -68,7 +68,7 @@ class FederatedLearningPipelineFactory:
         )
 
     def custom_fl_data_output(
-        self, datastore_name, output_name, unique_id="${{name}}", iteration_num=None
+        self, datastore_name, output_name, unique_id="${{name}}", iteration_num=None, mode="mount"
     ):
         """Returns an Output pointing to a path to store the data during FL training.
 
@@ -85,7 +85,7 @@ class FederatedLearningPipelineFactory:
         if iteration_num:
             data_path += f"iteration_{iteration_num}/"
 
-        return Output(type=AssetTypes.URI_FOLDER, mode="mount", path=data_path)
+        return Output(type=AssetTypes.URI_FOLDER, mode=mode, path=data_path)
 
     def getUniqueIdentifier(self, length=8):
         """Generate a random string and concatenates it with today's date
@@ -331,6 +331,9 @@ class FederatedLearningPipelineFactory:
 
             # prepare inputs with their respective keys for the gather() step
             gather_inputs_list = []
+
+            # prepare inputs with their respective keys for the gather() step
+            gather_inputs_list = []
             for i, scatter_output in enumerate(scatter_subgraphs_outputs):
                 # map keys of outputs of scatter subgraph into inputs of gather
                 gather_inputs_list.append(
@@ -339,8 +342,19 @@ class FederatedLearningPipelineFactory:
             # create a dict to feed to gather() using **
             gather_inputs_dict = dict(gather_inputs_list)
 
+            ### SUPER EXPERIMENTAL
+            from scatter_fusion import scatter_fusion
+            
+            fusion_step = scatter_fusion(**gather_inputs_dict)
+            self.anchor_step_in_silo(
+                fusion_step,
+                compute=self.orchestrator["compute"],
+                output_datastore=self.orchestrator["datastore"],
+                _path="fusion_step",  # to help with debug logging
+            )
+
             # call gather() to aggregate all scattered outputs into one
-            aggregation_step = gather(**gather_inputs_dict)
+            aggregation_step = gather(input_silo_1=fusion_step.outputs.fusion_outputs)
 
             # and let's anchor the output of gather() in the ORCHESTRATOR
             self.anchor_step_in_silo(
