@@ -238,10 +238,7 @@ def silo_scatter_subgraph(
     # factory inputs (contract)
     silo_compute1: str,
     silo_compute2: str,
-    # scatter_compute2: str,
     silo_name: str,
-    # scatter_datastore: str,
-    # gather_datastore: str,
     iteration_num: int,
     # user defined training arguments
     lr: float = 0.01,
@@ -352,24 +349,9 @@ pipeline_job = scatter_gather(
     scatter_constant_inputs=scatter_constant_inputs
 )
 
-# 4. Validate the pipeline using soft rules
-
-print(pipeline_job)  # print yaml for visual debugging
-
-# # use a default set of rules
-# builder.set_default_affinity_map()
-
-# # run affinity map validation
-# print("Running soft validation...")
-# builder.soft_validate(
-#     pipeline_job,
-#     raise_exception=not (
-#         args.ignore_validation
-#     ),  # set to False if you know what you're doing
-# )
-
-
-# 5. Submit to Azure ML
+#############################
+### E. Submit to Azure ML ###
+#############################
 
 if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")

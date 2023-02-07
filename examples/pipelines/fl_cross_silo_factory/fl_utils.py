@@ -50,7 +50,8 @@ class FederatedLearningPipelineFactory:
         """
         self.orchestrator = {"compute": compute, "datastore": datastore}
 
-    def add_silo(self, name: str, computes: list, datastore: str, **custom_input_args):
+    # def add_silo(self, name: str, computes: list, datastore: str, **custom_input_args):
+    def add_silo(self, silo_config):
         """Add a silo to the internal configuration of the builder.
 
         Args:
@@ -59,12 +60,13 @@ class FederatedLearningPipelineFactory:
             **custom_input_args: any of those will be passed to the preprocessing step as-is
         """
         self.silos.append(
-            {
-                "name": name,
-                "computes": computes,
-                "datastore": datastore,
-                "custom_input_args": custom_input_args or {},
-            }
+            # {
+            #     "name": name,
+            #     "computes": computes,
+            #     "datastore": datastore,
+            #     "custom_input_args": custom_input_args or {},
+            # }
+            silo_config
         )
 
     def custom_fl_data_output(
@@ -724,6 +726,11 @@ def scatter_gather(
 
     fl_factory = FederatedLearningPipelineFactory()
     fl_factory.orchestrator["datastore"] = gather_strategy["datastore"]
+    fl_factory.set_orchestrator(
+        # provide settings for orchestrator
+        gather_strategy["compute"],
+        gather_strategy["datastore"],
+    )
     # type checking
     assert callable(
         scatter_to_gather_map
@@ -752,6 +759,7 @@ def scatter_gather(
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(scatter_strategy):
+            fl_factory.add_silo(silo_config)
             scatter_arguments = {}
             # custom scatter data inputs
             scatter_arguments.update(silo_config["inputs"])
@@ -870,6 +878,9 @@ def scatter_gather(
     # finally create an instance of the job
     pipeline_job = fl_pipeline()
 
+
+    fl_factory.set_default_affinity_map()
+    # fl_factory.soft_validate(pipeline_job)
     # NOTE: for some reason, we need to anchor the output of that job as well
     # this is anchored to the orchestrator
     for key in pipeline_job.outputs:
