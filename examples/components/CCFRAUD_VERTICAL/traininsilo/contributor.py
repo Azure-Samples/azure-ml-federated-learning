@@ -194,7 +194,6 @@ class CCFraudTrainer:
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-
         if pipeline_level:
             client.log_metric(
                 run_id=run_id,
@@ -219,12 +218,10 @@ class CCFraudTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-            num_of_batches_before_logging = 5
-
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
-            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            root_run_id = os.environ.get("AZUREML_ROOT_RUN_ID")
+            logger.debug(f"Root runId: {root_run_id}")
 
             # log params
             self.log_params(mlflow_client, root_run_id)
@@ -234,11 +231,8 @@ class CCFraudTrainer:
             train_metrics = RunningMetrics(
                 ["loss", "accuracy", "precision", "recall"], prefix="train"
             )
-            test_metrics = RunningMetrics(
-                ["accuracy", "precision", "recall"], prefix="test"
-            )
 
-            for epoch in range(1, self._epochs + 1):
+            for _ in range(1, self._epochs + 1):
                 self.model_.train()
                 train_metrics.reset_global()
 
@@ -257,7 +251,7 @@ class CCFraudTrainer:
                     output.backward(gradient)
                     self.optimizer_.step()
 
-                test_metrics = self.test()
+                self.test()
 
             log_message = [
                 f"End of training",
@@ -266,11 +260,8 @@ class CCFraudTrainer:
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
-        test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall"], prefix="test"
-        )
-
         self.model_.eval()
+
         with torch.no_grad():
             for batch in self.test_loader_:
                 data = batch.to(self.device_)
@@ -278,8 +269,6 @@ class CCFraudTrainer:
                 if self._global_rank != 0:
                     output = self.model_(data)[0].contiguous()
                     self._global_comm.send(output, 0)
-
-        return test_metrics
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.
@@ -395,7 +384,7 @@ def main(cli_args=None):
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
     run(args, global_comm)
-    
+
     # log messaging stats
     with mlflow.start_run() as mlflow_run:
         mlflow_client = mlflow.tracking.client.MlflowClient()
@@ -403,7 +392,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

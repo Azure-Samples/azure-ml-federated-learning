@@ -1,4 +1,4 @@
-name: ccfraud_upload_data_conda_env
+name: ccfraud_vertical_upload_data_conda_env
 channels:
   - defaults
 dependencies:

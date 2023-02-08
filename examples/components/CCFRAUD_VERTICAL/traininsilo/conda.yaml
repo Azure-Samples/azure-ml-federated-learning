@@ -1,11 +1,11 @@
-name: ccfraud_train_conda_env
+name: ccfraud_vertical_train_conda_env
 channels:
   - defaults
   - pytorch
   - nvidia
 dependencies:
   - python=3.8
-  - pip=22.1.2
+  - pip=22.3.1
   - pytorch=1.13.1
   - pytorch-cuda=11.6
   - pip:
@@ -13,5 +13,3 @@ dependencies:
     - azure-servicebus==7.8.1
     - pandas==1.5.2
     - torchmetrics==0.10.3
-    - pythonping==1.1.3
-    

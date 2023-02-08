@@ -174,7 +174,6 @@ class MnistTrainer:
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-
         if pipeline_level:
             client.log_metric(
                 run_id=run_id,
@@ -207,10 +206,10 @@ class MnistTrainer:
             # log params
             self.log_params(mlflow_client, root_run_id)
 
-            self.model_.train()
             logger.debug("Local training started")
 
             for _ in range(self._epochs):
+                self.model_.train()
                 for data in self.train_loader_:
                     data = data.to(self.device_)
                     self.optimizer_.zero_grad()

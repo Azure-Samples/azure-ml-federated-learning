@@ -1,6 +1,6 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_upload_data
-version: 0.3.0
+name: ccfraud_vertical_upload_data
+version: 0.0.1
 display_name: Download CC Fraud data from Kaggle and upload to silo storage
 type: command
 is_deterministic: true

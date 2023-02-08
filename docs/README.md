@@ -96,21 +96,11 @@ We wrote a generic guide on how to get started, ramp-up and mature your [FL proj
 
 ## Vertical federated learning
 
-> - :warning: EXPERIMENTAL :warning: This is experimental feature and we are still working on improving it.
+> - :warning: EXPERIMENTAL :warning: We are delighted to share with you our solution for vertical federated learning, however, please keep in mind that it is still in active development.
 
 Vertical federated learning is a branch of federated learning where the data are split across the features (vertically) instead of across the samples (horizontally). This provides communication challenges as the nodes running the code needs to exchange intermediate outputs and their corresponding gradients of aligned samples.
 
-We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes.
-
-The pipelines can be found here:
-- [MNIST Pipeline](../examples/pipelines/mnist_vertical)
-- [CCFRAUD Pipeline](../examples/pipelines/ccfraud_vertical/)
-
-These pipelines deploy following components:
-- [MNIST](../examples/components_vertical/MNIST/)
-- [CCFRAUD Pipeline](../examples/components_vertical/CCFRAUD/)
-
->Note: In order to run this samples you will need to provision the sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet from [quickstart](./quickstart.md)
+We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes. We invite you to learn more about this approach in the [vertical federated learing tutorial](./tutorials/vertical-fl.md).
 
 ## Glossary
 

@@ -1,33 +1,28 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_train_in_silo
-version: 0.3.0
-display_name: CC Fraud Train (in silo)
+name: mnist_vertical_train_in_silo_host
+version: 0.0.1
+display_name: MNIST Train (in silo)
 type: command
-description: Component to train a model to classify CC Fraud.
+description: Component to train a model on MNIST dataset.
 is_deterministic: false
 
 inputs:
   train_data:
     type: uri_folder
-    description: the input training data (preprocessed)
+    description: the input training data
   test_data:
     type: uri_folder
-    description: the input testing data (preprocessed)
+    description: the input testing data
   metrics_prefix:
     type: string
     description: Metrics prefix
     default: Default-prefix
     optional: true
-  model_name:
-    type: string
-    description: Type of the model to train
-    enum: [SimpleLSTM, SimpleVAE, SimpleLinear]
-    optional: false
-  iteration_name:
-    type: string
-    description: Iteration name
-    default: Default-iteration
+  iteration_num:
+    type: integer
+    description: Iteration number
+    default: 1
     optional: true
   checkpoint:
     type: uri_folder
@@ -36,26 +31,28 @@ inputs:
   lr:
     type: number
     description: learning rate
-    default: 1e-3
+    default: 0.01
     optional: true
   epochs:
     type: integer
     description: total number of epochs for local training
-    default: 10
+    default: 3
     optional: true
   batch_size:
     type: integer
     description: batch size
-    default: 100
-    optional: true
-  runtime_args:
-    type: string
-    description: stringified json config for a silo
+    default: 64
     optional: true
   global_size:
     type: number
     optional: false
   global_rank:
+    type: number
+    optional: false
+  local_size:
+    type: number
+    optional: false
+  local_rank:
     type: number
     optional: false
 
@@ -67,19 +64,20 @@ outputs:
 code: ..
 
 command: >-
-  python contributor.py
+  python host.py 
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
-  --model_path ${{outputs.model}}
-  --model_name ${{inputs.model_name}}
-  --global_size ${{inputs.global_size}}
-  --global_rank ${{inputs.global_rank}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
-  $[[--iteration_name ${{inputs.iteration_name}}]]
+  $[[--iteration_num ${{inputs.iteration_num}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
+  --model ${{outputs.model}}
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
+  --global_size ${{inputs.global_size}}
+  --global_rank ${{inputs.global_rank}}
+  --local_size ${{inputs.local_size}}
+  --local_rank ${{inputs.local_rank}}
 environment: 
   conda_file: ../conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

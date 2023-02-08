@@ -152,7 +152,6 @@ class MnistTrainer:
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-
         if pipeline_level:
             client.log_metric(
                 run_id=run_id,
@@ -177,7 +176,6 @@ class MnistTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
             root_run_id = os.environ.get("AZUREML_ROOT_RUN_ID")
@@ -186,7 +184,6 @@ class MnistTrainer:
             # log params
             self.log_params(mlflow_client, root_run_id)
 
-            self.model_.train()
             logger.debug("Local training started")
 
             training_loss = 0.0
@@ -194,6 +191,7 @@ class MnistTrainer:
             test_acc = 0.0
 
             for epoch in range(self._epochs):
+                self.model_.train()
 
                 running_loss = 0.0
                 running_acc = 0.0

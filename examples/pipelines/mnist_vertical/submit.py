@@ -22,8 +22,7 @@ from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
-from azure.ai.ml import load_component, load_job
-from azure.ai.ml.entities import CommandComponent, Command
+from azure.ai.ml import load_component
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
@@ -192,7 +191,6 @@ def fl_mnist_vertical_basic():
     for silo_index, silo_config in enumerate(
         [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
-
         if silo_index == 0:
             # we're using training component here
             silo_training_step = training_host_component(
@@ -258,13 +256,14 @@ def fl_mnist_vertical_basic():
         silo_training_step.compute = silo_config.compute
 
         # make sure the data is written in the right datastore
+        model_file_name = "host" if silo_index == 0 else f"contributor_{silo_index}"
         silo_training_step.outputs.model = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
-                # IMPORTANT: writing the output of training into the orchestrator datastore
-                YAML_CONFIG.federated_learning.orchestrator.datastore,
-                f"model/silo{silo_index}",
+                # IMPORTANT: writing the output of training into the host datastore
+                YAML_CONFIG.federated_learning.host.datastore,
+                f"model/{model_file_name}",
             ),
         )
 

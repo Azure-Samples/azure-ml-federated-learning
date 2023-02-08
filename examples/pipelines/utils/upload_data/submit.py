@@ -172,7 +172,6 @@ def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
     description=f"FL cross-silo upload data pipeline.",
 )
 def fl_cross_silo_upload_data():
-
     if IS_VERTICAL:
         silos = [
             YAML_CONFIG.federated_learning.host,
