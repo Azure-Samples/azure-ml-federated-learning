@@ -8,7 +8,7 @@ Vertical federated learning (VFL) is branch of federated learning where the data
 
 <br/><br/>
 <div align="center">
-    <img src="../pics/fldatatypes.PNG" alt="Homogenous vs heterogenous data" width="400">
+    <img src="../pics/fldatatypes.png" alt="Homogenous vs heterogenous data" width="400">
 </div>
 
 > Note: In this tutorial we refer to "host" as the party who owns the data labels and optionally some part of features and "contributors" as parties who own only features and provide host with intermediate outputs of their share of the network
@@ -81,7 +81,7 @@ Afterwards, we can continue with regular training loop:
 
 <br/><br/>
 <div align="center">
-    <img src="../pics/vfltrainingloop.PNG" alt="Vertical federated learning training loop" width="400">
+    <img src="../pics/vfltrainingloop.png" alt="Vertical federated learning training loop" width="400">
 </div>
 
 ### Steps to launch
