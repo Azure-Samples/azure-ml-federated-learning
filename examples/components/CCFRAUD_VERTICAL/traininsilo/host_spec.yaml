@@ -64,7 +64,7 @@ outputs:
     type: uri_folder
     description: the output checkpoint
 
-code: ..
+code: .
 
 command: >-
   python host.py
