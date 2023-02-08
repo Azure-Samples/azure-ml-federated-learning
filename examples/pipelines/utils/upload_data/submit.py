@@ -196,9 +196,7 @@ def fl_cross_silo_upload_data():
         if hasattr(silo_config, "instance_type"):
             if silo_upload_data_step.resources is None:
                 silo_upload_data_step.resources = {}
-            silo_upload_data_step.resources[
-                "instance_type"
-            ] = silo_config.instance_type
+            silo_upload_data_step.resources["instance_type"] = silo_config.instance_type
 
         # make sure the data is written in the right datastore
         if args.example == "PNEUMONIA":

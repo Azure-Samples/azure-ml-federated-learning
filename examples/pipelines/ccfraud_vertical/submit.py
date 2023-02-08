@@ -313,9 +313,7 @@ def fl_ccfraud_vertical_basic():
         if hasattr(silo_config, "instance_type"):
             if silo_training_step.resources is None:
                 silo_training_step.resources = {}
-            silo_training_step.resources[
-                "instance_type"
-            ] = silo_config.instance_type
+            silo_training_step.resources["instance_type"] = silo_config.instance_type
 
         # make sure the data is written in the right datastore
         model_file_name = "host" if silo_index == 0 else f"contributor_{silo_index}"
