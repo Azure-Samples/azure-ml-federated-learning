@@ -3,7 +3,7 @@ import os
 import sys
 import argparse
 import logging
-import multiprocessing as mt
+import multiprocessing as mp
 from functools import partial
 
 from tqdm.contrib.concurrent import process_map
@@ -156,13 +156,17 @@ def preprocess_data(
     for x in ["train", "test"]:
         processed_data_dir = train_data_dir if x == "train" else test_data_dir
 
-        cpu_count = max(mt.cpu_count(), 6)
+        cpu_count = max(mp.cpu_count(), 6)
         process_sample_partial = partial(
             process_sample, processed_data_dir, datasets[x]
         )
-        process_map(
-            process_sample_partial, range(len(datasets[x])), max_workers=cpu_count
-        )
+
+        pool = mp.Pool(processes=cpu_count)
+        for _ in tqdm(
+            pool.imap_unordered(process_sample_partial, range(len(datasets[x]))),
+            total=len(datasets[x]),
+        ):
+            pass
 
 
 def log_metadata(X_train, X_test, metrics_prefix):
