@@ -7,7 +7,9 @@ Vertical federated learning (VFL) is branch of federated learning where the data
 - Retail: each retailer owns different information about customer and aggregating this information may results in better recommendations for the customer
 
 <br/><br/>
-<img src="./pics/fldatatypes.PNG" alt="Homogenous vs heterogenous data" width="400">
+<div align="center">
+    <img src="../pics/fldatatypes.PNG" alt="Homogenous vs heterogenous data" width="400">
+</div>
 
 > Note: In this tutorial we refer to "host" as the party who owns the data labels and optionally some part of features and "contributors" as parties who own only features and provide host with intermediate outputs of their share of the network
 
@@ -78,7 +80,9 @@ Afterwards, we can continue with regular training loop:
 - **Backward pass** - gradients are used to perform backward pass and update the network weights
 
 <br/><br/>
-<img src="./pics/vfltrainingloop.PNG" alt="Vertical federated learning training loop" width="400">
+<div align="center">
+    <img src="../pics/vfltrainingloop.PNG" alt="Vertical federated learning training loop" width="400">
+</div>
 
 ### Steps to launch
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/<example-name>/` to match your setup.
