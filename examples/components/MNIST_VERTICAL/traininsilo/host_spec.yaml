@@ -79,5 +79,5 @@ command: >-
   --local_size ${{inputs.local_size}}
   --local_rank ${{inputs.local_rank}}
 environment: 
-  conda_file: ../conda.yaml
+  conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
