@@ -192,6 +192,14 @@ def fl_cross_silo_upload_data():
         # make sure the compute corresponds to the silo
         silo_upload_data_step.compute = silo_config.compute
 
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_upload_data_step.resources is None:
+                silo_upload_data_step.resources = {}
+            silo_upload_data_step.resources[
+                "instance_type"
+            ] = silo_config.instance_type
+
         # make sure the data is written in the right datastore
         if args.example == "PNEUMONIA":
             silo_upload_data_step.outputs.raw_data_folder = Output(
