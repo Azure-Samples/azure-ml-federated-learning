@@ -109,6 +109,22 @@ def preprocess_data(
     )
 
     logger.debug(f"Loading data...")
+
+    ########## DDP benchmark############
+    '''
+    for i in range(10):
+        if i ==0:
+            train_df = pd.read_csv(raw_training_data + f"/train_filtered_0.csv")
+        else:  
+            train_df = train_df.append(pd.read_csv(raw_training_data + f"/train_filtered_{i}.csv"))
+
+    for i in range(10):
+        if i ==0:
+            test_df = pd.read_csv(raw_testing_data + f"/test_filtered_0.csv")
+        else:  
+            test_df = test_df.append(pd.read_csv(raw_testing_data + f"/test_filtered_{i}.csv"))
+    '''
+
     train_df = pd.read_csv(raw_training_data + f"/train_filtered.csv")
     test_df = pd.read_csv(raw_testing_data + f"/test_filtered.csv")
 

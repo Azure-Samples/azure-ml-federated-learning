@@ -29,7 +29,7 @@ import datasets as datasets
 
 
 
-def load_dataset( test_data_dir, model_name, benchmark):
+def load_dataset( test_data_dir, fraud_weight_path, model_name, benchmark):
     """Load dataset from {test_data_dir}
 
     Args:
@@ -38,11 +38,13 @@ def load_dataset( test_data_dir, model_name, benchmark):
     """
     logger.info(f" Test data dir: {test_data_dir}")
 
-    # if not running FL benchmark, 
+    # if not running FL/DP benchmark, 
     if benchmark:
         test_df = pd.read_csv(test_data_dir + "/unfiltered_data.csv")
+        fraud_weight = np.loadtxt(fraud_weight_path + "/unfiltered_fraud_weight.txt").item()
     else:
         test_df = pd.read_csv(test_data_dir + "/filtered_data.csv")
+        fraud_weight = np.loadtxt(fraud_weight_path + "/filtered_fraud_weight.txt").item()
 
     if model_name == "SimpleLinear":
         test_dataset = datasets.FraudDataset(test_df)
@@ -53,10 +55,10 @@ def load_dataset( test_data_dir, model_name, benchmark):
         f"Test data samples: {len(test_df)}"
     )
 
-    return  test_dataset, test_df.shape[1] - 1
+    return  test_dataset, test_df.shape[1] - 1, fraud_weight
 
 
-def log_metrics(client, run_id, key, value, experiment_name="default-experiment"):
+def log_metrics(client, run_id, key, value, experiment_name="evaluation"):
 
     client.log_metric(
         run_id=run_id,
@@ -68,7 +70,7 @@ def log_metrics(client, run_id, key, value, experiment_name="default-experiment"
 
 def test(args, device_id=None, distributed=False):
 
-    """Test the trained model and report test loss and accuracy"""
+    """Test the aggregate model and report test loss and accuracy"""
     test_metrics = RunningMetrics(
         ["loss", "accuracy", "precision", "recall"], prefix="test"
     )
@@ -85,7 +87,7 @@ def test(args, device_id=None, distributed=False):
         rank = None
 
 
-    test_dataset, input_dim = load_dataset(args.test_data_dir, args.model_name, args.benchmark)
+    test_dataset, input_dim, fraud_weight = load_dataset(args.test_data_dir, args.fraud_weight_path, args.model_name, args.benchmark)
 
     if distributed:
         logger.info("Setting up distributed samplers.")
@@ -103,7 +105,7 @@ def test(args, device_id=None, distributed=False):
     logger.info(f"Test loader steps: {len(test_dataloader)}")
 
 
-    fraud_weight = np.loadtxt(args.fraud_weight_path + "/unfiltered_fraud_weight.txt").item()
+
     model_path = os.path.join(args.checkpoint, "model.pt")
     DDP_state_dict = torch.load(model_path)
     state_dict = OrderedDict()
@@ -133,10 +135,6 @@ def test(args, device_id=None, distributed=False):
             for i, (data, target) in enumerate(test_dataloader):
                 data, labels = data.to(device), target.to(device)
                 predictions, net_loss = model(data)
-                '''if i == 0:
-                    all_predictions = predictions
-                else:
-                    np.concatenate((all_predictions, predictions), axis=0)'''
                 criterion.weight = (((labels == 1) * (fraud_weight - 1)) + 1).to(device)
                 loss = criterion(predictions, labels.type(torch.float)).item()
                 if net_loss is not None:
@@ -154,7 +152,6 @@ def test(args, device_id=None, distributed=False):
                 test_metrics.add_metric("loss", loss / data.shape[0])
                 test_metrics.step()
 
-        '''np.savetxt(f"{args.predictions_path}/predictions.txt", all_predictions)'''
         log_message = []
         for name, value in test_metrics.get_global().items():
             log_message.append(f"{name}: {value}")

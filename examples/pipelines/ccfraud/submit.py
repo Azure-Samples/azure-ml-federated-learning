@@ -282,7 +282,7 @@ def fl_ccfraud_basic():
                 path=silo_config.testing_data.path,
             ),
             metrics_prefix=silo_config.name,
-            benchmark = YAML_CONFIG.federated_learning.benchmark
+            benchmark = YAML_CONFIG.training_parameters.benchmark_test_all_data
         )
 
         # add a readable name to the step
@@ -321,7 +321,6 @@ def fl_ccfraud_basic():
     ################
     ### TRAINING ###
     ################
-    start_time = time.time()
 
     running_checkpoint = None  # for iteration 1, we have no pre-existing checkpoint
 
@@ -372,9 +371,9 @@ def fl_ccfraud_basic():
                 # Model name
                 model_name=YAML_CONFIG.training_parameters.model_name,
                 # Whether to benchmark
-                benchmark = YAML_CONFIG.federated_learning.benchmark,
+                benchmark = YAML_CONFIG.training_parameters.benchmark_test_all_data,
                 # Whether to train with all data
-                train_all_data = YAML_CONFIG.federated_learning.benchmark_train_all_data
+                train_all_data = YAML_CONFIG.training_parameters.benchmark_train_all_data
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -447,10 +446,6 @@ def fl_ccfraud_basic():
         # let's keep track of the checkpoint to be used as input for next iteration
         running_checkpoint = aggregate_weights_step.outputs.aggregated_output
     
-    
-    end_time = time.time()
-    training_duration = end_time - start_time
-    print(f"The total training duration is: ", training_duration)
   
 
     ################
@@ -472,7 +467,7 @@ def fl_ccfraud_basic():
             # Model name
             model_name=YAML_CONFIG.training_parameters.model_name,
             fraud_weight_path = silo_preprocessed_train_data[silo_index],
-            benchmark = YAML_CONFIG.federated_learning.benchmark,
+            benchmark = YAML_CONFIG.training_parameters.benchmark_test_all_data,
 
         )
         silo_evaluation_step.compute = silo_config.computes[0]
