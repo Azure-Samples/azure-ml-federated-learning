@@ -189,7 +189,6 @@ class CCFraudTrainer:
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-
         if pipeline_level:
             client.log_metric(
                 run_id=run_id,
@@ -515,7 +514,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

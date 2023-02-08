@@ -75,7 +75,6 @@ class AMLComm(ABC):
         }
 
     def log_stats(self, mlflow_client: mlflow.MlflowClient):
-
         self._stats["sending_time_avg"] = self._stats["sending_time"] / float(
             self._stats["msg_sent"]
         )

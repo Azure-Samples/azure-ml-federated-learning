@@ -249,7 +249,6 @@ def fl_ccfraud_vertical_basic():
     for silo_index, silo_config in enumerate(
         [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
-
         if silo_index == 0:
             # we're using training component here
             silo_training_step = training_host_component(
