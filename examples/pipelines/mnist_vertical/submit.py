@@ -129,11 +129,11 @@ def connect_to_aml():
 
 # Loading the component from their yaml specifications
 training_contributor_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor", "spec.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor_spec.yaml")
 )
 
 training_host_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "host", "spec.yaml")
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "host_spec.yaml")
 )
 
 
