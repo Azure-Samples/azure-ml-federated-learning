@@ -103,9 +103,11 @@ def preprocess_data(
     # Make sure directories exist and are empty, otherwise
     # there might be images that we have not accounted for
     os.makedirs(train_data_dir, exist_ok=True)
+    logger.info(f"Folder created: {train_data_dir}")
     remove_dir_contents(train_data_dir)
 
     os.makedirs(test_data_dir, exist_ok=True)
+    logger.info(f"Folder created: {test_data_dir}")
     remove_dir_contents(test_data_dir)
 
     if silo_index == 0:
