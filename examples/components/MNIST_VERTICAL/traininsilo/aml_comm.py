@@ -229,7 +229,7 @@ class AMLCommSocket(AMLComm):
 
         time_start = time.time()
         tries = 0
-        while time.time() - time_start < 60 and tries < 3:
+        while tries < 3:
             try:
                 msg = pickle.dumps({"flag": flag, "data": data})
                 conn.sendall(msg)
@@ -239,10 +239,9 @@ class AMLCommSocket(AMLComm):
                 if "flag" in msg and msg["flag"] == ok_flag:
                     break
                 else:
-                    logger.exception(
+                    raise Exception(
                         f"Message does not match ok flag {ok_flag}, received message: {msg}"
                     )
-                    continue
             except Exception as e:
                 logger.exception(e)
                 tries += 1
@@ -274,7 +273,7 @@ class AMLCommSocket(AMLComm):
         time_start = time.time()
         data = None
         tries = 0
-        while time.time() - time_start < 60 and tries < 3:
+        while tries < 3:
             try:
                 msg = b""
                 # The socket may use buffers smaller than suggested size
@@ -300,9 +299,9 @@ class AMLCommSocket(AMLComm):
                 logger.exception(e)
                 # Purge the socket buffer
                 conn.setblocking(0)
+                time.sleep(1)
                 conn.setblocking(1)
                 tries += 1
-                time.sleep(1)
                 # Send information about failure
                 conn.sendall(pickle.dumps({"flag": FLAGS.FAIL, "data": None}))
                 continue
