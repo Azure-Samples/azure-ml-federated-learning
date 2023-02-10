@@ -94,8 +94,13 @@ class PTLearner:
 
         # Training setup
         self.model_ = PneumoniaNetwork()
-        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_.to(self.device_)
+        if self._distributed:
+            self.model_ = DDP(
+                self.model_,
+                device_ids=[self._rank] if self._rank is not None else None,
+                output_device=self._rank,
+            )
         self.loss_ = nn.CrossEntropyLoss()
 
         # Data setup
@@ -125,7 +130,7 @@ class PTLearner:
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_,
             batch_size=32,
-            shuffle=True,
+            shuffle=(not self._distributed),
             drop_last=True,
             sampler=self.train_sampler_,
         )

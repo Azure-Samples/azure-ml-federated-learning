@@ -140,15 +140,15 @@ class NERTrainer:
 
         if self._distributed:
             logger.info("Setting up distributed samplers.")
-            self.train_sampler_ = DistributedSampler(self.train_dataset_)
-            self.test_sampler_ = DistributedSampler(self.test_dataset_)
+            self.train_sampler_ = DistributedSampler(train_dataset)
+            self.test_sampler_ = DistributedSampler(test_dataset)
         else:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
         self.train_loader_ = DataLoader(
             train_dataset,
-            shuffle=True,
+            shuffle=(not self._distributed),
             collate_fn=data_collator,
             batch_size=self._batch_size,
             sampler=self.train_sampler_,
@@ -180,13 +180,13 @@ class NERTrainer:
         logger.info(f"Trainable parameters: {trainable_params}")
 
         self.model_.train()
+        self.model_.to(self.device_)
         if self._distributed:
             self.model_ = DDP(
                 self.model_,
                 device_ids=[self._rank] if self._rank is not None else None,
                 output_device=self._rank,
             )
-        self.model_.to(self.device_)
         self.metric_ = evaluate.load("seqeval")
 
         # DP
