@@ -179,7 +179,6 @@ class NERTrainer:
                 trainable_params += p.numel()
         logger.info(f"Trainable parameters: {trainable_params}")
 
-        self.model_.train()
         self.model_.to(self.device_)
         if self._distributed:
             self.model_ = DDP(
