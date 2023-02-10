@@ -482,7 +482,8 @@ def run(args):
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",
         device_id=int(os.environ["RANK"]),
-        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available(),
+        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
+        and torch.cuda.is_available(),
     )
 
     trainer.execute(args.checkpoint)

@@ -594,7 +594,8 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
         device_id=int(os.environ["RANK"]),
-        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available(),
+        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
+        and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
 
