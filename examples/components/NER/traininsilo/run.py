@@ -191,6 +191,7 @@ class NERTrainer:
         # DP
         logger.info(f"DP: {dp}")
         if dp:
+            self.model_.train()
             if not ModuleValidator.is_valid(self.model_):
                 self.model_ = ModuleValidator.fix(self.model_)
 
