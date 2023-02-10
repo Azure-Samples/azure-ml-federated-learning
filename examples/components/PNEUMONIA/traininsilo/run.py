@@ -250,9 +250,15 @@ class PTLearner:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
         if checkpoint:
-            self.model_.load_state_dict(
-                torch.load(checkpoint + "/model.pt", map_location=self.device_)
-            )
+            if self._distributed:
+                # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+                self.model_.module.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
+            else:
+                self.model_.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
 
         with mlflow.start_run() as mlflow_run:
             # get Mlflow client and root run id
