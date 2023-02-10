@@ -598,7 +598,7 @@ def run(args):
     )
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+    if int(os.environ["WORLD_SIZE"]) > 1:
         dist.destroy_process_group()
 
 
