@@ -140,15 +140,15 @@ class NERTrainer:
 
         if self._distributed:
             logger.info("Setting up distributed samplers.")
-            self.train_sampler_ = DistributedSampler(self.train_dataset_)
-            self.test_sampler_ = DistributedSampler(self.test_dataset_)
+            self.train_sampler_ = DistributedSampler(train_dataset)
+            self.test_sampler_ = DistributedSampler(test_dataset)
         else:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
         self.train_loader_ = DataLoader(
             train_dataset,
-            shuffle=True,
+            shuffle=(not self._distributed),
             collate_fn=data_collator,
             batch_size=self._batch_size,
             sampler=self.train_sampler_,
@@ -157,7 +157,7 @@ class NERTrainer:
             test_dataset,
             collate_fn=data_collator,
             batch_size=self._batch_size,
-            sampler=self.train_sampler_,
+            sampler=self.test_sampler_,
         )
 
         logger.info(f"Train loader steps: {len(self.train_loader_)}")
@@ -179,19 +179,19 @@ class NERTrainer:
                 trainable_params += p.numel()
         logger.info(f"Trainable parameters: {trainable_params}")
 
-        self.model_.train()
+        self.model_.to(self.device_)
         if self._distributed:
             self.model_ = DDP(
                 self.model_,
                 device_ids=[self._rank] if self._rank is not None else None,
                 output_device=self._rank,
             )
-        self.model_.to(self.device_)
         self.metric_ = evaluate.load("seqeval")
 
         # DP
         logger.info(f"DP: {dp}")
         if dp:
+            self.model_.train()
             if not ModuleValidator.is_valid(self.model_):
                 self.model_ = ModuleValidator.fix(self.model_)
 
@@ -625,13 +625,13 @@ def run(args):
     logger.info(f"Distributed process rank: {os.environ['RANK']}")
     logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
 
-    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
             rank=int(os.environ["RANK"]),
-            world_size=int(os.environ["WORLD_SIZE"]),
+            world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
-    elif int(os.environ["WORLD_SIZE"]) > 1:
+    elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.init_process_group("gloo")
 
     trainer = NERTrainer(
@@ -651,11 +651,12 @@ def run(args):
         iteration_num=args.iteration_num,
         batch_size=args.batch_size,
         device_id=int(os.environ["RANK"]),
-        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
+        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
+        and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.destroy_process_group()
 
 
