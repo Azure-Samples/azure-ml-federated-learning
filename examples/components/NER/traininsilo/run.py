@@ -157,7 +157,7 @@ class NERTrainer:
             test_dataset,
             collate_fn=data_collator,
             batch_size=self._batch_size,
-            sampler=self.train_sampler_,
+            sampler=self.test_sampler_,
         )
 
         logger.info(f"Train loader steps: {len(self.train_loader_)}")
