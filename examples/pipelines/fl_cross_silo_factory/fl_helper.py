@@ -52,22 +52,12 @@ class FederatedLearningPipelineFactory:
 
     # def add_silo(self, name: str, computes: list, datastore: str, **custom_input_args):
     def add_silo(self, silo_config):
-        """Add a silo to the internal configuration of the builder.
+        """Add a silo to the internal configuration.
 
         Args:
-            computes (list): list of silo's computes
-            datastore (str): name of the datastore
-            **custom_input_args: any of those will be passed to the preprocessing step as-is
+            silo_config (dict): dict of silo's config that includes compute, datastore, inputs, etc
         """
-        self.silos.append(
-            # {
-            #     "name": name,
-            #     "computes": computes,
-            #     "datastore": datastore,
-            #     "custom_input_args": custom_input_args or {},
-            # }
-            silo_config
-        )
+        self.silos.append(silo_config)
 
     def custom_fl_data_output(
         self, datastore_name, output_name, unique_id="${{name}}", iteration_num=None
@@ -390,7 +380,10 @@ class FederatedLearningPipelineFactory:
                 # if not, it is a reference to a parent level data that we'll look up in the context
                 ref_key = data_def._data._data._name
             else:
+                if data_def._data._name in ["model", "aggregated_output"]:
+                    return data_def._data.type, None
                 # if data is None, we need to look it up in the context of the job
+
                 ref_key = data_def._data._name
 
             # we try as an input or output first
@@ -700,7 +693,6 @@ class FederatedLearningPipelineFactory:
         return True
 
 
-
 def scatter_gather(
     scatter,
     gather,
@@ -716,13 +708,13 @@ def scatter_gather(
     Args:
         scatter (Pipeline): Silo/Training subgraph step contains components such as pre-processing, training, etc
         gather (Pipeline): aggregation step to run in the orchestrator
+        scatter_strategy(Dict): Scatter/Silo config details including computes, datastore, etc
+        gather_strategy(Dict): Gather/orchestrator config details including compute, datastore, etc
         scatter_to_gather_map (Callable): function to map the outputs of the scatter step to the inputs of the gather step
-        gather_to_accumulator_map (Callable): function to map the outputs of the gather step to the accumulator
-        accumulator (Dict[Input]): a dictionary defining the input passed between iterations
+        gather_to_scatter_map (Callable): function to map the outputs of the gather step to the scatter input
         iterations (int): number of iterations to run (default: 1)
-        constant_scatter_args (Dict[Any]): any constant custom arguments passed to every scatter step (ex: training params)
+        scatter_constant_inputs (Dict[Any]): any constant custom arguments passed to every scatter step (ex: training params)
     """
-
 
     fl_factory = FederatedLearningPipelineFactory()
     fl_factory.orchestrator["datastore"] = gather_strategy["datastore"]
@@ -732,12 +724,8 @@ def scatter_gather(
         gather_strategy["datastore"],
     )
     # type checking
-    assert callable(
-        scatter_to_gather_map
-    ), "scatter_to_gather_map must be a function"
-    assert callable(
-        gather_to_scatter_map
-    ), "gather_to_scatter_map must be a function"
+    assert callable(scatter_to_gather_map), "scatter_to_gather_map must be a function"
+    assert callable(gather_to_scatter_map), "gather_to_scatter_map must be a function"
     assert isinstance(iterations, int), "iterations must be an int"
     assert iterations > 0, "iterations must be > 0"
 
@@ -773,7 +761,11 @@ def scatter_gather(
             # reserved scatter inputs
             scatter_arguments["iteration_num"] = iteration_num
             scatter_arguments["silo_compute1"] = silo_config["computes"][0]
-            scatter_arguments["silo_compute2"] = silo_config["computes"][1] if len(silo_config["computes"])>1 else silo_config["computes"][0]
+            scatter_arguments["silo_compute2"] = (
+                silo_config["computes"][1]
+                if len(silo_config["computes"]) > 1
+                else silo_config["computes"][0]
+            )
             scatter_arguments["silo_name"] = silo_config["name"]
 
             silo_subgraph_step = scatter(**scatter_arguments)
@@ -834,9 +826,9 @@ def scatter_gather(
         # now let's map the output of gather() to the accumulator for next iteration
         iteration_outputs = {}
         for key in aggregation_step.outputs:
-            iteration_outputs[
-                gather_to_scatter_map(key)
-            ] = aggregation_step.outputs[key]
+            iteration_outputs[gather_to_scatter_map(key)] = aggregation_step.outputs[
+                key
+            ]
 
         # and return that as the output of the iteration pipeline
         return iteration_outputs
@@ -878,9 +870,7 @@ def scatter_gather(
     # finally create an instance of the job
     pipeline_job = fl_pipeline()
 
-
     fl_factory.set_default_affinity_map()
-    # fl_factory.soft_validate(pipeline_job)
     # NOTE: for some reason, we need to anchor the output of that job as well
     # this is anchored to the orchestrator
     for key in pipeline_job.outputs:
@@ -890,4 +880,4 @@ def scatter_gather(
             fl_factory.custom_fl_data_output(gather_strategy["datastore"], key),
         )
 
-    return pipeline_job
+    return pipeline_job, fl_factory
