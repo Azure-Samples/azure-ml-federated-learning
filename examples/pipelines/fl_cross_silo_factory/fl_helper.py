@@ -38,6 +38,7 @@ class FederatedLearningPipelineFactory:
 
         # see soft_validate()
         self.affinity_map = {}
+        self.silo_set_flag = True
 
         self.logger = logging.getLogger(__name__)
 
@@ -380,8 +381,6 @@ class FederatedLearningPipelineFactory:
                 # if not, it is a reference to a parent level data that we'll look up in the context
                 ref_key = data_def._data._data._name
             else:
-                if data_def._data._name in ["model", "aggregated_output"]:
-                    return data_def._data.type, None
                 # if data is None, we need to look it up in the context of the job
 
                 ref_key = data_def._data._name
@@ -402,6 +401,8 @@ class FederatedLearningPipelineFactory:
                 f"{_path}: job i/o key={data_key} resolved to data definition name={data_def._data._name}"
             )
 
+            if ref_key == data_key and id(_data_def) == id(data_def):
+                return None, None
             # we recursively resolve it (in case there's multiple levels of references)
             return self._resolve_pipeline_data_path(
                 data_key=data_def._data._name,
@@ -585,9 +586,6 @@ class FederatedLearningPipelineFactory:
                 if output_path and output_path.startswith("azureml://datastores/"):
                     datastore = output_path[21:].split("/")[0]
                 else:
-                    soft_validation_report.append(
-                        f"In job {_path}, output={output_key} does not start with azureml://datastores/ but is {output_path}"
-                    )
                     continue
 
                 # verify affinity and log errors if they occur
@@ -747,7 +745,9 @@ def scatter_gather(
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(scatter_strategy):
-            fl_factory.add_silo(silo_config)
+
+            if fl_factory.silo_set_flag:
+                fl_factory.add_silo(silo_config)
             scatter_arguments = {}
             # custom scatter data inputs
             scatter_arguments.update(silo_config["inputs"])
@@ -829,7 +829,7 @@ def scatter_gather(
             iteration_outputs[gather_to_scatter_map(key)] = aggregation_step.outputs[
                 key
             ]
-
+        fl_factory.silo_set_flag = False
         # and return that as the output of the iteration pipeline
         return iteration_outputs
 
