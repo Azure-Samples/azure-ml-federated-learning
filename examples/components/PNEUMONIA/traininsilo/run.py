@@ -94,8 +94,13 @@ class PTLearner:
 
         # Training setup
         self.model_ = PneumoniaNetwork()
-        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.model_.to(self.device_)
+        if self._distributed:
+            self.model_ = DDP(
+                self.model_,
+                device_ids=[self._rank] if self._rank is not None else None,
+                output_device=self._rank,
+            )
         self.loss_ = nn.CrossEntropyLoss()
 
         # Data setup
@@ -125,7 +130,7 @@ class PTLearner:
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_,
             batch_size=32,
-            shuffle=True,
+            shuffle=(not self._distributed),
             drop_last=True,
             sampler=self.train_sampler_,
         )
@@ -245,9 +250,15 @@ class PTLearner:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
         if checkpoint:
-            self.model_.load_state_dict(
-                torch.load(checkpoint + "/model.pt", map_location=self.device_)
-            )
+            if self._distributed:
+                # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+                self.model_.module.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
+            else:
+                self.model_.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
 
         with mlflow.start_run() as mlflow_run:
             # get Mlflow client and root run id
@@ -449,13 +460,13 @@ def run(args):
     logger.info(f"Distributed process rank: {os.environ['RANK']}")
     logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
 
-    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
             rank=int(os.environ["RANK"]),
-            world_size=int(os.environ["WORLD_SIZE"]),
+            world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
-    elif int(os.environ["WORLD_SIZE"]) > 1:
+    elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.init_process_group("gloo")
 
     trainer = PTLearner(
@@ -471,12 +482,13 @@ def run(args):
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",
         device_id=int(os.environ["RANK"]),
-        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
+        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
+        and torch.cuda.is_available(),
     )
 
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.destroy_process_group()
 
 
