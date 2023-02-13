@@ -51,7 +51,6 @@ class FederatedLearningPipelineFactory:
         """
         self.orchestrator = {"compute": compute, "datastore": datastore}
 
-    # def add_silo(self, name: str, computes: list, datastore: str, **custom_input_args):
     def add_silo(self, silo_config):
         """Add a silo to the internal configuration.
 
@@ -745,7 +744,6 @@ def scatter_gather(
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(scatter_strategy):
-
             if fl_factory.silo_set_flag:
                 fl_factory.add_silo(silo_config)
             scatter_arguments = {}
@@ -838,7 +836,7 @@ def scatter_gather(
     )
     def fl_pipeline():
         """The entire scatter-gather pipeline."""
-        # initialize the accumulator
+        # initialize the checkpoint
         checkpoint = None
 
         # now for each iteration, run scatter-gather subgraph
@@ -851,7 +849,7 @@ def scatter_gather(
             # set a readable name for the iteration step
             iteration_step.name = f"scatter_gather_iteration_{iteration_num}"
 
-            # the running accumulator needs to be anchored to the orchestrator
+            # the running checkpoint needs to be anchored to the orchestrator
             for key in iteration_step.outputs:
                 setattr(
                     iteration_step.outputs,
@@ -859,11 +857,11 @@ def scatter_gather(
                     fl_factory.custom_fl_data_output(gather_strategy["datastore"], key),
                 )
 
-            # let's keep track of the accumulator to be used as input for next iteration
+            # let's keep track of the checkpoint to be used as input for next iteration
             checkpoint = iteration_step.outputs["checkpoint"]
 
         return {
-            # the only output is the accumulator with a custom key
+            # the only output is the checkpoint with a custom key
             "checkpoint": checkpoint
         }
 
