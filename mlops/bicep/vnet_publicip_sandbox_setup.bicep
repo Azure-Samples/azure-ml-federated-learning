@@ -175,18 +175,18 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
     compute1Name: 'silo${i}-01' // let's not use demo base name in cluster name
     compute1SKU: compute1SKU
     computeNodes: 2
-    compute2: compute2	
-    compute2SKU: compute2SKU	
-    compute2Name: 'silo${i}-02'	
-    datastoreName: 'datastore_silo${i}' // let's not use demo base name	
+    compute2: compute2
+    compute2SKU: compute2SKU
+    compute2Name: 'silo${i}-02'
+    datastoreName: 'datastore_silo${i}' // let's not use demo base name
 
-    // identity for permissions model	
-    identityType: identityType	
+    // identity for permissions model
+    identityType: identityType
 
-    // set R/W permissions for orchestrator UAI towards orchestrator storage	
-    applyDefaultPermissions: true	
+    // set R/W permissions for orchestrator UAI towards orchestrator storage
+    applyDefaultPermissions: true
 
-    // networking	
+    // networking
     vnetAddressPrefix: '10.0.${i+1}.0/24'
     subnetPrefix: '10.0.${i+1}.0/24'
 
