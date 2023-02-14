@@ -4,7 +4,7 @@ import logging
 import sys
 import copy
 import os
-from aml_comm import AMLCommSocket, AMLCommSB, AMLCommSBAuthMethod
+from aml_comm import AMLCommSocket
 
 import mlflow
 import torch
