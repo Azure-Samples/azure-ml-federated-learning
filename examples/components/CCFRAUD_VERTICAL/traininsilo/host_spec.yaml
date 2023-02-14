@@ -64,7 +64,7 @@ outputs:
     type: uri_folder
     description: the output checkpoint
 
-code: ..
+code: .
 
 command: >-
   python host.py
@@ -81,5 +81,5 @@ command: >-
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
 environment: 
-  conda_file: ../conda.yaml
+  conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

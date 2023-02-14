@@ -100,20 +100,15 @@ def preprocess_data(
     train_data = pd.read_csv(raw_training_data, index_col=0).reset_index()
     test_data = pd.read_csv(raw_testing_data, index_col=0).reset_index()
 
-    print(train_data.head)
-    print(train_data.shape)
-
     # Make sure directories exist and are empty, otherwise
     # there might be images that we have not accounted for
-    if not os.path.exists(train_data_dir):
-        os.makedirs(train_data_dir, exist_ok=True)
-    else:
-        remove_dir_contents(train_data_dir)
+    os.makedirs(train_data_dir, exist_ok=True)
+    logger.info(f"Folder created: {train_data_dir}")
+    remove_dir_contents(train_data_dir)
 
-    if not os.path.exists(test_data_dir):
-        os.makedirs(test_data_dir, exist_ok=True)
-    else:
-        remove_dir_contents(test_data_dir)
+    os.makedirs(test_data_dir, exist_ok=True)
+    logger.info(f"Folder created: {test_data_dir}")
+    remove_dir_contents(test_data_dir)
 
     if silo_index == 0:
         train_data[["label"]].to_csv(f"{train_data_dir}/train.csv")
