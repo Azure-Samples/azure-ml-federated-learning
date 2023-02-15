@@ -28,28 +28,36 @@ import itertools
 from azure.ai.ml.entities._job.pipeline._io import NodeOutput, PipelineInput
 from azure.ai.ml.exceptions import ValidationException
 
+logger = logging.getLogger(__name__)
 
-class FederatedLearningPipelineFactory:
-    def __init__(self):
+
+class FLValidationEngine:
+    def __init__(self, scatter_config, gather_config):
         """Constructor"""
         self.silos = []
         self.orchestrator = {}
-        self.unique_identifier = self.getUniqueIdentifier()
+
+        self.set_orchestrator(gather_config)
+        self.set_silos(scatter_config)
 
         # see soft_validate()
         self.affinity_map = {}
-        self.silo_set_flag = True
+        self.set_default_affinity_map()
 
         self.logger = logging.getLogger(__name__)
 
-    def set_orchestrator(self, compute: str, datastore: str):
+    def set_orchestrator(self, gather_config):
         """Set the internal configuration of the orchestrator.
 
         Args:
             compute (str): name of the compute target
             datastore (str): name of the datastore
         """
-        self.orchestrator = {"compute": compute, "datastore": datastore}
+        self.orchestrator = gather_config
+
+    def set_silos(self, scatter_config):
+        for silo_config in scatter_config:
+            self.add_silo(silo_config)
 
     def add_silo(self, silo_config):
         """Add a silo to the internal configuration.
@@ -58,156 +66,6 @@ class FederatedLearningPipelineFactory:
             silo_config (dict): dict of silo's config that includes compute, datastore, inputs, etc
         """
         self.silos.append(silo_config)
-
-    def custom_fl_data_output(
-        self, datastore_name, output_name, unique_id="${{name}}", iteration_num=None
-    ):
-        """Returns an Output pointing to a path to store the data during FL training.
-
-        Args:
-            datastore_name (str): name of the Azure ML datastore
-            output_name (str): a name unique to this output
-            unique_id (str): a unique id for the run (default: inject run id with ${{name}})
-            iteration_num (str): an iteration number if relevant
-
-        Returns:
-            data_path (str): direct url to the data path to store the data
-        """
-        data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/{unique_id}/"
-        if iteration_num:
-            data_path += f"iteration_{iteration_num}/"
-
-        return Output(type=AssetTypes.URI_FOLDER, mode="mount", path=data_path)
-
-    def getUniqueIdentifier(self, length=8):
-        """Generate a random string and concatenates it with today's date
-
-        Args:
-            length (int): length of the random string (default: 8)
-        """
-        str = string.ascii_lowercase
-        date = datetime.date.today().strftime("%Y_%m_%d_")
-        return date + "".join(random.choice(str) for i in range(length))
-
-    def anchor_step_in_silo(
-        self,
-        pipeline_step,
-        compute,
-        output_datastore,
-        tags={},
-        description=None,
-        _path="root",
-    ):
-        """Take a step and recursively enforces the right compute/datastore config.
-
-        Args:
-            pipeline_step (PipelineStep): a step to anchor
-            compute (str): name of the compute target
-            output_datastore (str): name of the datastore for the outputs of this step
-            tags (dict): tags to add to the step in AzureML UI
-            description (str): description of the step in AzureML UI
-            _path (str): for recursive anchoring, codes the "path" inside the pipeline
-
-        Returns:
-            pipeline_step (PipelineStep): the anchored step
-        """
-        self.logger.debug(f"{_path}: anchoring node of type={pipeline_step.type}")
-
-        if pipeline_step.type == "pipeline":  # if the current step is a pipeline
-            if hasattr(pipeline_step, "component"):
-                # current step is a pipeline component
-                self.logger.debug(f"{_path} --  pipeline component detected")
-
-                # then anchor the component inside the current step
-                self.anchor_step_in_silo(
-                    pipeline_step.component,
-                    compute,
-                    output_datastore,
-                    tags=tags,
-                    description=description,
-                    _path=f"{_path}.component",  # pass the path for the debug logs
-                )
-
-                # and make sure every output data is anchored to the right datastore
-                for key in pipeline_step.outputs:
-                    self.logger.debug(
-                        f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
-                    )
-                    setattr(
-                        pipeline_step.outputs,
-                        key,
-                        self.custom_fl_data_output(output_datastore, key),
-                    )
-
-            else:
-                # current step is a (regular) pipeline (likely the root of the graph)
-                self.logger.debug(f"{_path}: pipeline (regular) detected")
-
-                # let's anchor each outputs of the pipeline to the right datastore
-                for key in pipeline_step.outputs:
-                    self.logger.debug(
-                        f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
-                    )
-                    pipeline_step.outputs[key] = self.custom_fl_data_output(
-                        self.orchestrator["datastore"], key
-                    )
-
-                # then recursively anchor each job inside the pipeline
-                for job_key in pipeline_step.jobs:
-                    job = pipeline_step.jobs[job_key]
-                    self.anchor_step_in_silo(
-                        job,
-                        compute,
-                        output_datastore,
-                        tags=tags,
-                        description=description,
-                        _path=f"{_path}.jobs.{job_key}",  # pass the path for the debug logs
-                    )
-
-            # return the anchored pipeline
-            return pipeline_step
-
-        elif pipeline_step.type == "command":
-            # if the current step is a command
-            self.logger.debug(f"{_path}: command detected")
-
-            # make sure the compute corresponds to the silo
-            if pipeline_step.compute is None:
-                self.logger.debug(
-                    f"{_path}: compute is None, forcing compute={compute} instead"
-                )
-                pipeline_step.compute = compute
-
-            # then anchor each of the job's outputs to the right datastore
-            for key in pipeline_step.outputs:
-                self.logger.debug(
-                    f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
-                )
-
-                if pipeline_step.outputs[key]._data is None:
-                    # if the output is an intermediary output
-                    self.logger.debug(
-                        f"{_path}.outputs.{key}: intermediary output detected, forcing datastore {output_datastore}"
-                    )
-                    setattr(
-                        pipeline_step.outputs,
-                        key,
-                        self.custom_fl_data_output(output_datastore, key),
-                    )
-                else:
-                    # if the output is an internal reference to a parent output
-                    # let's trust that the parent has been anchored properly
-                    self.logger.debug(
-                        f"{_path}.outputs.{key}: reference ouptut detected, leaving as is"
-                    )
-
-            # return the anchored pipeline
-            return pipeline_step
-
-        else:
-            raise NotImplementedError(
-                f"under path={_path}: step type={pipeline_step.type} is not supported"
-            )
 
     ###########################
     ### AFFINITY VALIDATION ###
@@ -690,6 +548,159 @@ class FederatedLearningPipelineFactory:
         return True
 
 
+def custom_fl_data_output(
+    datastore_name, output_name, unique_id="${{name}}", iteration_num=None
+):
+    """Returns an Output pointing to a path to store the data during FL training.
+
+    Args:
+        datastore_name (str): name of the Azure ML datastore
+        output_name (str): a name unique to this output
+        unique_id (str): a unique id for the run (default: inject run id with ${{name}})
+        iteration_num (str): an iteration number if relevant
+
+    Returns:
+        data_path (str): direct url to the data path to store the data
+    """
+    data_path = f"azureml://datastores/{datastore_name}/paths/federated_learning/{output_name}/{unique_id}/"
+    if iteration_num:
+        data_path += f"iteration_{iteration_num}/"
+
+    return Output(type=AssetTypes.URI_FOLDER, mode="mount", path=data_path)
+
+
+def getUniqueIdentifier(length=8):
+    """Generate a random string and concatenates it with today's date
+
+    Args:
+        length (int): length of the random string (default: 8)
+    """
+    str = string.ascii_lowercase
+    date = datetime.date.today().strftime("%Y_%m_%d_")
+    return date + "".join(random.choice(str) for i in range(length))
+
+
+def anchor_step_in_silo(
+    pipeline_step,
+    compute,
+    output_datastore,
+    tags={},
+    description=None,
+    orchestrator_datastore=None,
+    _path="root",
+):
+    """Take a step and recursively enforces the right compute/datastore config.
+
+    Args:
+        pipeline_step (PipelineStep): a step to anchor
+        compute (str): name of the compute target
+        output_datastore (str): name of the datastore for the outputs of this step
+        tags (dict): tags to add to the step in AzureML UI
+        description (str): description of the step in AzureML UI
+        _path (str): for recursive anchoring, codes the "path" inside the pipeline
+
+    Returns:
+        pipeline_step (PipelineStep): the anchored step
+    """
+    logger.debug(f"{_path}: anchoring node of type={pipeline_step.type}")
+
+    if pipeline_step.type == "pipeline":  # if the current step is a pipeline
+        if hasattr(pipeline_step, "component"):
+            # current step is a pipeline component
+            logger.debug(f"{_path} --  pipeline component detected")
+
+            # then anchor the component inside the current step
+            anchor_step_in_silo(
+                pipeline_step.component,
+                compute,
+                output_datastore,
+                tags=tags,
+                description=description,
+                orchestrator_datastore=orchestrator_datastore,
+                _path=f"{_path}.component",  # pass the path for the debug logs
+            )
+
+            # and make sure every output data is anchored to the right datastore
+            for key in pipeline_step.outputs:
+                logger.debug(
+                    f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
+                )
+                setattr(
+                    pipeline_step.outputs,
+                    key,
+                    custom_fl_data_output(output_datastore, key),
+                )
+
+        else:
+            # current step is a (regular) pipeline (likely the root of the graph)
+            logger.debug(f"{_path}: pipeline (regular) detected")
+
+            # let's anchor each outputs of the pipeline to the right datastore
+            for key in pipeline_step.outputs:
+                logger.debug(
+                    f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
+                )
+                pipeline_step.outputs[key] = custom_fl_data_output(
+                    orchestrator_datastore, key
+                )
+
+            # then recursively anchor each job inside the pipeline
+            for job_key in pipeline_step.jobs:
+                job = pipeline_step.jobs[job_key]
+                anchor_step_in_silo(
+                    job,
+                    compute,
+                    output_datastore,
+                    tags=tags,
+                    description=description,
+                    orchestrator_datastore=orchestrator_datastore,
+                    _path=f"{_path}.jobs.{job_key}",  # pass the path for the debug logs
+                )
+
+        # return the anchored pipeline
+        return pipeline_step
+
+    elif pipeline_step.type == "command":
+        # if the current step is a command
+        logger.debug(f"{_path}: command detected")
+
+        # make sure the compute corresponds to the silo
+        if pipeline_step.compute is None:
+            logger.debug(f"{_path}: compute is None, forcing compute={compute} instead")
+            pipeline_step.compute = compute
+
+        # then anchor each of the job's outputs to the right datastore
+        for key in pipeline_step.outputs:
+            logger.debug(
+                f"{_path}.outputs.{key}: has type={pipeline_step.outputs[key].type} class={type(pipeline_step.outputs[key])}, anchoring to datastore={output_datastore}"
+            )
+
+            if pipeline_step.outputs[key]._data is None:
+                # if the output is an intermediary output
+                logger.debug(
+                    f"{_path}.outputs.{key}: intermediary output detected, forcing datastore {output_datastore}"
+                )
+                setattr(
+                    pipeline_step.outputs,
+                    key,
+                    custom_fl_data_output(output_datastore, key),
+                )
+            else:
+                # if the output is an internal reference to a parent output
+                # let's trust that the parent has been anchored properly
+                logger.debug(
+                    f"{_path}.outputs.{key}: reference ouptut detected, leaving as is"
+                )
+
+        # return the anchored pipeline
+        return pipeline_step
+
+    else:
+        raise NotImplementedError(
+            f"under path={_path}: step type={pipeline_step.type} is not supported"
+        )
+
+
 def scatter_gather(
     scatter,
     gather,
@@ -713,13 +724,6 @@ def scatter_gather(
         scatter_constant_inputs (Dict[Any]): any constant custom arguments passed to every scatter step (ex: training params)
     """
 
-    fl_factory = FederatedLearningPipelineFactory()
-    fl_factory.orchestrator["datastore"] = gather_strategy["datastore"]
-    fl_factory.set_orchestrator(
-        # provide settings for orchestrator
-        gather_strategy["compute"],
-        gather_strategy["datastore"],
-    )
     # type checking
     assert callable(scatter_to_gather_map), "scatter_to_gather_map must be a function"
     assert callable(gather_to_scatter_map), "gather_to_scatter_map must be a function"
@@ -744,8 +748,6 @@ def scatter_gather(
 
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(scatter_strategy):
-            if fl_factory.silo_set_flag:
-                fl_factory.add_silo(silo_config)
             scatter_arguments = {}
             # custom scatter data inputs
             scatter_arguments.update(silo_config["inputs"])
@@ -771,10 +773,11 @@ def scatter_gather(
 
             for silo_compute in silo_config["computes"]:
                 # every step within the silo_subgraph_step needs to be anchored in the SILO
-                fl_factory.anchor_step_in_silo(
+                anchor_step_in_silo(
                     silo_subgraph_step,
                     compute=silo_compute,
                     output_datastore=silo_config["datastore"],
+                    orchestrator_datastore=gather_strategy["datastore"],
                     _path="silo_subgraph_step",  # to help with debug logging
                 )
 
@@ -785,7 +788,7 @@ def scatter_gather(
                 setattr(
                     silo_subgraph_step.outputs,
                     key,
-                    fl_factory.custom_fl_data_output(gather_strategy["datastore"], key),
+                    custom_fl_data_output(gather_strategy["datastore"], key),
                 )
 
             # each output is added to a list to be fed into gather() as a distinct inputs
@@ -815,10 +818,11 @@ def scatter_gather(
         aggregation_step = gather(**gather_inputs_dict)
 
         # and let's anchor the output of gather() in the ORCHESTRATOR
-        fl_factory.anchor_step_in_silo(
+        anchor_step_in_silo(
             aggregation_step,
             compute=gather_strategy["compute"],
             output_datastore=gather_strategy["datastore"],
+            orchestrator_datastore=gather_strategy["datastore"],
             _path="aggregation_step",  # to help with debug logging
         )
         # now let's map the output of gather() to the accumulator for next iteration
@@ -827,12 +831,11 @@ def scatter_gather(
             iteration_outputs[gather_to_scatter_map(key)] = aggregation_step.outputs[
                 key
             ]
-        fl_factory.silo_set_flag = False
         # and return that as the output of the iteration pipeline
         return iteration_outputs
 
     @pipeline(
-        description=f'FL cross-silo factory pipeline and the unique identifier is "{fl_factory.unique_identifier}" that can help you to track files in the storage account.',
+        description=f'FL cross-silo factory pipeline and the unique identifier is "{getUniqueIdentifier()}" that can help you to track files in the storage account.',
     )
     def fl_pipeline():
         """The entire scatter-gather pipeline."""
@@ -854,7 +857,7 @@ def scatter_gather(
                 setattr(
                     iteration_step.outputs,
                     key,
-                    fl_factory.custom_fl_data_output(gather_strategy["datastore"], key),
+                    custom_fl_data_output(gather_strategy["datastore"], key),
                 )
 
             # let's keep track of the checkpoint to be used as input for next iteration
@@ -868,14 +871,13 @@ def scatter_gather(
     # finally create an instance of the job
     pipeline_job = fl_pipeline()
 
-    fl_factory.set_default_affinity_map()
     # NOTE: for some reason, we need to anchor the output of that job as well
     # this is anchored to the orchestrator
     for key in pipeline_job.outputs:
         setattr(
             pipeline_job.outputs,
             key,
-            fl_factory.custom_fl_data_output(gather_strategy["datastore"], key),
+            custom_fl_data_output(gather_strategy["datastore"], key),
         )
 
-    return pipeline_job, fl_factory
+    return pipeline_job

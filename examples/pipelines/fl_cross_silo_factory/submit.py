@@ -187,12 +187,6 @@ aggregate_component = load_component(
 # in the docstrings.
 
 
-def get_gather_config() -> dict:
-    """Get gather details that includes orchestrator/gather compute and datastore."""
-
-    return YAML_CONFIG.orchestrator
-
-
 @pipeline
 def gather_pipeline(
     input_silo_1: Input,
@@ -349,10 +343,10 @@ def get_scatter_constant_inputs():
 from fl_helper import scatter_gather
 
 scatter_configs = get_scatter_configs()
-gather_config = get_gather_config()
-scatter_constant_inputs = get_scatter_constant_inputs()
+gather_config = YAML_CONFIG.orchestrator
+scatter_constant_inputs = YAML_CONFIG.inputs
 
-pipeline_job, fl_factory = scatter_gather(
+pipeline_job = scatter_gather(
     scatter=silo_scatter_subgraph,
     gather=gather_pipeline,
     scatter_strategy=scatter_configs,
@@ -363,13 +357,19 @@ pipeline_job, fl_factory = scatter_gather(
     scatter_constant_inputs=scatter_constant_inputs,
 )
 
+#########################################
+### E. Pipeline Validation (optional) ###
+#########################################
+
+if not args.ignore_validation:
+    from fl_helper import FLValidationEngine
+
+    fl_val_engine = FLValidationEngine(scatter_configs, gather_config)
+    fl_val_engine.soft_validate(pipeline_job)
 
 #############################
 ### E. Submit to Azure ML ###
 #############################
-
-if not args.ignore_validation:
-    fl_factory.soft_validate(pipeline_job)
 
 if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
