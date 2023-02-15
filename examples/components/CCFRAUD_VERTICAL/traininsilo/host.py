@@ -4,7 +4,7 @@ import logging
 import sys
 import copy
 import os
-from aml_comm import AMLCommSocket
+from aml_comm import AMLCommRedis
 
 import mlflow
 import torch
@@ -499,9 +499,17 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    global_comm = AMLCommSocket(
-        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+    redis_connection_string = "<REDIS-CONNECTION-STRING>"
     )
+    global_comm = AMLCommRedis(
+        args.global_rank,
+        args.global_size,
+        os.environ.get("AZUREML_ROOT_RUN_ID"),
+        connection_string=redis_connection_string,
+    )
+    # global_comm = AMLCommSocket(
+    #     args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+    # )
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
@@ -511,6 +519,7 @@ def main(cli_args=None):
     with mlflow.start_run() as mlflow_run:
         mlflow_client = mlflow.tracking.client.MlflowClient()
         global_comm.log_stats(mlflow_client)
+    global_comm.close()
 
 
 if __name__ == "__main__":

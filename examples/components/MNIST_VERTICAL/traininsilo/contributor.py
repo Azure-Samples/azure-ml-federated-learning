@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 import os
-from aml_comm import AMLCommSocket
+from aml_comm import AMLCommRedis
 
 import mlflow
 import torch
@@ -312,7 +312,7 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def run(global_comm, args):
+def run(args, global_comm):
     """Run script with arguments (the core of the component).
 
     Args:
@@ -352,17 +352,27 @@ def main(cli_args=None):
     logger.info(args.train_data)
     logger.info(args.test_data)
 
-    global_comm = AMLCommSocket(
-        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+    redis_connection_string = "<REDIS-CONNECTION-STRING>"
     )
+    global_comm = AMLCommRedis(
+        args.global_rank,
+        args.global_size,
+        os.environ.get("AZUREML_ROOT_RUN_ID"),
+        connection_string=redis_connection_string,
+    )
+    # global_comm = AMLCommSocket(
+    #     args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+    # )
 
-    print(f"Running script with arguments: {args}")
-    run(global_comm, args)
+    logger.info(f"CUDA available: {torch.cuda.is_available()}")
+    logger.info(f"Running script with arguments: {args}")
+    run(args, global_comm)
 
     # log messaging stats
     with mlflow.start_run() as mlflow_run:
         mlflow_client = mlflow.tracking.client.MlflowClient()
         global_comm.log_stats(mlflow_client)
+    global_comm.close()
 
 
 if __name__ == "__main__":

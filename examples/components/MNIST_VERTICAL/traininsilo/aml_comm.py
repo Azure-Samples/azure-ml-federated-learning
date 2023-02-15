@@ -7,6 +7,7 @@ import time
 import pickle
 import logging
 import socket
+import redis
 
 from enum import Enum
 
@@ -362,4 +363,184 @@ class AMLCommSocket(AMLComm):
 
     def __del__(self):
         """Close the communication channels gracefully on object dereferencing"""
+        self.close()
+
+
+class AMLCommRedis(AMLComm):
+    def __init__(
+        self,
+        rank,
+        world_size,
+        run_id,
+        connection_string=None,
+        message_timeout=60,
+        connect_timeout=1800,
+    ) -> None:
+        super().__init__(rank, world_size, run_id)
+
+        if connection_string is not None:
+            from urllib.parse import urlparse, parse_qs
+
+            connection_string = (
+                connection_string[: connection_string.index(",")]
+                + "?"
+                + connection_string[connection_string.index(",") + 1 :]
+            )
+            connection_string = connection_string.replace(",", "&")
+
+            if parse_qs(urlparse(connection_string).query)["ssl"][0].lower() == "true":
+                connection_string = "rediss://" + connection_string
+                connection_string = connection_string.replace("&ssl=True", "")
+            else:
+                connection_string = "redis://" + connection_string
+                connection_string = connection_string.replace("&ssl=False", "")
+            connection_string = connection_string.replace("&abortConnect=True", "")
+            connection_string = connection_string.replace("&abortConnect=False", "")
+
+        self._client: redis.Redis = redis.Redis.from_url(
+            connection_string,
+            health_check_interval=10,
+            socket_connect_timeout=connect_timeout,
+            retry_on_timeout=True,
+            socket_keepalive=True,
+        )
+        self._pubsub: dict[str, redis.client.PubSub] = {}
+        self._timeout = message_timeout
+        if self._rank == 0:
+            self._wait_for_connection(connect_timeout)
+            for i in range(1, self._world_size):
+                session_id = self._get_session_id(i, self._rank)
+                self._pubsub[session_id] = self._client.pubsub()
+                self._pubsub[session_id].subscribe(session_id)
+                self._pubsub_check_health(self._pubsub[session_id])
+        else:
+            session_id = self._get_session_id(0, self._rank)
+            self._pubsub[session_id] = self._client.pubsub()
+            self._pubsub[session_id].subscribe(session_id)
+            self._pubsub_check_health(self._pubsub[session_id])
+
+            self._wait_for_connection(connect_timeout)
+
+    def _wait_for_connection(self, connect_timeout: int):
+        if self._rank == 0:
+            connected = []
+            for i in range(1, self._world_size):
+                time_start = time.time()
+                while time.time() - time_start < connect_timeout:
+                    session_id = self._get_session_id(self._rank, i)
+                    if self._client.pubsub_numsub(session_id)[0][1] > 0:
+                        connected.append(i)
+                        logger.info(f"Connected to {i}")
+                        break
+            if len(connected) != self._world_size - 1:
+                raise Exception(
+                    f"Some clients did not connect, connected clients: {connected}"
+                )
+
+        else:
+            time_start = time.time()
+            while time.time() - time_start < connect_timeout:
+                session_id = self._get_session_id(self._rank, 0)
+                if self._client.pubsub_numsub(session_id)[0][1] > 0:
+                    logger.info(f"Connected to 0")
+                    return
+
+            raise Exception(f"Failed to connect to client 0")
+
+    def _get_session_id(self, source: int, destination: int, flag: FLAGS = None):
+        if flag is None:
+            return f"{self._run_id}:{source}=>{destination}"
+        return f"{self._run_id}:{source}=>{destination}:{FLAGS[flag].name}"
+
+    def _pubsub_check_health(self, pubsub):
+        import threading
+
+        try:
+            pubsub.check_health()
+        except Exception as e:
+            # If an exception is thrown the connection was closed by the server
+            # and thus we do not need to start timer again
+            return
+
+        pubsub_check_timer = threading.Timer(5, self._pubsub_check_health, [pubsub])
+        pubsub_check_timer.start()
+
+    def send(self, data, destination) -> None:
+        time_start = time.time()
+        retries = 0
+
+        while time.time() - time_start < self._timeout and retries < 3:
+            try:
+                assert destination != self._rank
+                if self._rank != 0:
+                    assert destination == 0
+
+                session_id = self._get_session_id(self._rank, destination)
+                if self._client.publish(session_id, pickle.dumps(data)) >= 1:
+                    self._stats["msg_sent"] += 1
+                    self._stats["sending_time"] += time.time() - time_start
+                    return
+                else:
+                    continue
+            except Exception as e:
+                logger.exception(
+                    Exception(f"There was problem delivering message to {destination}")
+                )
+                logger.exception(e)
+
+                retries += 1
+                if retries >= 3:
+                    raise e
+
+        e = Exception(f"Sending message to {destination} timed out")
+        logger.exception(e)
+        raise e
+
+    def recv(self, source):
+        assert source != self._rank
+        if self._rank != 0:
+            assert source == 0
+
+        session_id = self._get_session_id(source, self._rank)
+        time_start = time.time()
+        retries = 0
+
+        # logger.info(f"Receiving message from {source}")
+        while time.time() - time_start < self._timeout and retries < 3:
+            try:
+                message = self._pubsub[session_id].get_message()
+                if message is not None and message["type"] != "subscribe":
+                    self._stats["waiting_time"] += time.time() - time_start
+
+                    message = pickle.loads(message["data"])
+
+                    self._stats["msg_received"] += 1
+                    self._stats["receiving_time"] += time.time() - time_start
+                    return message
+                else:
+                    continue
+
+            except redis.exceptions.ConnectionError as e:
+                logger.warning(e)
+                self._pubsub[session_id].close()
+                self._pubsub[session_id] = self._client.pubsub()
+                self._pubsub[session_id].subscribe(session_id)
+                self._pubsub_check_health(self._pubsub[session_id])
+
+                retries += 1
+            except Exception as e:
+                logger.exception(e)
+                raise e
+
+        e = Exception(f"Receiving message from {source} timed out")
+        logger.exception(e)
+        raise e
+
+    def close(self):
+        logger.info("Closing Redis clients")
+        for session_id in self._pubsub:
+            self._pubsub[session_id].close()
+        self._client.close()
+
+    def __del__(self):
         self.close()
