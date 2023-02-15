@@ -342,11 +342,11 @@ pipeline_job = scatter_gather(
 ### E. Pipeline Validation (optional) ###
 #########################################
 
-if not args.ignore_validation:
-    from fl_helper import FLValidationEngine
 
-    fl_val_engine = FLValidationEngine(scatter_configs, gather_config)
-    fl_val_engine.soft_validate(pipeline_job)
+from fl_helper import FLValidationEngine
+
+fl_val_engine = FLValidationEngine(scatter_configs, gather_config)
+fl_val_engine.soft_validate(pipeline_job, raise_exception=not args.ignore_validation)
 
 #############################
 ### E. Submit to Azure ML ###
