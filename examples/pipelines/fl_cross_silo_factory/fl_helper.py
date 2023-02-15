@@ -44,18 +44,20 @@ class FLValidationEngine:
         self.affinity_map = {}
         self.set_default_affinity_map()
 
-        self.logger = logging.getLogger(__name__)
-
     def set_orchestrator(self, gather_config):
         """Set the internal configuration of the orchestrator.
 
         Args:
-            compute (str): name of the compute target
-            datastore (str): name of the datastore
+            gather_config (dict): Contains config such as compute, datastore, etc.
         """
         self.orchestrator = gather_config
 
     def set_silos(self, scatter_config):
+        """Set the internal configuration of the silos.
+
+        Args:
+            scatter_config (dict): Contains the config for each silo.
+        """
         for silo_config in scatter_config:
             self.add_silo(silo_config)
 
@@ -63,7 +65,7 @@ class FLValidationEngine:
         """Add a silo to the internal configuration.
 
         Args:
-            silo_config (dict): dict of silo's config that includes compute, datastore, inputs, etc
+            silo_config (dict): dict of silo's config that includes compute, datastore, inputs, etc.
         """
         self.silos.append(silo_config)
 
@@ -204,33 +206,33 @@ class FLValidationEngine:
             str: the type of the data
             str: the resolved data input/output path or value
         """
-        self.logger.debug(
+        logger.debug(
             f"{_path}: resolving data_key={data_key} type={data_def.type} class={data_def.__class__.__name__} with inputs_map={list(inputs_map.keys())} outputs_map={list(outputs_map.keys())}"
         )
 
         # if data is not data at all, just return it
         if data_def.type in ["string", "boolean", "integer", "number"]:
-            self.logger.debug(f"{_path}: job i/o key={data_key} is not data")
+            logger.debug(f"{_path}: job i/o key={data_key} is not data")
             return data_def.type, None
 
         # if data is an actual input/output, just return the path directly
         if isinstance(data_def._data, Input):
-            self.logger.debug(f"{_path}: job i/o key={data_key} is input")
+            logger.debug(f"{_path}: job i/o key={data_key} is input")
             return data_def._data.type, data_def._data.path
         if isinstance(data_def._data, Output):
-            self.logger.debug(f"{_path}: job i/o key={data_key} is output")
+            logger.debug(f"{_path}: job i/o key={data_key} is output")
             return data_def._data.type, data_def._data.path
 
         if data_def._data is not None:
             # if data is an internal reference inside the graph
-            self.logger.debug(
+            logger.debug(
                 f"{_path}: job i/o key={data_key} is an internal reference to parent level data name={data_def._data._name}"
             )
 
             if data_def._data._data is not None:
                 # if that reference is a direct link with a path, return it
                 if "path" in data_def._data._data.__dict__:
-                    self.logger.debug(
+                    logger.debug(
                         f"{_path}: job i/o key={data_key} is a direct link to path={data_def._data._data.path}"
                     )
                     return data_def._data._data.type, data_def._data._data.path
@@ -254,7 +256,7 @@ class FLValidationEngine:
                 )
 
             # when we find the actual reference
-            self.logger.debug(
+            logger.debug(
                 f"{_path}: job i/o key={data_key} resolved to data definition name={data_def._data._name}"
             )
 
@@ -270,7 +272,7 @@ class FLValidationEngine:
             )
         else:
             # if data ref is None, it's likely an optional input
-            self.logger.debug(
+            logger.debug(
                 f"{_path}: job i/o key={data_key} is pointing to None (optional input)"
             )
             return None, None
@@ -291,7 +293,7 @@ class FLValidationEngine:
         soft_validation_report = []
 
         # debug logs
-        self.logger.debug(
+        logger.debug(
             f"{_path}: recursive validation of job name={job.name} with inputs_map={list(inputs_map.keys())} outputs_map={list(outputs_map.keys())}"
         )
 
@@ -301,17 +303,17 @@ class FLValidationEngine:
             # let's first record the inputs into the context of the job
             for key in job.inputs:
                 # TODO: validate inputs somehow?
-                self.logger.debug(f"{_path}: job input={key}")
+                logger.debug(f"{_path}: job input={key}")
                 inputs_map[key] = job.inputs[key]
 
             for key in job.outputs:
                 # TODO: validate outputs somehow?
-                self.logger.debug(f"{_path}: job output={key}")
+                logger.debug(f"{_path}: job output={key}")
                 outputs_map[key] = job.outputs[key]
 
             if hasattr(job, "component"):
                 # if the job is a pipeline component
-                self.logger.debug(
+                logger.debug(
                     f"{_path}: pipeline component detected for job name={job.name}"
                 )
 
@@ -346,7 +348,7 @@ class FLValidationEngine:
                 return soft_validation_report
             else:
                 # the job is a regular pipeline (root?)
-                self.logger.debug(
+                logger.debug(
                     f"{_path}: regular pipeline detected for job name={job.name}"
                 )
                 # let's recurse into the pipeline jobs
@@ -390,10 +392,10 @@ class FLValidationEngine:
 
                 if input_path is None:
                     # assuming this is an optional input here
-                    self.logger.debug("{_path}: optional input detected, passing")
+                    logger.debug("{_path}: optional input detected, passing")
                     continue
 
-                self.logger.debug(
+                logger.debug(
                     f"{_path}: job input={input_key} is pointing to to path={input_path}"
                 )
 
@@ -404,7 +406,7 @@ class FLValidationEngine:
                     # if using a registered dataset, let's consider datastore UNKNOWN
                     datastore = self.DATASTORE_UNKNOWN
 
-                self.logger.debug(
+                logger.debug(
                     f"{_path}: validating job input={input_key} on datastore={datastore} against compute={job_compute}"
                 )
 
@@ -435,7 +437,7 @@ class FLValidationEngine:
                     _path=f"{_path}.outputs.{output_key}",  # to help with debug logging
                 )
 
-                self.logger.debug(
+                logger.debug(
                     f"{_path}: job output={output_key} is pointing to to path={output_path}"
                 )
 
@@ -597,6 +599,7 @@ def anchor_step_in_silo(
         output_datastore (str): name of the datastore for the outputs of this step
         tags (dict): tags to add to the step in AzureML UI
         description (str): description of the step in AzureML UI
+        orchestrator_datastore (str): name of the orchestrator datastore
         _path (str): for recursive anchoring, codes the "path" inside the pipeline
 
     Returns:
@@ -734,14 +737,11 @@ def scatter_gather(
         name="FL Scatter-Gather Iteration",
         description="Pipeline includes preprocessing, training and aggregation components",
     )
-    def scatter_gather_iteration(
-        iteration_input: Input(optional=True), iteration_num: int
-    ):
+    def scatter_gather_iteration(iteration_input: Input(optional=True), **kwargs):
         """Pipeline for a single iteration of the scatter-gather graph.
 
         Args:
             iteration_input (Input): accumulator input to the iteration (ex: checkpoint)
-            iteration_num (int): iteration number
         """
         # collect all outputs in a list to be used for aggregation
         scatter_subgraphs_outputs = []
@@ -759,7 +759,7 @@ def scatter_gather(
             scatter_arguments.update(**scatter_constant_inputs)
 
             # reserved scatter inputs
-            scatter_arguments["iteration_num"] = iteration_num
+            scatter_arguments["iteration_num"] = kwargs.get("iteration_num", 1)
             scatter_arguments["silo_compute1"] = silo_config["computes"][0]
             scatter_arguments["silo_compute2"] = (
                 silo_config["computes"][1]
