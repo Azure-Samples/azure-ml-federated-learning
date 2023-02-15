@@ -184,6 +184,7 @@ aggregate_component = load_component(
 # This is your section, please modify anything here following the guidelines
 # in the docstrings.
 
+
 @pipeline(
     name="Silo Federated Learning Subgraph",
     description="It includes all steps that needs to be executing in silo",
