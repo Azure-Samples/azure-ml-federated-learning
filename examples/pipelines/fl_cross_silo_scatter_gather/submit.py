@@ -1,27 +1,25 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-"""Federated Learning Cross-Silo pipeline built by a factory class.
-
-This scripts wraps up the FL pipeline orchestration code in an EXPERIMENTAL "factory" class.
+"""Federated Learning Cross-Silo pipeline using the native FL contract.
 
 This class is a draft API to build a pipeline based on simple
-scatter / gather steps. The factory could be extended
+scatter / gather steps. The code could be extended
 to cover more advanced scenarios in the future.
 
 In sequence, this script will:
 A) reads a config file in yaml specifying the number of silos and their parameters,
 B) reads the components from a given folder,
 C) allow developers to write FL pipeline steps as pythonic functions,
-D) call the factory class to build the full FL pipeline based on custom user code.
+D) call the scatter_gather component to to build the full FL pipeline based on custom user code.
 
 To adapt this script to your scenario, you can:
 - modify the config file to change the number of silos
   and their parameters (see section A and config.yaml file),
 - modify the components directly in the components folder (see section B),
 - modify the silo_scatter_subgraph() and aggregate_component()
-  to change the steps behaviors (see section C and D.2 D.3),
-- modify the affinity map according to a custom permission model (see section D.4).
+  to change the steps behaviors (see section C),
+- modify the affinity map according to a custom permission model (see section E).
 """
 import os
 import argparse
@@ -186,27 +184,6 @@ aggregate_component = load_component(
 # This is your section, please modify anything here following the guidelines
 # in the docstrings.
 
-
-@pipeline
-def gather_pipeline(
-    input_silo_1: Input,
-    input_silo_2: Input,
-    input_silo_3: Input,
-):
-    """Gather subgraph pipeline
-
-    Args:
-        input_silo_1 (Input): Silo1's trained model
-        input_silo_2 (Input): Silo2's trained model
-        input_silo_3 (Input): Silo3's trained model
-    """
-
-    gather_test = aggregate_component(
-        input_silo_1=input_silo_1, input_silo_2=input_silo_2, input_silo_3=input_silo_3
-    )
-    return {"aggregated_output": gather_test.outputs.aggregated_output}
-
-
 @pipeline(
     name="Silo Federated Learning Subgraph",
     description="It includes all steps that needs to be executing in silo",
@@ -329,7 +306,7 @@ scatter_constant_inputs = YAML_CONFIG.inputs
 
 pipeline_job = scatter_gather(
     scatter=silo_scatter_subgraph,
-    gather=gather_pipeline,
+    gather=aggregate_component,
     scatter_strategy=scatter_configs,
     gather_strategy=gather_config,
     scatter_to_gather_map=lambda _, silo_index: f"input_silo_{silo_index}",

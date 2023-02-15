@@ -470,7 +470,7 @@ class FLValidationEngine:
         """Runs a soft validation to verify computes and datastores have affinity.
 
         Args:
-            pipeline_job (Pipeline): returned by factory methods.
+            pipeline_job (Pipeline): returned by the scatter_gather function.
             raise_exception (bool): fail hard if we do not validate.
 
         Returns:
@@ -834,7 +834,7 @@ def scatter_gather(
         return iteration_outputs
 
     @pipeline(
-        description=f'FL cross-silo factory pipeline and the unique identifier is "{getUniqueIdentifier()}" that can help you to track files in the storage account.',
+        description=f'FL cross-silo scatter-gather pipeline and the unique identifier is "{getUniqueIdentifier()}" that can help you to track files in the storage account.',
     )
     def fl_pipeline():
         """The entire scatter-gather pipeline."""
