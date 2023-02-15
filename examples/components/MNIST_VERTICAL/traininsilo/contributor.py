@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 import os
-from aml_comm import AMLCommSocket, AMLCommSB, AMLCommSBAuthMethod
+from aml_comm import AMLCommSocket
 
 import mlflow
 import torch
