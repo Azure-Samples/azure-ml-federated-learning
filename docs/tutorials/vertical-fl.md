@@ -104,7 +104,7 @@ Afterwards, we can continue with regular training loop:
 2. **Intersection and entity alignment**
    The samples needs to be aligned across participants ahead of the training after we created set intersection of samples that are present on all involved parties. This process can reveal information to other entities that we may want to keep private. Fortunately there are **private set intersection** methods available out there that come to rescue.
 3. **Communication encryption**
-    Even though the intermediate outputs and gradients are not raw data, they still have been inferred using possibly private data. Therefore, it's good to use some sort of security when communicating the data to untrusted parties outside of Azure (e.g. differential privacy).
+    Even though the intermediate outputs and gradients are not raw data, they still have been inferred using private data. Therefore, it's good to use encryption when communicating the data to parties outside of Azure.
 
 ## Additional resources
 - [Private set intersection algorithm overview](https://xianmu.github.io/posts/2018-11-03-private-set-intersection-based-on-rsa-blind-signature.html)
