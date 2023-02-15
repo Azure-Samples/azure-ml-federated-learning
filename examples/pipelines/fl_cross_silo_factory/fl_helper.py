@@ -766,7 +766,6 @@ def scatter_gather(
                 if len(silo_config["computes"]) > 1
                 else silo_config["computes"][0]
             )
-            scatter_arguments["silo_name"] = silo_config["name"]
 
             silo_subgraph_step = scatter(**scatter_arguments)
             silo_subgraph_step.name = f"silo_subgraph_{silo_index}"

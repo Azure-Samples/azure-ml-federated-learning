@@ -314,12 +314,12 @@ from fl_helper import scatter_gather
 scatter_configs = [
     {
         "inputs": {
+            "silo_name": silo_config["name"],
             "raw_train_data": Input(**dict(silo_config["inputs"])["raw_training_data"]),
             "raw_test_data": Input(**dict(silo_config["inputs"])["raw_testing_data"]),
         },
         "computes": silo_config["computes"],
         "datastore": silo_config["datastore"],
-        "name": silo_config["name"],
     }
     for silo_config in YAML_CONFIG.strategy.horizontal
 ]
