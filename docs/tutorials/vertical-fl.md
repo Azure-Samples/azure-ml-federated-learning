@@ -2,9 +2,9 @@
 
 ## Background
 Vertical federated learning (VFL) is branch of federated learning where the data are split across the features among the participants rather than across the samples (horizontal FL). In other words we can say that it takes federated learning to another level as it allows for cross-organization collaboration without need for having the same features while keeping privacy and security of each individual's data intact. Some of real-world examples include, but are not limited to:
-- Finance: financial institution owning different pieces of data about their clients (e.g. bank account data, credit card data, loans data, ...etc)
+- Finance: several institutions owning different pieces of data about their clients (e.g. bank account data, credit card data, loans data, ...etc)
 - Healthcare: different healthcare facilities may own different modalities (e.g. x-ray scans, prescriptions, patient health records, ...etc)
-- Retail: each retailer owns different information about customer and aggregating this information may results in better recommendations for the customer
+- Retail: each retailer owns different information about customer and aggregating this information may result in better recommendations for the customer
 
 <br/><br/>
 <div align="center">
@@ -17,7 +17,7 @@ Vertical federated learning (VFL) is branch of federated learning where the data
 This tutorial will guide you through steps required to set-up VFL experiments and point out important parts of the code. We target MNIST (written number recognition) and [CCFRAUD (financial tabular data)](../real-world-examples/ccfraud.md) examples in order to showcase versatility of the solution in regards to type of the data.  All of the examples here make use of mean aggregation and assumption is that the host owns only labels while features are equally distributed among the contributors.
 
 ## Infrastructure
-First step towards successfully running VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use single-button deployment for vnet infrastructure deployment. This is necessary in order for nodes to be able to communicate.
+First step towards successfully running VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use **single-button deployment for vnet infrastructure deployment**. This is necessary in order for nodes to be able to communicate.
 
 ## Install the required dependencies
 
@@ -72,10 +72,10 @@ Now, before we run the training itself let's take a step back and take a look on
 - **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training
 
 Afterwards, we can continue with regular training loop:
-- **Forward pass in contributors** - all contributors, and optionally host, performs forward pass on their part of the model with features they own
+- **Forward pass in contributors** - all contributors, and optionally host, perform forward pass on their part of the model with features they own
 - **Intermediate outputs transfer** - all outputs from previous step are sent to the host that performs an aggregation (for simplicity sake we make use of mean operation)
 - **Loss computation** - host performs either forward pass on its part of network or just passes aggregated outputs of previous step through an activation function followed by loss computation
-- **Gradients computation** - if host own some part of the network, it performs backward pass, followed by computing gradients w.r.t inputs in all cases
+- **Gradients computation** - if host owns some part of the network, it performs backward pass, followed by computing gradients w.r.t inputs in all cases
 - **Gradient transfer** - all contributors, and optionally host, receives gradients w.r.t. their intermediate outputs
 - **Backward pass** - gradients are used to perform backward pass and update the network weights
 
