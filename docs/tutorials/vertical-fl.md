@@ -62,7 +62,7 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
 ## Model preparation for VFL
-The model in VFL can be either deployed by splitting it between the host and contributors, also referred to as **split learning**, or hosting whole model on contributor while host provides only aggregation function. Our examples relies on former as we believe this can better demonstrate capabilities of VFL on AzureML and most of the model can be easily split without requiring too much work. The proposed solution can be easily altered to the latter case by moving all layers to contributors and keeping only aggregation and activation function in the host.
+It is an ongoign research topic on how the model can be orchestrated in VFL. We have decided to go with the most common approach by splitting it between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and/or activation function. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
 
 ## Training
 
