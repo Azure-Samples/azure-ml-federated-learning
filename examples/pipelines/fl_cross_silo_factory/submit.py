@@ -207,32 +207,6 @@ def gather_pipeline(
     return {"aggregated_output": gather_test.outputs.aggregated_output}
 
 
-def get_scatter_configs():
-    """Get scatter config details that includes silo's compute, datastore, inputs, etc."""
-
-    scatter_configs = []
-    for silo_config in YAML_CONFIG.strategy.horizontal:
-        scatter_config = {}
-        scatter_config["inputs"] = {
-            "raw_train_data": Input(
-                type=silo_config.inputs.raw_training_data.type,
-                mode=silo_config.inputs.raw_training_data.mode,
-                path=silo_config.inputs.raw_training_data.path,
-            ),
-            "raw_test_data": Input(
-                type=silo_config.inputs.raw_testing_data.type,
-                mode=silo_config.inputs.raw_testing_data.mode,
-                path=silo_config.inputs.raw_testing_data.path,
-            ),
-        }
-        scatter_config["computes"] = silo_config["computes"]
-        scatter_config["datastore"] = silo_config["datastore"]
-        scatter_config["name"] = silo_config["name"]
-        scatter_configs.append(scatter_config)
-
-    return scatter_configs
-
-
 @pipeline(
     name="Silo Federated Learning Subgraph",
     description="It includes all steps that needs to be executing in silo",
@@ -331,18 +305,25 @@ def silo_scatter_subgraph(
     }
 
 
-def get_scatter_constant_inputs():
-    """Get scatter constant inputs like lr, epochs, etc."""
-    return YAML_CONFIG.inputs
-
-
 #######################
 ### D. FL Contract ###
 #######################
 
 from fl_helper import scatter_gather
 
-scatter_configs = get_scatter_configs()
+scatter_configs = [
+    {
+        "inputs": {
+            "raw_train_data": Input(**dict(silo_config["inputs"])["raw_training_data"]),
+            "raw_test_data": Input(**dict(silo_config["inputs"])["raw_testing_data"]),
+        },
+        "computes": silo_config["computes"],
+        "datastore": silo_config["datastore"],
+        "name": silo_config["name"],
+    }
+    for silo_config in YAML_CONFIG.strategy.horizontal
+]
+
 gather_config = YAML_CONFIG.orchestrator
 scatter_constant_inputs = YAML_CONFIG.inputs
 
