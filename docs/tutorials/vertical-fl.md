@@ -62,14 +62,14 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
 ## Model preparation for VFL
-The model in VFL can be either deployed by splitting it between the host and contributors, also referred to as **split learning**, or hosting whole model on contributor while host provides only aggregation function. Our examples relies on former as we believe this can better demonstrate capabilities of VFL on AzureML the proposed solution can be easily altered to the latter case.
+The model in VFL can be either deployed by splitting it between the host and contributors, also referred to as **split learning**, or hosting whole model on contributor while host provides only aggregation function. Our examples relies on former as we believe this can better demonstrate capabilities of VFL on AzureML and most of the model can be easily split without requiring too much work. The proposed solution can be easily altered to the latter case by moving all layers to contributors and keeping only aggregation and activation function in the host.
 
 ## Training
 
 ### Overview
-Now, before we run the training itself let's take a step back and take a look on how such training works in VFL setup that is roughly depicted in the figure below. The first step that needs to take step ahead of the training is:
+Now, before we run the training itself let's take a step back and take a look on how such training works in VFL setup that is roughly depicted in the figure below. The first step that needs to take place ahead of the training is:
 
-- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training
+- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. **Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training as we do not provide any for of PSI as of now.**
 
 Afterwards, we can continue with regular training loop:
 - **Forward pass in contributors** - all contributors, and optionally host, perform forward pass on their part of the model with features they own
