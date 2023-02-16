@@ -1,0 +1,18 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+
+command: |
+  cp -r ${{inputs.local_data_folder}} ${{outputs.destination_folder}}
+inputs:
+  local_data_folder:
+    type: uri_folder
+    path: /path/to/local/data/folder/ # replace '/path/to/local/data/folder/' by the actual path to the folder whose contents you want to upload
+
+outputs:
+  destination_folder:
+    type: uri_folder
+    mode: upload
+    path: azureml://datastores/<your-silo-datastore-name>/paths/<your-custom-local-path>/ # replace '<your-silo-datastore-name>' by the actual datastore name for your silo, and <your-custom-local-path> by the path you want to use in the silo storage account
+
+environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest
+
+compute: azureml:<your-silo-compute-name> # replace '<your-silo-compute-name>' by the actual compute name for your silo
