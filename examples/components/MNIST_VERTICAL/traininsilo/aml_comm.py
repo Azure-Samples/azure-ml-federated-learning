@@ -1,8 +1,5 @@
 from abc import ABC
-import os
-import math
 import sys
-import datetime
 import time
 import pickle
 import logging
@@ -11,16 +8,6 @@ import socket
 from enum import Enum
 
 import mlflow
-from azure.core.exceptions import ResourceNotFoundError
-from azure.servicebus.exceptions import SessionLockLostError
-from azure.servicebus import (
-    ServiceBusClient,
-    ServiceBusReceiver,
-    ServiceBusSender,
-    ServiceBusMessage,
-)
-from azure.servicebus.management import ServiceBusAdministrationClient
-from azure.identity import ManagedIdentityCredential
 
 # Set logging to sys.out
 logger = logging.getLogger(__name__)
