@@ -1,11 +1,11 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 
 command: |
-  cp -r ${{inputs.local_data_folder}} ${{outputs.destination_folder}}
+  cp -r ${{inputs.local_data_folder}}/* ${{outputs.destination_folder}}
 inputs:
   local_data_folder:
     type: uri_folder
-    path: /path/to/local/data/folder/ # replace '/path/to/local/data/folder/' by the actual path to the folder whose contents you want to upload
+    path: /path/to/local/data/folder # replace '/path/to/local/data/folder' by the actual path to the folder whose contents you want to upload
 
 outputs:
   destination_folder:

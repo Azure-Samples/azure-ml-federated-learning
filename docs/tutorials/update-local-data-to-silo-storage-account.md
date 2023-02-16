@@ -24,11 +24,11 @@ A sample job YAML is given [here](../../examples/cli-jobs/upload-local-data-to-s
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 
 command: |
-  cp -r ${{inputs.local_data_folder}} ${{outputs.destination_folder}}
+  cp -r ${{inputs.local_data_folder}}/* ${{outputs.destination_folder}}
 inputs:
   local_data_folder:
     type: uri_folder
-    path: /path/to/local/data/folder/ # replace '/path/to/local/data/folder/' by the actual path to the folder whose contents you want to upload
+    path: /path/to/local/data/folder # replace '/path/to/local/data/folder' by the actual path to the folder whose contents you want to upload
 
 outputs:
   destination_folder:
@@ -41,14 +41,10 @@ environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest
 compute: azureml:<your-silo-compute-name> # replace '<your-silo-compute-name>' by the actual compute name for your silo
 ```
 
-
  You will need to adjust the following parameters.
- - `inputs.local_data_folder.path`: the path to the local folder whose contents you want to upload.
- - `compute`: the name of the silo compute. This is the compute that will run the job. It needs to match the datastore mentioned below.
-- `outputs.destination_folder.path`: the path in the silo storage account where you want to upload the local data. **The key part to adjust is the name of the datastore.** You also have the ability to adjust the detailed path in the storage account, if you so wish.
-  - :warning: Note: the files and folders in `inputs.local_data_folder.path` will be uploaded to the storage account at the `outputs.destination_folder.path`, **under a folder named `INPUT_local_data_folder`**.
-
-
+- `inputs.local_data_folder.path`: the path to the local folder whose contents you want to upload (no '/' character at the end).
+- `outputs.destination_folder.path`: the path in the silo storage account where you want to upload the local data (with a '/' character at the end). **The key part to adjust is the name of the datastore.** You also have the ability to adjust the detailed path in the storage account, if you so wish.
+- `compute`: the name of the silo compute. This is the compute that will run the job. It needs to match the datastore mentioned above.
 
 ### 2. Run the upload job
 Once you have adjusted the job YAML to your needs, you can submit the job using the following command. You will need to replace the `<placeholders>` with the actual values for your workspace.
@@ -61,8 +57,8 @@ As long as you have provided the proper datastore and compute names correspondin
 To verify that all your files were uploaded properly, you are facing the same problem that prevented you from directly uploading the data in the first place - you do not have access to the silo storage account. Here again, a CLI job will be our solution.
 
 You can duplicate the job YAML above and modify it as follows:
-- remove the outputs section;
-- modify the command to section to, for instance, list files in a given folder (`ls` command);
-- adjust the input path to the destination folder of step 1, but _remember that data were uploaded to a folder named `INPUT_local_data_folder`_ located in the `outputs.destination_folder.path` from step 1. 
+- remove the `outputs` section;
+- modify the `command` section to, for instance, list files in a given folder (`ls` command);
+- adjust the input path to the destination folder of step 1 (`outputs.destination_folder.path`). 
 
 Once you have adjusted the job YAML to your needs, you can submit the job using the same kind of command as in step 2. You can then verify that the files were uploaded properly.
