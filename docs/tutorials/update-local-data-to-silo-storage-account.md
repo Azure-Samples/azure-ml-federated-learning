@@ -51,4 +51,4 @@ Once you have adjusted the job YAML to your needs, you can submit the job using 
 ```
 az ml job create --file ./examples/cli-jobs/upload-local-data-to-silo-storage.yml --resource-group <your-workspace-resource-group> --workspace-name <your-workspace-name> --subscription <your-subscription-id>
 ```
-As long as you have provided the proper datastore and compute names corresponding to your silo, the job should succeed.
+As long as you have provided the proper datastore and compute names corresponding to your silo, the job should succeed. You will see in the logs the list of files that were uploaded.
