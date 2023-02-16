@@ -23,6 +23,7 @@
   - [Provisioning guide](#provisioning-guide)
   - [How to adapt the "literal" and the "factory" code for your own scenario](#how-to-adapt-the-literal-and-the-factory-code-for-your-own-scenario)
   - [Read local data in an on-premises Kubernetes silo](#read-local-data-in-an-on-premises-kubernetes-silo)
+  - [Upload local data to silo storage account](#upload-local-data-to-silo-storage-account)
 - [Troubleshooting guide](#troubleshooting-guide)
 
 ## Motivation
@@ -124,6 +125,9 @@ This tutorial will show you how to access, within an Azure ML job running on an 
 
 ## Differential privacy for cross-silo horizontal federated learning
 The complete tutorial can be found [**here**](./tutorials/dp-for-cross-silo-horizontal-fl.md).
+
+## Upload local data to silo storage account
+This tutorial will teach you how to upload local data to a silo storage account. We will be using a CLI job to do the upload. The job will run on the silo compute, which does have access to the silo storage account. See detailed instructions [here](./tutorials/update-local-data-to-silo-storage-account.md).
 
 # Troubleshooting guide
 
