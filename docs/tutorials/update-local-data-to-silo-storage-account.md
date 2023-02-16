@@ -19,7 +19,7 @@ We will be using the Azure ML CLI to submit a job to the silo compute. The job w
 First of all, you will want to clone the current repository to your machine, if you haven't already done so.
 
 ### 1. Adjust the job YAML
-A sample job YAML is given [here](../../examples/cli-jobs/upload-local-data-to-silo-storage.yml) in our repository, in the `\examples\cli-jobs\upload-local-data-to-silo-storage.yml` file. The contents are shown below.
+A sample job YAML is given [here](../../examples/cli-jobs/upload-local-data-to-silo-storage.yml) in our repository, in the `/examples/cli-jobs/upload-local-data-to-silo-storage.yml` file. The contents are shown below.
 ```yaml
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 
@@ -53,7 +53,7 @@ compute: azureml:<your-silo-compute-name> # replace '<your-silo-compute-name>' b
 ### 2. Run the upload job
 Once you have adjusted the job YAML to your needs, you can submit the job using the following command. You will need to replace the `<placeholders>` with the actual values for your workspace.
 ```
-az ml job create --file .\examples\cli-jobs\upload-local-data-to-silo-storage.yml --resource-group <your-workspace-resource-group> --workspace-name <your-workspace-name> --subscription <your-subscription-id>
+az ml job create --file ./examples/cli-jobs/upload-local-data-to-silo-storage.yml --resource-group <your-workspace-resource-group> --workspace-name <your-workspace-name> --subscription <your-subscription-id>
 ```
 As long as you have provided the proper datastore and compute names corresponding to your silo, the job should succeed.
 
