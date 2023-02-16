@@ -24,7 +24,7 @@ A sample job YAML is given [here](../../examples/cli-jobs/upload-local-data-to-s
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 
 command: |
-  cp -r ${{inputs.local_data_folder}}/* ${{outputs.destination_folder}}
+  cp -r -v ${{inputs.local_data_folder}}/* ${{outputs.destination_folder}}
 inputs:
   local_data_folder:
     type: uri_folder
