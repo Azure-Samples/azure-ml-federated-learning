@@ -52,13 +52,3 @@ Once you have adjusted the job YAML to your needs, you can submit the job using 
 az ml job create --file ./examples/cli-jobs/upload-local-data-to-silo-storage.yml --resource-group <your-workspace-resource-group> --workspace-name <your-workspace-name> --subscription <your-subscription-id>
 ```
 As long as you have provided the proper datastore and compute names corresponding to your silo, the job should succeed.
-
-### 3. Verify that the upload was successful
-To verify that all your files were uploaded properly, you are facing the same problem that prevented you from directly uploading the data in the first place - you do not have access to the silo storage account. Here again, a CLI job will be our solution.
-
-You can duplicate the job YAML above and modify it as follows:
-- remove the `outputs` section;
-- modify the `command` section to, for instance, list files in a given folder (`ls` command);
-- adjust the input path to the destination folder of step 1 (`outputs.destination_folder.path`). 
-
-Once you have adjusted the job YAML to your needs, you can submit the job using the same kind of command as in step 2. You can then verify that the files were uploaded properly.
