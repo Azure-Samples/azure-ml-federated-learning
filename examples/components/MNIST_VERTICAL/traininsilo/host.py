@@ -50,8 +50,8 @@ class TopDataset(Dataset):
 class MnistTrainer:
     def __init__(
         self,
-        global_size,
         global_rank,
+        global_size,
         global_comm,
         train_data_dir="./",
         test_data_dir="./",
@@ -60,24 +60,25 @@ class MnistTrainer:
         epochs=1,
         batch_size=64,
         experiment_name="default-experiment",
-        iteration_num=1,
     ):
         """MNIST Trainer trains RESNET18 model on the MNIST dataset.
 
         Args:
-            workers_num (int): Number of processes involved in VFL
-            rank (int): Id of current process
-            train_data_dir(str, optional): Training data directory path
-            test_data_dir(str, optional): Testing data directory path
-            lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 1
-            batch_size (int, optional): DataLoader batch size. Defaults to 64
-            experiment_name (str, optional): Experiment name. Default is default-experiment
-            iteration_num (int, optional): Iteration number. Defaults to 1
+            global_rank(int): Rank of the current node.
+            global_size(int): Total number of nodes.
+            global_comm(AMLComm): Communication method.
+            train_data_dir(str, optional): Training data directory path.
+            test_data_dir(str, optional): Testing data directory path.
+            model_path(str, optional): Path to save model.
+            lr (float, optional): Learning rate. Defaults to 0.01.
+            epochs (int, optional): Epochs. Defaults to 1.
+            batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            experiment_name (str, optional): Name of the experiment. Defaults to "default-experiment".
 
         Attributes:
-            model_: RESNET18 model
-            loss_: CrossEntropy loss
+            model_: Model
+            device_: Location of the model
+            criterion_: BCELoss loss
             optimizer_: Stochastic gradient descent
             train_dataset_: Training Dataset obj
             train_loader_: Training DataLoader
@@ -90,7 +91,6 @@ class MnistTrainer:
         self._epochs = epochs
         self._batch_size = batch_size
         self._experiment_name = experiment_name
-        self._iteration_num = iteration_num
         self._global_size = global_size
         self._global_rank = global_rank
         self._global_comm = global_comm
@@ -161,7 +161,7 @@ class MnistTrainer:
         else:
             client.log_metric(
                 run_id=run_id,
-                key=f"iteration_{self._iteration_num}/{self._experiment_name}/{key}",
+                key=f"{self._experiment_name}/{key}",
                 value=value,
             )
 
@@ -362,9 +362,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-    parser.add_argument(
-        "--iteration_num", type=int, required=False, help="Iteration number"
-    )
 
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
@@ -393,7 +390,6 @@ def run(global_comm, args):
         lr=args.lr,
         epochs=args.epochs,
         experiment_name=args.metrics_prefix,
-        iteration_num=args.iteration_num,
         global_size=args.global_size,
         global_rank=args.global_rank,
         global_comm=global_comm,
