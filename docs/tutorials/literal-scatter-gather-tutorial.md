@@ -26,13 +26,13 @@ Please read the following points to have a better understanding of the "scatter-
 This tutorial addresses the following scenarios:
 
 - To add/remove a silo:
-  - You just need to make the changes in the "`federated_learning/silos`" section of the `examples/pipelines/fl_cross_silo_scatter_gather/config.yaml` file.
+  - You just need to make the changes in the "`strategy/horizontal`" section of the `examples/pipelines/fl_cross_silo_scatter_gather/config.yaml` file.
 
 - To change the training hyper-parameters:
-  - Adjust the parameters in the "`training_parameters`" section of the `examples/pipelines/fl_cross_silo_scatter_gather/config.yaml` file.
+  - Adjust the parameters in the "`inputs`" section of the `examples/pipelines/fl_cross_silo_scatter_gather/config.yaml` file.
 
 - To edit the flow of your training pipeline:
-  - Pass your custom subgraph as a parameter to the `build_flexible_fl_pipeline` method in the `examples/pipelines/fl_cross_silo_scatter_gather/submit.py` file.
+  - Pass your custom subgraph as a parameter to the `scatter_gather` method in the `examples/pipelines/fl_cross_silo_scatter_gather/submit.py` file.
 
 - To bypass the soft validation:
   - Use `--ignore_validation` argument while executing the `examples/pipelines/fl_cross_silo_scatter_gather/submit.py` file.
