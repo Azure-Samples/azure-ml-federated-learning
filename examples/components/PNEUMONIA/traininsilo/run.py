@@ -5,6 +5,7 @@ import logging
 import sys
 import os.path
 from distutils.util import strtobool
+import time
 
 import mlflow
 from mlflow import log_metric, log_param
@@ -21,6 +22,7 @@ from torchvision.datasets import ImageFolder
 from torchvision.transforms import ToTensor, Normalize, Compose, Grayscale, Resize
 
 from pneumonia_network import PneumoniaNetwork
+import multiprocessing
 
 # DP
 from opacus import PrivacyEngine
@@ -43,6 +45,8 @@ class PTLearner:
         model_path=None,
         device_id=None,
         distributed=False,
+        benchmark_test_all_data=False,
+        benchmark_train_all_data=False,
     ):
         """Simple PyTorch Learner.
         Args:
@@ -76,6 +80,8 @@ class PTLearner:
         self._iteration_num = iteration_num
         self._model_path = model_path
         self._distributed = distributed
+        self.benchmark_test_all_data=benchmark_test_all_data,
+        self.benchmark_train_all_data=benchmark_train_all_data
 
         self.device_ = (
             torch.device(
@@ -94,8 +100,13 @@ class PTLearner:
 
         # Training setup
         self.model_ = PneumoniaNetwork()
-        self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model_.to(self.device_)
+        self.model_ = self.model_.to(self.device_)
+        if self._distributed:
+            self.model_ = DDP(
+                self.model_,
+                device_ids=[self._rank] if self._rank is not None else None,
+                output_device=self._rank,
+            )
         self.loss_ = nn.CrossEntropyLoss()
 
         # Data setup
@@ -121,12 +132,18 @@ class PTLearner:
         else:
             self.train_sampler_ = None
             self.test_sampler_ = None
+        
+        #get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(multiprocessing.cpu_count()//int(os.environ['WORLD_SIZE']))
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
 
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_,
             batch_size=32,
-            shuffle=True,
+            num_workers=num_workers_per_gpu,
+            shuffle=(not self._distributed),
             drop_last=True,
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.n_iterations = len(self.train_loader_)
@@ -192,6 +209,7 @@ class PTLearner:
             data_dir(str, optional): Data directory path
         """
         logger.info(f"Data dir: {data_dir}.")
+        
 
         train_dataset = datasets.ImageFolder(
             root=os.path.join(data_dir, "train"), transform=transforms
@@ -199,6 +217,15 @@ class PTLearner:
         test_dataset = datasets.ImageFolder(
             root=os.path.join(data_dir, "test"), transform=transforms
         )
+        if self.benchmark_test_all_data:
+            if self.benchmark_train_all_data:
+                train_dataset = datasets.ImageFolder(
+                    root=os.path.join(data_dir, "all_data", "train"), transform=transforms
+                )
+                test_dataset = datasets.ImageFolder(
+                    root=os.path.join(data_dir, "all_data", "test"), transform=transforms
+                )
+
 
         return train_dataset, test_dataset
 
@@ -245,12 +272,19 @@ class PTLearner:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
         if checkpoint:
-            self.model_.load_state_dict(
-                torch.load(checkpoint + "/model.pt", map_location=self.device_)
-            )
+            if self._distributed:
+                # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
+                self.model_.module.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
+            else:
+                self.model_.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
 
         with mlflow.start_run() as mlflow_run:
             # get Mlflow client and root run id
+            training_start_time = time.time()
             mlflow_client = mlflow.tracking.client.MlflowClient()
             root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
             logger.debug(f"Root runId: {root_run_id}")
@@ -269,8 +303,9 @@ class PTLearner:
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
                 self.model_.train()
-
+                epoch_start_time = time.time()
                 for i, batch in enumerate(self.train_loader_):
+
                     images, labels = batch[0].to(self.device_), batch[1].to(
                         self.device_
                     )
@@ -296,10 +331,12 @@ class PTLearner:
                                 "Train Loss",
                                 training_loss,
                             )
-
+                
                         running_loss = 0.0
 
                 # compute test metrics
+                epoch_end_time = time.time()
+                epoch_duration = epoch_end_time - epoch_start_time
                 test_loss, test_acc = self.test()
 
                 # log test metrics after each epoch
@@ -308,11 +345,22 @@ class PTLearner:
                     self.log_metrics(
                         mlflow_client, root_run_id, "Test Accuracy", test_acc
                     )
+                    self.log_metrics(
+                        mlflow_client, root_run_id, f"Epoch {epoch} Duration ", epoch_duration
+                    )
 
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
+                logger.info(
+                    f"Epoch {epoch} Duration:{epoch_duration}"
+                )
 
+            training_end_time = time.time()  
+            training_duration = training_end_time - training_start_time         
+            logger.info(
+                    f"Training Duration:{training_duration}"
+                )
             # log metrics at the pipeline level
             if not self._distributed or self._rank == 0:
                 self.log_metrics(
@@ -334,6 +382,13 @@ class PTLearner:
                     root_run_id,
                     "Test Accuracy",
                     test_acc,
+                    pipeline_level=True,
+                )
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    "Train duration",
+                    training_duration,
                     pipeline_level=True,
                 )
 
@@ -437,6 +492,12 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of iterations",
     )
+    parser.add_argument("--benchmark_test_all_data", type=strtobool, required=False,
+        help="Whether to use all test data (all silos combined) to bechmark final aggregated model"
+    )
+    parser.add_argument("--benchmark_train_all_data", type=strtobool, required=False, 
+        help="Whether to use all train data (all silos combined) in training"
+    )
     return parser
 
 
@@ -470,13 +531,15 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",
+        benchmark_test_all_data=args.benchmark_test_all_data,
+        benchmark_train_all_data=args.benchmark_train_all_data,
         device_id=int(os.environ["RANK"]),
         distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
     )
 
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+    if  int(os.environ["WORLD_SIZE"]) > 1:
         dist.destroy_process_group()
 
 

@@ -63,6 +63,17 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
+  benchmark_test_all_data:
+    type: boolean
+    description: Whether to use all test data (all silos combined) to bechmark final aggregated model
+    default: false
+    optional: true
+  benchmark_train_all_data:
+    type: boolean
+    description: Whether to use all train data (all silos combined) in training, True if one wants to see performance of a centralized model trained on all data.
+    default: false
+    optional: true
+
 
 outputs:
   model:
@@ -72,7 +83,20 @@ outputs:
 code: .
 
 command: >-
-  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--dp ${{inputs.dp}}]] $[[--total_num_of_iterations ${{inputs.total_num_of_iterations}}]] $[[--dp_target_epsilon ${{inputs.dp_target_epsilon}}]] $[[--dp_target_delta ${{inputs.dp_target_delta}}]] $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
+  python run.py --dataset_name ${{inputs.dataset_name}} 
+  $[[--iteration_num ${{inputs.iteration_num}}]] 
+  $[[--checkpoint ${{inputs.checkpoint}}]] 
+  --model ${{outputs.model}} 
+  $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] 
+  $[[--metrics_prefix ${{inputs.metrics_prefix}}]] 
+  $[[--dp ${{inputs.dp}}]] 
+  $[[--total_num_of_iterations 
+  ${{inputs.total_num_of_iterations}}]] 
+  $[[--dp_target_epsilon ${{inputs.dp_target_epsilon}}]] 
+  $[[--dp_target_delta ${{inputs.dp_target_delta}}]] 
+  $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
+  $[[--benchmark_test_all_data ${{inputs.benchmark_test_all_data}}]]
+  $[[--benchmark_train_all_data ${{inputs.benchmark_train_all_data}}]]
 
 environment: 
   conda_file: ./conda.yaml

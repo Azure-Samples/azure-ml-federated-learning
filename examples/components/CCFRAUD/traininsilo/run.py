@@ -10,6 +10,7 @@ import torch
 import pandas as pd
 import numpy as np
 from torch import nn
+import time
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torchmetrics.functional import precision_recall, accuracy
@@ -20,6 +21,7 @@ from typing import List
 import models as models
 import datasets as datasets
 from distutils.util import strtobool
+from torchmetrics import AUROC
 
 # DP
 from opacus import PrivacyEngine
@@ -84,8 +86,6 @@ class CCFraudTrainer:
     def __init__(
         self,
         model_name,
-        benchmark,
-        train_all_data,
         train_data_dir="./",
         test_data_dir="./",
         model_path=None,
@@ -101,6 +101,8 @@ class CCFraudTrainer:
         iteration_name="default-iteration",
         device_id=None,
         distributed=False,
+        benchmark_test_all_data=False,
+        benchmark_train_all_data=False,
     ):
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
@@ -135,9 +137,9 @@ class CCFraudTrainer:
         self._batch_size = batch_size
         self._experiment_name = experiment_name
         self._iteration_name = iteration_name
-        self.benchmark = benchmark
-        self.train_all_data = train_all_data
         self._distributed = distributed
+        self.benchmark_test_all_data = benchmark_test_all_data
+        self.benchmark_train_all_data = benchmark_train_all_data
 
         self.device_ = (
             torch.device(
@@ -252,9 +254,9 @@ class CCFraudTrainer:
         train_df = pd.read_csv(train_data_dir + "/filtered_data.csv")
         test_df = pd.read_csv(test_data_dir + "/filtered_data.csv")
         
-        # if run benchmark
-        if self.benchmark:
-            if self.train_all_data:
+        # Process unfiltered data if benchmark final model
+        if self.benchmark_test_all_data:
+            if self.benchmark_train_all_data:
                 self.fraud_weight_ = np.loadtxt(train_data_dir + "/unfiltered_fraud_weight.txt").item()
                 train_df = pd.read_csv(train_data_dir + "/unfiltered_data.csv")
                 test_df = pd.read_csv(test_data_dir + "/unfiltered_data.csv")
@@ -347,12 +349,15 @@ class CCFraudTrainer:
             logger.debug("Local training started")
 
             train_metrics = RunningMetrics(
-                ["loss", "accuracy", "precision", "recall"], prefix="train"
+                ["loss", "accuracy", "precision", "recall", "AUC"], prefix="train"
             )
             test_metrics = RunningMetrics(
-                ["accuracy", "precision", "recall"], prefix="test"
+                ["accuracy", "precision", "recall", "AUC"], prefix="test"
             )
+
+            training_Start_time = time.time()
             for epoch in range(1, self._epochs + 1):
+                epoch_start_time = time.time()
                 self.model_.train()
                 train_metrics.reset_global()
 
@@ -377,6 +382,9 @@ class CCFraudTrainer:
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=labels
                     )
+                    auroc = AUROC("binary")
+                    auc = auroc(predictions, labels)
+                    train_metrics.add_metric("AUC", auc)
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
@@ -409,6 +417,8 @@ class CCFraudTrainer:
                         logger.info(", ".join(log_message))
                         train_metrics.reset_step()
 
+                epoch_end_time = time.time()
+                epoch_duration = epoch_end_time - epoch_start_time
                 test_metrics = self.test()
 
                 log_message = [
@@ -432,7 +442,19 @@ class CCFraudTrainer:
                         name,
                         value,
                     )
+
+                # log epoch training time
+                log_message.append(f"epoch duration: {epoch_duration}")
+                self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        "epoch duration",
+                        epoch_duration,
+                    )
                 logger.info(", ".join(log_message))
+
+            training_end_time = time.time()
+            training_duration = training_end_time - training_Start_time
 
             log_message = [
                 f"End of training",
@@ -459,12 +481,23 @@ class CCFraudTrainer:
                         value,
                         pipeline_level=True,
                     )
+
+            # log total training time
+            log_message.append(f"Training duration: {training_duration}")
+            if not self._distributed or self._rank == 0:
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        "training duration",
+                        training_duration,
+                        pipeline_level=True,
+                    )
             logger.info(", ".join(log_message))
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
         test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall"], prefix="test"
+            ["loss", "accuracy", "precision", "recall", "AUC"], prefix="test"
         )
 
         self.model_.eval()
@@ -483,6 +516,9 @@ class CCFraudTrainer:
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
                 )
+                auroc = AUROC("binary")
+                auc = auroc(predictions, labels)
+                test_metrics.add_metric("AUC", auc)
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
                 test_metrics.add_metric(
@@ -551,12 +587,9 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training",
     )
-    parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-
-    parser.add_argument("--benchmark", type=strtobool, required=False, default=False, help="Whether to benchmark")
-
-    parser.add_argument("--train_all_data", type=strtobool, default=False, required=False, help="Whether to use all train data")
-
+    parser.add_argument(
+        "--batch_size", type=int, required=False, help="Batch Size"
+    )
     parser.add_argument(
         "--dp", type=strtobool, required=False, help="differential privacy"
     )
@@ -574,6 +607,12 @@ def get_arg_parser(parser=None):
         type=int,
         required=False,
         help="Total number of iterations",
+    )
+    parser.add_argument(
+        "--benchmark_test_all_data", type=strtobool, required=False,help="Whether to use all test data (all silos combined) to bechmark final aggregated model"
+    )
+    parser.add_argument(
+        "--benchmark_train_all_data", type=strtobool, required=False, help="Whether to use all train data (all silos combined) in training"
     )
     return parser
   
@@ -613,14 +652,14 @@ def run(args):
         total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
-        benchmark=args.benchmark,
-        train_all_data=args.train_all_data,
+        benchmark_test_all_data=args.benchmark_test_all_data,
+        benchmark_train_all_data=args.benchmark_train_all_data,
         device_id=int(os.environ["RANK"]),
         distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+    if int(os.environ["WORLD_SIZE"]) > 1:
         dist.destroy_process_group()
 
 

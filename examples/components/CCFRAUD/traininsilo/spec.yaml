@@ -55,12 +55,6 @@ inputs:
     type: string
     description: stringified json config for a silo
     optional: true
-  benchmark:
-    type: boolean
-    optional: true
-  train_all_data:
-    type: boolean
-    optional: true
   dp: # dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy
     type: boolean
     description: differential privacy
@@ -86,6 +80,16 @@ inputs:
     description: Total num of iterations
     default: 1
     optional: true
+  benchmark_test_all_data:
+    type: boolean
+    description: Whether to use all test data (all silos combined) to bechmark final aggregated model
+    default: false
+    optional: true
+  benchmark_train_all_data:
+    type: boolean
+    description: Whether to use all train data (all silos combined) in training, True if one wants to see performance of a centralized model trained on all data.
+    default: false
+    optional: true
 
 outputs:
   model:
@@ -106,13 +110,14 @@ command: >-
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
-  $[[--benchmark ${{inputs.benchmark}}]]
-  $[[--train_all_data ${{inputs.train_all_data}}]]
   $[[--dp ${{inputs.dp}}]] 
   $[[--dp_target_epsilon ${{inputs.dp_target_epsilon}}]] 
   $[[--dp_target_delta ${{inputs.dp_target_delta}}]]
   $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
   $[[--total_num_of_iterations ${{inputs.total_num_of_iterations}}]]
+  $[[--benchmark_test_all_data ${{inputs.benchmark_test_all_data}}]]
+  $[[--benchmark_train_all_data ${{inputs.benchmark_train_all_data}}]]
+
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

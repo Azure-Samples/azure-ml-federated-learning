@@ -2,22 +2,21 @@
 
 # References to Azure ML workspace (use cli args to override)
 aml:
-  subscription_id: 48bbc269-ce89-4f6f-9a12-c6f91fcb772d
-  resource_group_name: wen_babel_fl
-  workspace_name: aml-fl-benchmarks-gpu5
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
 
 # Parameters to generate the FL graph
 federated_learning:
-  # Whether to run benchmark, if true all test data will be uploaded 
-  benchmark: false
+  benchmark_test_all_data: true
   silos: # silos are provided as a list
-    - compute: silo0-01 # name of the compute for silo X
-      datastore: datastore_silo0 # name of the datastore for silo X
+    - compute: gpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus # name of the datastore for silo Xc
 
-    - compute: silo1-01 # we are repeating over the same config for silo 2
-      datastore: datastore_silo1
+    - compute: gpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
 
-    - compute: silo2-01 # we are repeating over the same config for silo 3
-      datastore: datastore_silo2
+    - compute: gpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
 
 

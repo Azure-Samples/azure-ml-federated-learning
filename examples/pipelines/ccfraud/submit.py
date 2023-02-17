@@ -282,7 +282,7 @@ def fl_ccfraud_basic():
                 path=silo_config.testing_data.path,
             ),
             metrics_prefix=silo_config.name,
-            benchmark = YAML_CONFIG.training_parameters.benchmark_test_all_data
+            benchmark_test_all_data = YAML_CONFIG.training_parameters.benchmark_test_all_data
         )
 
         # add a readable name to the step
@@ -371,9 +371,9 @@ def fl_ccfraud_basic():
                 # Model name
                 model_name=YAML_CONFIG.training_parameters.model_name,
                 # Whether to benchmark
-                benchmark = YAML_CONFIG.training_parameters.benchmark_test_all_data,
+                benchmark_test_all_data = YAML_CONFIG.training_parameters.benchmark_test_all_data,
                 # Whether to train with all data
-                train_all_data = YAML_CONFIG.training_parameters.benchmark_train_all_data
+                benchmark_train_all_data = YAML_CONFIG.training_parameters.benchmark_train_all_data
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -382,7 +382,7 @@ def fl_ccfraud_basic():
             silo_training_step.compute = silo_config.computes[0]
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
-            silo_training_step.distribution.process_count_per_instance = silo_processes
+            silo_training_step.distribution.process_count_per_instance = 1
 
             # set number of instances to distribute training across
             if hasattr(silo_config, "instance_count"):
@@ -467,7 +467,7 @@ def fl_ccfraud_basic():
             # Model name
             model_name=YAML_CONFIG.training_parameters.model_name,
             fraud_weight_path = silo_preprocessed_train_data[silo_index],
-            benchmark = YAML_CONFIG.training_parameters.benchmark_test_all_data,
+            benchmark_test_all_data = YAML_CONFIG.training_parameters.benchmark_test_all_data,
 
         )
         silo_evaluation_step.compute = silo_config.computes[0]
@@ -475,7 +475,7 @@ def fl_ccfraud_basic():
         silo_evaluation_step.name = f"silo_{silo_index}_evaluation"
 
         # set distribution according to the number of available GPUs (1 in case of only CPU available)
-        silo_evaluation_step.distribution.process_count_per_instance = silo_processes
+        silo_evaluation_step.distribution.process_count_per_instance = 1
 
         # set number of instances to distribute training across
         if hasattr(silo_config, "instance_count"):

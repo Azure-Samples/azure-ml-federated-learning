@@ -1,10 +1,10 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_eval
+name: pneumonia_eval
 version: 0.1.0
-display_name: CC Fraud Aggregate Model Evaluation
+display_name: PNEUMONIA Aggregate Model Evaluation
 type: command
-description: Component to evaluate the final aggregated CC Fraud model.
+description: Component to evaluate the final aggregated PNEUMONIA model.
 is_deterministic: false
 
 distribution:
@@ -14,11 +14,6 @@ inputs:
   test_data_dir:
     type: uri_folder
     description: the input testing data (preprocessed)
-  model_name:
-    type: string
-    description: name of the model used
-    enum: [SimpleLSTM, SimpleVAE, SimpleLinear]
-    optional: false
   metrics_prefix:
     type: string
     description: Metrics prefix
@@ -32,9 +27,6 @@ inputs:
     description: batch size
     default: 100
     optional: true
-  fraud_weight_path:
-    type: uri_folder
-    description: the path to fraudweight
   benchmark_test_all_data:
     type: boolean
     description: Whether to use all test data (all silos combined) to bechmark final aggregated model
@@ -52,10 +44,8 @@ code: ..
 command: >-
   python evaluation/run_eval.py
   --test_data_dir ${{inputs.test_data_dir}}
-  --model_name ${{inputs.model_name}}
   --checkpoint ${{inputs.checkpoint}}
   --predictions_path ${{outputs.predictions}}
-  --fraud_weight_path ${{inputs.fraud_weight_path}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
   $[[--benchmark_test_all_data ${{inputs.benchmark_test_all_data}}]]

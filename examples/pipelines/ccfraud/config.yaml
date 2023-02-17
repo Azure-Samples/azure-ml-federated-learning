@@ -3,56 +3,56 @@
 # using this to store references to Azure ML
 aml:
   subscription_id: 48bbc269-ce89-4f6f-9a12-c6f91fcb772d
-  resource_group_name: wen_babel_fl
-  workspace_name: aml-fl-benchmarks-gpu5
+  resource_group_name: fldev-customer1-rg
+  workspace_name: aml-fldemo-customer1
 
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: orchestrator-01
+    compute: cpu-orchestrator
     datastore: datastore_orchestrator
 
   silos:
     - name: silo0
       computes: 
-      - silo0-01 # name of the compute for silo X
-      datastore: datastore_silo0
+      - gpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_test_data
       instance_count: 1
 
     - name: silo1
       computes: 
-      - silo1-01 # we are repeating over the same config for silo 2
-      datastore: datastore_silo1
+      - gpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_test_data
       instance_count: 1
 
     - name: silo2
       computes: 
-      - silo2-01 # we are repeating over the same config for silo 3
-      datastore: datastore_silo2
+      - gpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_test_data
       instance_count: 1
 
 data_analysis_parameters:
@@ -60,11 +60,11 @@ data_analysis_parameters:
 
 # training parameters
 training_parameters:
-  num_of_iterations: 1
-  epochs: 1
+  num_of_iterations: 3
+  epochs: 3
   lr: 1e-3
-  batch_size: 4000
-  eval_batch_size: 4000
+  batch_size: 500
+  eval_batch_size: 500
   # Property model_name defines model to be used for training and 
   # must be one of the models defined in the traininsilo/model.py 
   # file for the CCFRAUD component. Options include: 
@@ -73,8 +73,8 @@ training_parameters:
   run_data_analysis: false
 
   # Differential privacy
-  dp: false # Flag to enable/disable differential privacy
-  dp_target_epsilon: 50.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
+  dp: true # Flag to enable/disable differential privacy
+  dp_target_epsilon: 200.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
   dp_target_delta: 1e-5 # The target δ of the (ϵ,δ)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. 
   dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
 
@@ -82,5 +82,5 @@ training_parameters:
   # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
 
   # Benchmark
-  benchmark_test_all_data: true   # Whether to use all test data to bechmark final aggregated model
-  benchmark_train_all_data: false   # Whether to use all train data in training, True for centralized-1, False for centralized 1/3, False for regular FL
+  benchmark_test_all_data: true   # Whether to use all test data (all silos combined) to bechmark final aggregated model
+  benchmark_train_all_data: false   # Whether to use all train data (all silos combined) in training, True if one wants to see performance of a centralized model trained on all data.

@@ -9,48 +9,53 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: "orchestrator-01"
+    compute: "cpu-orchestrator"
     datastore: "datastore_orchestrator"
 
   silos:
     - name: silo0
       computes: 
-      - silo0-01 # name of the compute for silo X
-      datastore: datastore_silo0
+      - gpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus
       silo_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/pneumonia
 
     - name: silo1
       computes: 
-      - silo1-01 # we are repeating over the same config for silo 2
-      datastore: datastore_silo1
+      - gpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
       silo_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/pneumonia
 
     - name: silo2
       computes: 
-      - silo2-01 # we are repeating over the same config for silo 3
-      datastore: datastore_silo2
+      -  gpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
       silo_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/pneumonia
 
 # training parameters
 training_parameters:
-  num_of_iterations: 2
-  epochs: 5
+  num_of_iterations: 1
+  epochs: 10
   lr: 0.01
+  eval_batch_size: 100
 
   # Differential privacy
-  dp: true # Flag to enable/disable differential privacy
+  dp: false # Flag to enable/disable differential privacy
   dp_target_epsilon: 50.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
   dp_target_delta: 1e-5 # The target δ of the (ϵ,δ)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. 
   dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
 
   # if you want to use the privacy_engine.make_private method, please set the value of dp_noise_multiplier parameter
   # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
+
+  # Benchmark
+  benchmark_test_all_data: true   # Whether to use all test data (all silos combined) to bechmark final aggregated model
+  benchmark_train_all_data: false  # Whether to use all train data (all silos combined) in training, True if one wants to see performance of a centralized model trained on all data.

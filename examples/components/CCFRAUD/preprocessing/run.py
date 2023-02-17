@@ -37,10 +37,7 @@ def get_arg_parser(parser=None):
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
     parser.add_argument(
-        "--benchmark",
-        type=strtobool,
-        required=False,
-        help="Whether to run benchmark comparing centralized and FL models",
+        "--benchmark_test_all_data", type=strtobool, required=False,help="Whether to use all test data (all silos combined) to bechmark final aggregated model"
     )
     return parser
 
@@ -88,7 +85,7 @@ def apply_transforms(df):
 def preprocess_data(
     raw_training_data,
     raw_testing_data,
-    benchmark,
+    benchmark_test_all_data,
     train_data_dir="./",
     test_data_dir="./",
     metrics_prefix="default-prefix",
@@ -153,7 +150,7 @@ def preprocess_data(
 
     
     # if run benchmark, process all data too
-    if benchmark:
+    if benchmark_test_all_data:
 
         train_df_unfiltered  = pd.read_csv(raw_training_data + f"/train_unfiltered.csv")
         test_df_unfiltered = pd.read_csv(raw_testing_data + f"/test_unfiltered.csv")
@@ -225,7 +222,7 @@ def main(cli_args=None):
         preprocess_data(
             args.raw_training_data,
             args.raw_testing_data,
-            args.benchmark,
+            args.benchmark_test_all_data,
             args.train_output,
             args.test_output,
             args.metrics_prefix,

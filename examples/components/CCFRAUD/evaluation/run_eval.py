@@ -19,6 +19,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
 from distutils.util import strtobool
 from collections import OrderedDict
+from torchmetrics import AUROC
 
 
 TRAIN_COMPONENT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../traininsilo"))
@@ -29,7 +30,7 @@ import datasets as datasets
 
 
 
-def load_dataset( test_data_dir, fraud_weight_path, model_name, benchmark):
+def load_dataset( test_data_dir, fraud_weight_path, model_name, benchmark_test_all_data):
     """Load dataset from {test_data_dir}
 
     Args:
@@ -38,8 +39,8 @@ def load_dataset( test_data_dir, fraud_weight_path, model_name, benchmark):
     """
     logger.info(f" Test data dir: {test_data_dir}")
 
-    # if not running FL/DP benchmark, 
-    if benchmark:
+    # use all test data is benchmarking
+    if benchmark_test_all_data:
         test_df = pd.read_csv(test_data_dir + "/unfiltered_data.csv")
         fraud_weight = np.loadtxt(fraud_weight_path + "/unfiltered_fraud_weight.txt").item()
     else:
@@ -72,7 +73,7 @@ def test(args, device_id=None, distributed=False):
 
     """Test the aggregate model and report test loss and accuracy"""
     test_metrics = RunningMetrics(
-        ["loss", "accuracy", "precision", "recall"], prefix="test"
+        ["loss", "accuracy", "precision", "recall", "AUC"], prefix="test"
     )
     device = (
         torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
@@ -87,7 +88,7 @@ def test(args, device_id=None, distributed=False):
         rank = None
 
 
-    test_dataset, input_dim, fraud_weight = load_dataset(args.test_data_dir, args.fraud_weight_path, args.model_name, args.benchmark)
+    test_dataset, input_dim, fraud_weight = load_dataset(args.test_data_dir, args.fraud_weight_path, args.model_name, args.benchmark_test_all_data)
 
     if distributed:
         logger.info("Setting up distributed samplers.")
@@ -143,6 +144,9 @@ def test(args, device_id=None, distributed=False):
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
                 )
+                auroc = AUROC("binary")
+                auc = auroc(predictions, labels)
+                test_metrics.add_metric("AUC", auc)
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
                 test_metrics.add_metric(
@@ -182,18 +186,30 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--test_data_dir", type=str, required=True, help="Path to input test data")
-    parser.add_argument("--checkpoint", type=str, required=False, help="")
-
+    parser.add_argument(
+        "--test_data_dir", type=str, required=True, help="Path to input test data"
+    )
+    parser.add_argument(
+        "--checkpoint", type=str, required=False, help=""
+    )
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-    parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-
-    parser.add_argument("--model_name", type=str, required=True, help="Class name of the model")
-    parser.add_argument("--fraud_weight_path", type=str, required=True, help="Path to the fraud_weight")
-    parser.add_argument("--predictions_path", type=str, required=True, help="Path to save the final predictions")
-    parser.add_argument("--benchmark", type=strtobool, required=False, default=False, help="Whether to perform FL vs Centralized benchmark")
+    parser.add_argument(
+        "--batch_size", type=int, required=False, help="Batch Size"
+    )
+    parser.add_argument(
+        "--model_name", type=str, required=True, help="Class name of the model"
+    )
+    parser.add_argument(
+        "--fraud_weight_path", type=str, required=True, help="Path to the fraud_weight"
+    )
+    parser.add_argument(
+        "--predictions_path", type=str, required=True, help="Path to save the final predictions"
+    )
+    parser.add_argument(
+        "--benchmark_test_all_data", type=strtobool, required=False,help="Whether to use all test data (all silos combined) to bechmark final aggregated model"
+    )
     return parser
 
 
@@ -227,9 +243,9 @@ def main(cli_args=None):
     elif int(os.environ['WORLD_SIZE']) > 1:
         dist.init_process_group("gloo")
 
-    test(args, device_id=int(os.environ['RANK']), distributed=int(os.environ['WORLD_SIZE']) > 1 and torch.cuda.is_available())
+    test(args, device_id=int(os.environ['RANK']), distributed=int(os.environ['WORLD_SIZE']) > 1)
 
-    if torch.cuda.is_available() or int(os.environ['WORLD_SIZE']) > 1:
+    if int(os.environ['WORLD_SIZE']) > 1:
         dist.destroy_process_group()
 
 

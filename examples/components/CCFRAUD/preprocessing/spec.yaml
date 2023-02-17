@@ -19,8 +19,10 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
-  benchmark:
+  benchmark_test_all_data:
     type: boolean
+    description: Whether to use all test data (all silos combined) to bechmark final aggregated model
+    default: false
     optional: true
 
 
@@ -35,7 +37,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --raw_training_data ${{inputs.raw_training_data}} --raw_testing_data ${{inputs.raw_testing_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--benchmark ${{inputs.benchmark}}]]
+  python run.py --raw_training_data ${{inputs.raw_training_data}} --raw_testing_data ${{inputs.raw_testing_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--benchmark_test_all_data ${{inputs.benchmark_test_all_data}}]]
 
 # NOTE: using one of Azure ML's curated environments
 # which has all the dependencies needed for this job

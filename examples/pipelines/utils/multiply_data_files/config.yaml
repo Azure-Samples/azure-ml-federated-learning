@@ -3,39 +3,39 @@
 # References to Azure ML workspace (use cli args to override)
 aml:
   subscription_id: 48bbc269-ce89-4f6f-9a12-c6f91fcb772d
-  resource_group_name: wen_babel_fl
-  workspace_name: aml-fl-benchmarks-gpu5
+  resource_group_name: fldev-customer1-rg
+  workspace_name: aml-fldemo-customer1
 
 # Parameters to generate the FL graph
 federated_learning:
   silos: # silos are provided as a list
-    - compute: silo0-01 # name of the compute for silo X
-      datastore: datastore_silo0 # name of the datastore for silo X
+    - compute: gpu-silo0-westus # name of the compute for silo X
+      datastore: datastore_silo0_westus # name of the datastore for silo X
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/pneumonia
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/ccfraud
-    - compute: silo1-01 # we are repeating over the same config for silo 2
-      datastore: datastore_silo1
+        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/multiplied_data/pneumonia
+    - compute: gpu-silo1-francecentral # we are repeating over the same config for silo 2
+      datastore: datastore_silo1_francecentral
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/pneumonia
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/ccfraud
-    - compute: silo2-01 # we are repeating over the same config for silo 3
-      datastore: datastore_silo2
+        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/multiplied_data/pneumonia
+    - compute: gpu-silo2-brazilsouth # we are repeating over the same config for silo 3
+      datastore: datastore_silo2_brazilsouth
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/pneumonia
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/ccfraud
+        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/multiplied_data/pneumonia

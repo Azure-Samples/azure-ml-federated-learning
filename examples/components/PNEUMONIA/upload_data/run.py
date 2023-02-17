@@ -4,6 +4,7 @@ import logging
 import sys
 import os
 import shutil
+from distutils.util import strtobool
 
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
@@ -74,6 +75,8 @@ def run(args):
         move=True,
     )
 
+
+
     # Create the directories we will populate
     output_path = args.raw_data_folder
     stages = ["train", "val", "test"]
@@ -81,6 +84,9 @@ def run(args):
     for stage in stages:
         for class_ in classes:
             os.makedirs(os.path.join(output_path, stage, class_), exist_ok=True)
+            if args.benchmark_test_all_data:
+                os.makedirs(os.path.join(output_path, "all_data", stage, class_), exist_ok=True)
+
 
     # copy extracted jpeg files to output directory
     index = 0
@@ -89,6 +95,13 @@ def run(args):
             files
         ):  # critical that the list of files is in the same order for each execution, since we partition them into silos based on their position in the list
             if name.endswith(".jpeg"):
+                if args.benchmark_test_all_data: # if benchamk, copy everything
+                    shutil.copyfile(
+                        os.path.join(root, name),
+                        os.path.join("/".join(root.split("/")[:-2]), "all_data", "/".join(root.split("/")[-2:]), name).replace(
+                            "./tmp/chest_xray_tvt", output_path
+                        ),
+                    )
                 if index % args.silo_count == args.silo_index:
                     shutil.copyfile(
                         os.path.join(root, name),
@@ -129,6 +142,14 @@ def get_arg_parser(parser=None):
         "--raw_data_folder",
         type=str,
         required=True,
+        help="Output folder for data",
+    )
+
+    parser.add_argument(
+        "--benchmark_test_all_data",
+        type=strtobool,
+        required=False,
+        default=False,
         help="Output folder for data",
     )
     return parser
