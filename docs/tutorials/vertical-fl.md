@@ -62,7 +62,7 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
 ## Model preparation for VFL
-It is an ongoign research topic on how the model can be orchestrated in VFL. We have decided to go with the most common approach by splitting it between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and/or activation function. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
+It is an ongoing research topic on how the model can be orchestrated in VFL. We have decided to go with the most common approach by splitting it between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and/or activation function. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
 
 ## Training
 
@@ -90,7 +90,7 @@ Afterwards, we can continue with regular training loop:
 2. Submit the experiment by running:
 
    ```bash
-   python ./examples/pipelines/<example-name>/upload_data/submit.py --config examples/pipelines/<example-name>/config.yaml --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/<example-name>/submit.py --config examples/pipelines/<example-name>/config.yaml --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
