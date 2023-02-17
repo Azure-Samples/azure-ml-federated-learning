@@ -9,51 +9,48 @@ aml:
 # federated learning parameters
 federated_learning:
   orchestrator:
-    compute: cpu-orchestrator
+    compute: orchestrator-01
     datastore: datastore_orchestrator
 
   silos:
     - name: silo0
       computes: 
-      - gpu-silo0-westus # name of the compute for silo X
-      datastore: datastore_silo0_westus
+      - silo0-01 # name of the compute for silo X
+      datastore: datastore_silo0
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0_westus/paths/federated_learning/ccfraud/raw_test_data
-      instance_count: 1
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_test_data
 
     - name: silo1
       computes: 
-      - gpu-silo1-francecentral # we are repeating over the same config for silo 2
-      datastore: datastore_silo1_francecentral
+      - silo1-01 # we are repeating over the same config for silo 2
+      datastore: datastore_silo1
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1_francecentral/paths/federated_learning/ccfraud/raw_test_data
-      instance_count: 1
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_test_data
 
     - name: silo2
       computes: 
-      - gpu-silo2-brazilsouth # we are repeating over the same config for silo 3
-      datastore: datastore_silo2_brazilsouth
+      - silo2-01 # we are repeating over the same config for silo 3
+      datastore: datastore_silo2
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2_brazilsouth/paths/federated_learning/ccfraud/raw_test_data
-      instance_count: 1
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_test_data
 
 data_analysis_parameters:
   onehot_columns_prefix: category_,gender_,street_,city_,state_,job_,region_
@@ -73,8 +70,8 @@ training_parameters:
   run_data_analysis: false
 
   # Differential privacy
-  dp: true # Flag to enable/disable differential privacy
-  dp_target_epsilon: 200.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
+  dp: false # Flag to enable/disable differential privacy
+  dp_target_epsilon: 50.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
   dp_target_delta: 1e-5 # The target δ of the (ϵ,δ)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. 
   dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
 

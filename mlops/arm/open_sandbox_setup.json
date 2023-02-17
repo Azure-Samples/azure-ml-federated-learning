@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.6.61914",
-      "templateHash": "16938814105239717028"
+      "templateHash": "3058786123964988002"
     }
   },
   "parameters": {
@@ -47,21 +47,21 @@
     },
     "compute1SKU": {
       "type": "string",
-      "defaultValue": "Standard_DS3_v2",
+      "defaultValue": "Standard_DS4_v2",
       "metadata": {
         "description": "The VM used for creating compute clusters in orchestrator and silos."
       }
     },
     "compute2": {
       "type": "bool",
-      "defaultValue": true,
+      "defaultValue": false,
       "metadata": {
         "description": "Flag whether to create a second compute or not"
       }
     },
     "compute2SKU": {
       "type": "string",
-      "defaultValue": "Standard_DS3_v2",
+      "defaultValue": "Standard_NC6",
       "metadata": {
         "description": "The VM used for creating a second compute cluster in orchestrator and silos."
       }
@@ -401,7 +401,16 @@
             "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
+          },
+          "compute2": {
+            "value": false
+          },
+          "compute2SKU": {
+            "value": "[parameters('compute2SKU')]"
+          },
+          "compute2Name": {
+            "value": "orchestrator-02"
           },
           "compute2": {
             "value": false
@@ -1285,7 +1294,16 @@
             "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
+          },
+          "compute2": {
+            "value": "[parameters('compute2')]"
+          },
+          "compute2SKU": {
+            "value": "[parameters('compute2SKU')]"
+          },
+          "compute2Name": {
+            "value": "[format('silo{0}-02', range(0, variables('siloCount'))[copyIndex()])]"
           },
           "compute2": {
             "value": "[parameters('compute2')]"

@@ -28,6 +28,10 @@ import multiprocessing
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 
+# DP
+from opacus import PrivacyEngine
+from opacus.validators import ModuleValidator
+
 
 class PTLearner:
     def __init__(
@@ -100,7 +104,7 @@ class PTLearner:
 
         # Training setup
         self.model_ = PneumoniaNetwork()
-        self.model_ = self.model_.to(self.device_)
+        self.model_.to(self.device_)
         if self._distributed:
             self.model_ = DDP(
                 self.model_,
@@ -305,7 +309,6 @@ class PTLearner:
                 self.model_.train()
                 epoch_start_time = time.time()
                 for i, batch in enumerate(self.train_loader_):
-
                     images, labels = batch[0].to(self.device_), batch[1].to(
                         self.device_
                     )
@@ -331,7 +334,6 @@ class PTLearner:
                                 "Train Loss",
                                 training_loss,
                             )
-                
                         running_loss = 0.0
 
                 # compute test metrics
@@ -510,13 +512,13 @@ def run(args):
     logger.info(f"Distributed process rank: {os.environ['RANK']}")
     logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
 
-    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
             rank=int(os.environ["RANK"]),
-            world_size=int(os.environ["WORLD_SIZE"]),
+            world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
-    elif int(os.environ["WORLD_SIZE"]) > 1:
+    elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.init_process_group("gloo")
 
     trainer = PTLearner(
@@ -534,12 +536,13 @@ def run(args):
         benchmark_test_all_data=args.benchmark_test_all_data,
         benchmark_train_all_data=args.benchmark_train_all_data,
         device_id=int(os.environ["RANK"]),
-        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
+        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
+        and torch.cuda.is_available(),
     )
 
     trainer.execute(args.checkpoint)
 
-    if  int(os.environ["WORLD_SIZE"]) > 1:
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.destroy_process_group()
 
 

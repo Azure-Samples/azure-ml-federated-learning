@@ -36,3 +36,6 @@ This tutorial addresses the following scenarios:
 
 - To bypass the soft validation:
   - Use `--ignore_validation` argument while executing the `examples/pipelines/fl_cross_silo_factory/submit.py` file.
+
+- To enable multiple computes(CPU for preprocessing & GPU for training):
+  - Set the `compute2` parameter to `true` while [provisioning](../quickstart.md#deploy-demo-resources-in-azure) the resources.(No further changes are required)

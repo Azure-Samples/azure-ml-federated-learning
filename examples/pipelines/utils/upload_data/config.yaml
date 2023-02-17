@@ -10,13 +10,11 @@ aml:
 federated_learning:
   benchmark_test_all_data: true
   silos: # silos are provided as a list
-    - compute: gpu-silo0-westus # name of the compute for silo X
-      datastore: datastore_silo0_westus # name of the datastore for silo Xc
+    - compute: silo0-01 # name of the compute for silo X
+      datastore: datastore_silo0 # name of the datastore for silo X
 
-    - compute: gpu-silo1-francecentral # we are repeating over the same config for silo 2
-      datastore: datastore_silo1_francecentral
+    - compute: silo1-01 # we are repeating over the same config for silo 2
+      datastore: datastore_silo1
 
-    - compute: gpu-silo2-brazilsouth # we are repeating over the same config for silo 3
-      datastore: datastore_silo2_brazilsouth
-
-
+    - compute: silo2-01 # we are repeating over the same config for silo 3
+      datastore: datastore_silo2
