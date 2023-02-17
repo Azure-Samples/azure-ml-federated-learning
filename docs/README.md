@@ -21,7 +21,7 @@
 - [Tutorials](#tutorials)
   - [What this repo has to offer?](#what-this-repo-has-to-offer)
   - [Provisioning guide](#provisioning-guide)
-  - [How to adapt the "literal" and the "factory" code for your own scenario](#how-to-adapt-the-literal-and-the-factory-code-for-your-own-scenario)
+  - [How to adapt the "literal" and the "scatter-gather" code for your own scenario](#how-to-adapt-the-literal-and-the-scatter-gather-code-for-your-own-scenario)
   - [Read local data in an on-premises Kubernetes silo](#read-local-data-in-an-on-premises-kubernetes-silo)
   - [Upload local data to silo storage account](#upload-local-data-to-silo-storage-account)
 - [Troubleshooting guide](#troubleshooting-guide)
@@ -44,7 +44,7 @@ To know more about the resource provisioning alternatives, please go to the prov
 
 ## Real-world examples
 
-In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [factory](../examples/pipelines/fl_cross_silo_factory/) sample experiments, we also provide examples based on real-world applications.
+In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [scatter-gather](../examples/pipelines/fl_cross_silo_scatter_gather/) sample experiments, we also provide examples based on real-world applications.
 
 > Note: The `upload-data` scripts are only included in the examples for the convenience of executing the FL examples. Please ignore this section if you are performing an actual FL experiment for your scenario.
 
@@ -115,9 +115,9 @@ This repo provides some code samples for running a federated learning pipeline i
 
 This guide will help you adapt your own setup depending on your provisioning strategy and your constraints. See [here](./provisioning/README.md) for detailed instructions.
 
-## How to adapt the "literal" and the "factory" code for your own scenario
+## How to adapt the "literal" and the "scatter-gather" code for your own scenario
 
-The complete tutorial can be found [**here**](./tutorials/literal-factory-tutorial.md)
+The complete tutorial can be found [**here**](./tutorials/literal-scatter-gather-tutorial.md)
 
 ## Read local data in an on-premises Kubernetes silo
 
