@@ -35,28 +35,28 @@ class CCFraudTrainer:
     ):
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
-       Args:
-            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
-            global_rank(int): Rank of the current node.
-            global_size(int): Total number of nodes.
-            global_comm(AMLComm): Communication method.
-            train_data_dir(str, optional): Training data directory path.
-            test_data_dir(str, optional): Testing data directory path.
-            model_path(str, optional): Path to save model.
-            lr (float, optional): Learning rate. Defaults to 0.01.
-            epochs (int, optional): Epochs. Defaults to 1.
-            batch_size (int, optional): DataLoader batch size. Defaults to 64.
-            experiment_name (str, optional): Name of the experiment. Defaults to "default-experiment".
+        Args:
+             model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
+             global_rank(int): Rank of the current node.
+             global_size(int): Total number of nodes.
+             global_comm(AMLComm): Communication method.
+             train_data_dir(str, optional): Training data directory path.
+             test_data_dir(str, optional): Testing data directory path.
+             model_path(str, optional): Path to save model.
+             lr (float, optional): Learning rate. Defaults to 0.01.
+             epochs (int, optional): Epochs. Defaults to 1.
+             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+             experiment_name (str, optional): Name of the experiment. Defaults to "default-experiment".
 
-        Attributes:
-            model_: Model
-            device_: Location of the model
-            criterion_: BCELoss loss
-            optimizer_: Stochastic gradient descent
-            train_dataset_: Training Dataset obj
-            train_loader_: Training DataLoader
-            test_dataset_: Testing Dataset obj
-            test_loader_: Testing DataLoader
+         Attributes:
+             model_: Model
+             device_: Location of the model
+             criterion_: BCELoss loss
+             optimizer_: Stochastic gradient descent
+             train_dataset_: Training Dataset obj
+             train_loader_: Training DataLoader
+             test_dataset_: Testing Dataset obj
+             test_loader_: Testing DataLoader
         """
 
         # Training setup
