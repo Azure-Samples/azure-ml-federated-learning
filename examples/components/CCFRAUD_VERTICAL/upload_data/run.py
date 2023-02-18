@@ -11,12 +11,6 @@ from zipfile import ZipFile
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
 
-SPLITS = {
-    1: [["Midwest", "Northeast", "South", "West"]],
-    2: [["Midwest", "Northeast"], ["South", "West"]],
-    3: [["South"], ["Midwest"], ["West", "Northeast"]],
-    4: [["South"], ["West"], ["Midwest"], ["Northeast"]],
-}
 CATEGORICAL_PROPS = ["category", "region", "gender", "state"]
 ENCODERS = {}
 
@@ -48,6 +42,9 @@ def fit_encoders(df):
     global ENCODERS
 
     for column in CATEGORICAL_PROPS:
+        if column not in df.columns:
+            continue
+
         if column not in ENCODERS:
             print(f"Creating encoder for column: {column}")
             # Simply set all zeros if the category is unseen
@@ -56,14 +53,7 @@ def fit_encoders(df):
             ENCODERS[column] = encoder
 
 
-def preprocess_data(df):
-    """Filter dataframe to include only useful features and apply categorical one hot encoders
-
-    Args:
-        df (pd.DataFrame): Pandas dataframe to apply transforms to
-    """
-    global ENCODERS
-
+def filter_useful_columns(df: pd.DataFrame):
     useful_props = [
         "amt",
         "age",
@@ -80,26 +70,59 @@ def preprocess_data(df):
         "is_fraud",
     ]
 
-    df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta(
-        "1y"
-    )
-
     # Filter only useful columns
-    df = df[useful_props]
+    df.drop(set(df.columns).difference(useful_props), 1, inplace=True)
+    return df
+
+
+def split_load(df, silo_count):
+    loads = {col: 1 for col in df.columns}
+    for category in CATEGORICAL_PROPS:
+        if category in loads:
+            loads[category] = len(ENCODERS.get(category).get_feature_names())
+
+    target_load = sum(loads.values()) / silo_count
+    sorted_loads = sorted(loads.items(), key=lambda x: x[1], reverse=True)
+
+    print("Sorted loads:", sorted_loads)
+    print("Silo count:", silo_count)
+
+    current_load = 0
+    split, splits = [], []
+    for column, load in sorted_loads:
+        split.append(column)
+        current_load += load
+
+        if (current_load >= target_load and len(splits) < silo_count - 1) or len(
+            sorted_loads
+        ) - sorted_loads.index((column, load)) - 1 <= silo_count - len(splits) - 1:
+            splits.append(split)
+            split = []
+            current_load = 0
+
+    if len(split) > 0:
+        splits.append(split)
+
+    print("Splits:", splits)
+    return splits
+
+
+def preprocess_data(df: pd.DataFrame):
+    """Filter dataframe to include only useful features and apply categorical one hot encoders
+
+    Args:
+        df (pd.DataFrame): Pandas dataframe to apply transforms to
+    """
 
     for column in CATEGORICAL_PROPS:
+        if column not in df.columns:
+            continue
+
         encoder = ENCODERS.get(column)
         encoded_data = encoder.transform(df[column].values.reshape(-1, 1)).toarray()
-        encoded_df = pd.DataFrame(
-            encoded_data,
-            columns=[
-                column + "_" + "_".join(x.split("_")[1:])
-                for x in encoder.get_feature_names()
-            ],
-        )
-        encoded_df.index = df.index
-        df = df.join(encoded_df).drop(column, axis=1)
-
+        df.drop(column, axis=1, inplace=True)
+        for i, name in enumerate(encoder.get_feature_names()):
+            df[column + "_" + "_".join(name.split("_")[1:])] = encoded_data[:, i]
     return df
 
 
@@ -139,36 +162,75 @@ def run(args):
         zObject.extractall("./dataset/extracted")
 
     df_train = pd.read_csv("./dataset/extracted/fraudTrain.csv", index_col=0)
+    df_train = df_train.sort_values(by="trans_date_trans_time")
+    df_train.reset_index(inplace=True)
     print(f"Loaded train dataset with {len(df_train)} rows")
     df_test = pd.read_csv("./dataset/extracted/fraudTest.csv", index_col=0)
-    print(f"Loaded test dataset with {len(df_train)} rows")
-    regions_df = pd.read_csv("./us_regions.csv")
-    state_region = {row.StateCode: row.Region for row in regions_df.itertuples()}
-    print(f"Loaded state/regions:\n {state_region}")
+    df_test = df_test.sort_values(by="trans_date_trans_time")
+    df_test.reset_index(inplace=True)
+    print(f"Loaded test dataset with {len(df_test)} rows")
 
-    df_train.loc[:, "region"] = df_train["state"].map(state_region)
-    df_test.loc[:, "region"] = df_test["state"].map(state_region)
+    if not os.path.exists(args.raw_train_data):
+        os.makedirs(args.raw_train_data, exist_ok=True)
+    if not os.path.exists(args.raw_test_data):
+        os.makedirs(args.raw_test_data, exist_ok=True)
 
-    # Create categorical encoder before any further preprocessing/reduction
-    fit_encoders(df_train)
-
-    os.makedirs("./dataset/filtered/")
-    regions = SPLITS[args.silo_count][args.silo_index]
-
-    print(f"Filtering regions: {regions}")
     train_path = f"{args.raw_train_data}/train.csv"
     test_path = f"{args.raw_test_data}/test.csv"
 
-    train_data_filtered = df_train[df_train["region"].isin(regions)]
-    test_data_filtered = df_test[df_test["region"].isin(regions)]
-    print(f"Filtered train dataset has {len(train_data_filtered)} rows")
-    print(f"Filtered test dataset has {len(test_data_filtered)} rows")
+    if args.silo_index == 0:
+        df_train = df_train[["is_fraud"]]
+        df_test = df_test[["is_fraud"]]
+    else:
+        df_train.drop("is_fraud", axis=1, inplace=True)
+        df_test.drop("is_fraud", axis=1, inplace=True)
 
-    train_data_filtered = preprocess_data(train_data_filtered)
-    test_data_filtered = preprocess_data(test_data_filtered)
+        df_train.loc[:, "age"] = (
+            pd.Timestamp.now() - pd.to_datetime(df_train["dob"])
+        ) // pd.Timedelta("1y")
+        df_test.loc[:, "age"] = (
+            pd.Timestamp.now() - pd.to_datetime(df_test["dob"])
+        ) // pd.Timedelta("1y")
+        filter_useful_columns(df_train)
+        filter_useful_columns(df_test)
 
-    train_data_filtered.to_csv(train_path, index=False)
-    test_data_filtered.to_csv(test_path, index=False)
+        regions_df = pd.read_csv("./us_regions.csv")
+        state_region = {row.StateCode: row.Region for row in regions_df.itertuples()}
+        print(f"Loaded state/regions:\n {state_region}")
+
+        df_train.loc[:, "region"] = df_train["state"].map(state_region)
+        df_test.loc[:, "region"] = df_test["state"].map(state_region)
+
+        print(
+            f"Train dataset has {len(df_train)} rows and {len(df_train.columns)} columns: {list(df_train.columns)}"
+        )
+        print(
+            f"Test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
+        )
+
+        # Create categorical encoder before any further preprocessing/reduction
+        fit_encoders(df_train)
+        column_splits = split_load(df_train, int(args.silo_count) - 1)
+
+        drop_columns_subset = set(df_train.columns).difference(
+            column_splits[args.silo_index - 1]
+        )
+
+        df_train.drop(drop_columns_subset, 1, inplace=True)
+        df_test.drop(drop_columns_subset, 1, inplace=True)
+
+    preprocess_data(df_train)
+    preprocess_data(df_test)
+
+    print(
+        f"Filtered train dataset has {len(df_train)} rows and {len(df_train.columns)} columns: {list(df_train.columns)}"
+    )
+    print(
+        f"Filtered test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
+    )
+
+    df_train.to_csv(train_path)
+    df_test.to_csv(test_path)
 
 
 def get_arg_parser(parser=None):
