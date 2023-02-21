@@ -12,7 +12,7 @@ import numpy as np
 from torch import nn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torchmetrics.functional import precision_recall, accuracy
+from torchmetrics.functional import precision_recall, accuracy, auroc
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.distributed import DistributedSampler
@@ -333,11 +333,9 @@ class CCFraudTrainer:
             logger.debug("Local training started")
 
             train_metrics = RunningMetrics(
-                ["loss", "accuracy", "precision", "recall"], prefix="train"
+                ["loss", "accuracy", "precision", "recall", "auroc"], prefix="train"
             )
-            test_metrics = RunningMetrics(
-                ["accuracy", "precision", "recall"], prefix="test"
-            )
+
             for epoch in range(1, self._epochs + 1):
                 self.model_.train()
                 train_metrics.reset_global()
@@ -363,6 +361,10 @@ class CCFraudTrainer:
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=labels
                     )
+                    auroc_metric = auroc(
+                        preds=predictions.detach(), target=labels, task="binary"
+                    )
+                    train_metrics.add_metric("auroc", auroc_metric.item())
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
@@ -450,7 +452,7 @@ class CCFraudTrainer:
     def test(self):
         """Test the trained model and report test loss and accuracy"""
         test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall"], prefix="test"
+            ["loss", "accuracy", "precision", "recall", "auroc"], prefix="test"
         )
 
         self.model_.eval()
@@ -469,6 +471,10 @@ class CCFraudTrainer:
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
                 )
+                auroc_metric = auroc(
+                    preds=predictions.detach(), target=labels, task="binary"
+                )
+                test_metrics.add_metric("auroc", auroc_metric.item())
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
                 test_metrics.add_metric(
@@ -569,13 +575,13 @@ def run(args):
     logger.info(f"Distributed process rank: {os.environ['RANK']}")
     logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
 
-    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
             rank=int(os.environ["RANK"]),
-            world_size=int(os.environ["WORLD_SIZE"]),
+            world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
-    elif int(os.environ["WORLD_SIZE"]) > 1:
+    elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.init_process_group("gloo")
 
     trainer = CCFraudTrainer(
@@ -594,11 +600,12 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
         device_id=int(os.environ["RANK"]),
-        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
+        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
+        and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.destroy_process_group()
 
 
