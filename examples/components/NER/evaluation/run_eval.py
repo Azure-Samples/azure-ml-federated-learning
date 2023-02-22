@@ -134,7 +134,7 @@ def test(args, device_id, _distributed):
 
     # dataset and data loader
     data_collator = DataCollatorForPrivateTokenClassification(tokenizer=tokenizer)
-    partial_test_path = os.path.join(args.test_data_dir, "partial_test")
+    partial_test_path = os.path.join(args.test_data_dir, "partial_test", "partial_ten_fold_combined_test")
     test_dataset = load_dataset(partial_test_path)
 
     # load all train and test if run benchmark

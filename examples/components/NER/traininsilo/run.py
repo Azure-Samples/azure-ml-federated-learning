@@ -142,8 +142,8 @@ class NERTrainer:
 
         # dataset and data loader
         data_collator = DataCollatorForPrivateTokenClassification(tokenizer=tokenizer)
-        partial_train_path = os.path.join(train_data_dir, "partial_train")
-        partial_test_path = os.path.join(test_data_dir, "partial_test")
+        partial_train_path = os.path.join(train_data_dir, "partial_train", "partial_ten_fold_combined_train")
+        partial_test_path = os.path.join(test_data_dir, "partial_test", "partial_ten_fold_combined_test")
         train_dataset, test_dataset = self.load_dataset(partial_train_path, partial_test_path)
 
         # load all train and test if run benchmark

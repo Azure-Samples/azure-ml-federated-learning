@@ -87,6 +87,6 @@ training_parameters:
   # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
 
   # Benchmark
-  benchmark_test_all_data: true   # Whether to use all test data (all silos combined) to bechmark final aggregated model
+  benchmark_test_all_data: false   # Whether to use all test data (all silos combined) to bechmark final aggregated model
   benchmark_train_all_data: false   # Whether to use all train data (all silos combined) in training, True if one wants to see performance of a centralized model trained on all data.
 
