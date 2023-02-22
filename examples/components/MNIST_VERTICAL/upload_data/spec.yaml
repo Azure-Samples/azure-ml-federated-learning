@@ -1,0 +1,31 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: mnist_vertical_upload_data
+version: 0.0.1
+display_name: Download MNIST data and upload to silo storage partitioning vertically
+type: command
+is_deterministic: true
+
+inputs:
+  silo_count:
+    type: number
+    optional: false
+  silo_index:
+    type: number
+    optional: false
+
+outputs:
+  raw_train_data:
+    type: uri_folder
+    description: the output CC Fraud raw training data for a given silo
+  raw_test_data:
+    type: uri_folder
+    description: the output CC Fraud raw testing data for a given silo
+
+code: .
+
+command: >-
+  python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_train_data ${{outputs.raw_train_data}} --raw_test_data ${{outputs.raw_test_data}}
+
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

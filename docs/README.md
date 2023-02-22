@@ -17,6 +17,7 @@
 - [Concepts](#concepts)
   - [Why should you consider Federated Learning?](#why-should-you-consider-federated-learning)
   - [How to plan for your Federated Learning project](#how-to-plan-for-your-federated-learning-project)
+  - [Vertical federated learning](#vertical-federated-learning)
   - [Glossary](#glossary)
 - [Tutorials](#tutorials)
   - [What this repo has to offer?](#what-this-repo-has-to-offer)
@@ -93,6 +94,14 @@ Creating such a graph of jobs can be complex. This repository provides a recipe 
 ## How to plan for your Federated Learning project
 
 We wrote a generic guide on how to get started, ramp-up and mature your [FL project](./concepts/plan-your-fl-project.md).
+
+## Vertical federated learning
+
+> - :warning: EXPERIMENTAL :warning: We are delighted to share with you our solution for vertical federated learning, however, please keep in mind that it is still in active development.
+
+Vertical federated learning is a branch of federated learning where the data are split across the features (vertically) instead of across the samples (horizontally). This provides communication challenges as the nodes running the code needs to exchange intermediate outputs and their corresponding gradients of aligned samples.
+
+We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes. We invite you to learn more about this approach in the [vertical federated learing tutorial](./tutorials/vertical-fl.md).
 
 ## Glossary
 
