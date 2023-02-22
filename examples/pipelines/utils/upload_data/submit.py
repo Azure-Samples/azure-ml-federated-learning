@@ -49,7 +49,14 @@ parser.add_argument(
 parser.add_argument(
     "--example",
     required=True,
-    choices=["CCFRAUD", "NER", "PNEUMONIA"],
+    choices=[
+        "CCFRAUD",
+        "NER",
+        "PNEUMONIA",
+        "MNIST",
+        "CCFRAUD_VERTICAL",
+        "MNIST_VERTICAL",
+    ],
     help="dataset name",
 )
 
@@ -87,9 +94,16 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "..", "components", args.example
+    os.path.dirname(__file__),
+    "..",
+    "..",
+    "..",
+    "components",
+    args.example,
 )
 
+# flag for vertical jobs
+IS_VERTICAL = args.example.endswith("_VERTICAL")
 
 ###########################
 ### CONNECT TO AZURE ML ###
@@ -158,10 +172,18 @@ def custom_fl_data_path(datastore_name, output_name, iteration_num=None):
     description=f"FL cross-silo upload data pipeline.",
 )
 def fl_cross_silo_upload_data():
-    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+    if IS_VERTICAL:
+        silos = [
+            YAML_CONFIG.federated_learning.host,
+            *YAML_CONFIG.federated_learning.silos,
+        ]
+    else:
+        silos = YAML_CONFIG.federated_learning.silos
+
+    for silo_index, silo_config in enumerate(silos):
         # create step for upload component
         silo_upload_data_step = upload_data_component(
-            silo_count=len(YAML_CONFIG.federated_learning.silos), silo_index=silo_index
+            silo_count=len(silos), silo_index=silo_index
         )
 
         # add a readable name to the step
@@ -169,6 +191,12 @@ def fl_cross_silo_upload_data():
 
         # make sure the compute corresponds to the silo
         silo_upload_data_step.compute = silo_config.compute
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_upload_data_step.resources is None:
+                silo_upload_data_step.resources = {}
+            silo_upload_data_step.resources["instance_type"] = silo_config.instance_type
 
         # make sure the data is written in the right datastore
         if args.example == "PNEUMONIA":
@@ -182,14 +210,16 @@ def fl_cross_silo_upload_data():
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
                 path=custom_fl_data_path(
-                    silo_config.datastore, f"{args.example.lower()}/raw_train_data"
+                    silo_config.datastore,
+                    f"{args.example.lower()}/raw_train_data",
                 ),
             )
             silo_upload_data_step.outputs.raw_test_data = Output(
                 type=AssetTypes.URI_FOLDER,
                 mode="mount",
                 path=custom_fl_data_path(
-                    silo_config.datastore, f"{args.example.lower()}/raw_test_data"
+                    silo_config.datastore,
+                    f"{args.example.lower()}/raw_test_data",
                 ),
             )
 
