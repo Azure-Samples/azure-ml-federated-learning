@@ -72,7 +72,7 @@ class PTLearner:
         """
         self._lr = lr
         self._epochs = epochs
-        self.batch_size=batch_size
+        self.batch_size = batch_size
         self._dataset_dir = dataset_dir
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
@@ -434,9 +434,7 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training.",
     )
-    parser.add_argument(
-        "--batch_size", type=int, required=False, help="Batch Size"
-    )
+    parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
     parser.add_argument(
         "--dp", type=strtobool, required=False, help="differential privacy"
     )

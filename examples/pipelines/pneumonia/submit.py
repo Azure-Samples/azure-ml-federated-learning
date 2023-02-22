@@ -244,7 +244,7 @@ def fl_pneumonia_basic():
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
                 epochs=YAML_CONFIG.training_parameters.epochs,
-                #Training batch size
+                # Training batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
                 # Differential Privacy
                 dp=YAML_CONFIG.training_parameters.dp,
