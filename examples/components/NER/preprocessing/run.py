@@ -145,8 +145,8 @@ def preprocess_data(
     # create dirs for partial train/test output
     partial_train_path = os.path.join(train_data_dir,"partial_train")
     partial_test_path = os.path.join(test_data_dir,"partial_test")
-    os.makedirs(partial_train_path)
-    os.makedirs(partial_test_path)
+    os.makedirs(partial_train_path, exist_ok=True)
+    os.makedirs(partial_test_path, exist_ok=True)
 
     # load dataset
  
@@ -158,20 +158,26 @@ def preprocess_data(
     ## This is for DDP benchmarking
     multiplier = 10
     for i in range(multiplier):
-        partial_train_each_path = os.path.join(partial_raw_train_path,f"dataset_{i}")
-        partial_test_each_path = os.path.join(partial_raw_test_path,f"dataset_{i}")
-        os.makedirs(partial_train_each_path)
-        os.makedirs(partial_test_each_path)
+        #create dataset for each multiplier in the output dir
+        partial_train_each_path = os.path.join(partial_train_path,f"dataset_{i}")
+        partial_test_each_path = os.path.join(partial_test_path,f"dataset_{i}")
+        os.makedirs(partial_train_each_path, exist_ok=True)
+        os.makedirs(partial_test_each_path, exist_ok=True)
         #move train
-        shutil.move(os.path.join(partial_raw_train_path,f"dataset_{i}.arrow" ), os.path.join(partial_train_each_path, f"dataset_{i}.arrow" ) )
-        shutil.move(os.path.join(partial_raw_train_path,f"dataset_info_{i}.json" ), os.path.join(partial_train_each_path, f"dataset_info_{i}.json" ))
-        shutil.move(os.path.join(partial_raw_train_path,f"state_{i}.json" ), os.path.join(partial_train_each_path, f"state_{i}.json" ))
+        shutil.copy(os.path.join(partial_raw_train_path,f"dataset_{i}.arrow" ), os.path.join(partial_train_each_path, f"dataset.arrow" ) )
+        shutil.copy(os.path.join(partial_raw_train_path,f"dataset_info_{i}.json" ), os.path.join(partial_train_each_path, f"dataset_info.json" ))
+        shutil.copy(os.path.join(partial_raw_train_path,f"state_{i}.json" ), os.path.join(partial_train_each_path, f"state.json" ))
         # move test
-        shutil.move(os.path.join(partial_raw_test_path,f"dataset_{i}.arrow" ), os.path.join(partial_test_each_path, f"dataset_{i}.arrow" ))
-        shutil.move(os.path.join(partial_raw_test_path,f"dataset_info_{i}.json" ),  os.path.join(partial_test_each_path, f"dataset_info_{i}.json" ))
-        shutil.move(os.path.join(partial_raw_test_path,f"state_{i}.json" ), os.path.join(partial_test_each_path, f"state_{i}.json" ))
+        shutil.copy(os.path.join(partial_raw_test_path,f"dataset_{i}.arrow" ), os.path.join(partial_test_each_path, f"dataset.arrow" ))
+        shutil.copy(os.path.join(partial_raw_test_path,f"dataset_info_{i}.json" ),  os.path.join(partial_test_each_path, f"dataset_info.json" ))
+        shutil.copy(os.path.join(partial_raw_test_path,f"state_{i}.json" ), os.path.join(partial_test_each_path, f"state.json" ))
         #concetenate datasets
-        df = load_dataset(partial_train_each_path, partial_test_each_path) if i == 0 else concatenate_datasets([df, load_dataset(partial_train_each_path, partial_test_each_path)], axis=0)
+        if i == 0:
+            df = load_dataset(partial_train_each_path, partial_test_each_path)  
+        else:
+            df_tmp = load_dataset(partial_train_each_path, partial_test_each_path)
+            df["train"] = concatenate_datasets([df["train"], df_tmp["train"]], axis=0)
+            df["test"] = concatenate_datasets([df["test"], df_tmp["test"]], axis=0)
 
     # tokenize and align labels
     tokenized_datasets = df.map(
@@ -186,15 +192,23 @@ def preprocess_data(
     )
 
     # save processed data
-    tokenized_datasets["train"].save_to_disk(partial_train_path)
-    tokenized_datasets["test"].save_to_disk(partial_test_path)
+    #tokenized_datasets["train"].save_to_disk(partial_train_path)
+    #tokenized_datasets["test"].save_to_disk(partial_test_path)
+
+    # for DDP testing
+    partial_combined_train_path = os.path.join(partial_train_path,f"partial_ten_fold_combined_train")
+    partial_combined_test_path = os.path.join(partial_test_path,f"partial_ten_fold_combined_test")
+    os.makedirs(partial_combined_train_path, exist_ok=True )
+    os.makedirs(partial_combined_test_path, exist_ok=True)
+    tokenized_datasets["train"].save_to_disk(partial_combined_train_path)
+    tokenized_datasets["test"].save_to_disk(partial_combined_test_path)
 
     if benchmark_test_all_data:
         # create dirs for all train/test output
         all_train_path = os.path.join(train_data_dir,"all_train")
         all_test_path = os.path.join(test_data_dir,"all_test")
-        os.makedirs(all_train_path)
-        os.makedirs(all_test_path)
+        os.makedirs(all_train_path, exist_ok=True)
+        os.makedirs(all_test_path, exist_ok=True)
         # load dataset
         all_raw_train_path = os.path.join(raw_train_data_dir,"all_train")
         all_raw_test_path = os.path.join(raw_test_data_dir,"all_test")
@@ -202,20 +216,29 @@ def preprocess_data(
 
         #This is for DDP benchmarking
         for i in range(multiplier):
-            all_train_each_path = os.path.join(all_raw_train_path,f"dataset_{i}")
-            all_test_each_path = os.path.join(all_raw_test_path,f"dataset_{i}")
-            os.makedirs(all_train_each_path)
-            os.makedirs(all_test_each_path)
+            #create dataset for each multiplier in the output dir
+            all_train_each_path = os.path.join(all_train_path,f"dataset_{i}")
+            all_test_each_path = os.path.join(all_test_path,f"dataset_{i}")
+            os.makedirs(all_train_each_path, exist_ok=True)
+            os.makedirs(all_test_each_path, exist_ok=True)
             #move train
-            shutil.move(os.path.join(all_raw_train_path,f"dataset_{i}.arrow" ), os.path.join(all_train_each_path, f"dataset_{i}.arrow" ) )
-            shutil.move(os.path.join(all_raw_train_path,f"dataset_info_{i}.json" ), os.path.join(all_train_each_path, f"dataset_info_{i}.json" ))
-            shutil.move(os.path.join(all_raw_train_path,f"state_{i}.json" ), os.path.join(all_train_each_path, f"state_{i}.json" ))
+            shutil.copy(os.path.join(all_raw_train_path,f"dataset_{i}.arrow" ), os.path.join(all_train_each_path, f"dataset.arrow" ) )
+            shutil.copy(os.path.join(all_raw_train_path,f"dataset_info_{i}.json" ), os.path.join(all_train_each_path, f"dataset_info.json" ))
+            shutil.copy(os.path.join(all_raw_train_path,f"state_{i}.json" ), os.path.join(all_train_each_path, f"state.json" ))
             # move test
-            shutil.move(os.path.join(all_raw_test_path,f"dataset_{i}.arrow" ), os.path.join(all_test_each_path, f"dataset_{i}.arrow" ))
-            shutil.move(os.path.join(all_raw_test_path,f"dataset_info_{i}.json" ),  os.path.join(all_test_each_path, f"dataset_info_{i}.json" ))
-            shutil.move(os.path.join(all_raw_test_path,f"state_{i}.json" ), os.path.join(all_test_each_path, f"state_{i}.json" ))
+            shutil.copy(os.path.join(all_raw_test_path,f"dataset_{i}.arrow" ), os.path.join(all_test_each_path, f"dataset.arrow" ))
+            shutil.copy(os.path.join(all_raw_test_path,f"dataset_info_{i}.json" ),  os.path.join(all_test_each_path, f"dataset_info.json" ))
+            shutil.copy(os.path.join(all_raw_test_path,f"state_{i}.json" ), os.path.join(all_test_each_path, f"state.json" ))
             #concetenate datasets
-            df_all_data = load_dataset(all_train_each_path, all_test_each_path) if i == 0 else concatenate_datasets([df_all_data, load_dataset(all_train_each_path, all_test_each_path)], axis=0)
+
+            if i == 0:
+                df_all_data = load_dataset(all_train_each_path, all_test_each_path)  
+            else:
+                df_tmp = load_dataset(all_train_each_path,all_test_each_path)
+                df_all_data["train"] = concatenate_datasets([df_all_data["train"], df_tmp["train"]], axis=0)
+                df_all_data["test"] = concatenate_datasets([df_all_data["test"], df_tmp["test"]], axis=0)
+
+            #df_all_data = load_dataset(all_train_each_path, all_test_each_path) if i == 0 else concatenate_datasets([df_all_data, load_dataset(all_train_each_path, all_test_each_path)], axis=0)
 
 
 
@@ -230,8 +253,16 @@ def preprocess_data(
             tokenized_datasets["train"], tokenized_datasets["test"], metrics_prefix
         )
          # save processed data
-        tokenized_datasets["train"].save_to_disk(all_train_path)
-        tokenized_datasets["test"].save_to_disk(all_test_path)
+        #tokenized_datasets["train"].save_to_disk(all_train_path)
+        #tokenized_datasets["test"].save_to_disk(all_test_path)
+
+        # for DDP testing
+        all_combined_train_path = os.path.join(all_train_path,f"all_ten_fold_combined_train")
+        all_combined_test_path = os.path.join(all_test_path,f"all_ten_fold_combined_test")
+        os.makedirs(all_combined_train_path, exist_ok=True)
+        os.makedirs(all_combined_test_path, exist_ok=True)
+        tokenized_datasets["train"].save_to_disk(all_combined_train_path)
+        tokenized_datasets["test"].save_to_disk(all_combined_test_path)
 
 
 def log_metadata(X_train, X_test, metrics_prefix):
