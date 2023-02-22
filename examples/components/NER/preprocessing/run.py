@@ -5,6 +5,10 @@ import sys
 from transformers import AutoTokenizer
 from datasets import load_from_disk, DatasetDict
 import mlflow
+from distutils.util import strtobool
+import os
+import shutil
+from datasets import concatenate_datasets
 
 tokenizer_name = None
 
@@ -35,6 +39,9 @@ def get_arg_parser(parser=None):
     )
     parser.add_argument(
         "--tokenizer_name", type=str, required=False, help="Tokenizer model name"
+    )
+    parser.add_argument(
+        "--benchmark_test_all_data", type=strtobool, required=False, default=False, help="Output folder for data",
     )
     return parser
 
@@ -122,6 +129,7 @@ def preprocess_data(
     train_data_dir="./",
     test_data_dir="./",
     metrics_prefix="default-prefix",
+    benchmark_test_all_data=False
 ):
     """Preprocess the data and save the processed data to train_data_dir and test_data_dir.
 
@@ -134,9 +142,36 @@ def preprocess_data(
     Returns:
         None
     """
+    # create dirs for partial train/test output
+    partial_train_path = os.path.join(train_data_dir,"partial_train")
+    partial_test_path = os.path.join(test_data_dir,"partial_test")
+    os.makedirs(partial_train_path)
+    os.makedirs(partial_test_path)
 
     # load dataset
-    df = load_dataset(raw_train_data_dir, raw_test_data_dir)
+ 
+    partial_raw_train_path = os.path.join(raw_train_data_dir,"partial_train")
+    partial_raw_test_path = os.path.join(raw_test_data_dir,"partial_test")
+    # df = load_dataset(train_data_dir, test_data_dir)
+
+
+    ## This is for DDP benchmarking
+    multiplier = 10
+    for i in range(multiplier):
+        partial_train_each_path = os.path.join(partial_raw_train_path,f"dataset_{i}")
+        partial_test_each_path = os.path.join(partial_raw_test_path,f"dataset_{i}")
+        os.makedirs(partial_train_each_path)
+        os.makedirs(partial_test_each_path)
+        #move train
+        shutil.move(os.path.join(partial_raw_train_path,f"dataset_{i}.arrow" ), os.path.join(partial_train_each_path, f"dataset_{i}.arrow" ) )
+        shutil.move(os.path.join(partial_raw_train_path,f"dataset_info_{i}.json" ), os.path.join(partial_train_each_path, f"dataset_info_{i}.json" ))
+        shutil.move(os.path.join(partial_raw_train_path,f"state_{i}.json" ), os.path.join(partial_train_each_path, f"state_{i}.json" ))
+        # move test
+        shutil.move(os.path.join(partial_raw_test_path,f"dataset_{i}.arrow" ), os.path.join(partial_test_each_path, f"dataset_{i}.arrow" ))
+        shutil.move(os.path.join(partial_raw_test_path,f"dataset_info_{i}.json" ),  os.path.join(partial_test_each_path, f"dataset_info_{i}.json" ))
+        shutil.move(os.path.join(partial_raw_test_path,f"state_{i}.json" ), os.path.join(partial_test_each_path, f"state_{i}.json" ))
+        #concetenate datasets
+        df = load_dataset(partial_train_each_path, partial_test_each_path) if i == 0 else concatenate_datasets([df, load_dataset(partial_train_each_path, partial_test_each_path)], axis=0)
 
     # tokenize and align labels
     tokenized_datasets = df.map(
@@ -151,8 +186,52 @@ def preprocess_data(
     )
 
     # save processed data
-    tokenized_datasets["train"].save_to_disk(train_data_dir)
-    tokenized_datasets["test"].save_to_disk(test_data_dir)
+    tokenized_datasets["train"].save_to_disk(partial_train_path)
+    tokenized_datasets["test"].save_to_disk(partial_test_path)
+
+    if benchmark_test_all_data:
+        # create dirs for all train/test output
+        all_train_path = os.path.join(train_data_dir,"all_train")
+        all_test_path = os.path.join(test_data_dir,"all_test")
+        os.makedirs(all_train_path)
+        os.makedirs(all_test_path)
+        # load dataset
+        all_raw_train_path = os.path.join(raw_train_data_dir,"all_train")
+        all_raw_test_path = os.path.join(raw_test_data_dir,"all_test")
+        #df_all_data = load_dataset(all_raw_train_path,all_raw_test_path)
+
+        #This is for DDP benchmarking
+        for i in range(multiplier):
+            all_train_each_path = os.path.join(all_raw_train_path,f"dataset_{i}")
+            all_test_each_path = os.path.join(all_raw_test_path,f"dataset_{i}")
+            os.makedirs(all_train_each_path)
+            os.makedirs(all_test_each_path)
+            #move train
+            shutil.move(os.path.join(all_raw_train_path,f"dataset_{i}.arrow" ), os.path.join(all_train_each_path, f"dataset_{i}.arrow" ) )
+            shutil.move(os.path.join(all_raw_train_path,f"dataset_info_{i}.json" ), os.path.join(all_train_each_path, f"dataset_info_{i}.json" ))
+            shutil.move(os.path.join(all_raw_train_path,f"state_{i}.json" ), os.path.join(all_train_each_path, f"state_{i}.json" ))
+            # move test
+            shutil.move(os.path.join(all_raw_test_path,f"dataset_{i}.arrow" ), os.path.join(all_test_each_path, f"dataset_{i}.arrow" ))
+            shutil.move(os.path.join(all_raw_test_path,f"dataset_info_{i}.json" ),  os.path.join(all_test_each_path, f"dataset_info_{i}.json" ))
+            shutil.move(os.path.join(all_raw_test_path,f"state_{i}.json" ), os.path.join(all_test_each_path, f"state_{i}.json" ))
+            #concetenate datasets
+            df_all_data = load_dataset(all_train_each_path, all_test_each_path) if i == 0 else concatenate_datasets([df_all_data, load_dataset(all_train_each_path, all_test_each_path)], axis=0)
+
+
+
+        # tokenize and align labels
+        tokenized_datasets = df_all_data.map(
+            tokenize_and_align_labels,
+            batched=True,
+            remove_columns=df_all_data["train"].column_names,
+        )
+        # mlflow logging
+        log_metadata(
+            tokenized_datasets["train"], tokenized_datasets["test"], metrics_prefix
+        )
+         # save processed data
+        tokenized_datasets["train"].save_to_disk(all_train_path)
+        tokenized_datasets["test"].save_to_disk(all_test_path)
 
 
 def log_metadata(X_train, X_test, metrics_prefix):
@@ -199,6 +278,7 @@ def run(args):
         args.train_output,
         args.test_output,
         args.metrics_prefix,
+        args.benchmark_test_all_data
     )
 
 

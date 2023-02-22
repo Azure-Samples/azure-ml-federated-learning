@@ -32,11 +32,11 @@ federated_learning:
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ner/raw_train_data/
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ner/raw_test_data/
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/ner/raw_test_data/
 
     - name: silo1
       computes: 
@@ -45,11 +45,11 @@ federated_learning:
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ner/raw_train_data/
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ner/raw_test_data/
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/ner/raw_test_data/
 
     - name: silo2
       computes: 
@@ -58,11 +58,11 @@ federated_learning:
       training_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ner/raw_train_data/
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/ner/raw_train_data/
       testing_data:
         type: uri_folder
         mode: download
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ner/raw_test_data/
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/ner/raw_test_data/
 
 # Training parameters
 training_parameters:
@@ -74,13 +74,19 @@ training_parameters:
   model_name: "bert-base-cased" # Pre-trained Model name
   epochs: 3 # number of epochs per iteration (in-silo training) 
   lr: 0.01 # learning rate
-  batch_size: 16 # batch size
+  batch_size: 8 # batch size
+  eval_batch_size: 8 #evaluation batch size
 
   # Differential privacy
   dp: false # Flag to enable/disable differential privacy
-  dp_target_epsilon: 50.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
+  dp_target_epsilon: 150.0 # Smaller epsilon means more privacy, more noise (it depends on the size of the training dataset. For more info, please visit https://opacus.ai/docs/faq#what-does-epsilon11-really-mean-how-about-delta )
   dp_target_delta: 1e-5 # The target δ of the (ϵ,δ)-differential privacy guarantee. Generally, it should be set to be less than the inverse of the size of the training dataset. 
   dp_max_grad_norm: 1.0 # Clip per-sample gradients to this norm (DP)
 
   # if you want to use the privacy_engine.make_private method, please set the value of dp_noise_multiplier parameter
   # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
+
+  # Benchmark
+  benchmark_test_all_data: true   # Whether to use all test data (all silos combined) to bechmark final aggregated model
+  benchmark_train_all_data: false   # Whether to use all train data (all silos combined) in training, True if one wants to see performance of a centralized model trained on all data.
+

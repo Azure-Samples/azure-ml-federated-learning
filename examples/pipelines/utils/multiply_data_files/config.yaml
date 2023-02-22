@@ -14,28 +14,28 @@ federated_learning:
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ner
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/pneumonia
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/ner
     - compute: silo1-01 # we are repeating over the same config for silo 2
       datastore: datastore_silo1
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ner
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/pneumonia
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/ner
     - compute: silo2-01 # we are repeating over the same config for silo 3
       datastore: datastore_silo2
       input_data:
         type: uri_folder
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/pneumonia
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ner
       output_data:
         type: uri_folder
         mode: 'upload'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/pneumonia
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/ner

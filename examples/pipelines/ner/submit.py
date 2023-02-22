@@ -165,8 +165,9 @@ training_component = load_component(
 aggregate_component = load_component(
     source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
 )
-
-
+evaluate_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "evaluation", "spec.yaml")
+)
 ########################
 ### BUILD A PIPELINE ###
 ########################
@@ -238,6 +239,7 @@ def fl_ner_basic():
             ),
             tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
             metrics_prefix=silo_config.name,
+            benchmark_test_all_data = YAML_CONFIG.training_parameters.benchmark_test_all_data
         )
 
         # add a readable name to the step
@@ -327,6 +329,10 @@ def fl_ner_basic():
                 tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
                 # Model name
                 model_name=YAML_CONFIG.training_parameters.model_name,
+                # Whether to benchmark
+                benchmark_test_all_data = YAML_CONFIG.training_parameters.benchmark_test_all_data,
+                # Whether to train with all data
+                benchmark_train_all_data = YAML_CONFIG.training_parameters.benchmark_train_all_data
             )
             # add a readable name to the step
             silo_training_step.name = f"silo_{silo_index}_training"
@@ -335,7 +341,7 @@ def fl_ner_basic():
             silo_training_step.compute = silo_config.computes[0]
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
-            silo_training_step.distribution.process_count_per_instance = silo_processes
+            silo_training_step.distribution.process_count_per_instance = 4
 
             # set number of instances to distribute training across
             if hasattr(silo_config, "instance_count"):
@@ -399,6 +405,66 @@ def fl_ner_basic():
         # let's keep track of the checkpoint to be used as input for next iteration
         running_checkpoint = aggregate_weights_step.outputs.aggregated_output
 
+
+    ################
+    ## EVALUATION ##
+    ################
+
+    for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
+
+        silo_processes = get_gpus_count(silo_config.computes[0])
+        
+        silo_evaluation_step = evaluate_component(
+            test_data_dir=silo_preprocessed_test_data[silo_index],
+            # and the checkpoint from previous iteration (or None if iteration == 1)
+            checkpoint=aggregate_weights_step.outputs.aggregated_output,
+            # batch size
+            batch_size=YAML_CONFIG.training_parameters.eval_batch_size,
+            # Silo name/identifier
+            metrics_prefix=silo_config.name,
+            # Tokenizer name
+            tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
+            # Model name
+            model_name=YAML_CONFIG.training_parameters.model_name,
+            #Whether benchmark use all test data
+            benchmark_test_all_data = YAML_CONFIG.training_parameters.benchmark_test_all_data,
+
+        )
+        silo_evaluation_step.compute = silo_config.computes[0]
+        # add a readable name to the step
+        silo_evaluation_step.name = f"silo_{silo_index}_evaluation"
+
+        # set distribution according to the number of available GPUs (1 in case of only CPU available)
+        silo_evaluation_step.distribution.process_count_per_instance =  4
+
+        # set number of instances to distribute training across
+        if hasattr(silo_config, "instance_count"):
+            if silo_evaluation_step.resources is None:
+                silo_evaluation_step.resources = {}
+            silo_evaluation_step.resources[
+                "instance_count"
+            ] = silo_config.instance_count
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_evaluation_step.resources is None:
+                silo_evaluation_step.resources = {}
+            silo_evaluation_step.resources[
+                "instance_type"
+            ] = silo_config.instance_type
+
+
+        # make sure the data is written in the right datastore
+        silo_evaluation_step.outputs.predictions = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=custom_fl_data_path(
+                silo_config.datastore,
+                "predictions",
+                unique_id=pipeline_identifier,
+            ),
+        )
+    
     return {"final_aggregated_model": running_checkpoint}
 
 

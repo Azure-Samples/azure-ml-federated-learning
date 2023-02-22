@@ -12,6 +12,9 @@ inputs:
   silo_index:
     type: number
     optional: false
+  benchmark_test_all_data:
+    type: boolean
+    optional: true
 
 outputs:
   raw_train_data:
@@ -24,7 +27,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_train_data ${{outputs.raw_train_data}} --raw_test_data ${{outputs.raw_test_data}}
+  python run.py --silo_count ${{inputs.silo_count}} --silo_index ${{inputs.silo_index}} --raw_train_data ${{outputs.raw_train_data}} --raw_test_data ${{outputs.raw_test_data}} $[[--benchmark_test_all_data ${{inputs.benchmark_test_all_data}}]]
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

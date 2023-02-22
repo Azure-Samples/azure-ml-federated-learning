@@ -24,6 +24,8 @@ import evaluate
 import mlflow
 import torch
 from distutils.util import strtobool
+import multiprocessing
+import time
 
 # DP
 from opacus import PrivacyEngine
@@ -73,6 +75,8 @@ class NERTrainer:
         iteration_num=1,
         device_id=None,
         distributed=False,
+        benchmark_test_all_data=False,
+        benchmark_train_all_data=False,
     ):
         """NER Trainer trains BERT-base model (default) on the MultiNERD dataset.
 
@@ -114,6 +118,8 @@ class NERTrainer:
         self._iteration_num = iteration_num
         self._model_path = model_path
         self._distributed = distributed
+        self.benchmark_test_all_data = benchmark_test_all_data
+        self.benchmark_train_all_data = benchmark_train_all_data
 
         # device
         self.device_ = (
@@ -136,7 +142,16 @@ class NERTrainer:
 
         # dataset and data loader
         data_collator = DataCollatorForPrivateTokenClassification(tokenizer=tokenizer)
-        train_dataset, test_dataset = self.load_dataset(train_data_dir, test_data_dir)
+        partial_train_path = os.path.join(train_data_dir, "partial_train")
+        partial_test_path = os.path.join(test_data_dir, "partial_test")
+        train_dataset, test_dataset = self.load_dataset(partial_train_path, partial_test_path)
+
+        # load all train and test if run benchmark
+        if self.benchmark_test_all_data:
+            if self.benchmark_train_all_data:
+                all_train_path = os.path.join(train_data_dir, "all_train")
+                all_test_path = os.path.join(test_data_dir, "all_test")
+                train_dataset, test_dataset = self.load_dataset(all_train_path, all_test_path)
 
         if self._distributed:
             logger.info("Setting up distributed samplers.")
@@ -146,10 +161,16 @@ class NERTrainer:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        #get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(multiprocessing.cpu_count()//int(os.environ['WORLD_SIZE']))
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             train_dataset,
             shuffle=(not self._distributed),
+            num_workers=num_workers_per_gpu,
             collate_fn=data_collator,
+            prefetch_factor=2,
             batch_size=self._batch_size,
             sampler=self.train_sampler_,
         )
@@ -406,11 +427,13 @@ class NERTrainer:
 
             progress_bar = tqdm(range(num_training_steps))
 
+            train_start_time = time.time()
             for epoch in range(self._epochs):
                 running_loss = 0.0
                 num_of_batches_before_logging = 100
                 # Training
                 self.model_.train()
+                epoch_start_time = time.time()
                 for i, batch in enumerate(self.train_loader_):
                     batch = {
                         key: value.to(self.device_) for key, value in batch.items()
@@ -462,7 +485,19 @@ class NERTrainer:
                                 )
 
                         running_loss = 0.0
-
+                epoch_end_time = time.time()
+                epoch_duration = epoch_end_time - epoch_start_time
+                # log epoch duration 
+                logger.info(
+                    f"Epoch {epoch} duration: {epoch_duration}"
+                )
+                if not self._distributed or self._rank == 0:
+                    self.log_metrics(
+                        mlflow_client,
+                        root_run_id,
+                        f"Epoch {epoch} duration",
+                        epoch_duration,
+                    )
                 test_loss, metric_results = self.test()
 
                 # log test loss for each epoch
@@ -482,7 +517,19 @@ class NERTrainer:
                             f"Test {key}",
                             metric_results[f"overall_{key}"],
                         )
-
+            train_end_time = time.time()
+            train_duration = train_end_time - train_start_time
+            #log training duration
+            logger.info(
+                f"Training duration is {train_duration}"
+            )
+            if not self._distributed or self._rank == 0:
+                self.log_metrics(
+                    mlflow_client,
+                    root_run_id,
+                    f"Training duration",
+                   train_duration,
+                )
             # log metrics for each FL iteration
             if not self._distributed or self._rank == 0:
                 self.log_metrics(
@@ -613,6 +660,12 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of iterations",
     )
+    parser.add_argument(
+        "--benchmark_test_all_data", type=strtobool, required=False,help="Whether to use all test data (all silos combined) to bechmark final aggregated model"
+    )
+    parser.add_argument(
+        "--benchmark_train_all_data", type=strtobool, required=False, help="Whether to use all train data (all silos combined) in training"
+    )
     return parser
 
 
@@ -650,6 +703,8 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         batch_size=args.batch_size,
+        benchmark_test_all_data=args.benchmark_test_all_data,
+        benchmark_train_all_data=args.benchmark_train_all_data,
         device_id=int(os.environ["RANK"]),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),

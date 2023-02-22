@@ -24,6 +24,9 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
+  benchmark_test_all_data:
+    type: boolean
+    optional: true
 
 outputs:
   processed_train_data:
@@ -36,7 +39,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --raw_training_data ${{inputs.raw_training_data}} --raw_testing_data ${{inputs.raw_testing_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--tokenizer_name ${{inputs.tokenizer_name}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  python run.py --raw_training_data ${{inputs.raw_training_data}} --raw_testing_data ${{inputs.raw_testing_data}} --train_output ${{outputs.processed_train_data}} --test_output ${{outputs.processed_test_data}} $[[--tokenizer_name ${{inputs.tokenizer_name}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--benchmark_test_all_data ${{inputs.benchmark_test_all_data}}]]
 
 environment: 
   conda_file: ./conda.yaml

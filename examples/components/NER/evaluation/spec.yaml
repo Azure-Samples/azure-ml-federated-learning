@@ -1,0 +1,65 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: ner_evaluation
+version: 0.3.0
+display_name: NER Aggregate Model Evaluation
+type: command
+description: Component to evaluate a NER model.
+is_deterministic: true
+
+distribution:
+  type: pytorch
+  
+inputs:
+  test_data_dir:
+    type: uri_folder
+    description: the input testing data (preprocessed)
+  metrics_prefix:
+    type: string
+    description: Metrics prefix
+    default: Default-prefix
+    optional: true
+  checkpoint:
+    type: uri_folder
+    description: a given pre-existing checkpoint
+  batch_size:
+    type: integer
+    description: batch size
+    default: 100
+    optional: true
+  tokenizer_name:
+    type: string
+    description: Tokenizer model name
+    default: "bert-base-cased"
+    optional: true
+  model_name:
+    type: string
+    description: Model name
+    default: "bert-base-cased"
+    optional: true
+  benchmark_test_all_data:
+    type: boolean
+    description: Whether to use all test data (all silos combined) to bechmark final aggregated model
+    default: false
+    optional: true
+
+outputs:
+  predictions:
+    type: uri_folder
+    description: predictions of model
+
+code: .
+
+command: >-
+  python run_eval.py
+  --test_data_dir ${{inputs.test_data_dir}}
+  --checkpoint ${{inputs.checkpoint}}
+  --predictions_path ${{outputs.predictions}}
+  $[[--tokenizer_name ${{inputs.tokenizer_name}}]]
+  $[[--model_name ${{inputs.model_name}}]]
+  $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  $[[--batch_size ${{inputs.batch_size}}]]
+  $[[--benchmark_test_all_data ${{inputs.benchmark_test_all_data}}]]
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
