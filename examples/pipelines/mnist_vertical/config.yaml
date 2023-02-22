@@ -1,0 +1,59 @@
+# example yaml config
+
+# using this to store references to Azure ML
+aml:
+  # subscription_id: "<SUBSCRIPTION_ID>"
+  # resource_group_name: "<RESOURCE_GROUP>"
+  # workspace_name: "<AML_WORKSPACE_NAME>"
+
+# federated learning parameters
+federated_learning:
+  host:
+    compute: orchestrator-01
+    datastore: datastore_orchestrator
+    training_data:
+      type: uri_file
+      mode: 'download'
+      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/mnist_vertical/raw_train_data
+    testing_data:
+      type: uri_file
+      mode: 'download'
+      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/mnist_vertical/raw_test_data
+
+  silos:
+    - compute: silo0-01
+      datastore: datastore_silo0
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/mnist_vertical/raw_train_data
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/mnist_vertical/raw_test_data
+    - compute: silo1-01
+      datastore: datastore_silo1
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/mnist_vertical/raw_train_data
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/mnist_vertical/raw_test_data
+    - compute: silo2-01
+      datastore: datastore_silo2
+      training_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/mnist_vertical/raw_train_data
+      testing_data:
+        type: uri_file
+        mode: 'download'
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/mnist_vertical/raw_test_data
+
+# training parameters
+training_parameters:
+  epochs: 10 # number of epochs per iteration (in-silo training) 
+  lr: 1e-3 # learning rate
+  batch_size: 128 # batch size
