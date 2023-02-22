@@ -1,5 +1,5 @@
-name: Submit example factory pipeline
-description: Submit example factory pipeline in AML
+name: Submit example scatter-gather pipeline
+description: Submit example scatter-gather pipeline in AML
 inputs:
   client-id:
     description: Client ID of the service principal
@@ -46,6 +46,6 @@ runs:
       shell: bash
       run: pip install -r examples/pipelines/requirements.txt
 
-    - name: Submit fl_cross_silo_factory pipeline
+    - name: Submit fl_cross_silo_scatter_gather pipeline
       shell: bash
-      run: python examples/pipelines/fl_cross_silo_factory/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --example ${{ inputs.example }} --ignore_validation --wait || [ $? == 5 ]
+      run: python examples/pipelines/fl_cross_silo_scatter_gather/submit.py --subscription_id ${{ inputs.subscription-id }} --resource_group ${{ inputs.resource-group }} --workspace_name ${{ inputs.workspace-name }} --example ${{ inputs.example }} --ignore_validation --wait || [ $? == 5 ]
