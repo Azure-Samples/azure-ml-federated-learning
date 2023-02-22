@@ -365,7 +365,7 @@ class PTLearner:
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
-        test_loss /= num_sample
+        test_loss /= len(self.test_loader_)
         acc = correct / num_sample
 
         return test_loss, acc
@@ -434,7 +434,9 @@ def get_arg_parser(parser=None):
         required=False,
         help="Total number of epochs for local training.",
     )
-    parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--batch_size", type=int, required=False, default=32, help="Batch Size"
+    )
     parser.add_argument(
         "--dp", type=strtobool, required=False, help="differential privacy"
     )
