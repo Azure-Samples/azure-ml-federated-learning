@@ -30,7 +30,6 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
 }
 
 var identityPrincipalId = uai.properties.principalId
-var userAssignedIdentities = {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
 
 resource workspace 'Microsoft.MachineLearningServices/workspaces@2022-05-01' existing = {
   name: machineLearningName
@@ -44,7 +43,7 @@ resource aksAzuremlCompute 'Microsoft.MachineLearningServices/workspaces/compute
   location: machineLearningRegion
   identity: {
     type: 'UserAssigned'
-    userAssignedIdentities: userAssignedIdentities
+    userAssignedIdentities: uai
   }
   properties: {
     computeType: 'Kubernetes'
