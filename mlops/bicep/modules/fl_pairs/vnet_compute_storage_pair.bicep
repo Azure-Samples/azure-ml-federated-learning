@@ -96,6 +96,7 @@ param tags object = {}
 // Virtual network and network security group
 module nsg '../networking/nsg.bicep' = { 
   name: '${nsgResourceName}-deployment'
+  scope: resourceGroup()
   params: {
     location: pairRegion
     nsgName: nsgResourceName
@@ -105,6 +106,7 @@ module nsg '../networking/nsg.bicep' = {
 
 module vnet '../networking/vnet.bicep' = { 
   name: '${vnetResourceName}-deployment'
+  scope: resourceGroup()
   params: {
     location: pairRegion
     virtualNetworkName: vnetResourceName

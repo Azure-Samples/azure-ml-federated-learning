@@ -1,4 +1,8 @@
 // Creates a datastore for an existing storage account in the same tenant
+
+// resource group must be specified as scope in az cli or module call
+targetScope = 'resourceGroup'
+
 @description('Name of AzureML workspace to attach compute+storage to.')
 param machineLearningName string
 

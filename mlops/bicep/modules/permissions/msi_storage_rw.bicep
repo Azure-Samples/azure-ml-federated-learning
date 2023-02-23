@@ -1,6 +1,9 @@
 // Assigns roles to a given User Assigned Identity
 // towards a given storage account
 
+// resource group must be specified as scope in az cli or module call
+targetScope = 'resourceGroup'
+
 @description('Full path to storage')
 param storageAccountName string
 

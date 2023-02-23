@@ -3,6 +3,9 @@
 
 // Optionally, it will also create a bastion host to access the VM.
 
+// resource group must be specified as scope in az cli or module call
+targetScope = 'resourceGroup'
+
 // VNET SETTINGS
 @description('Name of virtual network to attach jumpbox to')
 param vnetName string
