@@ -74,8 +74,8 @@ training_parameters:
   model_name: "bert-base-cased" # Pre-trained Model name
   epochs: 3 # number of epochs per iteration (in-silo training) 
   lr: 0.01 # learning rate
-  batch_size: 8 # batch size
-  eval_batch_size: 8 #evaluation batch size
+  batch_size: 32 # batch size
+  eval_batch_size: 32 #evaluation batch size
 
   # Differential privacy
   dp: false # Flag to enable/disable differential privacy

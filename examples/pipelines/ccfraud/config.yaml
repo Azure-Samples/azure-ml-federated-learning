@@ -20,11 +20,12 @@ federated_learning:
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/multiplied_data/ccfraud/raw_test_data
+   
 
     - name: silo1
       computes: 
@@ -33,11 +34,12 @@ federated_learning:
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/multiplied_data/ccfraud/raw_test_data
+    
 
     - name: silo2
       computes: 
@@ -46,11 +48,12 @@ federated_learning:
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_train_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_test_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/multiplied_data/ccfraud/raw_test_data
+   
 
 data_analysis_parameters:
   onehot_columns_prefix: category_,gender_,street_,city_,state_,job_,region_
@@ -60,8 +63,8 @@ training_parameters:
   num_of_iterations: 3
   epochs: 3
   lr: 1e-3
-  batch_size: 500
-  eval_batch_size: 500
+  batch_size: 3000
+  eval_batch_size: 3000
   # Property model_name defines model to be used for training and 
   # must be one of the models defined in the traininsilo/model.py 
   # file for the CCFRAUD component. Options include: 
@@ -79,5 +82,5 @@ training_parameters:
   # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
 
   # Benchmark
-  benchmark_test_all_data: true   # Whether to use all test data (all silos combined) to bechmark final aggregated model
+  benchmark_test_all_data: false   # Whether to use all test data (all silos combined) to bechmark final aggregated model
   benchmark_train_all_data: false   # Whether to use all train data (all silos combined) in training, True if one wants to see performance of a centralized model trained on all data.

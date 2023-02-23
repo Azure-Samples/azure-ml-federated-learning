@@ -22,6 +22,7 @@ import models as models
 import datasets as datasets
 from distutils.util import strtobool
 from torchmetrics import AUROC
+import multiprocessing
 
 # DP
 from opacus import PrivacyEngine
@@ -168,10 +169,16 @@ class CCFraudTrainer:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        #get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(multiprocessing.cpu_count()//int(os.environ['WORLD_SIZE']))
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             self.train_dataset_,
             batch_size=batch_size,
+            num_workers=num_workers_per_gpu,
             shuffle=(self.train_sampler_ is None),
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
@@ -360,9 +367,11 @@ class CCFraudTrainer:
                 epoch_start_time = time.time()
                 self.model_.train()
                 train_metrics.reset_global()
-
+                logger.info(f"Epoch {epoch} start time: {epoch_start_time}")
                 for i, batch in enumerate(self.train_loader_):
+                    logger.info(f"Epoch {epoch}, batch {i} after iterate data: {time.time()}")
                     data, labels = batch[0].to(self.device_), batch[1].to(self.device_)
+                    logger.info(f"Epoch {epoch}, batch {i} after to device: {time.time()}")
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
@@ -397,10 +406,11 @@ class CCFraudTrainer:
                         "loss", (loss.detach() / data.shape[0]).item()
                     )
                     train_metrics.step()
-
+                    
                     if (i + 1) % num_of_batches_before_logging == 0 or (i + 1) == len(
                         self.train_loader_
                     ):
+                        '''
                         log_message = [
                             f"Epoch: {epoch}/{self._epochs}",
                             f"Iteration: {i+1}/{len(self.train_loader_)}",
@@ -415,8 +425,9 @@ class CCFraudTrainer:
                                 value,
                             )
                         logger.info(", ".join(log_message))
+                        '''
                         train_metrics.reset_step()
-
+                    logger.info(f"Epoch {epoch}, batch {i} end time: {time.time()}")
                 epoch_end_time = time.time()
                 epoch_duration = epoch_end_time - epoch_start_time
                 test_metrics = self.test()
