@@ -154,6 +154,7 @@ module storageDeployment '../storages/existing_blob_storage_datastore.bicep' = {
     storageAccountResourceGroup: existingStorageAccountResourceGroup
     storageAccountSubscriptionId: existingStorageAccountSubscriptionId
     storageRegion: pairRegion
+    containerName: existingStorageContainerName
     datastoreName: datastoreName
     tags: tags
   }
