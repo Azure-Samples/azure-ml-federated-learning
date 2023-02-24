@@ -1,41 +1,34 @@
-# Federated Learning in Azure ML
-
-:warning: Running a full federated learning pipeline raises **security questions that you need to address** before using this repository for production purposes. Please consider this repository as a sample only.
+# Real-world Example Benchmarks
+For all three real-word examples (PNEUMONIA, NER, CCFRAUD) we perform benchmark testing to assess three main factors --- The training overhead, the model performance, and the scalability of training under FL setting. The main purpose of this benchmark is to show that FL has been implemented correctly and work as expected, rather than to focus on the exact metric value shown below, which will largely vary with both models and datasets. In the following experiment, each silo is trained with the same hyperparameters to ensure the consistency of results and below are the results from each of the aspect.
 
 ## Table of contents
 
-- [Federated Learning in Azure ML](#federated-learning-in-azure-ml)
-  - [Table of contents](#table-of-contents)
-  - [Motivation](#motivation)
-- [Getting Started](#getting-started)
-  - [Quickstart](#quickstart)
-  - [Real-world examples](#real-world-examples)
-    - [Pneumonia detection from chest radiographs](#pneumonia-detection-from-chest-radiographs)
-    - [Named Entity Recognition using MultiNERD dataset](#named-entity-recognition-using-multinerd-dataset)
-    - [Credit card fraud detection using synthetic transactional data](#credit-card-fraud-detection-using-synthetic-transactional-data)
-  - [FL Frameworks](#fl-frameworks)
-- [Concepts](#concepts)
-  - [Why should you consider Federated Learning?](#why-should-you-consider-federated-learning)
-  - [How to plan for your Federated Learning project](#how-to-plan-for-your-federated-learning-project)
-  - [Vertical federated learning](#vertical-federated-learning)
-  - [Glossary](#glossary)
-- [Tutorials](#tutorials)
-  - [What this repo has to offer?](#what-this-repo-has-to-offer)
-  - [Provisioning guide](#provisioning-guide)
-  - [How to adapt the "literal" and the "scatter-gather" code for your own scenario](#how-to-adapt-the-literal-and-the-scatter-gather-code-for-your-own-scenario)
-  - [Read local data in an on-premises Kubernetes silo](#read-local-data-in-an-on-premises-kubernetes-silo)
-  - [Upload local data to silo storage account](#upload-local-data-to-silo-storage-account)
-- [Troubleshooting guide](#troubleshooting-guide)
+- [Training Overhead](#real-world-example-benchmarks)
+  - [PNEUMONIA](#pneumonia)
+  - [NER](#ner)
+  - [CCFRAUD](#ccfraud)
 
-## Motivation
+- [Model Performance](#model-performance)
+  - [PNEUMONIA]
+  - [NER]
+  - [CCFRAUD]
 
-Local privacy regulations impose constraints on the movement of data out of a given region, or out of government agencies. Also, institutions or companies working together to leverage their respective data might require or desire to limit circulation of this data, and impose trust boundaries.
+- [Scalability with Training] 
+  - [PNEUMONIA]
+  - [NER]
+  - [CCFRAUD]
 
-In those contexts, the data cannot be gathered in a central location, as is usual practice for training Machine Learning (ML) models. A technique called Federated Learning (FL) allows for training models in this highly constrained environment. It enables companies and institutions to comply with regulations related to data location and data access while allowing for innovation and achieving better quality models.
+## Training Overhead
 
-# Getting Started
+For training overhead, the main question of interest is mainly two-fold: 1. what is the extra wall-clock time spent on training with FL, compared to train 1 regular centralized model, but only with 1/#silo of the data. 2. what is the extra computing time spent on the training with FL, compared to train 1 regular centralzied model with data from all silos combined. Thie first point is important as they indicate the how quickly customers can get their models results, and the second point is essential as an indication of the money that customers will spend on training. For this reason, we tested 3 models -- "FL" for model trained with FL in 3 silos, "Centralized-1/3" for 1 model with 1/3 data, and "Centralized-1" for 1 model with all data combined. 
 
-## Quickstart
+# PNEUMONIA
+![Training time of 3 types of model](./pics/pneumonia_time.jpg)
+
+# NER
+# CCFRAUD
+
+## Model Performance
 
 No time to read? Get directly to the [**quickstart**](./quickstart.md) to provision a demo within minutes in your own subscription.
 
