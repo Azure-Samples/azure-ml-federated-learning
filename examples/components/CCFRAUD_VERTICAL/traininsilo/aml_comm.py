@@ -379,47 +379,17 @@ class AMLCommRedis(AMLComm):
         super().__init__(rank, world_size, run_id)
 
         if connection_string is not None:
-            from urllib.parse import urlparse, parse_qs
-
-            connection_string = (
-                connection_string[: connection_string.index(",")]
-                + "?"
-                + connection_string[connection_string.index(",") + 1 :]
-            )
-            connection_string = connection_string.replace(",", "&")
-
-            if parse_qs(urlparse(connection_string).query)["ssl"][0].lower() == "true":
-                connection_string = "rediss://" + connection_string
-                connection_string = connection_string.replace("&ssl=True", "")
-            else:
-                connection_string = "redis://" + connection_string
-                connection_string = connection_string.replace("&ssl=False", "")
-            connection_string = connection_string.replace("&abortConnect=True", "")
-            connection_string = connection_string.replace("&abortConnect=False", "")
+            connection_string = self._format_connection_string(connection_string)
 
         self._client: redis.Redis = redis.Redis.from_url(
             connection_string,
-            health_check_interval=10,
+            health_check_interval=60,
             socket_connect_timeout=connect_timeout,
             retry_on_timeout=True,
             socket_keepalive=True,
         )
-        self._pubsub: dict[str, redis.client.PubSub] = {}
         self._timeout = message_timeout
-        if self._rank == 0:
-            self._wait_for_connection(connect_timeout)
-            for i in range(1, self._world_size):
-                session_id = self._get_session_id(i, self._rank)
-                self._pubsub[session_id] = self._client.pubsub()
-                self._pubsub[session_id].subscribe(session_id)
-                self._pubsub_check_health(self._pubsub[session_id])
-        else:
-            session_id = self._get_session_id(0, self._rank)
-            self._pubsub[session_id] = self._client.pubsub()
-            self._pubsub[session_id].subscribe(session_id)
-            self._pubsub_check_health(self._pubsub[session_id])
-
-            self._wait_for_connection(connect_timeout)
+        self._wait_for_connection(connect_timeout)
 
     def _wait_for_connection(self, connect_timeout: int):
         if self._rank == 0:
@@ -427,47 +397,79 @@ class AMLCommRedis(AMLComm):
             for i in range(1, self._world_size):
                 time_start = time.time()
                 while time.time() - time_start < connect_timeout:
-                    session_id = self._get_session_id(self._rank, i)
-                    if self._client.pubsub_numsub(session_id)[0][1] > 0:
-                        connected.append(i)
-                        logger.info(f"Connected to {i}")
-                        break
+                    session_id = self._get_session_id(i, self._rank)
+                    message = self._client.xread(
+                        {session_id: 0}, count=1, block=self._timeout
+                    )
+                    if len(message) > 0:
+                        message_id, message = message[0][1][0]
+                        if b"rank" in message and int(message[b"rank"]) == i:
+                            self._client.xdel(session_id, message_id)
+                            connected.append(i)
+                            logger.info(f"Connected to {i}")
+                            break
+
             if len(connected) != self._world_size - 1:
                 raise Exception(
                     f"Some clients did not connect, connected clients: {connected}"
                 )
+            else:
+                for i in range(1, self._world_size):
+                    self._client.xadd(
+                        self._get_session_id(self._rank, i), {"rank": "0"}
+                    )
+                logger.info("All clients connected")
 
         else:
+            # Notify client 0 about connection
+            session_id = self._get_session_id(self._rank, 0)
+            self._client.xadd(session_id, {"rank": f"{self._rank}"})
+
+            # Wait for confirmation from client 0
             time_start = time.time()
+            session_id = self._get_session_id(0, self._rank)
             while time.time() - time_start < connect_timeout:
-                session_id = self._get_session_id(self._rank, 0)
-                if self._client.pubsub_numsub(session_id)[0][1] > 0:
-                    logger.info(f"Connected to 0")
-                    return
+                message = self._client.xread(
+                    {session_id: 0}, count=1, block=self._timeout
+                )
+                if len(message) > 0:
+                    message_id, message = message[0][1][0]
+                    if b"rank" in message and int(message[b"rank"]) == 0:
+                        self._client.xdel(session_id, message_id)
+                        logger.info(f"Connected to 0")
+                        return
 
             raise Exception(f"Failed to connect to client 0")
+
+    def _format_connection_string(self, connection_string: str) -> str:
+        from urllib.parse import urlparse, parse_qs
+
+        connection_string = (
+            connection_string[: connection_string.index(",")]
+            + "?"
+            + connection_string[connection_string.index(",") + 1 :]
+        )
+        connection_string = connection_string.replace(",", "&")
+
+        if parse_qs(urlparse(connection_string).query)["ssl"][0].lower() == "true":
+            connection_string = "rediss://" + connection_string
+            connection_string = connection_string.replace("&ssl=True", "")
+        else:
+            connection_string = "redis://" + connection_string
+            connection_string = connection_string.replace("&ssl=False", "")
+        connection_string = connection_string.replace("&abortConnect=True", "")
+        connection_string = connection_string.replace("&abortConnect=False", "")
+        return connection_string
 
     def _get_session_id(self, source: int, destination: int, flag: FLAGS = None):
         if flag is None:
             return f"{self._run_id}:{source}=>{destination}"
         return f"{self._run_id}:{source}=>{destination}:{FLAGS[flag].name}"
 
-    def _pubsub_check_health(self, pubsub):
-        import threading
-
-        try:
-            pubsub.check_health()
-        except Exception as e:
-            # If an exception is thrown the connection was closed by the server
-            # and thus we do not need to start timer again
-            return
-
-        pubsub_check_timer = threading.Timer(5, self._pubsub_check_health, [pubsub])
-        pubsub_check_timer.start()
-
     def send(self, data, destination) -> None:
         time_start = time.time()
         retries = 0
+        session_id = self._get_session_id(self._rank, destination)
 
         while time.time() - time_start < self._timeout and retries < 3:
             try:
@@ -475,13 +477,10 @@ class AMLCommRedis(AMLComm):
                 if self._rank != 0:
                     assert destination == 0
 
-                session_id = self._get_session_id(self._rank, destination)
-                if self._client.publish(session_id, pickle.dumps(data)) >= 1:
-                    self._stats["msg_sent"] += 1
-                    self._stats["sending_time"] += time.time() - time_start
-                    return
-                else:
-                    continue
+                self._client.xadd(session_id, {"data": pickle.dumps(data)})
+                self._stats["msg_sent"] += 1
+                self._stats["sending_time"] += time.time() - time_start
+                return
             except Exception as e:
                 logger.exception(
                     Exception(f"There was problem delivering message to {destination}")
@@ -508,11 +507,28 @@ class AMLCommRedis(AMLComm):
         # logger.info(f"Receiving message from {source}")
         while time.time() - time_start < self._timeout and retries < 3:
             try:
-                message = self._pubsub[session_id].get_message()
-                if message is not None and message["type"] != "subscribe":
+                message = self._client.xread(
+                    {session_id: 0}, count=1, block=self._timeout
+                )
+                if len(message) > 0:
                     self._stats["waiting_time"] += time.time() - time_start
 
-                    message = pickle.loads(message["data"])
+                    # Get first message received [0]
+                    # get contents of that message [1]
+                    # get first message in that list [0]
+                    last_message_id, message = message[0][1][0]
+                    if b"data" not in message:
+                        # Delete message from stream (necessary for xread to work)
+                        self._client.xdel(session_id, last_message_id)
+                        logger.warning(
+                            f"Message deleted, because it does not contain data field, message: {message}"
+                        )
+                        continue
+
+                    message = pickle.loads(message[b"data"])
+
+                    # Delete message from stream (necessary for xread to work)
+                    self._client.xdel(session_id, last_message_id)
 
                     self._stats["msg_received"] += 1
                     self._stats["receiving_time"] += time.time() - time_start
@@ -522,11 +538,6 @@ class AMLCommRedis(AMLComm):
 
             except redis.exceptions.ConnectionError as e:
                 logger.warning(e)
-                self._pubsub[session_id].close()
-                self._pubsub[session_id] = self._client.pubsub()
-                self._pubsub[session_id].subscribe(session_id)
-                self._pubsub_check_health(self._pubsub[session_id])
-
                 retries += 1
             except Exception as e:
                 logger.exception(e)
@@ -538,8 +549,6 @@ class AMLCommRedis(AMLComm):
 
     def close(self):
         logger.info("Closing Redis clients")
-        for session_id in self._pubsub:
-            self._pubsub[session_id].close()
         self._client.close()
 
     def __del__(self):
