@@ -33,7 +33,7 @@ param existingStorageAccountResourceGroup string
 @description('SubscriptionId of the existing storage account to attach to the pair.')
 param existingStorageAccountSubscriptionId string
 
-@description('Name of the storage container resource to create for the pair')
+@description('Name of the storage container to use for the pair datastore')
 param existingStorageContainerName string = 'private'
 
 @description('Name of the datastore for attaching the storage to the AzureML workspace.')
