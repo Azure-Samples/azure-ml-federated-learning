@@ -94,13 +94,15 @@ param tags object = {}
 
 
 // Virtual network and network security group
-module nsg '../networking/nsg.bicep' = { 
+module nsg '../networking/azureml_compute_nsg.bicep' = {
   name: '${nsgResourceName}-deployment'
   scope: resourceGroup()
   params: {
     location: pairRegion
     nsgName: nsgResourceName
     tags: tags
+    workspaceRegion: machineLearningRegion
+    enableNodePublicIp: enableNodePublicIp
   }
 }
 

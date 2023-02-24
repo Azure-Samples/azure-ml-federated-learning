@@ -1,5 +1,7 @@
 // Creates a network security group preconfigured for use with Azure ML
-// To learn more, see https://docs.microsoft.com/en-us/azure/machine-learning/how-to-access-azureml-behind-firewall
+// To learn more, see:
+// https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-workspace-vnet
+// https://docs.microsoft.com/en-us/azure/machine-learning/how-to-access-azureml-behind-firewall
 
 // resource group must be specified as scope in az cli or module call
 targetScope = 'resourceGroup'
