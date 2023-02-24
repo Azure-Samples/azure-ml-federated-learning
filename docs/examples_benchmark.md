@@ -13,8 +13,16 @@ For training overhead, the main question of interest is mainly two-fold: 1. what
 
 ### PNEUMONIA
 <p align="center">
-    <img src="./pics/pneumonia_time.jpg" alt="pneumonia Training time" width="600"/>
+    <img src="./pics/pneumonia_time.jpg" alt="pneumonia Training time" width="550"/>
+</p>
+
+### NER
+<p align="center">
     <img src="./pics/ner_time.jpg" alt="ner Training time" width="600"/>
+</p>
+
+### CCFRAUD
+<p align="center">
     <img src="./pics/cc_time.jpg" alt="ccfraud Training time" width="600"/>
 </p>
 
