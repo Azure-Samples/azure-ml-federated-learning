@@ -1,5 +1,5 @@
 # Real-world Example Benchmarks
-For all three real-word examples (PNEUMONIA, NER, CCFRAUD), we perform benchmark testing to assess three main aspects --- The training overhead, model performance, and scalability of training under FL setting. The main purpose of this benchmark is to show that FL has been implemented correctly and work as expected, rather than to focus on the exact metric value shown below, which will vary based on distinct models and datasets. In the following experiments, each silo is trained with the same hyperparameters to ensure the consistency of results, and the model performance was assessed with all test data combined from silos. Below are the results from each aspect.
+For all three real-word examples (PNEUMONIA, NER, CCFRAUD), we perform benchmark testing to assess three main aspects: the training overhead, model performance, and scalability of training under FL setting. The main purpose of this benchmark is to show that FL has been implemented correctly and works as expected, rather than to focus on the exact metric value shown below, which will vary based on distinct models and datasets. In the following experiments, each silo is trained with the same hyperparameters to ensure the consistency of results, and the model performance was assessed with all test data combined from silos. Below are the results for each aspect.
 
 ## Table of contents
 
@@ -9,7 +9,7 @@ For all three real-word examples (PNEUMONIA, NER, CCFRAUD), we perform benchmark
 
 ## Training Overhead
 
-For training overhead, the main question of interest is mainly two-fold: 1. What is the extra wall-clock time spent on training with FL, compared to train a regular centralized model, but only with 1/#silo of the data. 2. What is the extra computing time (summed from all silos) spent on training with FL, compared to train a regular centralzied model with data from all silos combined. Thie first point is important as they indicate how quickly customers can get their model results, and the second point is essential as an indication of the money that customers will spend on computing resource. For this reason, we tested 3 models -- "FL" for model trained with FL in 3 silos, "Centralized-1/3" for 1 model with 1/3 data, and "Centralized-1" for 1 model with all data combined. 
+For training overhead, there are two main questions of interest: 1. What is the extra wall-clock time spent on training with FL, compared to train a regular centralized model, but only with 1/#silo of the data. 2. What is the extra computing time (summed from all silos) spent on training with FL, compared to train a regular centralized model with data from all silos combined. The first point is important as it indicates how quickly customers can get their model results, and the second point is essential as it is an indication of the money that customers will spend on computing resource. For this reason, we tested 3 models: "FL" for model trained with FL in 3 silos, "Centralized-1/3" for 1 model with 1/3 data, and "Centralized-1" for 1 model with all data combined. 
 
 ### PNEUMONIA
 <p align="center">
@@ -30,7 +30,7 @@ For ner, FL takes only 1.3% longer wall time than centralized-1/3, and only 0.1%
 For ccfraud, FL takes 10% longer wall time than centralized model, while about 3% longer computing time than centralized-1.
 
 ## Model Performance
-Another important factor that can assess the performance of FL is the model performance. Here we also aims to answer two questions 1. How does the FL model performance compare to the centralized model trained with only partial data, which is the scenario when FL is not supported and data are confidential and restricted to each region. 2. How does the FL model performance compare to the centralized model trained with data from all silos, which is an ideal situation when all data are eye-on and could be combined. This is to understand if the distributed-aggregate design of FL has impact on the model performance. For this reason, we tested 3 models -- "FL" for model trained with FL in 3 silos, "Centralized-1/3" for 1 model with 1/3 data, and "Centralized-1" for 1 model with all data combined. 
+Another important assessing factor for FL is the model performance. Here we also aim at two questions: 1. How does the FL model performance compare to the centralized model trained with only partial data, which is the scenario when FL is not supported and data are confidential and restricted to each region. 2. How does the FL model performance compare to the centralized model trained with data from all silos, which is an ideal situation when all data are eye-on and could be combined. This is to understand if the distributed-aggregate design of FL has impact on the model performance. For this reason, we tested 3 models: "FL" for model trained with FL in 3 silos, "Centralized-1/3" for 1 model with 1/3 data, and "Centralized-1" for 1 model with all data combined. 
 
 ### PNEUMONIA
 <p align="center">
