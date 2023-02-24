@@ -74,7 +74,7 @@ resource BatchNodeManagementOutbound 'Microsoft.Network/networkSecurityGroups/se
   name: 'BatchNodeManagementOutbound'
   parent: nsg
   properties: {
-    protocol: 'Any'
+    protocol: '*'
     sourcePortRange: '*'
     destinationPortRange: '443'
     sourceAddressPrefix: '*'
