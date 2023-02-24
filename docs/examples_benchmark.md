@@ -23,9 +23,10 @@ For all three real-word examples (PNEUMONIA, NER, CCFRAUD) we perform benchmark 
 For training overhead, the main question of interest is mainly two-fold: 1. what is the extra wall-clock time spent on training with FL, compared to train 1 regular centralized model, but only with 1/#silo of the data. 2. what is the extra computing time spent on the training with FL, compared to train 1 regular centralzied model with data from all silos combined. Thie first point is important as they indicate the how quickly customers can get their models results, and the second point is essential as an indication of the money that customers will spend on training. For this reason, we tested 3 models -- "FL" for model trained with FL in 3 silos, "Centralized-1/3" for 1 model with 1/3 data, and "Centralized-1" for 1 model with all data combined. 
 
 # PNEUMONIA
-![Training time of 3 types of model](./pics/pneumonia_time.jpg)
+<img src="./pics/pneumonia_time.jpg" alt="Training time of 3 types of model" width="200"/>
 
 # NER
+
 # CCFRAUD
 
 ## Model Performance
