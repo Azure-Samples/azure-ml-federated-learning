@@ -58,9 +58,7 @@ A benchmarking analysis is performed for each real-world example to understand t
 
 |  Training overhead  | Model performance  | Scalability |
 |:-------------------:|:------------------:|:-----------:|
-| [![overhead icon](./docs/pics/pneumonia_time.jpg)](./docs/concepts/benchmarking.md/#21-training-overhead)
-| [![performance icon](./docs/pics/pneumonia_acc.jpg)](./docs/concepts/benchmarking.md/#22-model-performance)
-| [![scala icon](./docs/pics/pneumonia_ddp.jpg)](./docs/concepts/benchmarking.md/#23-scalability-with-training)
+| [![overhead icon](./docs/pics/pneumonia_time.jpg)](./docs/concepts/benchmarking.md/#21-training-overhead)| [![performance icon](./docs/pics/pneumonia_acc.jpg)](./docs/concepts/benchmarking.md/#22-model-performance)| [![scala icon](./docs/pics/pneumonia_ddp.jpg)](./docs/concepts/benchmarking.md/#23-scalability-with-training)
 
 
 ### Need Support?
