@@ -40,7 +40,7 @@ For benchmark experiments about training overhead and model performance, we comp
 2. __Centralized-1/3__: 1 centralized model trained with 1/3 data
 3. __Centralized-1__: 1 centralized model trained with all data
 
-After each model is trained, it is evaluated with all test data. In terms of the compute resoucres, we use the same FL provision of SKUs for each example. Below is a table that summarizes both the characteristics and the computing details for each model:
+After each model is trained, it is evaluated with all test data. In terms of the compute resources, we use the same FL provision of SKUs for each example. Below is a table that summarizes both the characteristics and the computing details for each model:
 
 
 |  Example        | Fraction of data in each silo | # Silos |                         SKUs                         |  Regions  |
@@ -105,7 +105,7 @@ For pneumonia, FL achieves higher accuracy than centralized-1/3, while slightly 
 <p align="center">
     <img src="../pics/ner_acc.jpg" alt="ner training time" width="600"/>
 </p>
-For ner, FL achieves a highest score for all four metrics. Although it is not expected that FL will outperform centeralized-1, it might be becasue the distribute-aggregate fashion improves the generalizability of the final model.
+For ner, FL achieves a highest score for all four metrics. Although it is not expected that FL will outperform centeralized-1, it might be because the scatter-aggregate fashion improves the generalizability of the final model.
 
 
 ### 2.3 Scalability with Training
