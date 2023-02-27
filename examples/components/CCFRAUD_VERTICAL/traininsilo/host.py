@@ -4,7 +4,7 @@ import logging
 import sys
 import copy
 import os
-from aml_comm import AMLCommRedis
+from aml_comm import AMLCommSocket
 
 import mlflow
 import torch
@@ -87,20 +87,25 @@ class CCFraudTrainer:
         epochs=1,
         batch_size=10,
         experiment_name="default-experiment",
-        iteration_name="default-iteration",
     ):
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE
-            train_data_dir(str, optional): Training data directory path
-            test_data_dir(str, optional): Testing data directory path
-            lr (float, optional): Learning rate. Defaults to 0.01
-            epochs (int, optional): Epochs. Defaults to 1
+            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
+            global_rank(int): Rank of the current node.
+            global_size(int): Total number of nodes.
+            global_comm(AMLComm): Communication method.
+            train_data_dir(str, optional): Training data directory path.
+            test_data_dir(str, optional): Testing data directory path.
+            model_path(str, optional): Path to save model.
+            lr (float, optional): Learning rate. Defaults to 0.01.
+            epochs (int, optional): Epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            experiment_name (str, optional): Name of the experiment. Defaults to "default-experiment".
 
         Attributes:
             model_: Model
+            device_: Location of the model
             criterion_: BCELoss loss
             optimizer_: Stochastic gradient descent
             train_dataset_: Training Dataset obj
@@ -114,7 +119,6 @@ class CCFraudTrainer:
         self._epochs = epochs
         self._batch_size = batch_size
         self._experiment_name = experiment_name
-        self._iteration_name = iteration_name
         self._global_rank = global_rank
         self._global_size = global_size
         self._global_comm = global_comm
@@ -198,7 +202,7 @@ class CCFraudTrainer:
         else:
             client.log_metric(
                 run_id=run_id,
-                key=f"{self._iteration_name}/{self._experiment_name}/{key}",
+                key=f"{self._experiment_name}/{key}",
                 value=value,
             )
 
@@ -217,8 +221,8 @@ class CCFraudTrainer:
 
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
-            logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
-            root_run_id = mlflow_run.data.tags.get("mlflow.rootRunId")
+            root_run_id = os.environ.get("AZUREML_ROOT_RUN_ID")
+            logger.debug(f"Root runId: {root_run_id}")
 
             # log params
             self.log_params(mlflow_client, root_run_id)
@@ -250,9 +254,8 @@ class CCFraudTrainer:
 
                     # Average all intermediate results
                     outputs = torch.stack(outputs)
-                    outputs_avg = outputs.mean(dim=0)
 
-                    predictions, net_loss = self.model_(outputs_avg)
+                    predictions, net_loss = self.model_(outputs.mean(dim=0))
                     # Compute loss
                     self.criterion_.weight = (
                         ((data == 1) * (self.fraud_weight_ - 1)) + 1
@@ -443,9 +446,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-    parser.add_argument(
-        "--iteration_name", type=str, required=False, help="Iteration name"
-    )
 
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
@@ -476,7 +476,6 @@ def run(args, global_comm):
         epochs=args.epochs,
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
-        iteration_name=args.iteration_name,
         global_rank=args.global_rank,
         global_size=args.global_size,
         global_comm=global_comm,
@@ -499,17 +498,9 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    redis_connection_string = "<REDIS-CONNECTION-STRING>"
+    global_comm = AMLCommSocket(
+        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
     )
-    global_comm = AMLCommRedis(
-        args.global_rank,
-        args.global_size,
-        os.environ.get("AZUREML_ROOT_RUN_ID"),
-        connection_string=redis_connection_string,
-    )
-    # global_comm = AMLCommSocket(
-    #     args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
-    # )
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
@@ -519,7 +510,6 @@ def main(cli_args=None):
     with mlflow.start_run() as mlflow_run:
         mlflow_client = mlflow.tracking.client.MlflowClient()
         global_comm.log_stats(mlflow_client)
-    global_comm.close()
 
 
 if __name__ == "__main__":

@@ -54,6 +54,6 @@ federated_learning:
 
 # training parameters
 training_parameters:
-  epochs: 2 # number of epochs per iteration (in-silo training) 
+  epochs: 10 # number of epochs per iteration (in-silo training) 
   lr: 1e-3 # learning rate
   batch_size: 128 # batch size

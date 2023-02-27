@@ -19,11 +19,6 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
-  iteration_num:
-    type: integer
-    description: Iteration number
-    default: 1
-    optional: true
   checkpoint:
     type: uri_folder
     description: a given pre-existing checkpoint
@@ -68,15 +63,10 @@ command: >-
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
-  $[[--iteration_num ${{inputs.iteration_num}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
   --model ${{outputs.model}}
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
-  $[[--batch_size ${{inputs.batch_size}}]]
-  --global_size ${{inputs.global_size}}
-  --global_rank ${{inputs.global_rank}}
-  --local_size ${{inputs.local_size}}
   --local_rank ${{inputs.local_rank}}
 environment: 
   conda_file: ./conda.yaml

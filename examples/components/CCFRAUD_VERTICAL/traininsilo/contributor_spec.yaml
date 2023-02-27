@@ -24,11 +24,6 @@ inputs:
     description: Type of the model to train
     enum: [SimpleLSTM, SimpleVAE, SimpleLinear]
     optional: false
-  iteration_name:
-    type: string
-    description: Iteration name
-    default: Default-iteration
-    optional: true
   checkpoint:
     type: uri_folder
     description: a given pre-existing checkpoint
@@ -75,11 +70,7 @@ command: >-
   --global_size ${{inputs.global_size}}
   --global_rank ${{inputs.global_rank}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
-  $[[--iteration_name ${{inputs.iteration_name}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
-environment: 
-  conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

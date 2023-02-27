@@ -2,9 +2,9 @@
 
 ## Background
 Vertical federated learning (VFL) is branch of federated learning where the data are split across the features among the participants rather than across the samples (horizontal FL). In other words we can say that it takes federated learning to another level as it allows for cross-organization collaboration without need for having the same features while keeping privacy and security of each individual's data intact. Some of real-world examples include, but are not limited to:
-- Finance: financial institution owning different pieces of data about their clients (e.g. bank account data, credit card data, loans data, ...etc)
+- Finance: several institutions owning different pieces of data about their clients (e.g. bank account data, credit card data, loans data, ...etc)
 - Healthcare: different healthcare facilities may own different modalities (e.g. x-ray scans, prescriptions, patient health records, ...etc)
-- Retail: each retailer owns different information about customer and aggregating this information may results in better recommendations for the customer
+- Retail: each retailer owns different information about customer and aggregating this information may result in better recommendations for the customer
 
 <br/><br/>
 <div align="center">
@@ -17,13 +17,8 @@ Vertical federated learning (VFL) is branch of federated learning where the data
 This tutorial will guide you through steps required to set-up VFL experiments and point out important parts of the code. We target MNIST (written number recognition) and [CCFRAUD (financial tabular data)](../real-world-examples/ccfraud.md) examples in order to showcase versatility of the solution in regards to type of the data.  All of the examples here make use of mean aggregation and assumption is that the host owns only labels while features are equally distributed among the contributors.
 
 ## Infrastructure
-First step towards successfully running VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use single-button deployment for vnet infrastructure deployment. This is necessary in order for nodes to be able to communicate.
+First step towards successfully running VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use **single-button deployment for vnet infrastructure deployment**. This is necessary in order for nodes to be able to communicate.
 
-## Install the required dependencies
-
-You'll need python to submit experiments to AzureML. You can install the required dependencies by running:
-
-```bash
 conda env create --file ./examples/pipelines/environment.yml
 conda activate fl_experiment_conda_env
 ```
@@ -62,15 +57,15 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
 ## Model preparation for VFL
-The model in VFL can be either deployed by splitting it between the host and contributors, also referred to as **split learning**, or hosting whole model on contributor while host provides only aggregation function. Our examples relies on former as we believe this can better demonstrate capabilities of VFL on AzureML the proposed solution can be easily altered to the latter case.
+It is an ongoing research topic on how the model can be orchestrated in VFL. We have decided to go with the most common approach by splitting it between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and/or activation function. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
 
 ## Communication
 The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enable communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
 
-## Sockets
+### Sockets
 This is easier to start with as the only **requirement here is that the nodes are interconnected using vnet**. This is also the **default option**. To create this type of communication channel just create instance of a **AMLCommSocket** class with world size, rank of the node and root run id
 
-## Redis streams
+### Redis streams
 In case it is not feasible to use vnets in your case you can fallback on using Redis. This, however, involves provisioning [Azure Cache for Redis](https://azure.microsoft.com/en-us/products/cache/). Please, make sure that you provision at least P1 Premium Instance with 6GB cache for the demos. However, if you would like to use it for your own data and architectures, feel free to scale it according to the needs for messages being sent between the nodes.
 
 Once you provision *Azure Cache for Redis* (this can be provisioned in whichever subscription you like):
@@ -83,15 +78,15 @@ Once you provision *Azure Cache for Redis* (this can be provisioned in whichever
 ## Training
 
 ### Overview
-Now, before we run the training itself let's take a step back and take a look on how such training works in VFL setup that is roughly depicted in the figure below. The first step that needs to take step ahead of the training is:
+Now, before we run the training itself let's take a step back and take a look on how such training works in VFL setup that is roughly depicted in the figure below. The first step that needs to take place ahead of the training is:
 
-- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training
+- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. **Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training as we do not provide any for of PSI as of now.**
 
 Afterwards, we can continue with regular training loop:
-- **Forward pass in contributors** - all contributors, and optionally host, performs forward pass on their part of the model with features they own
+- **Forward pass in contributors** - all contributors, and optionally host, perform forward pass on their part of the model with features they own
 - **Intermediate outputs transfer** - all outputs from previous step are sent to the host that performs an aggregation (for simplicity sake we make use of mean operation)
 - **Loss computation** - host performs either forward pass on its part of network or just passes aggregated outputs of previous step through an activation function followed by loss computation
-- **Gradients computation** - if host own some part of the network, it performs backward pass, followed by computing gradients w.r.t inputs in all cases
+- **Gradients computation** - if host owns some part of the network, it performs backward pass, followed by computing gradients w.r.t inputs in all cases
 - **Gradient transfer** - all contributors, and optionally host, receives gradients w.r.t. their intermediate outputs
 - **Backward pass** - gradients are used to perform backward pass and update the network weights
 
@@ -106,7 +101,7 @@ Afterwards, we can continue with regular training loop:
 2. Submit the experiment by running:
 
    ```bash
-   python ./examples/pipelines/<example-name>/upload_data/submit.py --config examples/pipelines/<example-name>/config.yaml --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/<example-name>/submit.py --config examples/pipelines/<example-name>/config.yaml --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
@@ -120,7 +115,7 @@ Afterwards, we can continue with regular training loop:
 2. **Intersection and entity alignment**
    The samples needs to be aligned across participants ahead of the training after we created set intersection of samples that are present on all involved parties. This process can reveal information to other entities that we may want to keep private. Fortunately there are **private set intersection** methods available out there that come to rescue.
 3. **Communication encryption**
-    Even though the intermediate outputs and gradients are not raw data, they still have been inferred using possibly private data. Therefore, it's good to use some sort of security when communicating the data to untrusted parties outside of Azure (e.g. differential privacy).
+    Even though the intermediate outputs and gradients are not raw data, they still have been inferred using private data. Therefore, it's good to use encryption when communicating the data to parties outside of Azure.
 
 ## Additional resources
 - [Private set intersection algorithm overview](https://xianmu.github.io/posts/2018-11-03-private-set-intersection-based-on-rsa-blind-signature.html)
