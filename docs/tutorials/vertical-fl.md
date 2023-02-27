@@ -64,6 +64,22 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 ## Model preparation for VFL
 The model in VFL can be either deployed by splitting it between the host and contributors, also referred to as **split learning**, or hosting whole model on contributor while host provides only aggregation function. Our examples relies on former as we believe this can better demonstrate capabilities of VFL on AzureML the proposed solution can be easily altered to the latter case.
 
+## Communication
+The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enable communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
+
+## Sockets
+This is easier to start with as the only **requirement here is that the nodes are interconnected using vnet**. This is also the **default option**. To create this type of communication channel just create instance of a **AMLCommSocket** class with world size, rank of the node and root run id
+
+## Redis streams
+In case it is not feasible to use vnets in your case you can fallback on using Redis. This, however, involves provisioning [Azure Cache for Redis](https://azure.microsoft.com/en-us/products/cache/). Please, make sure that you provision at least P1 Premium Instance with 6GB cache for the demos. However, if you would like to use it for your own data and architectures, feel free to scale it according to the needs for messages being sent between the nodes.
+
+Once you provision *Azure Cache for Redis* (this can be provisioned in whichever subscription you like):
+1. Go to *Access keys* and copy *Primary connection string*. 
+2. Go to your *Azure Machine Learning workspace* in Azure Portal and click on the *Key Vault* item.
+3. In the Key Vault go to *Secrets* and *Generate* new one with previously copied connection string and the following name "amlcomm-redis-connection-string".
+4. Go to both **host.py** and **contributor.py**, add `from aml_comm import AMLCommRedis` at the top of the file and change **AMLCommSocket** to **AMLCommRedis** while keeping the same parameters as for **AMLCommSocket**.
+5. Continue to training section
+
 ## Training
 
 ### Overview

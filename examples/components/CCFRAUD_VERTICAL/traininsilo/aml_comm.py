@@ -322,7 +322,7 @@ class AMLCommSocket(AMLComm):
         return data
 
     def send(self, data, destination):
-        """Sends tensor to the destination contributor node
+        """Sends data to the destination node
 
         Args:
             data: data to be sent
@@ -340,7 +340,7 @@ class AMLCommSocket(AMLComm):
         self._send(data, destination, FLAGS.DATA, FLAGS.OK_DATA)
 
     def recv(self, source):
-        """Receive tensor from the source rank node
+        """Receives data from the source rank node
 
         Args:
             source: rank of the sender node
@@ -376,10 +376,26 @@ class AMLCommRedis(AMLComm):
         message_timeout=60,
         connect_timeout=1800,
     ) -> None:
+        """Initializes the AMLCommRedis class
+
+        The authentication to the Redis server is attempted in the following order:
+        1. Using the passed in connection_string if not empty or None.
+        2. Using keyvault secret amlcomm-redis-connection-string.
+        3. Using environment variable AML_COMM_REDIS_CONNECTION_STRING.
+
+        Args:
+            rank (int): rank of the current node
+            world_size (int): total number of nodes
+            run_id (str): run id of the current run
+            connection_string (str, optional): connection string to the Redis server. Defaults to None.
+            message_timeout (int, optional): timeout for the Redis messages. Defaults to 60.
+            connect_timeout (int, optional): timeout for the initial connection to other nodes. Defaults to 1800.
+        """
         super().__init__(rank, world_size, run_id)
 
-        if connection_string is not None:
-            connection_string = self._format_connection_string(connection_string)
+        if connection_string is None or len(connection_string) == 0:
+            connection_string = self._get_connection_string()
+        connection_string = self._format_connection_string(connection_string)
 
         self._client: redis.Redis = redis.Redis.from_url(
             connection_string,
@@ -399,7 +415,7 @@ class AMLCommRedis(AMLComm):
                 while time.time() - time_start < connect_timeout:
                     session_id = self._get_session_id(i, self._rank)
                     message = self._client.xread(
-                        {session_id: 0}, count=1, block=self._timeout
+                        {session_id: 0}, count=1, block=self._timeout*1000
                     )
                     if len(message) > 0:
                         message_id, message = message[0][1][0]
@@ -430,7 +446,7 @@ class AMLCommRedis(AMLComm):
             session_id = self._get_session_id(0, self._rank)
             while time.time() - time_start < connect_timeout:
                 message = self._client.xread(
-                    {session_id: 0}, count=1, block=self._timeout
+                    {session_id: 0}, count=1, block=self._timeout*1000
                 )
                 if len(message) > 0:
                     message_id, message = message[0][1][0]
@@ -440,6 +456,30 @@ class AMLCommRedis(AMLComm):
                         return
 
             raise Exception(f"Failed to connect to client 0")
+
+    def _get_connection_string(self) -> str:
+        try:
+            from azureml.core import Run, Keyvault
+
+            logger.warning("Getting Redis connection string from Azure ML Key Vault")
+            run = Run.get_context()
+            ws = run.experiment.workspace
+            kv: Keyvault = ws.get_default_keyvault()
+            connection_string = kv.get_secret("amlcomm-redis-connection-string")
+            logger.warning("Got Redis connection string from Azure ML Key Vault")
+            return connection_string
+        except Exception as e:
+            logger.warning("Failed to get connection string from Azure ML Key Vault")
+            logger.warning(f"Exception: {e}")
+
+        logger.info("Getting Redis connection string from environment variable")
+        if "AML_COMM_REDIS_CONNECTION_STRING" in os.environ:
+            logger.warning("Got Redis connection string from environment variable")
+            return os.environ["AML_COMM_REDIS_CONNECTION_STRING"]
+        else:
+            logger.warning("Failed to get connection string from environment variable")
+
+        raise Exception("Failed to get Redis connection string")
 
     def _format_connection_string(self, connection_string: str) -> str:
         from urllib.parse import urlparse, parse_qs
@@ -467,6 +507,12 @@ class AMLCommRedis(AMLComm):
         return f"{self._run_id}:{source}=>{destination}:{FLAGS[flag].name}"
 
     def send(self, data, destination) -> None:
+        """Sends data to the destination node
+
+        Args:
+            data: data to be sent
+            destination: rank of the receiver node
+        """
         time_start = time.time()
         retries = 0
         session_id = self._get_session_id(self._rank, destination)
@@ -496,6 +542,11 @@ class AMLCommRedis(AMLComm):
         raise e
 
     def recv(self, source):
+        """Receives data from the source rank node
+
+        Args:
+            source: rank of the sender node
+        """
         assert source != self._rank
         if self._rank != 0:
             assert source == 0
@@ -508,7 +559,7 @@ class AMLCommRedis(AMLComm):
         while time.time() - time_start < self._timeout and retries < 3:
             try:
                 message = self._client.xread(
-                    {session_id: 0}, count=1, block=self._timeout
+                    {session_id: 0}, count=1, block=self._timeout*1000
                 )
                 if len(message) > 0:
                     self._stats["waiting_time"] += time.time() - time_start
@@ -549,6 +600,12 @@ class AMLCommRedis(AMLComm):
 
     def close(self):
         logger.info("Closing Redis clients")
+        if self._rank == 0:
+            for i in range(1, self._world_size):
+                self._client.delete(self._get_session_id(0, i))
+        else:
+            self._client.delete(self._get_session_id(self._rank, i))
+
         self._client.close()
 
     def __del__(self):
