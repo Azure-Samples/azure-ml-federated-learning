@@ -5,7 +5,7 @@ For all three real-word examples (PNEUMONIA, NER, CCFRAUD), we perform benchmark
 **Valid**: reaching parity in quality (see [section 2.2](#22-model-performance))  
 **Scalable**: it can adapt to larger datasets by leveraging distributed training (see [section 2.3](#23-scalability-with-training))  
 
-The main purpose of this benchmark is to show that FL has been implemented correctly and works as expected, rather than to focus on the exact metric value shown below, which will vary based on distinct models and datasets. In the following experiments, the detailed computes, hyperparameters, models, and tasks etc are detailed in Methodology section below.
+The main purpose of this benchmark is to show that FL has been implemented correctly and works as expected, rather than to focus on the exact metric value shown below, which will vary based on distinct models and datasets. In the following experiments, the detailed computes, hyperparameters, models, and tasks etc are detailed in [Methodology](#1-methodology) section.
 
 
 ## Table of contents
@@ -17,30 +17,30 @@ The main purpose of this benchmark is to show that FL has been implemented corre
 
 ## 1. Methodology
 
-Before we jump to the benchmarking, here is table that gives a summary of each example:
+Before jumping to the benchmarking, we provide a table that gives a description of each example including the type of problem, type of data, number of examples and size on disk:
 
 |  Example  |           Problem         | Type of data | Number of samples | Size on disk |
-|-----------|---------------------------|--------------|-------------------|--------------|
+|:---------:|:-------------------------:|:------------:|:-----------------:|:------------:|
 | PNEUMONIA |   Binary Classification   |     Image    |        5856       |    1.24GB    |
 |    NER    | Multi-class Classification|     Text     |       164.1K      |     115MB    |
 |  CCFRAUD  |   Binary Classification   |    Tabular   |        1.86M      |   501.59MB   |
 
-For the reproducibility of the results, the following hyperparameters are used:
+For the best reproducibility of the benchmark results, we also show here the hyperparameters used for the experiments:
 
 |  Example  | # Iterations  | # Epochs | Batch size | Learning rate |
-|-----------|---------------|----------|------------|---------------|
+|:---------:|:-------------:|:--------:|:----------:|:-------------:|
 | PNEUMONIA |       2       |     5    |     32     |      0.01     |
 |    NER    |       2       |     3    |     16     |      0.01     |
 |  CCFRAUD  |       3       |     3    |     500    |      0.001    |
 
 
-For experiments about **training overhead** and **model performance**, we compared three models:
+For benchmark experiments about training overhead and model performance, we compared three models:
 
-1. __FL__ for model trained with FL in 3 silos
-2. __Centralized-1/3__ for 1 model with 1/3 data
-3. __Centralized-1__ for 1 model with all data
+1. __FL__:  model trained with FL in 3 silos. Each silo only gets 1/3 of the data
+2. __Centralized-1/3__: 1 centralized model trained with 1/3 data
+3. __Centralized-1__: 1 centralized model trained with all data
 
-After each model is trained, it is evaluated with all test data. For each example, we use the same FL provisions of SKUs, below is a summary of all computing details:
+After each model is trained, it is evaluated with all test data. In terms of the compute resoucres, we use the same FL provisions of SKUs for each example. Below is a table summarizes both the characteristics and the computing details for each model:
 
 
 |  Example        | Fraction of data in each silo | # Silos |                         SKUs                         |  Regions  |
@@ -48,6 +48,7 @@ After each model is trained, it is evaluated with all test data. For each exampl
 |       FL        |              1/3              |    3    |  STANDARD_DS3_V2(orchestrator), Standard_NV24(silos) |  East US  |
 | Centralized-1/3 |              1/3              |    1    |                        Standard_NV24                 |  East US  |
 |  Centralized-1  |               1               |    1    |                        Standard_NV24                 |  East US  |
+
 
 
 ## 2. Results
@@ -63,7 +64,7 @@ For training overhead, there are two main questions of interest:
 
 The first point is important as it indicates how quickly customers can get their model results, from job submitted to ended. The second point is essential as it is an indication of the money that customers will spend on all computing resources.  
 
-**Key findngs**: Our benchmark indicates that the overhead on wall-clock time (1% up to 10%) and computing time (<5%) remains small, meaning that the FL implementation is efficient.
+**Key findings**: Our benchmark indicates that the overhead on wall-clock time (1% up to 10%) and computing time (<5%) remains small, meaning that the FL implementation is efficient.
 
 #### PNEUMONIA
 <p align="center">
@@ -92,7 +93,7 @@ Another important assessing factor for FL is the model performance. Here we also
 
 The first point is to demonstrate the extent of improvements on model performance, when users can use FL to train with much more external data, compared to train with data from one party. The second point is to understand if the distribute-aggregate design of FL has impact on the model performance. 
 
-**Key findngs**: Our benchmark indicates that model performace is boosted with FL comparing to a single model with partial data. It also shows that the model performance with FL is comparable to a single model trained on all data, demonstrating the validity of our implementation.
+**Key findings**: Our benchmark indicates that model performace is boosted with FL comparing to a single model with partial data. It also shows that the model performance with FL is comparable to a single model trained on all data, demonstrating the validity of our implementation.
 
 #### PNEUMONIA
 <p align="center">
@@ -111,7 +112,7 @@ For ner, FL achieves a highest score for all four metrics. Although it is not ex
 
 Scalability is critical for industry applications of FL on large datasets. One benefit of using FL on Azure ML is that it supports distributed training (multi GPUs and multi nodes). For this reason, we support distributed training for each real-world example, empowered by Pytorch Distributed Data Parallel (DDP) module. To test the scalability of our implementation, we artifically replicated each datasets by 10 times, and record the training time per epoch for each silo when such data is trained on different number of GPUs.
 
-**Key findngs**: Our benchmark results shows that in all 3 scenarios, we can achieve scalability by adding more nodes and gpus to reduce wall time accordingly.
+**Key findings**: Our benchmark results shows that in all 3 scenarios, we can achieve scalability by adding more nodes and gpus to reduce wall time accordingly.
 
 #### PNEUMONIA
 <p align="center">
