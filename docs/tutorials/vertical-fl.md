@@ -19,6 +19,11 @@ This tutorial will guide you through steps required to set-up VFL experiments an
 ## Infrastructure
 First step towards successfully running VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use **single-button deployment for vnet infrastructure deployment**. This is necessary in order for nodes to be able to communicate.
 
+## Install the required dependencies
+
+You'll need python to submit experiments to AzureML. You can install the required dependencies by running:
+
+```bash
 conda env create --file ./examples/pipelines/environment.yml
 conda activate fl_experiment_conda_env
 ```

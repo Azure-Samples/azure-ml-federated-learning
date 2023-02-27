@@ -74,3 +74,6 @@ command: >-
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

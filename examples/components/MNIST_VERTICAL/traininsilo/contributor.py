@@ -281,18 +281,6 @@ def get_arg_parser(parser=None):
         help="Index of the current silo",
     )
     parser.add_argument(
-        "--local_size",
-        type=int,
-        required=True,
-        help="Number of silos",
-    )
-    parser.add_argument(
-        "--local_rank",
-        type=int,
-        required=True,
-        help="Index of the current silo",
-    )
-    parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
 
