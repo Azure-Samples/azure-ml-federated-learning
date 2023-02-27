@@ -40,11 +40,11 @@ For benchmark experiments about training overhead and model performance, we comp
 2. __Centralized-1/3__: 1 centralized model trained with 1/3 data
 3. __Centralized-1__: 1 centralized model trained with all data
 
-After each model is trained, it is evaluated with all test data. In terms of the compute resoucres, we use the same FL provisions of SKUs for each example. Below is a table summarizes both the characteristics and the computing details for each model:
+After each model is trained, it is evaluated with all test data. In terms of the compute resoucres, we use the same FL provision of SKUs for each example. Below is a table that summarizes both the characteristics and the computing details for each model:
 
 
 |  Example        | Fraction of data in each silo | # Silos |                         SKUs                         |  Regions  |
-|-----------------|:-----------------------------:|:-------:|:----------------------------------------------------:|:---------:|
+|:---------------:|:-----------------------------:|:-------:|:----------------------------------------------------:|:---------:|
 |       FL        |              1/3              |    3    |  STANDARD_DS3_V2(orchestrator), Standard_NV24(silos) |  East US  |
 | Centralized-1/3 |              1/3              |    1    |                        Standard_NV24                 |  East US  |
 |  Centralized-1  |               1               |    1    |                        Standard_NV24                 |  East US  |
@@ -58,8 +58,8 @@ After each model is trained, it is evaluated with all test data. In terms of the
 For training overhead, there are two main questions of interest: 
 
 
-1. What is the extra **wall-clock time** spent on training with FL, compared to train a regular centralized model only with 1/#silo of the data. Wall-clock time refers to the real-world time elapsed for a job from starting to finishing.
-2. What is the extra **computing time** spent on training with FL, compared to train a regular centralized model with data from all silos combined. Computing time refers to the time spent on all computing resources that the job deployed during running. Therefore in case of FL, the computing time should be calculated as the sum of time spent from all silos.
+1. What is the extra **wall-clock time** spent on training with FL, compared to train a regular centralized model only with 1/#silo of the data. Wall-clock time refers to the real-world time elapsed for a job from start to end.
+2. What is the extra **computing time** spent on training with FL, compared to train a regular centralized model with data from all silos combined. Computing time refers to the time spent on all computing resources that the job deployed during training. In case of FL, the computing time should be calculated as the sum of time spent from all silos.
 
 
 The first point is important as it indicates how quickly customers can get their model results, from job submitted to ended. The second point is essential as it is an indication of the money that customers will spend on all computing resources.  
@@ -91,7 +91,7 @@ Another important assessing factor for FL is the model performance. Here we also
 1. How does the FL model performance compare to the centralized model trained with only partial data (**Centralized-1/3**), which is the scenario when FL is not supported and data are confidential and restricted to each region.  
 2. How does the FL model performance compare to the centralized model trained with data from all silos (**Centralized-1**), which is an ideal situation when all data are eyes-on and could be combined. 
 
-The first point is to demonstrate the extent of improvements on model performance, when users can use FL to train with much more external data, compared to train with data from one party. The second point is to understand if the distribute-aggregate design of FL has impact on the model performance. 
+The first point is to demonstrate the extent of improvements on model performance, when users can use FL to train with much more data from external parties, compared to train with data only from one party. The second point is to understand if the distribute-aggregate design of FL has impact on the model performance. 
 
 **Key findings**: Our benchmark indicates that model performace is boosted with FL comparing to a single model with partial data. It also shows that the model performance with FL is comparable to a single model trained on all data, demonstrating the validity of our implementation.
 
