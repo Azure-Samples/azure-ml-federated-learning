@@ -12,6 +12,7 @@ This repo provides some code samples for running a federated learning pipeline i
 - [Real world examples](#real-world-examples)
 - [FL Frameworks](#fl-frameworks)
 - [Documentation](#documentation)
+- [Real-world example benchmarks](#real-world-example-benchmarks)
 - [Need Support?](#need-support)
 - [Contributing](#contributing)
 
@@ -50,6 +51,17 @@ If you are already using a specific FL framework, you can port your code to work
 ### Documentation
 
 Please find a full documentation of this project [**here**](docs/README.md).
+
+### Real-world example benchmarks
+
+A benchmarking analysis is performed for each real-world example to understand the validy, efficiency and scalability of our implementation of FL:
+
+|  Training overhead  | Model performance  | Scalability |
+|:-------------------:|:------------------:|:-----------:|
+| [![overhead icon](./docs/pics/pneumonia_time.jpg)](./docs/concepts/benchmarking.md/#21-training-overhead)
+| [![performance icon](./docs/pics/pneumonia_acc.jpg)](./docs/concepts/benchmarking.md/#22-model-performance)
+| [![scala icon](./docs/pics/pneumonia_ddp.jpg)](./docs/concepts/benchmarking.md/#23-scalability-with-training)
+
 
 ### Need Support?
 
