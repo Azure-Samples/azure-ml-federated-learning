@@ -415,7 +415,7 @@ class AMLCommRedis(AMLComm):
                 while time.time() - time_start < connect_timeout:
                     session_id = self._get_session_id(i, self._rank)
                     message = self._client.xread(
-                        {session_id: 0}, count=1, block=self._timeout*1000
+                        {session_id: 0}, count=1, block=self._timeout * 1000
                     )
                     if len(message) > 0:
                         message_id, message = message[0][1][0]
@@ -446,7 +446,7 @@ class AMLCommRedis(AMLComm):
             session_id = self._get_session_id(0, self._rank)
             while time.time() - time_start < connect_timeout:
                 message = self._client.xread(
-                    {session_id: 0}, count=1, block=self._timeout*1000
+                    {session_id: 0}, count=1, block=self._timeout * 1000
                 )
                 if len(message) > 0:
                     message_id, message = message[0][1][0]
@@ -559,7 +559,7 @@ class AMLCommRedis(AMLComm):
         while time.time() - time_start < self._timeout and retries < 3:
             try:
                 message = self._client.xread(
-                    {session_id: 0}, count=1, block=self._timeout*1000
+                    {session_id: 0}, count=1, block=self._timeout * 1000
                 )
                 if len(message) > 0:
                     self._stats["waiting_time"] += time.time() - time_start
