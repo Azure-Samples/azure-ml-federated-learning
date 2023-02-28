@@ -1,8 +1,8 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: he_encrypt
+name: he_decrypt
 version: 0.3.0
-display_name: HE Encrypt Model Weight
+display_name: HE Decrypt Model Weight
 type: command
 description: Component for using HE on a pytorch model
 is_deterministic: true
@@ -11,9 +11,10 @@ inputs:
   encrypted_model:
     type: uri_folder
     description: the encrypted model
-  he_context:
-    type: uri_file
-    description: the HF context from tenseal, provided as bin file
+    optional: true
+  # he_context:
+  #   type: uri_file
+  #   description: the HF context from tenseal, provided as bin file
 
 outputs:
   model:
@@ -21,11 +22,11 @@ outputs:
     description: model state dict
 
 code: .
+  # --context ${{inputs.he_context}} 
 
 command: >-
   python run.py 
-  --input ${{inputs.encrypted_model}} 
-  --context ${{inputs.he_context}} 
+  $[[--input ${{inputs.encrypted_model}}]]
   --output ${{outputs.model}} 
 
 environment:

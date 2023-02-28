@@ -31,7 +31,7 @@ def get_arg_parser(parser=None):
 
     parser.add_argument("--input", type=str, required=True)
     parser.add_argument("--output", type=str, required=True)
-    parser.add_argument("--context", type=str, required=True)
+    # parser.add_argument("--context", type=str, required=True)
 
     return parser
 
@@ -39,10 +39,11 @@ def get_arg_parser(parser=None):
 class PyTorchStateDictHomomorphicEncryption:
     """Class to handle HE of pytorch models."""
 
-    def __init__(self, context):
+    def __init__(self):
         """Constructor."""
         # generate HE context
-        self.context = context
+
+        self.context = self.initialize_context()
         # model state dict
         self.model_state_dict = None
         # if model is a class, we'll store it here
@@ -52,6 +53,21 @@ class PyTorchStateDictHomomorphicEncryption:
         # a logger
         self.logger = logging.getLogger(__name__)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    def initialize_context(self):
+        context = ts.context(
+            ts.SCHEME_TYPE.CKKS,
+            8192,
+            coeff_mod_bit_sizes=[60, 40, 40, 60]
+        )
+        # galois keys are required to do ciphertext rotations
+        context.generate_galois_keys()
+        context.generate_relin_keys()
+        # bits_scale: controls precision of the fractional part
+        bits_scale = 40
+        # set the scale
+        context.global_scale = pow(2, bits_scale)
+        return context
 
     def load_model(self, model_path: str):
         """Load a pytorch model or state dict.
@@ -95,9 +111,9 @@ class PyTorchStateDictHomomorphicEncryption:
                 continue
 
             self.logger.info("... creating CKKS tensor ...")
-            # ckks_row = ts.ckks_tensor(
-            ckks_row = ts.ckks_vector(
-                self.context, self.model_state_dict[key].numpy() #, batch=True
+            ckks_row = ts.ckks_tensor(
+            # ckks_row = ts.ckks_vector(
+                self.context, self.model_state_dict[key].numpy() , batch=True
             )
             # ckks_row = ts.ckks_vector(self.context, list(self.model_state_dict[key].numpy()))
 
@@ -126,12 +142,12 @@ def main(cli_args=None):
 
     print(f"Running script with arguments: {args}")
 
-    with open(args.context, "r", encoding="utf-8") as f:
-        bytes_context = base64.b64decode(f.read())
+    # with open(args.context, "r", encoding="utf-8") as f:
+    #     bytes_context = base64.b64decode(f.read())
 
-    ts_context = ts.context_from(bytes_context)
+    # ts_context = ts.context_from(bytes_context)
 
-    he_handler = PyTorchStateDictHomomorphicEncryption(ts_context)
+    he_handler = PyTorchStateDictHomomorphicEncryption()
     he_handler.load_model(args.input)
     he_handler.encrypt(args.output)
 

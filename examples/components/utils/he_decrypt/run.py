@@ -29,15 +29,29 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("--input", type=str, required=True)
+    parser.add_argument("--input", type=str, required=False)
     parser.add_argument(
         "--extension", type=str, default="bin", help="he file extension"
     )
     parser.add_argument("--output", type=str, required=True)
-    parser.add_argument("--context", type=str, required=True)
+    # parser.add_argument("--context", type=str, required=True)
 
     return parser
 
+def initialize_context():
+    context = ts.context(
+        ts.SCHEME_TYPE.CKKS,
+        8192,
+        coeff_mod_bit_sizes=[60, 40, 40, 60]
+    )
+    # galois keys are required to do ciphertext rotations
+    context.generate_galois_keys()
+    context.generate_relin_keys()
+    # bits_scale: controls precision of the fractional part
+    bits_scale = 40
+    # set the scale
+    context.global_scale = pow(2, bits_scale)
+    return context
 
 def main(cli_args=None):
     """Component main function.
@@ -55,17 +69,21 @@ def main(cli_args=None):
 
     print(f"Running script with arguments: {args}")
 
-    with open(args.context, "r", encoding="utf-8") as f:
-        bytes_context = base64.b64decode(f.read())
+    if not args.input:
+        return 0
 
-    context = ts.context_from(bytes_context)
+    # with open(args.context, "r", encoding="utf-8") as f:
+    #     bytes_context = base64.b64decode(f.read())
+
+    # context = ts.context_from(bytes_context)
+    context = initialize_context()
 
     logger.info("Searching for files in {}".format(args.input))
     he_slices = {}
     for f in glob.glob(
         os.path.join(args.input, f"*.{args.extension}"), recursive=False
     ):
-        he_slices[os.path.basename(f).rstrip(f".{args.extension}")] = f
+        he_slices[os.path.basename(f).rsplit(f".{args.extension}", 1)[0]] = f
 
     logger.info("Found keys {}".format(list(he_slices.keys())))
 
@@ -78,11 +96,11 @@ def main(cli_args=None):
 
         enc_vect = ts.ckks_tensor_from(context, bytes_vect)
 
-        state_dict[key] = enc_vect.decrypt().tolist()
+        state_dict[key] = torch.Tensor(enc_vect.decrypt().tolist())
 
     logger.info("Saving model to {}".format(args.output))
     os.makedirs(args.output, exist_ok=True)
-    torch.save(state_dict, os.path.join(args.output, "model.json"))
+    torch.save(state_dict, os.path.join(args.output, "model.pt"))
 
 
 if __name__ == "__main__":

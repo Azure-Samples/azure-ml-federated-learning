@@ -11,9 +11,9 @@ inputs:
   model:
     type: uri_folder
     description: model state dict
-  he_context:
-    type: uri_file
-    description: the HF context from tenseal, provided as bin file
+  # he_context:
+  #   type: uri_file
+  #   description: the HF context from tenseal, provided as bin file
 
 outputs:
   encrypted_model:
@@ -21,11 +21,10 @@ outputs:
     description: the encrypted model
 
 code: .
-
+# --context ${{inputs.he_context}} 
 command: >-
   python run.py 
   --input ${{inputs.model}} 
-  --context ${{inputs.he_context}} 
   --output ${{outputs.encrypted_model}} 
 
 environment:

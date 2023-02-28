@@ -172,8 +172,16 @@ training_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
 )
 
+he_encrypt_component = load_component(
+    source=os.path.join(SHARED_COMPONENTS_FOLDER, "he_encrypt", "spec.yaml")
+)
+
 aggregate_component = load_component(
-    source=os.path.join(SHARED_COMPONENTS_FOLDER, "aggregatemodelweights", "spec.yaml")
+    source=os.path.join(SHARED_COMPONENTS_FOLDER, "he_aggregatemodelweights", "spec.yaml")
+)
+
+he_decrpyt_component = load_component(
+    source=os.path.join(SHARED_COMPONENTS_FOLDER, "he_decrypt", "spec.yaml")
 )
 
 
@@ -239,7 +247,14 @@ def silo_scatter_subgraph(
     )
 
     # Assigning the silo's first compute to the preprocessing component
-    silo_pre_processing_step.compute = silo_compute1
+    # silo_pre_processing_step.compute = silo_compute1
+
+    silo_decrypt_model = he_decrpyt_component(
+        encrypted_model=checkpoint,
+    )
+
+    # silo_decrypt_model.compute = silo_compute2
+
 
     # we're using our own training component
     silo_training_step = training_component(
@@ -248,7 +263,7 @@ def silo_scatter_subgraph(
         # with the test_data from the pre_processing step
         test_data=silo_pre_processing_step.outputs.processed_test_data,
         # and the checkpoint from previous iteration (or None if iteration == 1)
-        checkpoint=checkpoint,
+        checkpoint=silo_decrypt_model.outputs.model,
         # Learning rate for local training
         lr=lr,
         # Number of epochs
@@ -272,14 +287,20 @@ def silo_scatter_subgraph(
     )
 
     # Assigning the silo's second compute to the training component
-    silo_training_step.compute = silo_compute2
+    # silo_training_step.compute = silo_compute2
 
+    silo_encrypt_model = he_encrypt_component(
+        model=silo_training_step.outputs.model
+    )
+
+    # silo_encrypt_model.compute = silo_compute2
+    
     # IMPORTANT: we will assume that any output provided here can be exfiltrated into the orchestrator/gather
     return {
         # NOTE: the key you use is custom
         # a map function scatter_to_gather_map needs to be provided
         # to map the name here to the expected input from gather
-        "model": silo_training_step.outputs.model
+        "model": silo_encrypt_model.outputs.encrypted_model
     }
 
 

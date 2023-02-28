@@ -2,6 +2,7 @@
 import argparse
 import logging
 import sys
+import os
 
 import mlflow
 import torch
@@ -207,7 +208,7 @@ class MnistTrainer:
             checkpoint: Previous model checkpoint from where training has to be started.
         """
 
-        if checkpoint:
+        if checkpoint and len(os.listdir(checkpoint))>0:
             self.model_.load_state_dict(
                 torch.load(checkpoint + "/model.pt", map_location=self.device_)
             )

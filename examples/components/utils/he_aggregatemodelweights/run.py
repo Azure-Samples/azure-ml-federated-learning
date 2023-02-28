@@ -36,23 +36,37 @@ def get_arg_parser(parser=None):
         nargs="+",
         help="list of paths or directories to search for he vector files",
     )
-    parser.add_argument(
-        "--extension", type=str, default="bin", help="he file extension"
-    )
+    # parser.add_argument(
+    #     "--extension", type=str, default="bin", help="he file extension"
+    # )
     parser.add_argument("--output", type=str, required=True)
-    parser.add_argument("--context", type=str, required=True)
+    # parser.add_argument("--context", type=str, required=True)
 
     return parser
 
+def initialize_context():
+    context = ts.context(
+        ts.SCHEME_TYPE.CKKS,
+        8192,
+        coeff_mod_bit_sizes=[60, 40, 40, 60]
+    )
+    # galois keys are required to do ciphertext rotations
+    context.generate_galois_keys()
+    context.generate_relin_keys()
+    # bits_scale: controls precision of the fractional part
+    bits_scale = 40
+    # set the scale
+    context.global_scale = pow(2, bits_scale)
+    return context
 
-def run(checkpoint_folders, output_folder, context, slice_extension="bin"):
+def run(checkpoint_folders, output_folder):
     logger = logging.getLogger(__name__)
-
+    context = initialize_context()
     hf_files_paths = []
     for model_path in checkpoint_folders:
         logger.info("Searching for files {}".format(model_path))
         for f in glob.glob(os.path.join(model_path, "**"), recursive=True):
-            if f.endswith(slice_extension):
+            if f.endswith("bin"):
                 hf_files_paths.append(f)
 
     logger.info("Found {} he files".format(len(hf_files_paths)))
@@ -82,6 +96,7 @@ def run(checkpoint_folders, output_folder, context, slice_extension="bin"):
                 bytes_vect = f.read()
 
             enc_vect = ts.ckks_tensor_from(context, bytes_vect)
+            # enc_vect = bytes_vect
 
             if agg_slice is None:
                 agg_slice = enc_vect
@@ -92,7 +107,8 @@ def run(checkpoint_folders, output_folder, context, slice_extension="bin"):
         # and fill it with 1.0 / N, where N is the number of slices
         # then divide agg_slice by this tensor
         scale_tensor = torch.ones(agg_slice.shape) / len(model_slices[model_slice])
-        scale_enc_tensor = ts.ckks_tensor(context, scale_tensor)
+        # scale_enc_tensor = ts.ckks_tensor(context, scale_tensor)
+        scale_enc_tensor = scale_tensor
         agg_slice = agg_slice.mul(scale_enc_tensor)
 
         logger.info("Saving slice {}".format(model_slice))
@@ -117,12 +133,13 @@ def main(cli_args=None):
 
     print(f"Running script with arguments: {args}")
 
-    with open(args.context, "r", encoding="utf-8") as f:
-        bytes_context = base64.b64decode(f.read())
+    # with open(args.context, "r", encoding="utf-8") as f:
+    #     bytes_context = base64.b64decode(f.read())
 
-    ts_context = ts.context_from(bytes_context)
+    # ts_context = ts.context_from(bytes_context)
 
-    run(args.checkpoints, args.output, ts_context, slice_extension=args.extension)
+    # run(args.checkpoints, args.output, ts_context, slice_extension=args.extension)
+    run(args.checkpoints, args.output)
 
 
 if __name__ == "__main__":

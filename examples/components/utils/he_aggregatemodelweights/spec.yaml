@@ -27,9 +27,9 @@ inputs:
     type: uri_folder
     description: input from silo 5 (e.g., model weights, or gradient updates)
     optional: true
-  public_context:
-    type: uri_file
-    description: the HF context from tenseal, provided as bin file
+  # public_context:
+  #   type: uri_file
+  #   description: the HF context from tenseal, provided as bin file
 
 outputs:
   aggregated_output:
@@ -38,9 +38,9 @@ outputs:
 
 code: .
 
+# --extension bin 
 command: >-
   python run.py --output ${{outputs.aggregated_output}} 
-  --extension bin 
   --checkpoints ${{inputs.input_silo_1}} 
   $[[${{inputs.input_silo_2}}]] 
   $[[${{inputs.input_silo_3}}]] 
