@@ -21,16 +21,7 @@ class SimpleLinearBottom(nn.Module):
             nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Linear(16, 8),
-            nn.ReLU(),
-            nn.Linear(8, 4),
-            nn.ReLU(),
+            nn.Linear(128, 64)
         )
         self._init_weights()
 
@@ -54,11 +45,11 @@ class SimpleLinearTop(nn.Module):
 
         self._world_size = world_size
         self.contributor_weights = torch.nn.ModuleList(
-            [nn.Linear(4, 4) for _ in range(self._world_size)]
+            [nn.Linear(64, 64) for _ in range(self._world_size)]
         )
 
         self.model = nn.Sequential(
-            nn.Linear(4, 1),
+            nn.Linear(64, 1),
             nn.Sigmoid(),
         )
         self._init_weights()
