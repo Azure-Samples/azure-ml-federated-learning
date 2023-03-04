@@ -1,0 +1,53 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: mnist_vertical_psi_in_silo
+version: 0.0.1
+display_name: MNIST Vertical PSI (in silo)
+type: command
+description: Component for private set intersection over data in silo's blob storage
+is_deterministic: false
+
+inputs:
+  train_data:
+    type: uri_file
+    description: the training data in a given silo
+  test_data:
+    type: uri_file
+    description: the testing data in a given silo
+  rank:
+    type: integer
+    description: rank of the current process/silo
+  world_size:
+    type: integer
+    description: number of processes/silos
+  metrics_prefix:
+    type: string
+    description: Metrics prefix
+    default: Default-prefix
+    optional: true
+
+
+outputs:
+  matched_train_data:
+    type: uri_folder
+    description: the output training data after preprocessing
+  matched_test_data:
+    type: uri_folder
+    description: the output testing data after preprocessing
+
+code: .
+
+command: >-
+  ./setup_apsi.sh &&
+  python run.py 
+  --raw_training_data ${{inputs.train_data}}
+  --raw_testing_data ${{inputs.test_data}}
+  --train_output ${{outputs.matched_train_data}}
+  --test_output ${{outputs.matched_test_data}}
+  --rank ${{inputs.rank}}
+  --world_size ${{inputs.world_size}}
+  $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

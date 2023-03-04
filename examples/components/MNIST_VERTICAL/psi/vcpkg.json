@@ -1,0 +1,25 @@
+{
+    "dependencies": [ 
+        {
+            "name": "seal", 
+            "features": ["no-throw-tran"]
+        },
+        "kuku",
+        "log4cplus",
+        "cppzmq",
+        "flatbuffers",
+        "jsoncpp",
+        "tclap"
+    ],
+    "overrides": [
+        {
+            "name": "seal",
+            "version": "4.1.1"
+        },
+        {
+            "name": "kuku",
+            "version": "2.1"
+        }
+    ],
+    "builtin-baseline": "a325228200d7f229f3337e612e0077f2a5307090"
+}

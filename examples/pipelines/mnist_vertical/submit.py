@@ -128,6 +128,14 @@ def connect_to_aml():
 ####################################
 
 # Loading the component from their yaml specifications
+preprocessing_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
+)
+
+psi_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "psi", "spec.yaml")
+)
+
 training_contributor_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor_spec.yaml")
 )
@@ -182,6 +190,116 @@ pipeline_identifier = getUniqueIdentifier()
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_mnist_vertical_basic():
+    #####################
+    ### PREPROCESSING ###
+    #####################
+
+    silo_preprocessed_train_data, silo_preprocessed_test_data = [], []
+    for silo_index, silo_config in enumerate(
+        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
+    ):
+        # run the pre-processing component once
+        silo_pre_processing_step = preprocessing_component(
+            raw_train_data=Input(
+                type=silo_config.training_data.type,
+                mode=silo_config.training_data.mode,
+                path=silo_config.training_data.path,
+            ),
+            raw_test_data=Input(
+                type=silo_config.testing_data.type,
+                mode=silo_config.testing_data.mode,
+                path=silo_config.testing_data.path,
+            ),
+            metrics_prefix=silo_config.compute,
+        )
+
+        # add a readable name to the step
+        if silo_index == 0:
+            silo_pre_processing_step.name = f"host_preprocessing"
+        else:
+            silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
+
+        # make sure the compute corresponds to the silo
+        silo_pre_processing_step.compute = silo_config.compute
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_pre_processing_step.resources is None:
+                silo_pre_processing_step.resources = {}
+            silo_pre_processing_step.resources[
+                "instance_type"
+            ] = silo_config.instance_type
+
+        # make sure the data is written in the right datastore
+        silo_pre_processing_step.outputs.processed_train_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=silo_config.training_data.path,
+        )
+        silo_pre_processing_step.outputs.processed_test_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=silo_config.training_data.path,
+        )
+
+        # store a handle to the train data for this silo
+        silo_preprocessed_train_data.append(
+            silo_pre_processing_step.outputs.processed_train_data
+        )
+        # store a handle to the test data for this silo
+        silo_preprocessed_test_data.append(
+            silo_pre_processing_step.outputs.processed_test_data
+        )
+
+    ################
+    ### PSI STEP ###
+    ################
+
+    silo_psi_train_data, silo_psi_test_data = [], []
+    for silo_index, silo_config in enumerate(
+        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
+    ):
+        # run the pre-processing component once
+        silo_psi_step = psi_component(
+            train_data=silo_preprocessed_train_data[silo_index],
+            test_data=silo_preprocessed_test_data[silo_index],
+            rank=silo_index,
+            world_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+            metrics_prefix=silo_config.compute,
+        )
+
+        # add a readable name to the step
+        if silo_index == 0:
+            silo_psi_step.name = f"host_psi_matching"
+        else:
+            silo_psi_step.name = f"silo_{silo_index}_psi_matching"
+
+        # make sure the compute corresponds to the silo
+        silo_psi_step.compute = silo_config.compute
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_psi_step.resources is None:
+                silo_psi_step.resources = {}
+            silo_psi_step.resources["instance_type"] = silo_config.instance_type
+
+        # make sure the data is written in the right datastore
+        silo_psi_step.outputs.matched_train_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=silo_config.training_data.path,
+        )
+        silo_psi_step.outputs.matched_test_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=silo_config.training_data.path,
+        )
+
+        # store a handle to the train data for this silo
+        silo_psi_train_data.append(silo_psi_step.outputs.matched_train_data)
+        # store a handle to the test data for this silo
+        silo_psi_test_data.append(silo_psi_step.outputs.matched_test_data)
+
     ################
     ### TRAINING ###
     ################
@@ -194,16 +312,8 @@ def fl_mnist_vertical_basic():
         if silo_index == 0:
             # we're using training component here
             silo_training_step = training_host_component(
-                train_data=Input(
-                    type=silo_config.training_data.type,
-                    mode=silo_config.training_data.mode,
-                    path=silo_config.training_data.path,
-                ),
-                test_data=Input(
-                    type=silo_config.testing_data.type,
-                    mode=silo_config.testing_data.mode,
-                    path=silo_config.testing_data.path,
-                ),
+                train_data=silo_psi_train_data[silo_index],
+                test_data=silo_psi_test_data[silo_index],
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
@@ -214,8 +324,6 @@ def fl_mnist_vertical_basic():
                 metrics_prefix=silo_config.compute,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                local_size=1,
-                local_rank=0,
             )
             # add a readable name to the step
             silo_training_step.name = f"host_training"
@@ -223,16 +331,8 @@ def fl_mnist_vertical_basic():
         else:
             # we're using training component here
             silo_training_step = training_contributor_component(
-                train_data=Input(
-                    type=silo_config.training_data.type,
-                    mode=silo_config.training_data.mode,
-                    path=silo_config.training_data.path,
-                ),
-                test_data=Input(
-                    type=silo_config.testing_data.type,
-                    mode=silo_config.testing_data.mode,
-                    path=silo_config.testing_data.path,
-                ),
+                train_data=silo_psi_train_data[silo_index],
+                test_data=silo_psi_test_data[silo_index],
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
@@ -243,8 +343,6 @@ def fl_mnist_vertical_basic():
                 metrics_prefix=silo_config.compute,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                local_size=1,
-                local_rank=0,
             )
             # add a readable name to the step
             silo_training_step.name = f"contributor_{silo_index}_training"
