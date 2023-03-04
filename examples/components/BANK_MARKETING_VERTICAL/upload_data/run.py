@@ -13,20 +13,89 @@ from zipfile import ZipFile
 from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
 
-CATEGORICAL_NOMINAL_PROPS = ["job", "marital", "education", "default", "housing", "loan", "contact", "poutcome"]
+CATEGORICAL_NOMINAL_PROPS = [
+    "job",
+    "marital",
+    "education",
+    "default",
+    "housing",
+    "loan",
+    "contact",
+    "poutcome",
+]
 CATEGORICAL_ORDINAL_PROPS = ["month", "day_of_week"]
 ORDINAL_CATEGORIES = {
-    "month": ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"],
+    "month": [
+        "jan",
+        "feb",
+        "mar",
+        "apr",
+        "may",
+        "jun",
+        "jul",
+        "aug",
+        "sep",
+        "oct",
+        "nov",
+        "dec",
+    ],
     "day_of_week": ["mon", "tue", "wed", "thu", "fri"],
 }
-NUMERICAL_PROPS = ["age", "duration", "campaign", "pdays", "previous", "emp.var.rate", "cons.price.idx", "cons.conf.idx", "euribor3m", "nr.employed"]
+NUMERICAL_PROPS = [
+    "age",
+    "duration",
+    "campaign",
+    "pdays",
+    "previous",
+    "emp.var.rate",
+    "cons.price.idx",
+    "cons.conf.idx",
+    "euribor3m",
+    "nr.employed",
+]
 ENCODERS = {}
 SCALERS = {}
 
 SPLITS = {
-    2: [["age", "job", "marital", "education", "default", "housing", "loan"], ["contact", "month", "day_of_week", "duration", "campaign", "pdays", "previous", "poutcome", "emp.var.rate", "cons.price.idx", "cons.conf.idx", "euribor3m", "nr.employed"]],
-    3: [["age", "job", "marital", "education", "default", "housing", "loan"], ["contact", "month", "day_of_week", "duration"], ["campaign", "pdays", "previous", "poutcome", "emp.var.rate", "cons.price.idx", "cons.conf.idx", "euribor3m", "nr.employed"]],
-    4: [["age", "job", "marital", "education", "default", "housing", "loan"], ["contact", "month", "day_of_week", "duration"], ["campaign", "pdays", "previous", "poutcome"], ["emp.var.rate", "cons.price.idx", "cons.conf.idx", "euribor3m", "nr.employed"]],
+    2: [
+        ["age", "job", "marital", "education", "default", "housing", "loan"],
+        [
+            "contact",
+            "month",
+            "day_of_week",
+            "duration",
+            "campaign",
+            "pdays",
+            "previous",
+            "poutcome",
+            "emp.var.rate",
+            "cons.price.idx",
+            "cons.conf.idx",
+            "euribor3m",
+            "nr.employed",
+        ],
+    ],
+    3: [
+        ["age", "job", "marital", "education", "default", "housing", "loan"],
+        ["contact", "month", "day_of_week", "duration"],
+        [
+            "campaign",
+            "pdays",
+            "previous",
+            "poutcome",
+            "emp.var.rate",
+            "cons.price.idx",
+            "cons.conf.idx",
+            "euribor3m",
+            "nr.employed",
+        ],
+    ],
+    4: [
+        ["age", "job", "marital", "education", "default", "housing", "loan"],
+        ["contact", "month", "day_of_week", "duration"],
+        ["campaign", "pdays", "previous", "poutcome"],
+        ["emp.var.rate", "cons.price.idx", "cons.conf.idx", "euribor3m", "nr.employed"],
+    ],
 }
 
 
@@ -134,9 +203,7 @@ def preprocess_data(df: pd.DataFrame):
 
         encoder = ENCODERS.get(column)
         print(f"Transforming column: {column}")
-        encoded_data = encoder.transform(
-            df[column].astype(str).values.reshape(-1, 1)
-        )
+        encoded_data = encoder.transform(df[column].astype(str).values.reshape(-1, 1))
         df.drop(column, axis=1, inplace=True)
 
         if type(encoder) == OrdinalEncoder:
@@ -174,7 +241,9 @@ def download_kaggle_dataset(kaggle_client, path):
         kaggle_client (KaggleApi): Instance of KaggleApi to use for retrieving the dataset
         path(str): location where to store downloaded dataset
     """
-    kaggle_client.dataset_download_files("volodymyrgavrysh/bank-marketing-campaigns-dataset", path=path)
+    kaggle_client.dataset_download_files(
+        "volodymyrgavrysh/bank-marketing-campaigns-dataset", path=path
+    )
 
 
 def run(args):
@@ -217,7 +286,9 @@ def run(args):
 
     # # Create categorical encoder before any further preprocessing/reduction
     fit_encoders(df_train)
-    column_splits = SPLITS[int(args.silo_count)] # split_load(df_train, int(args.silo_count))
+    column_splits = SPLITS[
+        int(args.silo_count)
+    ]  # split_load(df_train, int(args.silo_count))
 
     drop_columns_subset = set(df_train.columns).difference(
         column_splits[args.silo_index]
@@ -236,7 +307,9 @@ def run(args):
             df_train["label"].value_counts()[0] / df_train["label"].value_counts()[1]
         )
         logger.debug(f"Subscribe weight: {subscribe_weight}")
-        np.savetxt(args.raw_train_data + "/subscribe_weight.txt", np.array([subscribe_weight]))
+        np.savetxt(
+            args.raw_train_data + "/subscribe_weight.txt", np.array([subscribe_weight])
+        )
 
     logger.info(f"Train data head columns: {df_train.columns}")
     logger.info("Train data head:\n")

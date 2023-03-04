@@ -177,7 +177,6 @@ pipeline_identifier = getUniqueIdentifier()
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_demo_bank_marketing_vertical():
-
     ################
     ### TRAINING ###
     ################

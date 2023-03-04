@@ -55,6 +55,6 @@ federated_learning:
 # training parameters
 training_parameters:
   epochs: 50 # number of epochs per iteration (in-silo training) 
-  lr: 1e-3 # learning rate
+  lr: 1e-2 # learning rate
   batch_size: 1000 # batch size
   model_name: SimpleLinear

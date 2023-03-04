@@ -61,7 +61,7 @@ class RunningMetrics:
     def get_step(self):
         """Provide average value for every metric since last `reset_step` call"""
         return {
-            f"{self._prefix}_{name}": value / self._batch_count_step
+            f"{self._prefix}_step_{name}": value / self._batch_count_step
             for name, value in self._running_step_metrics.items()
         }
 
@@ -146,9 +146,13 @@ class BankMarketingTrainer:
         )
         self._model_path = model_path
 
-        self.criterion_ = nn.BCELoss(reduction="sum")
-        self.optimizer_top = SGD(self.model_top.parameters(), lr=self._lr, weight_decay=1e-5)
-        self.optimizer_bottom = SGD(self.model_bottom.parameters(), lr=self._lr, weight_decay=1e-5)
+        self.criterion_ = nn.BCELoss(reduction="mean")
+        self.optimizer_top = SGD(
+            self.model_top.parameters(), lr=self._lr, weight_decay=1e-5
+        )
+        self.optimizer_bottom = SGD(
+            self.model_bottom.parameters(), lr=self._lr, weight_decay=1e-5
+        )
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -159,7 +163,9 @@ class BankMarketingTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.subscribe_weight_ = np.loadtxt(train_data_dir + "/subscribe_weight.txt").item()
+        self.subscribe_weight_ = np.loadtxt(
+            train_data_dir + "/subscribe_weight.txt"
+        ).item()
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
         train_dataset = datasets.BankMarketingDataset(train_df)
@@ -221,7 +227,9 @@ class BankMarketingTrainer:
         """
 
         if checkpoint:
-            self.model_bottom.load_state_dict(torch.load(checkpoint + "/model_bottom.pt"))
+            self.model_bottom.load_state_dict(
+                torch.load(checkpoint + "/model_bottom.pt")
+            )
             self.model_top.load_state_dict(torch.load(checkpoint + "/model_top.pt"))
 
         with mlflow.start_run() as mlflow_run:
@@ -280,11 +288,11 @@ class BankMarketingTrainer:
 
                     for j in range(1, self._global_size):
                         self._global_comm.send(gradients[j], j)
-                    
+
                     # Perform backward pass on local bottom model
                     local_bottom_output.backward(gradients[0].to(self.device_))
                     self.optimizer_bottom.step()
-                    
+
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=labels
                     )
@@ -420,7 +428,9 @@ class BankMarketingTrainer:
         self.local_train(checkpoint)
 
         logger.debug("Save model")
-        torch.save(self.model_bottom.state_dict(), self._model_path + "/model_bottom.pt")
+        torch.save(
+            self.model_bottom.state_dict(), self._model_path + "/model_bottom.pt"
+        )
         torch.save(self.model_top.state_dict(), self._model_path + "/model_top.pt")
         logger.info(f"Model saved to {self._model_path}")
 
