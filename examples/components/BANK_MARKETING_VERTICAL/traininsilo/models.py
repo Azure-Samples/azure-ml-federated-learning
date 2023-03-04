@@ -21,7 +21,7 @@ class SimpleLinearBottom(nn.Module):
             nn.ReLU(),
             nn.Linear(256, 128),
             nn.ReLU(),
-            nn.Linear(128, 64)
+            nn.Linear(128, 64),
         )
         self._init_weights()
 
