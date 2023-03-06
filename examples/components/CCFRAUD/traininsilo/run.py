@@ -163,10 +163,11 @@ class CCFraudTrainer:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
-        #get number of cpu to load data for each gpu
-        num_workers_per_gpu = int(multiprocessing.cpu_count()//int(os.environ['WORLD_SIZE']))
+        # get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(
+            multiprocessing.cpu_count() // int(os.environ["WORLD_SIZE"])
+        )
         logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
-
 
         self.train_loader_ = DataLoader(
             self.train_dataset_,
