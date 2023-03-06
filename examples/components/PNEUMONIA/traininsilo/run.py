@@ -5,6 +5,7 @@ import logging
 import sys
 import os.path
 from distutils.util import strtobool
+import multiprocessing
 
 import mlflow
 from mlflow import log_metric, log_param
@@ -129,11 +130,17 @@ class PTLearner:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        #get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(multiprocessing.cpu_count()//int(os.environ['WORLD_SIZE']))
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_,
             batch_size=batch_size,
+            num_workers=num_workers_per_gpu,
             shuffle=(not self._distributed),
             drop_last=True,
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.n_iterations = len(self.train_loader_)
@@ -489,7 +496,7 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",
-        device_id=int(os.environ["RANK"]),
+        device_id=int(os.environ["LOCAL_RANK"]),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )

@@ -18,6 +18,7 @@ from torch.utils.data.distributed import DistributedSampler
 from datasets import load_from_disk
 from torch.optim import AdamW
 from tqdm.auto import tqdm
+import multiprocessing
 import pandas as pd
 import numpy as np
 import evaluate
@@ -146,11 +147,17 @@ class NERTrainer:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        #get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(multiprocessing.cpu_count()//int(os.environ['WORLD_SIZE']))
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             train_dataset,
             shuffle=(not self._distributed),
+            num_workers=num_workers_per_gpu,
             collate_fn=data_collator,
             batch_size=self._batch_size,
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
@@ -650,7 +657,7 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         batch_size=args.batch_size,
-        device_id=int(os.environ["RANK"]),
+        device_id=int(os.environ["LOCAL_RANK"]),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )
