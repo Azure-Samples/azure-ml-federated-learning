@@ -31,7 +31,7 @@ For the best reproducibility of the benchmark results, here are the hyperparamet
 |:---------:|:-------------:|:--------:|:----------:|:-------------:|
 | PNEUMONIA |       2       |     5    |     32     |      0.01     |
 |    NER    |       2       |     3    |     16     |      0.01     |
-|  CCFRAUD  |       3       |     3    |     500    |      0.001    |
+|  CCFRAUD  |       5       |     10    |     1000    |      0.001    |
 
 
 For benchmark experiments about training overhead and model performance, we compared three models:
@@ -65,7 +65,7 @@ For training overhead, there are two main questions of interest:
 
 The first point is important as it indicates how quickly customers can get their model results, from job submitted to ended. The second point is essential as it is an indication of the money that customers will spend on all computing resources.  
 
-**Key findings**: Our benchmark indicates that the overhead on wall-clock time (1% up to 10%) and computing time (<5%) remains small, meaning that the FL implementation is efficient.
+**Key findings**: Our benchmark indicates that the overhead on wall-clock time (1% up to 7%) and computing time (<5%) remains small, meaning that the FL implementation is efficient.
 
 #### PNEUMONIA
 <p align="center">
@@ -83,7 +83,7 @@ For ner, FL takes only 1.3% longer wall time than centralized-1/3, and only 0.1%
 <p align="center">
     <img src="../pics/ccfraud_time.jpg" alt="ccfraud training time" width="600"/>
 </p>
-For ccfraud, FL takes 10% longer wall time than centralized model, while about 3% longer computing time than centralized-1.
+For ccfraud, FL takes 7% longer wall time than centralized-1/3 model, while about 2% longer computing time than centralized-1.
 
 ### 2.2 Model Performance
 Another important assessing factor for FL is the model performance. Here we also aim at two questions:
