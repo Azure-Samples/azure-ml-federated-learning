@@ -80,7 +80,7 @@ For ner, FL takes only 1.3% longer wall time than centralized-1/3, and only 0.1%
 
 #### CCFRAUD
 <p align="center">
-    <img src="../pics/cc_time.jpg" alt="ccfraud training time" width="600"/>
+    <img src="../pics/ccfraud_time.jpg" alt="ccfraud training time" width="600"/>
 </p>
 For ccfraud, FL takes 10% longer wall time than centralized model, while about 3% longer computing time than centralized-1.
 
@@ -107,6 +107,11 @@ For pneumonia, FL achieves higher accuracy than centralized-1/3, while slightly 
 </p>
 For ner, FL achieves a highest score for all four metrics. Although it is not expected that FL will outperform centeralized-1, it might be because the scatter-aggregate fashion improves the generalizability of the final model.
 
+#### CCFRAUD
+<p align="center">
+    <img src="../pics/ccfraud_acc.jpg" alt="ccfraud training time" width="600"/>
+</p>
+For ccfraud, FL shows comparable performance to centralized-1 in recall and auc, while lower in precision. On the other hand, FL achieves higher scores for all metrics compared to centralized-1/3.
 
 ### 2.3 Scalability with Training
 
@@ -132,6 +137,6 @@ For ner, the training time scales linearly with different number of GPUs for all
 
 #### CCFRAUD
 <p align="center">
-    <img src="../pics/cc_ddp.jpg" alt="ccfraud distributed training time" width="600"/>
+    <img src="../pics/ccfraud_ddp.jpg" alt="ccfraud distributed training time" width="600"/>
 </p>
 For ccfraud, the training time scales linearly with different number of GPUs for all three silos.
