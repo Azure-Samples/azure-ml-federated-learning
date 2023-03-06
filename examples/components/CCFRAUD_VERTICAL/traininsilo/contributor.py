@@ -126,11 +126,6 @@ class CCFraudTrainer:
         )
         client.log_param(
             run_id=run_id,
-            key=f"loss {self._experiment_name}",
-            value=self.criterion_.__class__.__name__,
-        )
-        client.log_param(
-            run_id=run_id,
             key=f"optimizer {self._experiment_name}",
             value=self.optimizer_.__class__.__name__,
         )
