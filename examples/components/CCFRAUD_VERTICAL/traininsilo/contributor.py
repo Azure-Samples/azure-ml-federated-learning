@@ -51,7 +51,6 @@ class CCFraudTrainer:
          Attributes:
              model_: Model
              device_: Location of the model
-             criterion_: BCELoss loss
              optimizer_: Stochastic gradient descent
              train_dataset_: Training Dataset obj
              train_loader_: Training DataLoader
@@ -87,8 +86,6 @@ class CCFraudTrainer:
             self.device_
         )
         self._model_path = model_path
-
-        self.criterion_ = nn.BCELoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
@@ -266,7 +263,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
