@@ -20,6 +20,8 @@ from torch.utils.data.distributed import DistributedSampler
 from distutils.util import strtobool
 from collections import OrderedDict
 from torchmetrics import AUROC
+from torchmetrics.classification import BinaryAUROC
+from torchmetrics import F1Score
 
 
 TRAIN_COMPONENT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../traininsilo"))
@@ -73,7 +75,7 @@ def test(args, device_id=None, distributed=False):
 
     """Test the aggregate model and report test loss and accuracy"""
     test_metrics = RunningMetrics(
-        ["loss", "accuracy", "precision", "recall", "AUC"], prefix="test"
+        ["loss", "accuracy", "precision", "recall", "AUC", "f1"], prefix="test"
     )
     device = (
         torch.device(f"cuda:{device_id}" if torch.cuda.is_available() else "cpu")
@@ -144,8 +146,11 @@ def test(args, device_id=None, distributed=False):
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
                 )
-                auroc = AUROC("binary")
+                auroc = BinaryAUROC(thresholds=None)
                 auc = auroc(predictions, labels)
+                f1_score = F1Score(task="binary").to(device)
+                f1 = f1_score(predictions, labels)
+                test_metrics.add_metric("f1", f1)
                 test_metrics.add_metric("AUC", auc)
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())

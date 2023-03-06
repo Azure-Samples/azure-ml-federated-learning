@@ -25,7 +25,9 @@ from azure.ai.ml import load_component
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
+#from azure.ai.ml.runconfig import DockerConfiguration
 
+#docker = DockerConfiguration(use_docker=False, shared_volumes=True, shm_size='10g')
 
 ############################
 ### CONFIGURE THE SCRIPT ###
@@ -273,7 +275,7 @@ def fl_pneumonia_basic():
             silo_training_step.compute = silo_config.computes[0]
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
-            silo_training_step.distribution.process_count_per_instance = silo_processes
+            silo_training_step.distribution.process_count_per_instance = 3
 
             # set number of instances to distribute training across
             if hasattr(silo_config, "instance_count"):
@@ -362,7 +364,7 @@ def fl_pneumonia_basic():
         silo_evaluation_step.name = f"silo_{silo_index}_evaluation"
 
         # set distribution according to the number of available GPUs (1 in case of only CPU available)
-        silo_evaluation_step.distribution.process_count_per_instance =  silo_processes
+        silo_evaluation_step.distribution.process_count_per_instance =  3
 
         # set number of instances to distribute training across
         if hasattr(silo_config, "instance_count"):

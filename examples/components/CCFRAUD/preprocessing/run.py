@@ -108,7 +108,7 @@ def preprocess_data(
     logger.debug(f"Loading data...")
 
     ########## DDP benchmark############
-    
+   
     for i in range(10):
         if i ==0:
             train_df = pd.read_csv(raw_training_data + f"/train_filtered_0.csv")
@@ -120,7 +120,7 @@ def preprocess_data(
             test_df = pd.read_csv(raw_testing_data + f"/test_filtered_0.csv")
         else:  
             test_df = test_df.append(pd.read_csv(raw_testing_data + f"/test_filtered_{i}.csv"))
-    
+  
 
     #train_df = pd.read_csv(raw_training_data + f"/train_filtered.csv")
     #test_df = pd.read_csv(raw_testing_data + f"/test_filtered.csv")
@@ -157,6 +157,15 @@ def preprocess_data(
         fraud_weight_unfiltered = (
             train_df_unfiltered["is_fraud"].value_counts()[0] / train_df_unfiltered["is_fraud"].value_counts()[1]
         )
+
+        ### log fraud ratio for train and test
+        test_fraud_weight_unfiltered = (
+            test_df_unfiltered["is_fraud"].value_counts()[0] / test_df_unfiltered["is_fraud"].value_counts()[1]
+        )
+        logger.info(f"Number of fraud/non-fraud in train {train_df_unfiltered['is_fraud'].value_counts()[1]} {train_df_unfiltered['is_fraud'].value_counts()[0]} Ratio is {fraud_weight_unfiltered}")
+        logger.info(f"Number of fraud/non-fraud in test {test_df_unfiltered['is_fraud'].value_counts()[1]} {test_df_unfiltered['is_fraud'].value_counts()[0]} Ratio is {test_fraud_weight_unfiltered}")
+
+
         logger.debug(f"Fraud weight unfiltered: {fraud_weight_unfiltered}")
         train_data_unfiltered = apply_transforms(train_df_unfiltered)
         test_data_unfiltered = apply_transforms(test_df_unfiltered)

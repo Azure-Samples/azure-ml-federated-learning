@@ -143,8 +143,8 @@ class PTLearner:
 
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_,
-            batch_size=32,
-            num_workers=num_workers_per_gpu,
+            batch_size=48,
+            num_workers=2,
             shuffle=(not self._distributed),
             drop_last=True,
             prefetch_factor=3,
@@ -153,7 +153,7 @@ class PTLearner:
         self.n_iterations = len(self.train_loader_)
         self.test_loader_ = DataLoader(
             dataset=self.test_dataset_,
-            batch_size=100,
+            batch_size=50,
             shuffle=False,
             sampler=self.test_sampler_,
         )
@@ -308,10 +308,18 @@ class PTLearner:
                 num_of_batches_before_logging = 100
                 self.model_.train()
                 epoch_start_time = time.time()
+                total_data_loading = 0
+                batch_end = 0
                 for i, batch in enumerate(self.train_loader_):
                     images, labels = batch[0].to(self.device_), batch[1].to(
                         self.device_
                     )
+                    batch_start = time.time()
+                    if batch_end != 0:
+                        data_loading_time = batch_start - batch_end
+                        total_data_loading += data_loading_time
+                    else:
+                        total_data_loading += (batch_start - epoch_start_time)
                     self.optimizer_.zero_grad()
 
                     predictions = self.model_(images)
@@ -335,6 +343,7 @@ class PTLearner:
                                 training_loss,
                             )
                         running_loss = 0.0
+                    batch_end = time.time()
 
                 # compute test metrics
                 epoch_end_time = time.time()
@@ -350,12 +359,18 @@ class PTLearner:
                     self.log_metrics(
                         mlflow_client, root_run_id, f"Epoch {epoch} Duration ", epoch_duration
                     )
+                    self.log_metrics(
+                        mlflow_client, root_run_id, f"Epoch {epoch} total data loading ", total_data_loading
+                    )
 
                 logger.info(
                     f"Epoch: {epoch}, Test Loss: {test_loss} and Test Accuracy: {test_acc}"
                 )
                 logger.info(
                     f"Epoch {epoch} Duration:{epoch_duration}"
+                )
+                logger.info(
+                    f"Epoch {epoch} total data loading:{total_data_loading}"
                 )
 
             training_end_time = time.time()  
@@ -535,7 +550,7 @@ def run(args):
         model_path=args.model + "/model.pt",
         benchmark_test_all_data=args.benchmark_test_all_data,
         benchmark_train_all_data=args.benchmark_train_all_data,
-        device_id=int(os.environ["RANK"]),
+        device_id=int(os.environ["LOCAL_RANK"]),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )

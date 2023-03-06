@@ -21,8 +21,9 @@ from typing import List
 import models as models
 import datasets as datasets
 from distutils.util import strtobool
-from torchmetrics import AUROC
+from torchmetrics.classification import BinaryAUROC
 import multiprocessing
+from torchmetrics import F1Score
 
 # DP
 from opacus import PrivacyEngine
@@ -176,9 +177,9 @@ class CCFraudTrainer:
         self.train_loader_ = DataLoader(
             self.train_dataset_,
             batch_size=batch_size,
-            num_workers=num_workers_per_gpu,
+            num_workers=2,
             shuffle=(self.train_sampler_ is None),
-            prefetch_factor=3,
+            prefetch_factor=2,
             sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
@@ -356,10 +357,10 @@ class CCFraudTrainer:
             logger.debug("Local training started")
 
             train_metrics = RunningMetrics(
-                ["loss", "accuracy", "precision", "recall", "AUC"], prefix="train"
+                ["loss", "accuracy", "precision", "recall", "AUC", "f1"], prefix="train"
             )
             test_metrics = RunningMetrics(
-                ["accuracy", "precision", "recall", "AUC"], prefix="test"
+                ["accuracy", "precision", "recall", "AUC", "f1"], prefix="test"
             )
 
             training_Start_time = time.time()
@@ -367,11 +368,11 @@ class CCFraudTrainer:
                 epoch_start_time = time.time()
                 self.model_.train()
                 train_metrics.reset_global()
-                logger.info(f"Epoch {epoch} start time: {epoch_start_time}")
+                #logger.info(f"Epoch {epoch} start time: {epoch_start_time}")
                 for i, batch in enumerate(self.train_loader_):
-                    logger.info(f"Epoch {epoch}, batch {i} after iterate data: {time.time()}")
+                    #logger.info(f"Epoch {epoch}, batch {i} after iterate data: {time.time()}")
                     data, labels = batch[0].to(self.device_), batch[1].to(self.device_)
-                    logger.info(f"Epoch {epoch}, batch {i} after to device: {time.time()}")
+                    #logger.info(f"Epoch {epoch}, batch {i} after to device: {time.time()}")
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
@@ -381,6 +382,18 @@ class CCFraudTrainer:
                     ).to(self.device_)
                     # Compute loss
                     loss = self.criterion_(predictions, labels.type(torch.float))
+
+                    '''
+                    ## compute metrics by hand
+                    logger_per_iter = [f"Epoch {epoch}, iteration {i}"]
+                    prediciton_argmax = torch.where(predictions>0.5, 1, 0)
+                    correct = prediciton_argmax.eq(labels).sum().item()
+                    accuracy_by_hand = correct/data.shape[0]
+                    logger_per_iter.append(f"Accuracy by hand: {accuracy_by_hand}")
+                    logger_per_iter.append(f"Accuracy: {accuracy(preds=predictions.detach(), target=labels, threshold=0.5).item()}")
+                    ##done
+                    '''
+
                     if net_loss is not None:
                         loss += net_loss * 1e-5
 
@@ -391,8 +404,28 @@ class CCFraudTrainer:
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=labels
                     )
-                    auroc = AUROC("binary")
+                    auroc = BinaryAUROC(thresholds=None)
                     auc = auroc(predictions, labels)
+                    f1_score = F1Score(task="binary").to(self.device_)
+                    f1 = f1_score(predictions, labels)
+                    train_metrics.add_metric("f1", f1)
+
+                    '''
+                    ## add to each iteration
+                    recall_by_hand = (torch.logical_and(prediciton_argmax.eq(labels),  labels==1)).sum()
+                    logger_per_iter.append(f"Recall by hand: {recall_by_hand/((labels==1).sum())}")
+                    logger_per_iter.append(f"Recall: {recall.item()}")
+                    precision_by_hand = (torch.logical_and(prediciton_argmax.eq(labels), labels==1)).sum()
+                    logger_per_iter.append(f"Precision by hand: {precision_by_hand/((prediciton_argmax==1).sum())}")
+                    logger_per_iter.append(f"Precision: {precision.item()}")
+
+                    logger_per_iter.append(f"predictions: {predictions}")
+                    logger_per_iter.append(f"lables: {labels}")
+
+                    logger.info(",".join(logger_per_iter))
+                    #### done
+                    # '''
+
                     train_metrics.add_metric("AUC", auc)
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
@@ -405,12 +438,13 @@ class CCFraudTrainer:
                     train_metrics.add_metric(
                         "loss", (loss.detach() / data.shape[0]).item()
                     )
+
                     train_metrics.step()
-                    
+            
                     if (i + 1) % num_of_batches_before_logging == 0 or (i + 1) == len(
                         self.train_loader_
                     ):
-                        '''
+                    
                         log_message = [
                             f"Epoch: {epoch}/{self._epochs}",
                             f"Iteration: {i+1}/{len(self.train_loader_)}",
@@ -425,13 +459,15 @@ class CCFraudTrainer:
                                 value,
                             )
                         logger.info(", ".join(log_message))
-                        '''
+                    
                         train_metrics.reset_step()
-                    logger.info(f"Epoch {epoch}, batch {i} end time: {time.time()}")
+                   
+                    #logger.info(f"Epoch {epoch}, batch {i} end time: {time.time()}")
                 epoch_end_time = time.time()
                 epoch_duration = epoch_end_time - epoch_start_time
                 test_metrics = self.test()
 
+              
                 log_message = [
                     f"Epoch: {epoch}/{self._epochs}",
                 ]
@@ -463,6 +499,7 @@ class CCFraudTrainer:
                         epoch_duration,
                     )
                 logger.info(", ".join(log_message))
+             
 
             training_end_time = time.time()
             training_duration = training_end_time - training_Start_time
@@ -508,7 +545,7 @@ class CCFraudTrainer:
     def test(self):
         """Test the trained model and report test loss and accuracy"""
         test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall", "AUC"], prefix="test"
+            ["loss", "accuracy", "precision", "recall", "AUC", "f1"], prefix="test"
         )
 
         self.model_.eval()
@@ -523,12 +560,42 @@ class CCFraudTrainer:
                 loss = self.criterion_(predictions, labels.type(torch.float)).item()
                 if net_loss is not None:
                     loss += net_loss * 1e-5
+                '''         
+                ## compute metrics by hand
+                logger_per_iter = [f"Test results"]
+                prediciton_argmax = torch.where(predictions>0.5, 1, 0)
+                correct = prediciton_argmax.eq(labels).sum().item()
+                accuracy_by_hand = correct/data.shape[0]
+                logger_per_iter.append(f"Accuracy by hand: {accuracy_by_hand}")
+                logger_per_iter.append(f"Accuracy: {accuracy(preds=predictions.detach(), target=labels, threshold=0.5).item()}")
+                ## done
+                '''
 
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
                 )
-                auroc = AUROC("binary")
+                auroc = BinaryAUROC(thresholds=None)
                 auc = auroc(predictions, labels)
+                f1_score = F1Score(task="binary").to(self.device_)
+                f1 = f1_score(predictions, labels)
+                test_metrics.add_metric("f1", f1)
+
+                '''
+                ## add to each iteration
+                recall_by_hand = (torch.logical_and(prediciton_argmax.eq(labels),  labels==1)).sum()
+                logger_per_iter.append(f"Recall by hand: {recall_by_hand/((labels==1).sum())}")
+                logger_per_iter.append(f"Recall: {recall.item()}")
+                precision_by_hand = (torch.logical_and(prediciton_argmax.eq(labels), labels==1)).sum()
+                logger_per_iter.append(f"Precision by hand: {precision_by_hand/((prediciton_argmax==1).sum())}")
+                logger_per_iter.append(f"Precision: {precision.item()}")
+
+                logger_per_iter.append(f"predictions: {predictions}")
+                logger_per_iter.append(f"lables: {labels}")
+
+                logger.info(",".join(logger_per_iter))
+                '''
+
+
                 test_metrics.add_metric("AUC", auc)
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
