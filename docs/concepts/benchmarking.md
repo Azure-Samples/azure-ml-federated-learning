@@ -1,11 +1,11 @@
 # Real-world Example Benchmarks
-For all three real-word examples (PNEUMONIA, NER, CCFRAUD), we perform benchmark testing to assess three main aspects: the training overhead, model performance, and scalability of training under FL setting.This investigation was based on the real-world examples provided in this repository. It shows that the FL on AzureML implementation is:
+For all three real-word examples (PNEUMONIA, NER, CCFRAUD) available in this repository, we performed a benchmark assess three main aspects: the training overhead, model performance, and scalability of training under the FL framework. The results show that the FL on AzureML implementation is:
 
-**Efficient**: overhead is kept minimal (see [section 2.1](#21-training-overhead) )  
-**Valid**: reaching parity in quality (see [section 2.2](#22-model-performance))  
-**Scalable**: it can adapt to larger datasets by leveraging distributed training (see [section 2.3](#23-scalability-with-training))  
+- **Efficient**: overhead is kept minimal (see [section 2.1](#21-training-overhead))
+- **Valid**: reaching parity in quality (see [section 2.2](#22-model-performance))
+- **Scalable**: it can adapt to larger datasets by leveraging distributed training (see [section 2.3](#23-scalability-with-training))
 
-The main purpose of this benchmark is to show that FL has been implemented correctly and works as expected, rather than to focus on the exact metric value shown below, which will vary based on distinct models and datasets. In the following experiments, the detailed computes, hyperparameters, models, and tasks etc are detailed in [Methodology](#1-methodology) section.
+The main purpose of this benchmark is to show that FL has been implemented correctly and works as expected, rather than to focus on the exact metric value shown below, which will vary based on distinct models and datasets. In the following [Methodology](#1-methodology) section we'll provide the details on what we used for computes, hyperparameters, models, and tasks etc.
 
 
 ## Table of contents
@@ -25,7 +25,7 @@ Before jumping to the benchmarking, we provide a table that gives a description 
 |    NER    | Multi-class Classification|     Text     |       164.1K      |     115MB    |
 |  CCFRAUD  |   Binary Classification   |    Tabular   |        1.86M      |   501.59MB   |
 
-For the best reproducibility of the benchmark results, we also show here the hyperparameters used for the experiments:
+For the best reproducibility of the benchmark results, here are the hyperparameters used for the experiments:
 
 |  Example  | # Iterations  | # Epochs | Batch size | Learning rate |
 |:---------:|:-------------:|:--------:|:----------:|:-------------:|
@@ -40,7 +40,7 @@ For benchmark experiments about training overhead and model performance, we comp
 2. __Centralized-1/3__: 1 centralized model trained with 1/3 data
 3. __Centralized-1__: 1 centralized model trained with all data
 
-After each model is trained, it is evaluated with all test data. In terms of the compute resources, we use the same FL provision of SKUs for each example. Below is a table that summarizes both the characteristics and the computing details for each model:
+After each model is trained, it is evaluated with all available test data. In terms of the compute resources, we use the same FL provision of SKUs for each example. Below is a table that summarizes both the characteristics and the computing details for each model:
 
 
 |  Example        | Fraction of data in each silo | # Silos |                         SKUs                         |  Regions  |
@@ -49,6 +49,7 @@ After each model is trained, it is evaluated with all test data. In terms of the
 | Centralized-1/3 |              1/3              |    1    |                        Standard_NV24                 |  East US  |
 |  Centralized-1  |               1               |    1    |                        Standard_NV24                 |  East US  |
 
+We did use the same region for all FL silos to avoid accounting for regional differences in data loading time. Using different regions might yield different results on training overhead, but not significantly.
 
 
 ## 2. Results
@@ -58,8 +59,8 @@ After each model is trained, it is evaluated with all test data. In terms of the
 For training overhead, there are two main questions of interest: 
 
 
-1. What is the extra **wall-clock time** spent on training with FL, compared to train a regular centralized model only with 1/#silo of the data. Wall-clock time refers to the real-world time elapsed for a job from start to end.
-2. What is the extra **computing time** spent on training with FL, compared to train a regular centralized model with data from all silos combined. Computing time refers to the time spent on all computing resources that the job deployed during training. In case of FL, the computing time should be calculated as the sum of time spent from all silos.
+1. What is the extra **wall-clock time** spent on training with FL, compared to train a regular centralized model only with 1/3 (1/#silo) of the data (_FL_ versus _Centralized-1/3_). Wall-clock time refers to the real-world time elapsed for a job from start to end.
+2. What is the extra **computing time** spent on training with FL, compared to train a regular centralized model with data from all silos combined (_FL_ versus _Centralized-1_). Computing time refers to the time spent on all computing resources that the job deployed during training. In case of FL, the computing time should be calculated as the sum of time spent in every silos.
 
 
 The first point is important as it indicates how quickly customers can get their model results, from job submitted to ended. The second point is essential as it is an indication of the money that customers will spend on all computing resources.  
@@ -85,13 +86,13 @@ For ner, FL takes only 1.3% longer wall time than centralized-1/3, and only 0.1%
 For ccfraud, FL takes 10% longer wall time than centralized model, while about 3% longer computing time than centralized-1.
 
 ### 2.2 Model Performance
-Another important assessing factor for FL is the model performance. Here we also aim at two questions: 
+Another important assessing factor for FL is the model performance. Here we also aim at two questions:
 
 
 1. How does the FL model performance compare to the centralized model trained with only partial data (**Centralized-1/3**), which is the scenario when FL is not supported and data are confidential and restricted to each region.  
-2. How does the FL model performance compare to the centralized model trained with data from all silos (**Centralized-1**), which is an ideal situation when all data are eyes-on and could be combined. 
+2. How does the FL model performance compare to the centralized model trained with data from all silos (**Centralized-1**), which is an ideal situation when all data are eyes-on and could be combined.
 
-The first point is to demonstrate the extent of improvements on model performance, when users can use FL to train with much more data from external parties, compared to train with data only from one party. The second point is to understand if the distribute-aggregate design of FL has impact on the model performance. 
+The first point is to demonstrate the extent of improvements on model performance, when users can use FL to train with much more data from external parties, compared to train with data only from one party. The second point is to understand if the scatter-gather design of FL has impact on the model performance.
 
 **Key findings**: Our benchmark indicates that model performace is boosted with FL comparing to a single model with partial data. It also shows that the model performance with FL is comparable to a single model trained on all data, demonstrating the validity of our implementation.
 
