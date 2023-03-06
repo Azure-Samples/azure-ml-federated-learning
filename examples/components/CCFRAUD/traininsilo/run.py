@@ -177,7 +177,7 @@ class CCFraudTrainer:
         self.train_loader_ = DataLoader(
             self.train_dataset_,
             batch_size=batch_size,
-            num_workers=2,
+            num_workers=1,
             shuffle=(self.train_sampler_ is None),
             prefetch_factor=2,
             sampler=self.train_sampler_,
@@ -368,11 +368,14 @@ class CCFraudTrainer:
                 epoch_start_time = time.time()
                 self.model_.train()
                 train_metrics.reset_global()
-                #logger.info(f"Epoch {epoch} start time: {epoch_start_time}")
+                logger.info(f"Epoch {epoch} start time: {epoch_start_time}")
+                total_batch_duraiton = 0
                 for i, batch in enumerate(self.train_loader_):
-                    #logger.info(f"Epoch {epoch}, batch {i} after iterate data: {time.time()}")
+                    iterate_time = time.time()
+                    logger.info(f"Epoch {epoch}, batch {i} after iterate data: {iterate_time}")
                     data, labels = batch[0].to(self.device_), batch[1].to(self.device_)
-                    #logger.info(f"Epoch {epoch}, batch {i} after to device: {time.time()}")
+                    device_time = time.time()
+                    logger.info(f"Epoch {epoch}, batch {i} after to device: {device_time}")
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
@@ -400,6 +403,11 @@ class CCFraudTrainer:
                     # Compute gradients and adjust learning weights
                     loss.backward()
                     self.optimizer_.step()
+                    batch_end_time = time.time()
+                    logger.info(f"Epoch {epoch}, batch {i} end time: {batch_end_time}")
+                    batch_duration = batch_end_time-device_time
+                    logger.info(f"Epoch {epoch}, batch {i} duration: {batch_duration}")
+                    total_batch_duraiton += batch_duration
 
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=labels
@@ -462,7 +470,7 @@ class CCFraudTrainer:
                     
                         train_metrics.reset_step()
                    
-                    #logger.info(f"Epoch {epoch}, batch {i} end time: {time.time()}")
+                    
                 epoch_end_time = time.time()
                 epoch_duration = epoch_end_time - epoch_start_time
                 test_metrics = self.test()
@@ -492,6 +500,7 @@ class CCFraudTrainer:
 
                 # log epoch training time
                 log_message.append(f"epoch duration: {epoch_duration}")
+                log_message.append(f"total batch duration epoch {epoch}: {total_batch_duraiton}")
                 self.log_metrics(
                         mlflow_client,
                         root_run_id,
