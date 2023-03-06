@@ -117,9 +117,12 @@ Scalability is critical for industry applications of FL on large datasets. One b
 #### PNEUMONIA
 <p align="center">
     <img src="../pics/pneumonia_ddp.jpg" alt="pneumonia distributed training time" width="550"/>
+</p>
+
+<p align="center">
     <img src="../pics/pneumonia_ddp_1tb.jpg" alt="pneumonia 1TB distributed training time" width="550"/>
 </p>
-For pneumonia, in both cases (10x on the left, 1TB on the right) the training time scales linearly with different number of GPUs for all three silos. For 1TB scenario, given that training was performed on multi-nodes, it demonstrates that the communication among machines are efficient and the overhead is kept at minimum.
+For pneumonia, in both cases (10x on the top, 1TB on the bottom) the training time scales linearly with different number of GPUs for all three silos. For 1TB scenario, given that training was performed on multi-nodes, it demonstrates that the communication among machines are efficient and the overhead is kept at minimum.
 
 #### NER
 <p align="center">
