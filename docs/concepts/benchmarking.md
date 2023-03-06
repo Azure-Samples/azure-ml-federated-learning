@@ -110,15 +110,16 @@ For ner, FL achieves a highest score for all four metrics. Although it is not ex
 
 ### 2.3 Scalability with Training
 
-Scalability is critical for industry applications of FL on large datasets. One benefit of using FL on Azure ML is that it supports distributed training (multi GPUs and multi nodes). For this reason, we support distributed training for each real-world example, empowered by Pytorch Distributed Data Parallel (DDP) module. To test the scalability of our implementation, we artifically replicated each datasets by 10 times, and record the training time per epoch for each silo when such data is trained on different number of GPUs.
+Scalability is critical for industry applications of FL on large datasets. One benefit of using FL on Azure ML is that it supports distributed training (multi GPUs and multi nodes). For this reason, we support distributed training for each real-world example, empowered by Pytorch Distributed Data Parallel (DDP) module. To test the scalability of our implementation, we artifically replicated each datasets by 10 times, and record the training time per epoch for each silo when such data is trained on different number of GPUs and machines. For pneumonia example, we also expanded the data to 1TB to demonstrate the scalability of our implementation in extreme cases.
 
 **Key findings**: Our benchmark results shows that in all 3 scenarios, we can achieve scalability by adding more nodes and gpus to reduce wall time accordingly.
 
 #### PNEUMONIA
 <p align="center">
     <img src="../pics/pneumonia_ddp.jpg" alt="pneumonia distributed training time" width="550"/>
+    <img src="../pics/pneumonia_ddp_1tb.jpg" alt="pneumonia 1TB distributed training time" width="550"/>
 </p>
-For pneumonia, the training time scales linearly with different number of GPUs for all three silos.
+For pneumonia, in both cases (10x on the left, 1TB on the right) the training time scales linearly with different number of GPUs for all three silos. For 1TB scenario, given that training was performed on multi-nodes, it demonstrates that the communication among machines are efficient and the overhead is kept at minimum.
 
 #### NER
 <p align="center">
