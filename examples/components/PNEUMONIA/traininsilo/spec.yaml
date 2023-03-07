@@ -21,6 +21,11 @@ inputs:
     description: total number of epochs for local training
     default: 3
     optional: true
+  batch_size:
+    type: integer
+    description: Training batch size
+    default: 32
+    optional: true
   dp:
     type: boolean
     description: differential privacy
@@ -72,7 +77,7 @@ outputs:
 code: .
 
 command: >-
-  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--dp ${{inputs.dp}}]] $[[--total_num_of_iterations ${{inputs.total_num_of_iterations}}]] $[[--dp_target_epsilon ${{inputs.dp_target_epsilon}}]] $[[--dp_target_delta ${{inputs.dp_target_delta}}]] $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
+  python run.py --dataset_name ${{inputs.dataset_name}} $[[--iteration_num ${{inputs.iteration_num}}]] $[[--checkpoint ${{inputs.checkpoint}}]] --model ${{outputs.model}} $[[--lr ${{inputs.lr}}]] $[[--epochs ${{inputs.epochs}}]] $[[--batch_size ${{inputs.batch_size}}]] $[[--metrics_prefix ${{inputs.metrics_prefix}}]] $[[--dp ${{inputs.dp}}]] $[[--total_num_of_iterations ${{inputs.total_num_of_iterations}}]] $[[--dp_target_epsilon ${{inputs.dp_target_epsilon}}]] $[[--dp_target_delta ${{inputs.dp_target_delta}}]] $[[--dp_max_grad_norm ${{inputs.dp_max_grad_norm}}]]
 
 environment: 
   conda_file: ./conda.yaml
