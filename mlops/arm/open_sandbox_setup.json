@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.14.6.61914",
-      "templateHash": "3058786123964988002"
+      "version": "0.15.31.15270",
+      "templateHash": "7527944284132136108"
     }
   },
   "parameters": {
@@ -116,8 +116,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.14.6.61914",
-              "templateHash": "2572246011779950217"
+              "version": "0.15.31.15270",
+              "templateHash": "13432418052954799397"
             }
           },
           "parameters": {
@@ -138,7 +138,7 @@
             },
             "machineLearningFriendlyName": {
               "type": "string",
-              "defaultValue": "Sandbox workspace",
+              "defaultValue": "[format('{0} (sandbox/open)', parameters('baseName'))]",
               "metadata": {
                 "description": "Machine learning workspace display name"
               }
@@ -164,13 +164,6 @@
                 "description": "Specifies whether to reduce telemetry collection and enable additional encryption."
               }
             },
-            "applicationInsightsName": {
-              "type": "string",
-              "defaultValue": "[format('appi-{0}', parameters('baseName'))]",
-              "metadata": {
-                "description": "Name of the application insights resource"
-              }
-            },
             "containerRegistryName": {
               "type": "string",
               "defaultValue": "[replace(format('cr-{0}', parameters('baseName')), '-', '')]",
@@ -190,27 +183,6 @@
               "defaultValue": "[replace(format('st-{0}', parameters('baseName')), '-', '')]",
               "metadata": {
                 "description": "Name of the storage account resource"
-              }
-            },
-            "defaultComputeName": {
-              "type": "string",
-              "defaultValue": "cpu-cluster",
-              "metadata": {
-                "description": "Name of the default compute cluster in orchestrator"
-              }
-            },
-            "defaultComputeSKU": {
-              "type": "string",
-              "defaultValue": "Standard_DS3_v2",
-              "metadata": {
-                "description": "VM size for the default compute cluster"
-              }
-            },
-            "defaultComputeNodes": {
-              "type": "int",
-              "defaultValue": 4,
-              "metadata": {
-                "description": "VM nodes for the default compute cluster"
               }
             },
             "tags": {
@@ -277,19 +249,8 @@
               }
             },
             {
-              "type": "Microsoft.Insights/components",
-              "apiVersion": "2020-02-02",
-              "name": "[parameters('applicationInsightsName')]",
-              "location": "[if(or(equals(parameters('location'), 'eastus2'), equals(parameters('location'), 'westcentralus')), 'southcentralus', parameters('location'))]",
-              "tags": "[parameters('tags')]",
-              "kind": "web",
-              "properties": {
-                "Application_Type": "web"
-              }
-            },
-            {
               "type": "Microsoft.MachineLearningServices/workspaces",
-              "apiVersion": "2022-05-01",
+              "apiVersion": "2022-10-01",
               "name": "[parameters('machineLearningName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
@@ -301,50 +262,14 @@
                 "description": "[parameters('machineLearningDescription')]",
                 "storageAccount": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
                 "keyVault": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
-                "applicationInsights": "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
                 "containerRegistry": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                 "hbiWorkspace": "[parameters('hbiWorkspace')]",
-                "publicNetworkAccess": "Enabled",
-                "imageBuildCompute": "[parameters('defaultComputeName')]"
+                "publicNetworkAccess": "Enabled"
               },
               "dependsOn": [
-                "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
                 "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                 "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
-              ]
-            },
-            {
-              "type": "Microsoft.MachineLearningServices/workspaces/computes",
-              "apiVersion": "2022-05-01",
-              "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('defaultComputeName'))]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "identity": {
-                "type": "SystemAssigned"
-              },
-              "properties": {
-                "computeType": "AmlCompute",
-                "computeLocation": "[parameters('location')]",
-                "description": "default cluster",
-                "disableLocalAuth": true,
-                "properties": {
-                  "vmPriority": "Dedicated",
-                  "vmSize": "[parameters('defaultComputeSKU')]",
-                  "enableNodePublicIp": true,
-                  "isolatedNetwork": false,
-                  "osType": "Linux",
-                  "remoteLoginPortPublicAccess": "NotSpecified",
-                  "scaleSettings": {
-                    "maxNodeCount": "[parameters('defaultComputeNodes')]",
-                    "minNodeCount": 0,
-                    "nodeIdleTimeBeforeScaleDown": "PT300S"
-                  },
-                  "subnet": "[json('null')]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('machineLearningName'))]"
               ]
             }
           ],
@@ -352,10 +277,6 @@
             "storageName": {
               "type": "string",
               "value": "[parameters('storageAccountName')]"
-            },
-            "computeName": {
-              "type": "string",
-              "value": "[format('{0}/{1}', parameters('machineLearningName'), parameters('defaultComputeName'))]"
             },
             "workspaceName": {
               "type": "string",
@@ -428,8 +349,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.14.6.61914",
-              "templateHash": "4729737185569727763"
+              "version": "0.15.31.15270",
+              "templateHash": "14494948656343722995"
             }
           },
           "parameters": {
@@ -592,8 +513,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "2695881379459560593"
+                      "version": "0.15.31.15270",
+                      "templateHash": "13326258773785348892"
                     }
                   },
                   "parameters": {
@@ -858,8 +779,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "14867471260931984608"
+                      "version": "0.15.31.15270",
+                      "templateHash": "14000861852103550769"
                     }
                   },
                   "parameters": {
@@ -1023,8 +944,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "14867471260931984608"
+                      "version": "0.15.31.15270",
+                      "templateHash": "14000861852103550769"
                     }
                   },
                   "parameters": {
@@ -1167,8 +1088,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "3643080677981037081"
+                      "version": "0.15.31.15270",
+                      "templateHash": "311557695575905791"
                     }
                   },
                   "parameters": {
@@ -1312,8 +1233,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.14.6.61914",
-              "templateHash": "4729737185569727763"
+              "version": "0.15.31.15270",
+              "templateHash": "14494948656343722995"
             }
           },
           "parameters": {
@@ -1476,8 +1397,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "2695881379459560593"
+                      "version": "0.15.31.15270",
+                      "templateHash": "13326258773785348892"
                     }
                   },
                   "parameters": {
@@ -1742,8 +1663,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "14867471260931984608"
+                      "version": "0.15.31.15270",
+                      "templateHash": "14000861852103550769"
                     }
                   },
                   "parameters": {
@@ -1907,8 +1828,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "14867471260931984608"
+                      "version": "0.15.31.15270",
+                      "templateHash": "14000861852103550769"
                     }
                   },
                   "parameters": {
@@ -2051,8 +1972,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.14.6.61914",
-                      "templateHash": "3643080677981037081"
+                      "version": "0.15.31.15270",
+                      "templateHash": "311557695575905791"
                     }
                   },
                   "parameters": {
@@ -2160,8 +2081,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.14.6.61914",
-              "templateHash": "3643080677981037081"
+              "version": "0.15.31.15270",
+              "templateHash": "311557695575905791"
             }
           },
           "parameters": {
