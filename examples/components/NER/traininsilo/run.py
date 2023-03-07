@@ -149,7 +149,7 @@ class NERTrainer:
 
         # get number of cpu to load data for each gpu
         num_workers_per_gpu = int(
-            multiprocessing.cpu_count() // int(os.environ["WORLD_SIZE"])
+            multiprocessing.cpu_count() // int(os.environ.get("WORLD_SIZE", "1"))
         )
         logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
 
@@ -637,7 +637,7 @@ def run(args):
     if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
-            rank=int(os.environ["RANK"]),
+            rank=int(os.environ.get("RANK", "0")),
             world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
     elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
@@ -659,7 +659,7 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         batch_size=args.batch_size,
-        device_id=int(os.environ["LOCAL_RANK"]),
+        device_id=int(os.environ.get("LOCAL_RANK", "0")),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )

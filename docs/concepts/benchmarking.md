@@ -116,7 +116,7 @@ For ccfraud, FL shows comparable performance to centralized-1 in recall and auc,
 
 ### 2.3 Scalability with Training
 
-Scalability is critical for industry applications of FL on large datasets. One benefit of using FL on Azure ML is that it supports distributed training (multi GPUs and multi nodes). For this reason, we support distributed training for each real-world example, empowered by Pytorch Distributed Data Parallel (DDP) module. To test the scalability of our implementation, we artifically replicated each datasets by 10 times, and record the training time per epoch for each silo when such data is trained on different number of GPUs and machines. For pneumonia example, we also expanded the data to 1TB to demonstrate the scalability of our implementation in extreme cases.
+Scalability is critical for industry applications of FL on large datasets. One benefit of using FL on Azure ML is that it supports distributed training (multi GPUs and multi nodes). For this reason, we support distributed training for each real-world example, empowered by Pytorch Distributed Data Parallel (DDP) module. To test the scalability of our implementation, we artificially replicated each datasets by 10 times, and record the training time per epoch for each silo when such data is trained on different number of GPUs and machines. For pneumonia example, we also expanded the data to 1TB to demonstrate the scalability of our implementation in extreme cases.
 
 **Key findings**: Our benchmark results shows that in all 3 scenarios, we can achieve scalability by adding more nodes and gpus to reduce wall time accordingly.
 
