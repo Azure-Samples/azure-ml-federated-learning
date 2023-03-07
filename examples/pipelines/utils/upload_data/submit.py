@@ -56,6 +56,7 @@ parser.add_argument(
         "MNIST",
         "CCFRAUD_VERTICAL",
         "MNIST_VERTICAL",
+        "BANK_MARKETING_VERTICAL",
     ],
     help="dataset name",
 )
