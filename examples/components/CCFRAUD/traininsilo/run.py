@@ -165,7 +165,7 @@ class CCFraudTrainer:
 
         # get number of cpu to load data for each gpu
         num_workers_per_gpu = int(
-            multiprocessing.cpu_count() // int(os.environ.get("WORLD_SIZE", "1")) 
+            multiprocessing.cpu_count() // int(os.environ.get("WORLD_SIZE", "1"))
         )
         logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
 
