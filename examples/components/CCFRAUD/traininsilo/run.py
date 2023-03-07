@@ -16,6 +16,7 @@ from torchmetrics.functional import precision_recall, accuracy, auroc
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+import multiprocessing
 from typing import List
 import models as models
 import datasets as datasets
@@ -162,10 +163,18 @@ class CCFraudTrainer:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        # get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(
+            multiprocessing.cpu_count() // int(os.environ.get("WORLD_SIZE", "1"))
+        )
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             self.train_dataset_,
             batch_size=batch_size,
+            num_workers=num_workers_per_gpu,
             shuffle=(self.train_sampler_ is None),
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
@@ -578,7 +587,7 @@ def run(args):
     if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
-            rank=int(os.environ["RANK"]),
+            rank=int(os.environ.get("RANK", "0")),
             world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
     elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
@@ -599,7 +608,7 @@ def run(args):
         total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
-        device_id=int(os.environ["RANK"]),
+        device_id=int(os.environ.get("LOCAL_RANK", "0")),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )
