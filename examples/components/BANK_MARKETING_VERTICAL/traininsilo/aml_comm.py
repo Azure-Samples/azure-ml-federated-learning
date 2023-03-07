@@ -1,5 +1,6 @@
 from abc import ABC
 import sys
+import math
 import time
 import pickle
 import logging
@@ -360,7 +361,7 @@ class AMLCommRedis(AMLComm):
         world_size,
         run_id,
         connection_string=None,
-        message_timeout=60,
+        message_timeout=600,
         connect_timeout=1800,
     ) -> None:
         """Initializes the AMLCommRedis class
@@ -392,6 +393,7 @@ class AMLCommRedis(AMLComm):
             socket_keepalive=True,
         )
         self._timeout = message_timeout
+        self._max_msg_size = 100 * 1024 * 1024  # 100 MB
         self._wait_for_connection(connect_timeout)
 
     def _wait_for_connection(self, connect_timeout: int):
@@ -493,24 +495,20 @@ class AMLCommRedis(AMLComm):
             return f"{self._run_id}:{source}=>{destination}"
         return f"{self._run_id}:{source}=>{destination}:{FLAGS[flag].name}"
 
-    def send(self, data, destination) -> None:
+    def _send(self, data, session_id, destination) -> None:
         """Sends data to the destination node
 
         Args:
             data: data to be sent
+            session_id: session id
             destination: rank of the receiver node
         """
         time_start = time.time()
         retries = 0
-        session_id = self._get_session_id(self._rank, destination)
 
         while time.time() - time_start < self._timeout and retries < 3:
             try:
-                assert destination != self._rank
-                if self._rank != 0:
-                    assert destination == 0
-
-                self._client.xadd(session_id, {"data": pickle.dumps(data)})
+                self._client.xadd(session_id, {"data": data})
                 self._stats["msg_sent"] += 1
                 self._stats["sending_time"] += time.time() - time_start
                 return
@@ -528,6 +526,70 @@ class AMLCommRedis(AMLComm):
         logger.exception(e)
         raise e
 
+    def send(self, data, destination) -> None:
+        """Sends data to the destination node
+
+        Args:
+            data: data to be sent
+            destination: rank of the receiver node
+        """
+        assert destination != self._rank
+        if self._rank != 0:
+            assert destination == 0
+
+        session_id = self._get_session_id(self._rank, destination)
+        binary_data = pickle.dumps(data)
+        binary_data_size = sys.getsizeof(binary_data)
+        self._send(
+            math.ceil(binary_data_size / self._max_msg_size), session_id, destination
+        )
+        for i in range(math.ceil(binary_data_size / self._max_msg_size)):
+            self._send(
+                binary_data[i * self._max_msg_size : (i + 1) * self._max_msg_size],
+                session_id,
+                destination,
+            )
+
+    def _recv(self, session_id, source):
+        """Receives data from the source rank node
+
+        Args:
+            session_id: session id
+            source: rank of the sender node
+        """
+        time_start = time.time()
+        retries = 0
+
+        while time.time() - time_start < self._timeout and retries < 3:
+            try:
+                message = self._client.xread(
+                    {session_id: 0}, count=1, block=self._timeout * 1000
+                )
+                if len(message) > 0:
+                    self._stats["waiting_time"] += time.time() - time_start
+
+                    # Get first message received [0]
+                    # get contents of that message [1]
+                    # get first message in that list [0]
+                    message_id, message = message[0][1][0]
+                    self._client.xdel(session_id, message_id)
+                    self._stats["msg_received"] += 1
+                    self._stats["receiving_time"] += time.time() - time_start
+                    return message[b"data"]
+            except Exception as e:
+                logger.exception(
+                    Exception(f"There was problem receiving message from {source}")
+                )
+                logger.exception(e)
+
+                retries += 1
+                if retries >= 3:
+                    raise e
+
+        e = Exception(f"Receiving message from {source} timed out")
+        logger.exception(e)
+        raise e
+
     def recv(self, source):
         """Receives data from the source rank node
 
@@ -540,50 +602,15 @@ class AMLCommRedis(AMLComm):
 
         session_id = self._get_session_id(source, self._rank)
         time_start = time.time()
-        retries = 0
 
-        # logger.info(f"Receiving message from {source}")
-        while time.time() - time_start < self._timeout and retries < 3:
-            try:
-                message = self._client.xread(
-                    {session_id: 0}, count=1, block=self._timeout * 1000
-                )
-                if len(message) > 0:
-                    self._stats["waiting_time"] += time.time() - time_start
+        # Receive number of messages
+        total_packets = int(self._recv(session_id, source))
 
-                    # Get first message received [0]
-                    # get contents of that message [1]
-                    # get first message in that list [0]
-                    last_message_id, message = message[0][1][0]
-                    if b"data" not in message:
-                        # Delete message from stream (necessary for xread to work)
-                        self._client.xdel(session_id, last_message_id)
-                        logger.warning(
-                            f"Message deleted, because it does not contain data field, message: {message}"
-                        )
-                        continue
+        # Receive packets
+        data = b"".join([self._recv(session_id, source) for _ in range(total_packets)])
+        data = pickle.loads(data)
 
-                    message = pickle.loads(message[b"data"])
-
-                    # Delete message from stream (necessary for xread to work)
-                    self._client.xdel(session_id, last_message_id)
-
-                    self._stats["msg_received"] += 1
-                    self._stats["receiving_time"] += time.time() - time_start
-                    return message
-                else:
-                    continue
-
-            except redis.exceptions.ConnectionError as e:
-                logger.warning(e)
-                retries += 1
-            except Exception as e:
-                logger.exception(e)
-                raise e
-
-        e = Exception(f"Receiving message from {source} timed out")
-        logger.exception(e)
-        raise e
+        return data
 
     def close(self):
         logger.info("Closing Redis clients")
@@ -591,7 +618,7 @@ class AMLCommRedis(AMLComm):
             for i in range(1, self._world_size):
                 self._client.delete(self._get_session_id(0, i))
         else:
-            self._client.delete(self._get_session_id(self._rank, i))
+            self._client.delete(self._get_session_id(self._rank, 0))
 
         self._client.close()
 
