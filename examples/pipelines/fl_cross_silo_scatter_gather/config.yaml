@@ -44,9 +44,7 @@ orchestrator:
 # strategy represents how the "in silo" part of the graph is scattered
 strategy: # NOTE: same terminology as in devops/github matrix+strategy
   horizontal: # we're using the same training in each silo
-    - computes: 
-      - silo0-01 # name of the compute for silo X
-      - silo0-02
+    - compute: silo0-01 # name of the compute for silo X
       datastore: datastore_silo0 # name of the datastore for silo X
       # training inputs are specified below
       # NOTE: in this demo, we're using public data from a url instead
@@ -61,9 +59,7 @@ strategy: # NOTE: same terminology as in devops/github matrix+strategy
           mode: 'download'
           path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
-    - computes: 
-      - silo1-01 # we are repeating over the same config for silo 2
-      - silo1-02
+    - compute: silo1-01 # we are repeating over the same config for silo 2
       datastore: datastore_silo1
       inputs:
         name: silo1
@@ -76,9 +72,7 @@ strategy: # NOTE: same terminology as in devops/github matrix+strategy
           mode: 'download'
           path: https://azureopendatastorage.blob.core.windows.net/mnist/processed/t10k.csv
 
-    - computes: 
-      - silo2-01 # we are repeating over the same config for silo 3
-      - silo2-02
+    - compute: silo2-01 # we are repeating over the same config for silo 3
       datastore: datastore_silo2
       inputs:
         name: silo2

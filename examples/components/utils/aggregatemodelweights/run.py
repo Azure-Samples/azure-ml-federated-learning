@@ -29,29 +29,32 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
+    # parser.add_argument(
+    #     "--checkpoints",
+    #     type=str,
+    #     required=True,
+    #     nargs="+",
+    #     help="list of paths or directories to search for model files",
+    # )
+    # parser.add_argument("--extension", type=str, default="pt", help="model extension")
     parser.add_argument(
-        "--checkpoints",
-        type=str,
-        required=True,
-        nargs="+",
-        help="list of paths or directories to search for model files",
+        "--input", type=str, required=True, help="path to mltable input"
     )
-    parser.add_argument("--extension", type=str, default="pt", help="model extension")
     parser.add_argument(
         "--output", type=str, required=True, help="where to write the averaged model"
     )
-    parser.add_argument(
-        "--ancillary_files",
-        type=strtobool,
-        default=False,
-        help="Whether ancillary files need to be copied",
-    )
-    parser.add_argument(
-        "--out_checkpoint_name",
-        type=str,
-        default="model",
-        help=" the name of the output checkpoint, e.g. model for CCFRAUD/MNIST/NER/PNEUMONIA, finetuned_state_dict for Babel models",
-    )
+    # parser.add_argument(
+    #     "--ancillary_files",
+    #     type=strtobool,
+    #     default=False,
+    #     help="Whether ancillary files need to be copied",
+    # )
+    # parser.add_argument(
+    #     "--out_checkpoint_name",
+    #     type=str,
+    #     default="model",
+    #     help=" the name of the output checkpoint, e.g. model for CCFRAUD/MNIST/NER/PNEUMONIA, finetuned_state_dict for Babel models",
+    # )
 
     return parser
 
@@ -146,6 +149,55 @@ class PyTorchStateDictFedAvg:
                     f.write("Hello World!")
 
 
+# def main(cli_args=None):
+#     """Component main function.
+
+#     It parses arguments and executes run() with the right arguments.
+
+#     Args:
+#         cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
+#     """
+#     # build an arg parser
+#     parser = get_arg_parser()
+
+#     # run the parser on cli args
+#     args = parser.parse_args(cli_args)
+
+#     print(f"Running script with arguments: {args}")
+
+#     model_paths = []
+#     for model_path in args.checkpoints:
+#         if os.path.isdir(model_path):
+#             for f in glob.glob(
+#                 os.path.join(model_path, f"*.{args.extension}"), recursive=True
+#             ):
+#                 model_paths.append(f)
+#         else:
+#             model_paths.append(model_path)
+
+#     model_handler = PyTorchStateDictFedAvg()
+#     for model_path in model_paths:
+#         model_handler.add_model(model_path)
+
+#     # check if meta data needed, copy the whole dir
+#     if args.ancillary_files:
+#         for src in os.listdir(args.checkpoints[0]):
+#             src_path = os.path.join(args.checkpoints[0], src)
+#             if os.path.isfile(src_path):
+#                 shutil.copy(src_path, f"{args.output}/{src}")
+#             else:
+#                 shutil.copytree(src_path, f"{args.output}/{src}")
+
+#         # remove the checkpoint, it's from single silo
+#         out_checkpoint_pth = os.path.join(
+#             args.output, f"{args.out_checkpoint_name}.{args.extension}"
+#         )
+#         os.remove(out_checkpoint_pth)
+
+#     model_handler.save_model(
+#         os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
+#     )
+
 def main(cli_args=None):
     """Component main function.
 
@@ -161,38 +213,22 @@ def main(cli_args=None):
     args = parser.parse_args(cli_args)
 
     print(f"Running script with arguments: {args}")
-
+    
     model_paths = []
-    for model_path in args.checkpoints:
-        if os.path.isdir(model_path):
-            for f in glob.glob(
-                os.path.join(model_path, f"*.{args.extension}"), recursive=True
-            ):
-                model_paths.append(f)
-        else:
-            model_paths.append(model_path)
+    import os
+    for subdir, dirs, files in os.walk(args.input):
+        for file in files:
+            print(file)
+            if file.endswith(".pt"):
+                model_paths.append(os.path.join(subdir, file))
 
+    print(model_paths)
     model_handler = PyTorchStateDictFedAvg()
     for model_path in model_paths:
         model_handler.add_model(model_path)
-
-    # check if meta data needed, copy the whole dir
-    if args.ancillary_files:
-        for src in os.listdir(args.checkpoints[0]):
-            src_path = os.path.join(args.checkpoints[0], src)
-            if os.path.isfile(src_path):
-                shutil.copy(src_path, f"{args.output}/{src}")
-            else:
-                shutil.copytree(src_path, f"{args.output}/{src}")
-
-        # remove the checkpoint, it's from single silo
-        out_checkpoint_pth = os.path.join(
-            args.output, f"{args.out_checkpoint_name}.{args.extension}"
-        )
-        os.remove(out_checkpoint_pth)
-
+    
     model_handler.save_model(
-        os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
+        os.path.join(args.output, f"model.pt")
     )
 
 
