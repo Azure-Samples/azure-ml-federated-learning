@@ -133,7 +133,7 @@ module computeDeployment '../computes/vnet_new_aks_with_confcomp.bicep' = {
 
     // networking
     subnetName: subnetName
-    subnetId: vnet.outputs.id
+    subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
 
     tags: tags
   }

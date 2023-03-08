@@ -42,7 +42,6 @@ param orchestratorAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
-  'australiaeast'
   'eastus'
   'westeurope'
 ]
