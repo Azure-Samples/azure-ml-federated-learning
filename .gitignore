@@ -133,3 +133,6 @@ config.json
 
 # for ignoring test jobs
 /examples/pipelines/test*
+
+# for ignoring local sandbox files for debugging/testing
+/sandbox/*
