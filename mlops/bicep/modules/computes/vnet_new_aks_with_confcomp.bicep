@@ -36,7 +36,7 @@ param agentCount int = 2
 @maxValue(1023)
 param osDiskSizeGB int = 0
 
-@description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
+@description('Name of the UAI for the compute cluster')
 param computeUaiName string
 
 @description('Subnet ID')
