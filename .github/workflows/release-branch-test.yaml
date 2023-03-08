@@ -17,22 +17,17 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       provisioning-modules: ${{ steps.filter.outputs.provisioning-modules }}
-      # open-sandbox: ${{ steps.filter.outputs.open-sandbox }}
-      # vnet-sandbox: ${{ steps.filter.outputs.vnet-sandbox }}
       components-helloworld: ${{ steps.filter.outputs.components-helloworld }}
       components-mnist: ${{ steps.filter.outputs.components-mnist }}
       components-utils: ${{ steps.filter.outputs.components-utils }}
       literal: ${{ steps.filter.outputs.literal }}
       scatter-gather: ${{ steps.filter.outputs.scatter-gather }}
       components-pneumonia: ${{ steps.filter.outputs.components-pneumonia }}
-      # components-ner: ${{ steps.filter.outputs.components-ner }}
       components-ccfraud: ${{ steps.filter.outputs.components-ccfraud }}
       pneumonia: ${{ steps.filter.outputs.pneumonia }}
-      # ner: ${{ steps.filter.outputs.ner }}
       ccfraud: ${{ steps.filter.outputs.ccfraud }}
       utils-upload-data: ${{ steps.filter.outputs.utils-upload-data }}
       pneumonia-upload-data: ${{ steps.filter.outputs.pneumonia-upload-data }}
-      # ner-upload-data: ${{ steps.filter.outputs.ner-upload-data }}
       ccfraud-upload-data: ${{ steps.filter.outputs.ccfraud-upload-data }}
       pneumonia-multiply-data: ${{ steps.filter.outputs.pneumonia-multiply-data }}
       utils-multiply-data: ${{ steps.filter.outputs.utils-multiply-data }}
@@ -44,10 +39,6 @@ jobs:
         filters: |
           provisioning-modules:
             - 'mlops/bicep/modules/**'
-        # open-sandbox:
-        #   - 'mlops/bicep/open_sandbox_setup.bicep'
-        # vnet-sandbox:
-        #   - 'mlops/bicep/vnet_publicip_sandbox_setup.bicep'
           components-helloworld:
             - 'examples/components/HELLOWORLD/**'
           components-mnist:
@@ -60,22 +51,16 @@ jobs:
             - 'examples/pipelines/fl_cross_silo_scatter_gather/**'
           components-pneumonia:
             - 'examples/components/PNEUMONIA/**'
-          # components-ner:
-          #   - 'examples/components/NER/**'
           components-ccfraud:
             - 'examples/components/CCFRAUD/**'
           pneumonia:
             - 'examples/pipelines/pneumonia/**'
-          # ner:
-          #   - 'examples/pipelines/ner/**'
           ccfraud:
             - 'examples/pipelines/ccfraud/**'
           utils-upload-data:
             - 'examples/pipelines/utils/upload_data/**'
           pneumonia-upload-data:
             - 'examples/components/PNEUMONIA/upload_data/**'
-          # ner-upload-data:
-          #   - 'examples/components/NER/upload_data/**'
           ccfraud-upload-data:
             - 'examples/components/CCFRAUD/upload_data/**'
           pneumonia-multiply-data:
