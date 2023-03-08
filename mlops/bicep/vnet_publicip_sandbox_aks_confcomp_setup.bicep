@@ -42,13 +42,13 @@ param orchestratorAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
-  'eastus2'
+  'eastus'
   'westeurope'
 ]
 
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param computeSKU string = 'Standard_DC16as_v5'
+param computeSKU string = 'Standard_DC8as_v5'
 
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = true
