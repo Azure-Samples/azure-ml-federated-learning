@@ -2,8 +2,10 @@
 // behind a vnet and subnet, attached to a workspace
 // plus managed identity for permissions management.
 
+// resource group must be specified as scope in az cli or module call
 targetScope = 'resourceGroup'
 
+// required parameters
 @description('Name of AzureML workspace to attach compute+storage to.')
 param machineLearningName string
 
@@ -11,89 +13,54 @@ param machineLearningName string
 param machineLearningRegion string = resourceGroup().location
 
 @description('The name of the Managed Cluster resource.')
-param aksClusterName string
+param computeName string
 
 @description('Specifies the location of the compute resources.')
-param computeRegion string = resourceGroup().location
+param computeRegion string
 
 @description('Optional DNS prefix to use with hosted Kubernetes API server FQDN.')
 @maxLength(54)
-param dnsPrefix string = replace('dnxprefix-${aksClusterName}', '-', '')
+param dnsPrefix string = replace('dnxprefix-${computeName}', '-', '')
+
+// see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
+@description('The size of the Virtual Machine.')
+param agentVMSize string = 'Standard_DC2as_v5'
 
 @description('The number of nodes for the cluster pool.')
 @minValue(1)
 @maxValue(50)
 param agentCount int = 2
 
-@description('Name of the Network Security Group resource')
-param nsgResourceName string = 'nsg-${aksClusterName}'
-
-@description('Name of the vNET resource')
-param vnetResourceName string = 'vnet-${aksClusterName}'
-
-@description('Virtual network address prefix')
-param vnetAddressPrefix string = '10.0.0.0/16'
-
-@description('Subnet address prefix')
-param subnetPrefix string = '10.0.0.0/24'
-
-@description('Subnet name')
-param subnetName string = 'snet-training'
-
-// see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
-@description('The size of the Virtual Machine.')
-param agentVMSize string = 'Standard_DC2as_v5'
-
 @description('Disk size (in GB) to provision for each of the agent pool nodes. This value ranges from 0 to 1023. Specifying 0 will apply the default disk size for that agentVMSize.')
 @minValue(0)
 @maxValue(1023)
 param osDiskSizeGB int = 0
 
-@description('Name of the UAI for the compute cluster.')
-param computeUaiName string = 'uai-${aksClusterName}'
+@description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
+param computeUaiName string
+
+@description('Subnet ID')
+param subnetId string
+
+@description('Subnet name')
+param subnetName string = 'snet-training'
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
-module nsg '../networking/nsg.bicep' = { 
-  name: '${nsgResourceName}-deployment'
-  params: {
-    location: computeRegion
-    nsgName: nsgResourceName
-    tags: tags
-  }
-}
-
-module vnet '../networking/vnet.bicep' = { 
-  name: '${vnetResourceName}-deployment'
-  params: {
-    location: computeRegion
-    virtualNetworkName: vnetResourceName
-    networkSecurityGroupId: nsg.outputs.id
-    vnetAddressPrefix: vnetAddressPrefix
-    subnets: [
-      {
-        name: subnetName
-        addressPrefix: subnetPrefix
-      }
-    ]
-    tags: tags
-  }
-}
-
-// provision a user assigned identify for this silo
-resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+// get an existing user assigned identify for this compute
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
   name: computeUaiName
-  location: computeRegion
-  tags: tags
 }
 
 var identityPrincipalId = uai.properties.principalId
 var userAssignedIdentities = {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
 
+
 resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
-  name: aksClusterName
+  name: computeName
   location: computeRegion
+  tags: tags
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: userAssignedIdentities
@@ -122,7 +89,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
         osType: 'Linux'
         mode: 'System'
         osDiskSizeGB: osDiskSizeGB
-        vnetSubnetID: '${vnet.outputs.id}/subnets/${subnetName}'
+        vnetSubnetID: subnetId
       }
     ]
     apiServerAccessProfile: {
@@ -140,38 +107,35 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
 }
 
 //module azuremlExtension '../azureml/deploy_aks_azureml_extension.bicep' = {
-  module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bicep' = {
-    name: 'deploy-aml-extension-${aksClusterName}'
-    scope: resourceGroup()
-    params: {
-      clusterName: aksClusterName
-    }
-    dependsOn: [
-      aks
-    ]
+module azuremlExtension '../azureml/deploy_aks_azureml_extension_via_script.bicep' = {
+  name: 'deploy-aml-extension-${computeName}'
+  scope: resourceGroup()
+  params: {
+    clusterName: computeName
   }
-  
-  module deployAttachToWorkspace '../azureml/attach_aks_training_to_azureml.bicep' = {
-    name: 'attach-${aksClusterName}-to-aml-${machineLearningName}'
-    scope: resourceGroup()
-    params: {
-      machineLearningName: machineLearningName
-      machineLearningRegion: machineLearningRegion
-      aksResourceId: aks.id
-      aksRegion: aks.location
-      amlComputeName: aksClusterName
-      computeUaiName: computeUaiName
-    }
-    dependsOn: [
-      azuremlExtension
-    ]
+  dependsOn: [
+    aks
+  ]
+}
+
+module deployAttachToWorkspace '../azureml/attach_aks_training_to_azureml.bicep' = {
+  name: 'attach-${computeName}-to-aml-${machineLearningName}'
+  scope: resourceGroup()
+  params: {
+    machineLearningName: machineLearningName
+    machineLearningRegion: machineLearningRegion
+    aksResourceId: aks.id
+    aksRegion: aks.location
+    amlComputeName: computeName
+    computeUaiName: computeUaiName
   }
+  dependsOn: [
+    azuremlExtension
+  ]
+}
 
 // output the compute config for next actions (permission model)
 output identityPrincipalId string = identityPrincipalId
 output compute string = aks.name
 output region string = computeRegion
-output vnetName string = vnet.outputs.name
-output vnetId string = vnet.outputs.id
-output subnetId string = '${vnet.outputs.id}/subnets/${subnetName}'
 output subnetName string = subnetName
