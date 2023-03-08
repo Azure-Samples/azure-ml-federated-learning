@@ -42,8 +42,9 @@ param orchestratorAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
+  'australiaeast'
+  'eastus'
   'westeurope'
-  'northeurope'
 ]
 
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series

@@ -26,15 +26,16 @@ param storageAccountName string = replace('st${pairBaseName}','-','') // replace
 param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 
 @description('Name of the default compute cluster for the pair')
-param computeName string = 'cpu-cluster-${pairBaseName}'
+param computeName string = '${pairBaseName}-01'
 
-@description('VM size for the default compute cluster')
-param computeSKU string = 'Standard_DS3_v2'
+// see https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series
+@description('VM size for the compute cluster')
+param computeSKU string = 'Standard_DC2as_v5'
 
 @description('VM nodes for the default compute cluster')
 param computeNodes int = 4
 
-@description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
+@description('Name of the UAI for the pair compute cluster')
 param uaiName string = 'uai-${pairBaseName}'
 
 @description('Name of the Network Security Group resource')
@@ -77,6 +78,42 @@ param blobPrivateDNSZoneLocation string = 'global'
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
+
+// Virtual network and network security group
+module nsg '../networking/nsg.bicep' = { 
+  name: '${nsgResourceName}-deployment'
+  params: {
+    location: pairRegion
+    nsgName: nsgResourceName
+    tags: tags
+  }
+}
+
+module vnet '../networking/vnet.bicep' = { 
+  name: '${vnetResourceName}-deployment'
+  params: {
+    location: pairRegion
+    virtualNetworkName: vnetResourceName
+    networkSecurityGroupId: nsg.outputs.id
+    vnetAddressPrefix: vnetAddressPrefix
+    subnets: [
+      {
+        name: subnetName
+        addressPrefix: subnetPrefix
+      }
+    ]
+    tags: tags
+  }
+}
+
+// provision a user assigned identify for this compute
+resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: uaiName
+  location: pairRegion
+  tags: tags
+}
+
+
 // create new Azure ML compute
 module computeDeployment '../computes/vnet_new_aks_with_confcomp.bicep' = {
   name: '${pairBaseName}-vnet-aml-compute'
@@ -86,20 +123,18 @@ module computeDeployment '../computes/vnet_new_aks_with_confcomp.bicep' = {
     machineLearningRegion: machineLearningRegion
 
     // compute
-    aksClusterName: computeName
+    computeName: computeName
     computeRegion: pairRegion
     agentVMSize: computeSKU
     agentCount: computeNodes
 
     // identity
-    computeUaiName: uaiName
+    computeUaiName: uai.name
 
     // networking
-    nsgResourceName: nsgResourceName
-    vnetResourceName: vnetResourceName
-    vnetAddressPrefix: vnetAddressPrefix
-    subnetPrefix: subnetPrefix
     subnetName: subnetName
+    subnetId: vnet.outputs.id
+
     tags: tags
   }
 }
@@ -116,7 +151,7 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
     datastoreName: datastoreName
     publicNetworkAccess: storagePublicNetworkAccess
     subnetIds: concat(
-      ['${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'],
+      ['${vnet.outputs.id}/subnets/${subnetName}'],
       allowedSubnetIds
     )
     tags: tags
@@ -133,8 +168,8 @@ module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (s
     resourceServiceId: storageDeployment.outputs.storageId
     resourceName: storageDeployment.outputs.storageName
     pleRootName: 'ple-${storageDeployment.outputs.storageName}-to-${pairBaseName}-st-blob'
-    virtualNetworkId: computeDeployment.outputs.vnetId
-    subnetId: '${computeDeployment.outputs.vnetId}/subnets/${computeDeployment.outputs.subnetName}'
+    virtualNetworkId: vnet.outputs.id
+    subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
     useStaticIPAddress: useStorageStaticIP
     privateIPAddress: storagePLEStaticIP
     privateDNSZoneName: blobPrivateDNSZoneName
@@ -166,6 +201,6 @@ output storageName string = storageDeployment.outputs.storageName
 output storageServiceId string = storageDeployment.outputs.storageId
 output computeName string = computeDeployment.outputs.compute
 output region string = pairRegion
-output vnetName string = computeDeployment.outputs.vnetName
-output vnetId string = computeDeployment.outputs.vnetId
-output subnetId string = computeDeployment.outputs.subnetId
+output vnetName string = vnet.outputs.name
+output vnetId string = vnet.outputs.id
+output subnetId string = '${vnet.outputs.id}/subnets/${subnetName}'
