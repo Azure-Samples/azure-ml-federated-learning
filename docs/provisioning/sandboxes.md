@@ -1,11 +1,10 @@
 # Azure ML Federated Learning Sandboxes
 
-This page describes the different sandboxes that you can **fully provision and use out-of-the-box** with our samples. Each sandbox has distinct properties depending on what you'd like to test.
+This page describes the different sandboxes that you can **fully provision and use out-of-the-box** with our [real-world examples](../real-world-examples/). Each sandbox has distinct properties depending on what you'd like to test.
 
 - [Open Sandbox (eyes-on)](#open-sandbox-eyes-on)
 - [Open workspace, Azure ML compute (cpu+gpu), eyes-off storage](#open-workspace-azure-ml-compute-cpugpu-eyes-off-storage)
 - [Open workspace, Azure Kubernetes Service (with confidential compute), eyes-off storage](#open-workspace-azure-kubernetes-service-with-confidential-compute-eyes-off-storage)
-
 
 ## Open Sandbox (eyes-on)
 
@@ -16,6 +15,7 @@ Deploy a completely open sandbox to allow you to try things out in an eyes-on en
 ### Relevant Documentation
 
 To manually reproduce this full provisioning, see relevant documentation:
+
 - [Create workspace resources you need to get started with Azure Machine Learning](https://learn.microsoft.com/en-us/azure/machine-learning/quickstart-create-resources)
 - [Manage user-assigned managed identities](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-manage-user-assigned-managed-identities)
 
@@ -38,11 +38,12 @@ This sandbox is typical of a cross-geo federated learning scenario. Each silo is
 
 ### Architecture
 
-![](../pics/sandbox_aml_vnet.png)
+![Architecture schema of the solution using AzureML compute and vnets.](../pics/sandbox_aml_vnet.png)
 
 ### Relevant Documentation
 
 To manually reproduce this full provisioning, see relevant documentation:
+
 - [Secure an Azure Machine Learning workspace with virtual networks](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-workspace-vnet)
 - [Compute instance/cluster with public IP](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-training-vnet?tabs=cli%2Crequired#compute-instancecluster-with-public-ip)
 - create a new [vnet and subnet](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview), with a [network security group](https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview)
@@ -69,11 +70,12 @@ Note: to take full benefit of the VMs, you will need to finalize the setup of th
 
 Note: in current sandbox, we're provisioning only in the `eastus` region by default, to allow for capacity and quick deployment.
 
-![](../pics/sandbox_aks_cc_vnet.png)
+![Architecture schema of the solution using confidential compute and vnets.](../pics/sandbox_aks_cc_vnet.png)
 
 ### Relevant Documentation
 
 To manually reproduce this full provisioning, see relevant documentation:
+
 - [Secure an Azure Machine Learning workspace with virtual networks](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-workspace-vnet)
 - [Introduction to Kubernetes compute target in Azure Machine Learning](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-attach-kubernetes-anywhere)
 - [DCasv5 and DCadsv5-series confidential VMs](https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series)
