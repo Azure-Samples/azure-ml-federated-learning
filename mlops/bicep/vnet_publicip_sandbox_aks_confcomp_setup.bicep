@@ -31,7 +31,7 @@ targetScope = 'resourceGroup'
 param demoBaseName string = 'fldemo'
 
 @description('Region of the orchestrator (workspace, central storage and compute).')
-param orchestratorRegion string = resourceGroup().location
+param orchestratorRegion string = 'eastus'
 
 @description('Set the orchestrator storage as private, with endpoints into each silo.')
 @allowed([
@@ -43,12 +43,13 @@ param orchestratorAccess string = 'public'
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
   'eastus'
-  'westeurope'
+  'eastus'
+  'eastus'
 ]
 
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param computeSKU string = 'Standard_DC8as_v5'
+param computeSKU string = 'Standard_DC4as_v5'
 
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = true
