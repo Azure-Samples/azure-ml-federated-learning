@@ -3,8 +3,8 @@
 This page describes the different sandboxes that you can **fully provision and use out-of-the-box** with our samples. Each sandbox has distinct properties depending on what you'd like to test.
 
 - [Open Sandbox (eyes-on)](#open-sandbox-eyes-on)
-- [Open workspace, regular compute (cpu+gpu), eyes-off storage](#open-workspace-regular-compute-cpu-gpu-eyes-off-storage)
-- [Open workspace, confidential compute, eyes-off storage](#open-workspace-confidential-compute-eyes-off-storage)
+- [Open workspace, Azure ML compute (cpu+gpu), eyes-off storage](#open-workspace-azure-ml-compute-cpugpu-eyes-off-storage)
+- [Open workspace, Azure Kubernetes Service (with confidential compute), eyes-off storage](#open-workspace-azure-kubernetes-service-with-confidential-compute-eyes-off-storage)
 
 
 ## Open Sandbox (eyes-on)
