@@ -55,6 +55,8 @@ Deploy an eyes-off sandbox where the computes leverage confidential computing to
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fvnet_publicip_sandbox_aks_confcomp_setup.json)
 
+Note: to take full benefit of the VMs, you will need to finalize the setup of the AKS cluster by [creating an instance type and use it in pipeline configs](./silo_open_aks_with_cc.md#create-instancetype).
+
 ### :exclamation: Important parameters
 
 | Parameter | Description | Values |
