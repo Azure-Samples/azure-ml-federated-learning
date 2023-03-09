@@ -123,6 +123,10 @@ module orchestrator './modules/fl_pairs/vnet_aks_storage_pair.bicep' = {
     useStorageStaticIP: orchestratorAccess == 'private'
     storagePLEStaticIP: '172.19.0.150'
 
+    // IMPORTANT: compute still has public ip to let workspace submit job
+    // traffic regulated by NSG
+    enableNodePublicIp: true
+
     // IMPORTANT: below means all traffic allowed (with permissions via UAI)
     // alternative is vNetOnly for specific vnets, or Disabled for service endpoints
     storagePublicNetworkAccess: orchestratorAccess == 'public' ? 'Enabled' : 'Disabled'
@@ -163,6 +167,10 @@ module silos './modules/fl_pairs/vnet_aks_storage_pair.bicep' = [for i in range(
     // networking
     vnetAddressPrefix: '172.${i+20}.0.0/16'
     subnetPrefix: '172.${i+20}.0.0/22'
+
+    // IMPORTANT: compute still has public ip to let workspace submit job
+    // traffic regulated by NSG
+    enableNodePublicIp: true
 
     // IMPORTANT: below Disabled means data will be only accessible via private service endpoints
     storagePublicNetworkAccess: 'Disabled'

@@ -62,6 +62,9 @@ param subnetName string = 'snet-training'
 @description('Allow other subnets into the storage (need to be in the same region)')
 param allowedSubnetIds array = []
 
+@description('Enable compute node public IP')
+param enableNodePublicIp bool = true
+
 @allowed(['Enabled','vNetOnly','Disabled'])
 @description('Allow or disallow public network access to Storage Account.')
 param storagePublicNetworkAccess string = 'Disabled'
@@ -80,12 +83,14 @@ param tags object = {}
 
 
 // Virtual network and network security group
-module nsg '../networking/nsg.bicep' = { 
+module nsg '../networking/azureml_compute_nsg.bicep' = {
   name: '${nsgResourceName}-deployment'
   params: {
     location: pairRegion
     nsgName: nsgResourceName
     tags: tags
+    workspaceRegion: machineLearningRegion
+    enableNodePublicIp: enableNodePublicIp
   }
 }
 
