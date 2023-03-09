@@ -33,7 +33,7 @@ param existingStorageAccountResourceGroup string
 @description('SubscriptionId of the existing storage account to attach to the pair.')
 param existingStorageAccountSubscriptionId string
 
-@description('Name of the storage container resource to create for the pair')
+@description('Name of the storage container to use for the pair datastore')
 param existingStorageContainerName string = 'private'
 
 @description('Name of the datastore for attaching the storage to the AzureML workspace.')
@@ -82,12 +82,14 @@ param blobPrivateDNSZoneLocation string = 'global'
 param tags object = {}
 
 // Virtual network and network security group
-module nsg '../networking/nsg.bicep' = { 
+module nsg '../networking/azureml_compute_nsg.bicep' = {
   name: '${nsgResourceName}-deployment'
   params: {
     location: pairRegion
     nsgName: nsgResourceName
     tags: tags
+    workspaceRegion: machineLearningRegion
+    enableNodePublicIp: enableNodePublicIp
   }
 }
 
@@ -152,6 +154,7 @@ module storageDeployment '../storages/existing_blob_storage_datastore.bicep' = {
     storageAccountResourceGroup: existingStorageAccountResourceGroup
     storageAccountSubscriptionId: existingStorageAccountSubscriptionId
     storageRegion: pairRegion
+    containerName: existingStorageContainerName
     datastoreName: datastoreName
     tags: tags
   }

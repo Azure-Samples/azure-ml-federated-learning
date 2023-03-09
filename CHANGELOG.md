@@ -1,5 +1,29 @@
 # FL Accelerator Changelog
 
+##  February 2023 release
+
+We are excited to announce the release of the February iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
+
+Some of the major updates we have made include the launch of a vertical federated learning feature, an FL pipeline that offers a native AML FL experience integrated with the factory engine, and benchmark results that reveal a comprehensive comparison between FL and non-FL experiments.
+
+### FL Experience
+- Implemented _Vertical Federated Learning_ and offered a [tutorial](./docs/tutorials/vertical-fl.md) to run MNIST or CCFRAUD examples.
+- Introduced a [scatter-gather](./docs/tutorials/literal-scatter-gather-tutorial.md) pipeline that delivers a real AML FL native experience.
+- Conducted a comprehensive comparison b/w FL and non-FL experiments and the benchmark report can be accessed [here](./docs/concepts/benchmarking.md).
+
+### Provisioning
+- Provided [instructions](./docs/tutorials/update-local-data-to-silo-storage-account.md) and a script to facilitate the upload of local data to a silo storage.
+- Incremental improvements:
+  - Enhanced the network security rules and minimized the workspace dependencies for provisioning resources.
+<!-- ### Documentation -->
+
+<!-- ### Repository structure
+-->
+
+To get started, go [here](./docs/quickstart.md)!
+
+If you find a bug or have a feature request, please open an issue on the [GitHub repository](https://github.com/Azure-Samples/azure-ml-federated-learning/issues).
+
 ##  January 2023 release
 
 We are excited to announce the release of the January iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).
