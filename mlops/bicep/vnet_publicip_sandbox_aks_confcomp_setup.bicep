@@ -38,7 +38,7 @@ param orchestratorRegion string = 'eastus'
   'public'
   'private'
 ])
-param orchestratorAccess string = 'private'
+param orchestratorAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
@@ -47,6 +47,7 @@ param siloRegions array = [
   'eastus'
 ]
 
+// see https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DC4as_v5'
 
@@ -100,7 +101,7 @@ module orchestrator './modules/fl_pairs/vnet_aks_storage_pair.bicep' = {
 
     pairBaseName: '${demoBaseName}-orch'
 
-    computeName: 'cpu-orch' // let's not use demo base name in cluster name
+    computeName: 'orchestrator-01' // let's not use demo base name in cluster name
     computeSKU: computeSKU
     computeNodes: 4
 
@@ -149,12 +150,12 @@ module silos './modules/fl_pairs/vnet_aks_storage_pair.bicep' = [for i in range(
     pairRegion: siloRegions[i]
     tags: tags
 
-    pairBaseName: '${demoBaseName}-silo${i}-${siloRegions[i]}'
+    pairBaseName: '${demoBaseName}-silo${i}'
 
-    computeName: 'cpu-silo${i}' // let's not use demo base name
+    computeName: 'silo${i}-01' // let's not use demo base name in cluster name
     computeSKU: computeSKU
     computeNodes: 4
-    datastoreName: 'datastore_silo${i}_${siloRegions[i]}' // let's not use demo base name
+    datastoreName: 'datastore_silo${i}' // let's not use demo base name
 
     // set R/W permissions for orchestrator UAI towards orchestrator storage
     applyDefaultPermissions: true
