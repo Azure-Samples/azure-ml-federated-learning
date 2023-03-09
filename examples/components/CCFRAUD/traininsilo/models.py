@@ -67,7 +67,7 @@ class SimpleLSTM(nn.Module):
         self.lstm = nn.LSTM(
             input_size=input_dim,
             hidden_size=128,
-            num_layers=4,
+            num_layers=1,
             batch_first=True,
             bidirectional=True,
         )

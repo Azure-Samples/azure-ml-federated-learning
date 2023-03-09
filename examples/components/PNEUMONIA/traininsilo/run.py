@@ -5,6 +5,7 @@ import logging
 import sys
 import os.path
 from distutils.util import strtobool
+import multiprocessing
 
 import mlflow
 from mlflow import log_metric, log_param
@@ -32,6 +33,7 @@ class PTLearner:
         self,
         lr=0.01,
         epochs=5,
+        batch_size=32,
         dp=False,
         dp_target_epsilon=50.0,
         dp_target_delta=1e-5,
@@ -71,6 +73,7 @@ class PTLearner:
         """
         self._lr = lr
         self._epochs = epochs
+        self.batch_size = batch_size
         self._dataset_dir = dataset_dir
         self._experiment_name = experiment_name
         self._iteration_num = iteration_num
@@ -127,11 +130,19 @@ class PTLearner:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        # get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(
+            multiprocessing.cpu_count() // int(os.environ.get("WORLD_SIZE", "1"))
+        )
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             dataset=self.train_dataset_,
-            batch_size=32,
+            batch_size=batch_size,
+            num_workers=num_workers_per_gpu,
             shuffle=(not self._distributed),
             drop_last=True,
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.n_iterations = len(self.train_loader_)
@@ -353,16 +364,18 @@ class PTLearner:
         self.model_.eval()
         test_loss = 0
         correct = 0
+        num_sample = 0
         with torch.no_grad():
             for data, target in self.test_loader_:
                 data, target = data.to(self.device_), target.to(self.device_)
+                num_sample += data.shape[0]
                 output = self.model_(data)
                 test_loss += self.loss_(output, target).item()
                 pred = output.argmax(dim=1, keepdim=True)
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
-        test_loss /= len(self.test_loader_.dataset)
-        acc = correct / len(self.test_loader_.dataset)
+        test_loss /= len(self.test_loader_)
+        acc = correct / num_sample
 
         return test_loss, acc
 
@@ -431,6 +444,9 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training.",
     )
     parser.add_argument(
+        "--batch_size", type=int, required=False, default=32, help="Batch Size"
+    )
+    parser.add_argument(
         "--dp", type=strtobool, required=False, help="differential privacy"
     )
     parser.add_argument(
@@ -463,7 +479,7 @@ def run(args):
     if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
-            rank=int(os.environ["RANK"]),
+            rank=int(os.environ.get("RANK", "0")),
             world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
     elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
@@ -473,6 +489,7 @@ def run(args):
         dataset_dir=args.dataset_name,
         lr=args.lr,
         epochs=args.epochs,
+        batch_size=args.batch_size,
         dp=args.dp,
         dp_target_epsilon=args.dp_target_epsilon,
         dp_target_delta=args.dp_target_delta,
@@ -481,7 +498,7 @@ def run(args):
         experiment_name=args.metrics_prefix,
         iteration_num=args.iteration_num,
         model_path=args.model + "/model.pt",
-        device_id=int(os.environ["RANK"]),
+        device_id=int(os.environ.get("LOCAL_RANK", "0")),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )
