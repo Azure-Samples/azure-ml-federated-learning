@@ -353,7 +353,6 @@ class AMLCommSocket(AMLComm):
         """Close the communication channels gracefully on object dereferencing"""
         self.close()
 
-
 class AMLCommRedis(AMLComm):
     def __init__(
         self,

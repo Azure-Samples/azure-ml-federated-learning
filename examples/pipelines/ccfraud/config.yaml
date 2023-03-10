@@ -57,15 +57,15 @@ data_analysis_parameters:
 
 # training parameters
 training_parameters:
-  num_of_iterations: 3
-  epochs: 3
+  num_of_iterations: 5
+  epochs: 10
   lr: 1e-3
-  batch_size: 500
+  batch_size: 1000
   # Property model_name defines model to be used for training and 
   # must be one of the models defined in the traininsilo/model.py 
   # file for the CCFRAUD component. Options include: 
   # SimpleLinear, SimpleLSTM, SimpleVAE
-  model_name: SimpleLinear
+  model_name: SimpleLSTM
   run_data_analysis: false
 
   # Differential privacy

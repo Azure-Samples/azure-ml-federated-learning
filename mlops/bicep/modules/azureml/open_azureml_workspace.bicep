@@ -97,6 +97,15 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' =
   }
 }
 
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: applicationInsightsName
+  location: (((location == 'eastus2') || (location == 'westcentralus')) ? 'southcentralus' : location)
+  tags: tags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+  }
+}
 
 // ********************************
 // Azure Machine Learning workspace

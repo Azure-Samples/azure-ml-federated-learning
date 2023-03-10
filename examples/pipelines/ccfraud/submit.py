@@ -241,7 +241,7 @@ def fl_ccfraud_basic():
                     mode=silo_config.testing_data.mode,
                     path=silo_config.testing_data.path + f"/test.csv",
                 ),
-                metrics_prefix=silo_config.compute,
+                metrics_prefix=silo_config.computes[0],
                 silo_index=silo_index,
                 **YAML_CONFIG.data_analysis_parameters,
             )
@@ -250,7 +250,7 @@ def fl_ccfraud_basic():
             silo_pre_processing_step.name = f"silo_{silo_index}_data_analysis"
 
             # make sure the compute corresponds to the silo
-            silo_pre_processing_step.compute = silo_config.compute
+            silo_pre_processing_step.compute = silo_config.computes[0]
 
     ######################
     ### PRE-PROCESSING ###
