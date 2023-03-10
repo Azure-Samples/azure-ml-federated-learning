@@ -31,6 +31,12 @@ jobs:
         source-file-path: "mlops/bicep/vnet_publicip_sandbox_setup.bicep"
         target-file-path: "mlops/arm/vnet_publicip_sandbox_setup.json"
 
+    - name: Test vnet aks confcomp sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/vnet_publicip_sandbox_aks_confcomp_setup.bicep"
+        target-file-path: "mlops/arm/vnet_publicip_sandbox_aks_confcomp_setup.json"
+
     - name: Test open compute storage pair ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
       with:
