@@ -37,7 +37,7 @@ from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
 from azure.ai.ml.entities._job.pipeline._io import NodeOutput
 
-# To handle yaml config easily
+# to handle yaml config easily
 from omegaconf import OmegaConf
 
 # Note: This code is using subgraphs (a.k.a. pipeline component) which is currently a PrivatePreview feature subject to change.
