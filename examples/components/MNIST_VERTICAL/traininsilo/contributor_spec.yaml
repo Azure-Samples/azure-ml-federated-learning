@@ -44,6 +44,13 @@ inputs:
   global_rank:
     type: number
     optional: false
+  communication_backend:
+    type: string
+    enum:
+      - socket
+      - redis
+    default: socket
+    optional: true
 
 outputs:
   model:
@@ -64,6 +71,7 @@ command: >-
   $[[--batch_size ${{inputs.batch_size}}]]
   --global_size ${{inputs.global_size}}
   --global_rank ${{inputs.global_rank}}
+  $[[--communication_backend ${{inputs.communication_backend}}]]
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

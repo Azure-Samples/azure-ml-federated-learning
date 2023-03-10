@@ -381,7 +381,7 @@ class AMLCommRedis(AMLComm):
         """
         super().__init__(rank, world_size, run_id)
 
-        if connection_string is None or len(connection_string) == 0:
+        if not connection_string:
             connection_string = self._get_connection_string()
         connection_string = self._format_connection_string(connection_string)
 
