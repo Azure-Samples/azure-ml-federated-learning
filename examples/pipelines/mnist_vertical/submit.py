@@ -214,8 +214,7 @@ def fl_mnist_vertical_basic():
                 metrics_prefix=silo_config.compute,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                local_size=1,
-                local_rank=0,
+                communication_backend=YAML_CONFIG.federated_learning.communication_backend,
             )
             # add a readable name to the step
             silo_training_step.name = f"host_training"
@@ -243,8 +242,7 @@ def fl_mnist_vertical_basic():
                 metrics_prefix=silo_config.compute,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                local_size=1,
-                local_rank=0,
+                communication_backend=YAML_CONFIG.federated_learning.communication_backend,
             )
             # add a readable name to the step
             silo_training_step.name = f"contributor_{silo_index}_training"
