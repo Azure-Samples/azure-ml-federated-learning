@@ -608,7 +608,7 @@ def run(args):
         total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
-        device_id=int(os.environ.get("RANK", "0")),
+        device_id=int(os.environ.get("LOCAL_RANK", "0")),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )
