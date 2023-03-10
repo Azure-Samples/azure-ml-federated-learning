@@ -77,7 +77,7 @@ Once you provision *Azure Cache for Redis* (this can be provisioned in whichever
 1. Go to *Access keys* and copy *Primary connection string*. 
 2. Go to your *Azure Machine Learning workspace* in Azure Portal and click on the *Key Vault* item.
 3. In the Key Vault go to *Secrets* and *Generate* new one with previously copied connection string and the following name "amlcomm-redis-connection-string".
-4. Go to both **host.py** and **contributor.py**, add `from aml_comm import AMLCommRedis` at the top of the file and change **AMLCommSocket** to **AMLCommRedis** while keeping the same parameters as for **AMLCommSocket**.
+4. In your pipeline configuration file change `communication_backend` value from `socket` to `redis`
 5. Continue to training section
 
 ## Training
