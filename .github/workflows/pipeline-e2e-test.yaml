@@ -22,7 +22,7 @@ jobs:
       vnet-sandbox: ${{ steps.filter.outputs.vnet-sandbox }}
       components-helloworld: ${{ steps.filter.outputs.components-helloworld }}
       components-mnist: ${{ steps.filter.outputs.components-mnist }}
-      components-utils: ${{ steps.filter.outputs.components-utils }}
+      components-utils-aggregatemodelweights: ${{ steps.filter.outputs.components-utils-aggregatemodelweights }}
       literal: ${{ steps.filter.outputs.literal }}
       scatter-gather: ${{ steps.filter.outputs.scatter-gather }}
       pneumonia: ${{ steps.filter.outputs.pneumonia }}
@@ -34,7 +34,6 @@ jobs:
       pneumonia-flwr: ${{ steps.filter.outputs.pneumonia-flwr }}
       utils-upload-data: ${{ steps.filter.outputs.utils-upload-data }}
       pneumonia-multiply-data: ${{ steps.filter.outputs.pneumonia-multiply-data }}
-      utils-multiply-data: ${{ steps.filter.outputs.utils-multiply-data }}
     steps:
     - uses: actions/checkout@v2
     - uses: dorny/paths-filter@v2
@@ -59,8 +58,8 @@ jobs:
             - 'examples/components/HELLOWORLD/**'
           components-mnist:
             - 'examples/components/MNIST/**'
-          components-utils:
-            - 'examples/components/utils/**'
+          components-utils-aggregatemodelweights:
+            - 'examples/components/utils/aggregatemodelweights/**'
           literal:
             - 'examples/pipelines/fl_cross_silo_literal/**'
           scatter-gather:
@@ -94,9 +93,9 @@ jobs:
           utils-upload-data:
             - 'examples/pipelines/utils/upload_data/**'
           pneumonia-multiply-data:
-            - 'examples/components/utils/multiple_data_files/**'
-          utils-multiply-data:
-            - 'examples/pipelines/utils/multiple_data_files/**'
+            - 'examples/components/utils/multiply_data_files/**'
+            - 'examples/pipelines/utils/multiply_data_files/**'
+            
 
   arm-template-test:
     runs-on: ubuntu-latest
@@ -354,7 +353,7 @@ jobs:
   pneumonia-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.pneumonia == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.pneumonia == 'true') || (needs.paths-filter.outputs.components-utils-aggregatemodelweights == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -383,7 +382,7 @@ jobs:
   ner-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ner == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ner == 'true') || (needs.paths-filter.outputs.components-utils-aggregatemodelweights == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -412,7 +411,7 @@ jobs:
   ccfraud-test:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ccfraud == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.utils-upload-data == 'true') || (needs.paths-filter.outputs.ccfraud == 'true') || (needs.paths-filter.outputs.components-utils-aggregatemodelweights == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -441,7 +440,7 @@ jobs:
   mnist-vertical-test:
     runs-on: ubuntu-latest
     needs: [paths-filter, vnet-sandbox-test]
-    if: ${{ (needs.paths-filter.outputs.mnist-vertical == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.mnist-vertical == 'true') || (needs.paths-filter.outputs.components-utils-aggregatemodelweights == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -470,7 +469,7 @@ jobs:
   ccfraud-vertical-test:
     runs-on: ubuntu-latest
     needs: [paths-filter, vnet-sandbox-test]
-    if: ${{ (needs.paths-filter.outputs.ccfraud-vertical == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
+    if: ${{ (needs.paths-filter.outputs.ccfraud-vertical == 'true') || (needs.paths-filter.outputs.components-utils-aggregatemodelweights == 'true') }} 
     permissions:
       id-token: write
     steps:
@@ -499,7 +498,7 @@ jobs:
   pneumonia-nvflare-test:
     runs-on: ubuntu-latest
     needs: [paths-filter, vnet-sandbox-test]
-    if: ${{ (needs.paths-filter.outputs.pneumonia-nvflare == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
+    if: ${{ needs.paths-filter.outputs.pneumonia-nvflare == 'true' }} 
     permissions:
       id-token: write
     steps:
@@ -528,7 +527,7 @@ jobs:
   pneumonia-flwr-test:
     runs-on: ubuntu-latest
     needs: [paths-filter, vnet-sandbox-test]
-    if: ${{ (needs.paths-filter.outputs.pneumonia-flwr == 'true') || (needs.paths-filter.outputs.components-utils == 'true') }} 
+    if: ${{ needs.paths-filter.outputs.pneumonia-flwr == 'true' }} 
     permissions:
       id-token: write
     steps:
@@ -557,7 +556,7 @@ jobs:
   pneumonia-multiply-dataset:
     runs-on: ubuntu-latest
     needs: paths-filter
-    if: ${{ (needs.paths-filter.outputs.pneumonia-multiply-data == 'true') || (needs.paths-filter.outputs.utils-multiply-data == 'true') }} 
+    if: ${{ needs.paths-filter.outputs.pneumonia-multiply-data == 'true' }} 
     permissions:
       id-token: write
     steps:
@@ -581,3 +580,13 @@ jobs:
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: ${{ secrets.RESOURCE_GROUP }}
         workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+
+    - name: Submit the PNEUMONIA example pipeline
+      uses: ./.github/actions/submit-example-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: ${{ secrets.RESOURCE_GROUP }}
+        workspace-name: ${{ secrets.AML_WORKSPACE_NAME }}
+        example: pneumonia
