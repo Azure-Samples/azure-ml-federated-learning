@@ -281,9 +281,7 @@ class CCFraudTrainer:
                             preds=predictions.detach(), target=data, threshold=0.5
                         ).item(),
                     )
-                    train_metrics.add_metric(
-                        "loss", loss.item()
-                    )
+                    train_metrics.add_metric("loss", loss.item())
                     train_metrics.step()
 
                     if (i + 1) % num_of_batches_before_logging == 0 or (i + 1) == len(
@@ -457,7 +455,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-    parser.add_argument("--communication_backend", type=str, required=False, default="socket", help="Type of communication to use between the nodes")
+    parser.add_argument(
+        "--communication_backend",
+        type=str,
+        required=False,
+        default="socket",
+        help="Type of communication to use between the nodes",
+    )
     return parser
 
 
