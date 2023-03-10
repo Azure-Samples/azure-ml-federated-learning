@@ -455,7 +455,7 @@ class AMLCommRedis(AMLComm):
             ws = run.experiment.workspace
             kv: Keyvault = ws.get_default_keyvault()
             connection_string = kv.get_secret("amlcomm-redis-connection-string")
-            logger.warning("Got Redis connection string from Azure ML Key Vault")
+            logger.info("Got Redis connection string from Azure ML Key Vault")
             return connection_string
         except Exception as e:
             logger.warning("Failed to get connection string from Azure ML Key Vault")

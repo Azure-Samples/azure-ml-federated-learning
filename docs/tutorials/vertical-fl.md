@@ -76,9 +76,13 @@ In case it is not feasible to use vnets in your case you can fallback on using R
 Once you provision *Azure Cache for Redis* (this can be provisioned in whichever subscription you like):
 1. Go to *Access keys* and copy *Primary connection string*. 
 2. Go to your *Azure Machine Learning workspace* in Azure Portal and click on the *Key Vault* item.
-3. In the Key Vault go to *Secrets* and *Generate* new one with previously copied connection string and the following name "amlcomm-redis-connection-string".
-4. In your pipeline configuration file change `communication_backend` value from `socket` to `redis`
-5. Continue to training section
+3. Open "Access Policies" tab and click "Create".
+4. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
+5. Lookup currently logged in user (using user id or an email), select it and press "Next".
+6. Press "Next" and "Create" in the next screens. We are now able to create a secret in the key vault.
+7. Go to *Secrets* and *Generate* new one with previously copied connection string and the following name "amlcomm-redis-connection-string".
+8. In your pipeline configuration file change `communication_backend` value from `socket` to `redis`
+9. Continue to training section
 
 ## Training
 
