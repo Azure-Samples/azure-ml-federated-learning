@@ -1,4 +1,4 @@
-name: Provision resources
+name: Open Provision resources
 description: Provision resources to perform an FL experiment
 inputs:
   client-id:
