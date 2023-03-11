@@ -8,6 +8,8 @@ aml:
 
 # federated learning parameters
 federated_learning:
+  communication_backend: socket
+
   host:
     compute: orchestrator-01
     datastore: datastore_orchestrator
@@ -55,6 +57,6 @@ federated_learning:
 # training parameters
 training_parameters:
   epochs: 10 # number of epochs per iteration (in-silo training) 
-  lr: 1e-3 # learning rate
-  batch_size: 1000 # batch size
+  lr: 1e-2 # learning rate
+  batch_size: 5000 # batch size
   model_name: SimpleLinear

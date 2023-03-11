@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 import os
-from aml_comm import AMLCommSocket
+from aml_comm import AMLCommSocket, AMLCommRedis
 
 import mlflow
 import torch
@@ -281,18 +281,6 @@ def get_arg_parser(parser=None):
         help="Index of the current silo",
     )
     parser.add_argument(
-        "--local_size",
-        type=int,
-        required=True,
-        help="Number of silos",
-    )
-    parser.add_argument(
-        "--local_rank",
-        type=int,
-        required=True,
-        help="Index of the current silo",
-    )
-    parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
 
@@ -306,6 +294,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--communication_backend",
+        type=str,
+        required=False,
+        default="socket",
+        help="Type of communication to use between the nodes",
+    )
     return parser
 
 
@@ -348,9 +343,16 @@ def main(cli_args=None):
     logger.info(args.train_data)
     logger.info(args.test_data)
 
-    global_comm = AMLCommSocket(
-        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
-    )
+    if args.communication_backend == "socket":
+        global_comm = AMLCommSocket(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    elif args.communication_backend == "redis":
+        global_comm = AMLCommRedis(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    else:
+        raise ValueError("Communication backend not supported")
 
     print(f"Running script with arguments: {args}")
     run(global_comm, args)
