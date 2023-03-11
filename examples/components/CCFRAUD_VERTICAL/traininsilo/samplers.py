@@ -4,7 +4,19 @@ from torch.utils.data import Sampler
 
 
 class VerticallyDistributedBatchSampler(Sampler):
+    """Batch sampler that uses a distributed communication backend to distribute samples indexes to each worker."""
+
     def __init__(self, data_source, batch_size, comm, rank, world_size, shuffle=False):
+        """Initializes the batch sampler.
+
+        Args:
+            data_source (torch.utils.data.Dataset): The dataset to sample from.
+            batch_size (int): The size of the batch to sample.
+            comm (AMLComm): The communicator to use for communication.
+            rank (int): The rank of the current worker.
+            world_size (int): The total number of workers.
+            shuffle (bool, optional): Whether to shuffle the indices. Defaults to False.
+        """
         self.data_source = data_source
         self.batch_size = batch_size
         self.shuffle = shuffle
