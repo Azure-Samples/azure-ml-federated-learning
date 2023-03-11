@@ -328,6 +328,7 @@
                 "friendlyName": "[parameters('machineLearningFriendlyName')]",
                 "description": "[parameters('machineLearningDescription')]",
                 "storageAccount": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                "keyVault": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
                 "applicationInsights": "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
                 "containerRegistry": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                 "hbiWorkspace": "[parameters('hbiWorkspace')]",
