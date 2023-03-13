@@ -3,7 +3,8 @@ import argparse
 import logging
 import sys
 import os
-from aml_comm import AMLCommSocket
+from aml_comm import AMLCommSocket, AMLCommRedis
+from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
 import torch
@@ -104,11 +105,27 @@ class MnistTrainer:
         self.train_dataset_, self.test_dataset_ = self.load_dataset(
             train_data_dir, test_data_dir
         )
+        self.train_sampler_ = VerticallyDistributedBatchSampler(
+            data_source=self.train_dataset_,
+            batch_size=batch_size,
+            comm=self._global_comm,
+            rank=self._global_rank,
+            world_size=self._global_size,
+            shuffle=True,
+        )
+        self.test_sampler_ = VerticallyDistributedBatchSampler(
+            data_source=self.test_dataset_,
+            batch_size=batch_size,
+            comm=self._global_comm,
+            rank=self._global_rank,
+            world_size=self._global_size,
+            shuffle=False,
+        )
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_size=batch_size, shuffle=False
+            self.train_dataset_, batch_sampler=self.train_sampler_
         )
         self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_size=batch_size, shuffle=False
+            self.test_dataset_, batch_sampler=self.test_sampler_
         )
 
         self.model_.to(self.device_)
@@ -348,18 +365,6 @@ def get_arg_parser(parser=None):
         help="Index of the current silo",
     )
     parser.add_argument(
-        "--local_size",
-        type=int,
-        required=True,
-        help="Number of silos",
-    )
-    parser.add_argument(
-        "--local_rank",
-        type=int,
-        required=True,
-        help="Index of the current silo",
-    )
-    parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
 
@@ -373,6 +378,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--communication_backend",
+        type=str,
+        required=False,
+        default="socket",
+        help="Type of communication to use between the nodes",
+    )
     return parser
 
 
@@ -415,9 +427,16 @@ def main(cli_args=None):
     logger.info(args.train_data)
     logger.info(args.test_data)
 
-    global_comm = AMLCommSocket(
-        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
-    )
+    if args.communication_backend == "socket":
+        global_comm = AMLCommSocket(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    elif args.communication_backend == "redis":
+        global_comm = AMLCommRedis(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    else:
+        raise ValueError("Communication backend not supported")
 
     print(f"Running script with arguments: {args}")
     run(global_comm, args)

@@ -4,7 +4,8 @@ import logging
 import sys
 import copy
 import os
-from aml_comm import AMLCommSocket
+from aml_comm import AMLCommSocket, AMLCommRedis
+from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
 import torch
@@ -51,7 +52,6 @@ class CCFraudTrainer:
          Attributes:
              model_: Model
              device_: Location of the model
-             criterion_: BCELoss loss
              optimizer_: Stochastic gradient descent
              train_dataset_: Training Dataset obj
              train_loader_: Training DataLoader
@@ -74,11 +74,27 @@ class CCFraudTrainer:
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
             train_data_dir, test_data_dir, model_name
         )
+        self.train_sampler_ = VerticallyDistributedBatchSampler(
+            data_source=self.train_dataset_,
+            batch_size=batch_size,
+            comm=self._global_comm,
+            rank=self._global_rank,
+            world_size=self._global_size,
+            shuffle=True,
+        )
+        self.test_sampler_ = VerticallyDistributedBatchSampler(
+            data_source=self.test_dataset_,
+            batch_size=batch_size,
+            comm=self._global_comm,
+            rank=self._global_rank,
+            world_size=self._global_size,
+            shuffle=False,
+        )
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_size=batch_size, shuffle=False
+            self.train_dataset_, batch_sampler=self.train_sampler_
         )
         self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_size=batch_size, shuffle=False
+            self.test_dataset_, batch_sampler=self.test_sampler_
         )
 
         # Build model
@@ -87,8 +103,6 @@ class CCFraudTrainer:
             self.device_
         )
         self._model_path = model_path
-
-        self.criterion_ = nn.BCELoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
@@ -126,11 +140,6 @@ class CCFraudTrainer:
             run_id=run_id,
             key=f"batch_size {self._experiment_name}",
             value=self._batch_size,
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"loss {self._experiment_name}",
-            value=self.criterion_.__class__.__name__,
         )
         client.log_param(
             run_id=run_id,
@@ -266,7 +275,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -277,6 +285,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--communication_backend",
+        type=str,
+        required=False,
+        default="socket",
+        help="Type of communication to use between the nodes",
+    )
     return parser
 
 
@@ -318,9 +333,16 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    global_comm = AMLCommSocket(
-        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
-    )
+    if args.communication_backend == "socket":
+        global_comm = AMLCommSocket(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    elif args.communication_backend == "redis":
+        global_comm = AMLCommRedis(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    else:
+        raise ValueError("Communication backend not supported")
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
