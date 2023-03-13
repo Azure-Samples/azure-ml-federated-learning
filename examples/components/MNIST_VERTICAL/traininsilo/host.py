@@ -4,6 +4,7 @@ import logging
 import sys
 import os
 from aml_comm import AMLCommSocket, AMLCommRedis
+from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
 import torch
@@ -104,11 +105,27 @@ class MnistTrainer:
         self.train_dataset_, self.test_dataset_ = self.load_dataset(
             train_data_dir, test_data_dir
         )
+        self.train_sampler_ = VerticallyDistributedBatchSampler(
+            data_source=self.train_dataset_,
+            batch_size=batch_size,
+            comm=self._global_comm,
+            rank=self._global_rank,
+            world_size=self._global_size,
+            shuffle=True,
+        )
+        self.test_sampler_ = VerticallyDistributedBatchSampler(
+            data_source=self.test_dataset_,
+            batch_size=batch_size,
+            comm=self._global_comm,
+            rank=self._global_rank,
+            world_size=self._global_size,
+            shuffle=False,
+        )
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_size=batch_size, shuffle=False
+            self.train_dataset_, batch_sampler=self.train_sampler_
         )
         self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_size=batch_size, shuffle=False
+            self.test_dataset_, batch_sampler=self.test_sampler_
         )
 
         self.model_.to(self.device_)
