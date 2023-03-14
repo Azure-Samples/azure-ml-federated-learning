@@ -29,6 +29,9 @@ param location string = resourceGroup().location
 @description('Specifies whether to reduce telemetry collection and enable additional encryption.')
 param hbiWorkspace bool = false
 
+@description('Name of the application insights resource')
+param applicationInsightsName string = 'appi-${baseName}'
+
 @description('Name of the container registry resource')
 param containerRegistryName string = replace('cr-${baseName}','-','') // replace because only alphanumeric characters are supported
 
@@ -126,6 +129,7 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-10-0
     // dependent resources
     storageAccount: storage.id
     keyVault: keyVault.id
+    applicationInsights: applicationInsights.id
     containerRegistry: containerRegistry.id
     hbiWorkspace: hbiWorkspace
 

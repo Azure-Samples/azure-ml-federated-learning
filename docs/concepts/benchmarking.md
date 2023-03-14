@@ -9,22 +9,11 @@ The main purpose of this benchmark is to show that FL has been implemented corre
 
 
 ## Table of contents
-- [Real-world Example Benchmarks](#real-world-example-benchmarks)
-  - [Table of contents](#table-of-contents)
-  - [1. Methodology](#1-methodology)
-  - [2. Results](#2-results)
-    - [2.1 Training Overhead](#21-training-overhead)
-      - [PNEUMONIA](#pneumonia)
-      - [NER](#ner)
-      - [CCFRAUD](#ccfraud)
-    - [2.2 Model Performance](#22-model-performance)
-      - [PNEUMONIA](#pneumonia-1)
-      - [NER](#ner-1)
-      - [CCFRAUD](#ccfraud-1)
-    - [2.3 Scalability with Training](#23-scalability-with-training)
-      - [PNEUMONIA](#pneumonia-2)
-      - [NER](#ner-2)
-      - [CCFRAUD](#ccfraud-2)
+- [Methodology](#1-methodology)
+- [Results](#2-results)
+   - [Training Overhead](#21-training-overhead)
+   - [Model Performance](#22-model-performance)
+   - [Scalability with Training](#23-scalability-with-training)
 
 ## 1. Methodology
 
