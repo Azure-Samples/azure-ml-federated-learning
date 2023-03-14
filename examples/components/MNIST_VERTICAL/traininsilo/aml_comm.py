@@ -1,9 +1,11 @@
 from abc import ABC
 import sys
+import math
 import time
 import pickle
 import logging
 import socket
+import redis
 
 from enum import Enum
 
@@ -308,7 +310,7 @@ class AMLCommSocket(AMLComm):
         return data
 
     def send(self, data, destination):
-        """Sends tensor to the destination contributor node
+        """Sends data to the destination node
 
         Args:
             data: data to be sent
@@ -326,7 +328,7 @@ class AMLCommSocket(AMLComm):
         self._send(data, destination, FLAGS.DATA, FLAGS.OK_DATA)
 
     def recv(self, source):
-        """Receive tensor from the source rank node
+        """Receives data from the source rank node
 
         Args:
             source: rank of the sender node
@@ -349,4 +351,276 @@ class AMLCommSocket(AMLComm):
 
     def __del__(self):
         """Close the communication channels gracefully on object dereferencing"""
+        self.close()
+
+
+class AMLCommRedis(AMLComm):
+    def __init__(
+        self,
+        rank,
+        world_size,
+        run_id,
+        connection_string=None,
+        message_timeout=600,
+        connect_timeout=1800,
+    ) -> None:
+        """Initializes the AMLCommRedis class
+
+        The authentication to the Redis server is attempted in the following order:
+        1. Using the passed in connection_string if not empty or None.
+        2. Using keyvault secret amlcomm-redis-connection-string.
+        3. Using environment variable AML_COMM_REDIS_CONNECTION_STRING.
+
+        Args:
+            rank (int): rank of the current node
+            world_size (int): total number of nodes
+            run_id (str): run id of the current run
+            connection_string (str, optional): connection string to the Redis server. Defaults to None.
+            message_timeout (int, optional): timeout for the Redis messages. Defaults to 60.
+            connect_timeout (int, optional): timeout for the initial connection to other nodes. Defaults to 1800.
+        """
+        super().__init__(rank, world_size, run_id)
+
+        if not connection_string:
+            connection_string = self._get_connection_string()
+        connection_string = self._format_connection_string(connection_string)
+
+        self._client: redis.Redis = redis.Redis.from_url(
+            connection_string,
+            health_check_interval=60,
+            socket_connect_timeout=connect_timeout,
+            retry_on_timeout=True,
+            socket_keepalive=True,
+        )
+        self._timeout = message_timeout
+        self._max_msg_size = 100 * 1024 * 1024  # 100 MB
+        self._wait_for_connection(connect_timeout)
+
+    def _wait_for_connection(self, connect_timeout: int):
+        if self._rank == 0:
+            connected = []
+            for i in range(1, self._world_size):
+                time_start = time.time()
+                while time.time() - time_start < connect_timeout:
+                    session_id = self._get_session_id(i, self._rank)
+                    message = self._client.xread(
+                        {session_id: 0}, count=1, block=self._timeout * 1000
+                    )
+                    if len(message) > 0:
+                        message_id, message = message[0][1][0]
+                        if b"rank" in message and int(message[b"rank"]) == i:
+                            self._client.xdel(session_id, message_id)
+                            connected.append(i)
+                            logger.info(f"Connected to {i}")
+                            break
+
+            if len(connected) != self._world_size - 1:
+                raise Exception(
+                    f"Some clients did not connect, connected clients: {connected}"
+                )
+            else:
+                for i in range(1, self._world_size):
+                    self._client.xadd(
+                        self._get_session_id(self._rank, i), {"rank": "0"}
+                    )
+                logger.info("All clients connected")
+
+        else:
+            # Notify client 0 about connection
+            session_id = self._get_session_id(self._rank, 0)
+            self._client.xadd(session_id, {"rank": f"{self._rank}"})
+
+            # Wait for confirmation from client 0
+            time_start = time.time()
+            session_id = self._get_session_id(0, self._rank)
+            while time.time() - time_start < connect_timeout:
+                message = self._client.xread(
+                    {session_id: 0}, count=1, block=self._timeout * 1000
+                )
+                if len(message) > 0:
+                    message_id, message = message[0][1][0]
+                    if b"rank" in message and int(message[b"rank"]) == 0:
+                        self._client.xdel(session_id, message_id)
+                        logger.info(f"Connected to 0")
+                        return
+
+            raise Exception(f"Failed to connect to client 0")
+
+    def _get_connection_string(self) -> str:
+        try:
+            from azureml.core import Run, Keyvault
+
+            logger.warning("Getting Redis connection string from Azure ML Key Vault")
+            run = Run.get_context()
+            ws = run.experiment.workspace
+            kv: Keyvault = ws.get_default_keyvault()
+            connection_string = kv.get_secret("amlcomm-redis-connection-string")
+            logger.info("Got Redis connection string from Azure ML Key Vault")
+            return connection_string
+        except Exception as e:
+            logger.warning("Failed to get connection string from Azure ML Key Vault")
+            logger.warning(f"Exception: {e}")
+
+        logger.info("Getting Redis connection string from environment variable")
+        if "AML_COMM_REDIS_CONNECTION_STRING" in os.environ:
+            logger.warning("Got Redis connection string from environment variable")
+            return os.environ["AML_COMM_REDIS_CONNECTION_STRING"]
+        else:
+            logger.warning("Failed to get connection string from environment variable")
+
+        raise Exception("Failed to get Redis connection string")
+
+    def _format_connection_string(self, connection_string: str) -> str:
+        from urllib.parse import urlparse, parse_qs
+
+        connection_string = (
+            connection_string[: connection_string.index(",")]
+            + "?"
+            + connection_string[connection_string.index(",") + 1 :]
+        )
+        connection_string = connection_string.replace(",", "&")
+
+        if parse_qs(urlparse(connection_string).query)["ssl"][0].lower() == "true":
+            connection_string = "rediss://" + connection_string
+            connection_string = connection_string.replace("&ssl=True", "")
+        else:
+            connection_string = "redis://" + connection_string
+            connection_string = connection_string.replace("&ssl=False", "")
+        connection_string = connection_string.replace("&abortConnect=True", "")
+        connection_string = connection_string.replace("&abortConnect=False", "")
+        return connection_string
+
+    def _get_session_id(self, source: int, destination: int, flag: FLAGS = None):
+        if flag is None:
+            return f"{self._run_id}:{source}=>{destination}"
+        return f"{self._run_id}:{source}=>{destination}:{FLAGS[flag].name}"
+
+    def _send(self, data, session_id, destination) -> None:
+        """Sends data to the destination node
+
+        Args:
+            data: data to be sent
+            session_id: session id
+            destination: rank of the receiver node
+        """
+        time_start = time.time()
+        retries = 0
+
+        while time.time() - time_start < self._timeout and retries < 3:
+            try:
+                self._client.xadd(session_id, {"data": data})
+                self._stats["msg_sent"] += 1
+                self._stats["sending_time"] += time.time() - time_start
+                return
+            except Exception as e:
+                logger.exception(
+                    Exception(f"There was problem delivering message to {destination}")
+                )
+                logger.exception(e)
+
+                retries += 1
+                if retries >= 3:
+                    raise e
+
+        e = Exception(f"Sending message to {destination} timed out")
+        logger.exception(e)
+        raise e
+
+    def send(self, data, destination) -> None:
+        """Sends data to the destination node
+
+        Args:
+            data: data to be sent
+            destination: rank of the receiver node
+        """
+        assert destination != self._rank
+        if self._rank != 0:
+            assert destination == 0
+
+        session_id = self._get_session_id(self._rank, destination)
+        binary_data = pickle.dumps(data)
+        binary_data_size = sys.getsizeof(binary_data)
+        self._send(
+            math.ceil(binary_data_size / self._max_msg_size), session_id, destination
+        )
+        for i in range(math.ceil(binary_data_size / self._max_msg_size)):
+            self._send(
+                binary_data[i * self._max_msg_size : (i + 1) * self._max_msg_size],
+                session_id,
+                destination,
+            )
+
+    def _recv(self, session_id, source):
+        """Receives data from the source rank node
+
+        Args:
+            session_id: session id
+            source: rank of the sender node
+        """
+        time_start = time.time()
+        retries = 0
+
+        while time.time() - time_start < self._timeout and retries < 3:
+            try:
+                message = self._client.xread(
+                    {session_id: 0}, count=1, block=self._timeout * 1000
+                )
+                if len(message) > 0:
+                    self._stats["waiting_time"] += time.time() - time_start
+
+                    # Get first message received [0]
+                    # get contents of that message [1]
+                    # get first message in that list [0]
+                    message_id, message = message[0][1][0]
+                    self._client.xdel(session_id, message_id)
+                    self._stats["msg_received"] += 1
+                    self._stats["receiving_time"] += time.time() - time_start
+                    return message[b"data"]
+            except Exception as e:
+                logger.exception(
+                    Exception(f"There was problem receiving message from {source}")
+                )
+                logger.exception(e)
+
+                retries += 1
+                if retries >= 3:
+                    raise e
+
+        e = Exception(f"Receiving message from {source} timed out")
+        logger.exception(e)
+        raise e
+
+    def recv(self, source):
+        """Receives data from the source rank node
+
+        Args:
+            source: rank of the sender node
+        """
+        assert source != self._rank
+        if self._rank != 0:
+            assert source == 0
+
+        session_id = self._get_session_id(source, self._rank)
+        time_start = time.time()
+
+        # Receive number of messages
+        total_packets = int(self._recv(session_id, source))
+
+        # Receive packets
+        data = b"".join([self._recv(session_id, source) for _ in range(total_packets)])
+        data = pickle.loads(data)
+
+        return data
+
+    def close(self):
+        logger.info("Closing Redis clients")
+        if self._rank == 0:
+            for i in range(1, self._world_size):
+                self._client.delete(self._get_session_id(0, i))
+        else:
+            self._client.delete(self._get_session_id(self._rank, 0))
+
+        self._client.close()
+
+    def __del__(self):
         self.close()

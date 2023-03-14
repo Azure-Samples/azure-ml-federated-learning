@@ -9,11 +9,22 @@ The main purpose of this benchmark is to show that FL has been implemented corre
 
 
 ## Table of contents
-- [Methodology](#1-methodology)
-- [Results](#2-results)
-   - [Training Overhead](#21-training-overhead)
-   - [Model Performance](#22-model-performance)
-   - [Scalability with Training](#23-scalability-with-training)
+- [Real-world Example Benchmarks](#real-world-example-benchmarks)
+  - [Table of contents](#table-of-contents)
+  - [1. Methodology](#1-methodology)
+  - [2. Results](#2-results)
+    - [2.1 Training Overhead](#21-training-overhead)
+      - [PNEUMONIA](#pneumonia)
+      - [NER](#ner)
+      - [CCFRAUD](#ccfraud)
+    - [2.2 Model Performance](#22-model-performance)
+      - [PNEUMONIA](#pneumonia-1)
+      - [NER](#ner-1)
+      - [CCFRAUD](#ccfraud-1)
+    - [2.3 Scalability with Training](#23-scalability-with-training)
+      - [PNEUMONIA](#pneumonia-2)
+      - [NER](#ner-2)
+      - [CCFRAUD](#ccfraud-2)
 
 ## 1. Methodology
 
@@ -31,7 +42,7 @@ For the best reproducibility of the benchmark results, here are the hyperparamet
 |:---------:|:-------------:|:--------:|:----------:|:-------------:|
 | PNEUMONIA |       2       |     5    |     32     |      0.01     |
 |    NER    |       2       |     3    |     16     |      0.01     |
-|  CCFRAUD  |       3       |     3    |     500    |      0.001    |
+|  CCFRAUD  |       5       |     10    |     1000    |      0.001    |
 
 
 For benchmark experiments about training overhead and model performance, we compared three models:
@@ -65,7 +76,7 @@ For training overhead, there are two main questions of interest:
 
 The first point is important as it indicates how quickly customers can get their model results, from job submitted to ended. The second point is essential as it is an indication of the money that customers will spend on all computing resources.  
 
-**Key findings**: Our benchmark indicates that the overhead on wall-clock time (1% up to 10%) and computing time (<5%) remains small, meaning that the FL implementation is efficient.
+**Key findings**: Our benchmark indicates that the overhead on wall-clock time (1% up to 7%) and computing time (<5%) remains small, meaning that the FL implementation is efficient.
 
 #### PNEUMONIA
 <p align="center">
@@ -81,9 +92,9 @@ For ner, FL takes only 1.3% longer wall time than centralized-1/3, and only 0.1%
 
 #### CCFRAUD
 <p align="center">
-    <img src="../pics/cc_time.jpg" alt="ccfraud training time" width="600"/>
+    <img src="../pics/ccfraud_time.jpg" alt="ccfraud training time" width="600"/>
 </p>
-For ccfraud, FL takes 10% longer wall time than centralized model, while about 3% longer computing time than centralized-1.
+For ccfraud, FL takes 7% longer wall time than centralized-1/3 model, while about 2% longer computing time than centralized-1.
 
 ### 2.2 Model Performance
 Another important assessing factor for FL is the model performance. Here we also aim at two questions:
@@ -108,10 +119,15 @@ For pneumonia, FL achieves higher accuracy than centralized-1/3, while slightly 
 </p>
 For ner, FL achieves a highest score for all four metrics. Although it is not expected that FL will outperform centeralized-1, it might be because the scatter-aggregate fashion improves the generalizability of the final model.
 
+#### CCFRAUD
+<p align="center">
+    <img src="../pics/ccfraud_acc.jpg" alt="ccfraud training time" width="600"/>
+</p>
+For ccfraud, FL shows comparable performance to centralized-1 in recall and auc, while lower in precision. On the other hand, FL achieves higher scores for all metrics compared to centralized-1/3.
 
 ### 2.3 Scalability with Training
 
-Scalability is critical for industry applications of FL on large datasets. One benefit of using FL on Azure ML is that it supports distributed training (multi GPUs and multi nodes). For this reason, we support distributed training for each real-world example, empowered by Pytorch Distributed Data Parallel (DDP) module. To test the scalability of our implementation, we artificially replicated each datasets by 10 times, and record the training time per epoch for each silo when such data is trained on different number of GPUs.
+Scalability is critical for industry applications of FL on large datasets. One benefit of using FL on Azure ML is that it supports distributed training (multi GPUs and multi nodes). For this reason, we support distributed training for each real-world example, empowered by Pytorch Distributed Data Parallel (DDP) module. To test the scalability of our implementation, we artificially replicated each datasets by 10 times, and record the training time per epoch for each silo when such data is trained on different number of GPUs and machines. For pneumonia example, we also expanded the data to 1TB to demonstrate the scalability of our implementation in extreme cases.
 
 **Key findings**: Our benchmark results shows that in all 3 scenarios, we can achieve scalability by adding more nodes and gpus to reduce wall time accordingly.
 
@@ -119,7 +135,11 @@ Scalability is critical for industry applications of FL on large datasets. One b
 <p align="center">
     <img src="../pics/pneumonia_ddp.jpg" alt="pneumonia distributed training time" width="550"/>
 </p>
-For pneumonia, the training time scales linearly with different number of GPUs for all three silos.
+
+<p align="center">
+    <img src="../pics/pneumonia_ddp_1tb.jpg" alt="pneumonia 1TB distributed training time" width="550"/>
+</p>
+For pneumonia, in both cases (10x on the top, 1TB on the bottom) the training time scales linearly with different number of GPUs for all three silos. For 1TB scenario, given that training was performed on multi-nodes, it demonstrates that the communications among machines are efficient and the overhead is kept at minimum.
 
 #### NER
 <p align="center">
@@ -129,6 +149,6 @@ For ner, the training time scales linearly with different number of GPUs for all
 
 #### CCFRAUD
 <p align="center">
-    <img src="../pics/cc_ddp.jpg" alt="ccfraud distributed training time" width="600"/>
+    <img src="../pics/ccfraud_ddp.jpg" alt="ccfraud distributed training time" width="600"/>
 </p>
 For ccfraud, the training time scales linearly with different number of GPUs for all three silos.

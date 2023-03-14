@@ -69,6 +69,26 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 ## Model preparation for VFL
 It is an ongoing research topic on how the model can be orchestrated in VFL. We have decided to go with the most common approach by splitting it between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and/or activation function. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
 
+## Communication
+The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enable communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
+
+### Sockets
+This is easier to start with as the only **requirement here is that the nodes are interconnected using vnet**. This is also the **default option**. To create this type of communication channel just create instance of a **AMLCommSocket** class with world size, rank of the node and root run id
+
+### Redis streams
+In case it is not feasible to use vnets in your case you can fallback on using Redis. This, however, involves provisioning [Azure Cache for Redis](https://azure.microsoft.com/en-us/products/cache/). Please, make sure that you provision at least **P1 Premium Instance with 6GB cache** for the demos. However, if you would like to use it for your own data and architectures, feel free to scale it according to the needs for messages being sent between the nodes. The reason why we recommend **Premium tier** is due to the network latency and throughput, more information can be found [here](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-best-practices-performance).
+
+Once you provision *Azure Cache for Redis* (this can be provisioned in whichever subscription you like):
+1. Go to *Access keys* and copy *Primary connection string*. 
+2. Go to your *Azure Machine Learning workspace* in Azure Portal and click on the *Key Vault* item.
+3. Open "Access Policies" tab and click "Create".
+4. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
+5. Lookup currently logged in user (using user id or an email), select it and press "Next".
+6. Press "Next" and "Create" in the next screens. We are now able to create a secret in the key vault.
+7. Go to *Secrets* and *Generate* new one with previously copied connection string and the following name "amlcomm-redis-connection-string".
+8. In your pipeline configuration file change `communication_backend` value from `socket` to `redis`
+9. Continue to training section
+
 ## Training
 
 ### Overview
@@ -104,11 +124,13 @@ Afterwards, we can continue with regular training loop:
 
 
 ## Tips and pitfalls
-1. **Vertical Federated Learning comes at a cost**
+1. **Socket timeout**
+   If you happen to get `socket.timeout: timed out` error when launching the training this means that some of the nodes were not able to connect to the training in the threshold (10 minutes). Please make sure your nodes are up and **relaunch the training**.
+2. **Vertical Federated Learning comes at a cost**
     There is significant overhead when launching vertical federated learning due to heavy communication among participants. As we can see in the training loop there are two transfers per each mini-batch. One for forward pass outputs, one for gradients. This means that the training may take longer than expected.
-2. **Intersection and entity alignment**
+3. **Intersection and entity alignment**
    The samples needs to be aligned across participants ahead of the training after we created set intersection of samples that are present on all involved parties. This process can reveal information to other entities that we may want to keep private. Fortunately there are **private set intersection** methods available out there that come to rescue.
-3. **Communication encryption**
+4. **Communication encryption**
     Even though the intermediate outputs and gradients are not raw data, they still have been inferred using private data. Therefore, it's good to use encryption when communicating the data to parties outside of Azure.
 
 ## Additional resources
