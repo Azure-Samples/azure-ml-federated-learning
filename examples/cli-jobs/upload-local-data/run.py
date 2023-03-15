@@ -7,14 +7,7 @@ import shutil
 import pathlib
 from distutils.util import strtobool
 
-from azure.keyvault.keys import KeyClient
-from azure.keyvault.keys.crypto import CryptographyClient, EncryptionAlgorithm
-from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import padding
-
+from confidential_io import config_global_rsa_key, read_encrypted, write_encrypted
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -61,70 +54,6 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def encrypt_file_aes(input_file_path, output_file_path, rsa_client):
-    """Encrypt a file using AES and RSA.
-
-    Args:
-        input_file_path (str): path to the input file
-        output_file_path (str): path to the output file
-        rsa_client (CryptographyClient): client to use for RSA encryption
-
-    Returns:
-        None
-    """
-    # create a random AES key, encrypted using RSA public key
-    aes_key = os.urandom(32)
-    encrypted_aes_key = rsa_client.encrypt(
-        EncryptionAlgorithm.rsa1_5, aes_key
-    ).ciphertext
-    print(len(encrypted_aes_key))
-
-    # plus generate random IV
-    iv = os.urandom(16)
-
-    # create classes
-    cipher = Cipher(algorithms.AES(aes_key), modes.CBC(iv), backend=default_backend())
-    encryptor = cipher.encryptor()
-    padder = padding.PKCS7(algorithms.AES.block_size).padder()
-
-    # read input data as a whole (for now)
-    with open(input_file_path, "rb") as f:
-        data = f.read()
-
-    with open(output_file_path, "wb") as f:
-        f.write(encrypted_aes_key)
-        f.write(iv)
-        f.write(encryptor.update(padder.update(data) + padder.finalize()))
-
-
-def decrypt_file_aes(input_file_path, output_file_path, rsa_client):
-    """Decrypt a file using AES and RSA.
-
-    Args:
-        input_file_path (str): path to the input file
-        output_file_path (str): path to the output file
-        rsa_client (CryptographyClient): client to use for RSA decryption
-
-    Returns:
-        None
-    """
-    # read the data from the input file
-    with open(input_file_path, "rb") as f:
-        encrypted_aes_key = f.read(256)
-        iv = f.read(16)
-        data = f.read()
-
-    # decrypt the key using rsa_client
-    aes_key = rsa_client.decrypt(
-        EncryptionAlgorithm.rsa1_5, encrypted_aes_key
-    ).plaintext
-
-    decryptor = Cipher(algorithms.AES(aes_key), modes.CBC(iv)).decryptor()
-    unpadder = padding.PKCS7(algorithms.AES.block_size).unpadder()
-    with open(output_file_path, "wb") as f:
-        f.write(unpadder.update(decryptor.update(data)) + unpadder.finalize())
-
-
 def run(args):
     """Run the job using cli arguments provided.
 
@@ -139,21 +68,9 @@ def run(args):
         # unencrypted output, just use shutil copytree
         shutil.copytree(args.input_folder, args.output_folder)
     else:
-        if os.environ.get("DEFAULT_IDENTITY_CLIENT_ID"):
-            # running in AzureML with a compute identity assigned
-            credential = ManagedIdentityCredential(
-                client_id=os.environ["DEFAULT_IDENTITY_CLIENT_ID"]
-            )
-        else:
-            credential = DefaultAzureCredential()
+        config_global_rsa_key(args.keyvault, args.key_name)
 
-        # get a client to the keyvault
-        key_client = KeyClient(vault_url=args.keyvault, credential=credential)
-
-        # create crypto client to help with encryption
-        crypto_client = key_client.get_cryptography_client(key_name=args.key_name)
-
-        # use glob to loop through all files recursively
+       # use glob to loop through all files recursively
         for entry in glob.glob(args.input_folder + "/**", recursive=True):
             if os.path.isfile(entry):
                 logging.getLogger(__name__).info(f"Encrypting input file {entry}")
@@ -185,11 +102,18 @@ def run(args):
                 )
 
                 if args.method == "encrypt":
-                    # encrypt the file using a random AES key encrypted using RSA key from keyvault
-                    encrypt_file_aes(entry, output_file_path, crypto_client)
-                elif args.method == "decrypt":
-                    decrypt_file_aes(entry, output_file_path, crypto_client)
+                    with open(entry, mode="r") as f:
+                        plain_content = f.read()
 
+                    with write_encrypted(output_file_path, mode="t") as f:
+                        f.write(plain_content)
+
+                elif args.method == "decrypt":
+                    with read_encrypted(entry, mode="t") as f:
+                        plain_content = f.read()
+
+                    with open(output_file_path, mode="w") as f:
+                        f.write(plain_content)
 
 def main(cli_args=None):
     """Component main function.

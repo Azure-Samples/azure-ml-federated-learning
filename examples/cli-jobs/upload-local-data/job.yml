@@ -1,5 +1,7 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
 
+code: .
+
 command: >
   python run.py 
   --local_data_folder ${{inputs.local_data_folder}} 
