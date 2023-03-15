@@ -4,7 +4,7 @@ command: >
   python run.py 
   --local_data_folder ${{inputs.local_data_folder}} 
   --destination_folder ${{outputs.destination_folder}} 
-  --enable_output_encryption ${{inputs.enable_encryption_at_rest}} 
+  --method ${{inputs.method}} 
   --key_name ${{inputs.encryption_key_name}} 
   --keyvault ${{inputs.encryption_kv_url}}
 
@@ -13,8 +13,10 @@ inputs:
     type: uri_folder
     path: /path/to/local/data/folder # replace '/path/to/local/data/folder' by the actual path to the folder whose contents you want to upload
   
+  method: 'copy' # just copy local to remote
+
   # to enable encryption of the outputs using your own keys
-  enable_encryption_at_rest: false
+  # method: 'encrypt' # encrypt local to remote
   encryption_kv_url: "kv-fldemo" # name of the keyvault
   encryption_key_name: "io_public_key" # name of the secret containing your encryption public key
 
