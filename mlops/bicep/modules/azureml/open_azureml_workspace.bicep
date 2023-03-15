@@ -35,8 +35,8 @@ param applicationInsightsName string = 'appi-${baseName}'
 @description('Name of the container registry resource')
 param containerRegistryName string = replace('cr-${baseName}','-','') // replace because only alphanumeric characters are supported
 
-@description('Name of the key vault resource')
-param keyVaultName string = 'kv-${baseName}'
+@description('Name of the workspace secrets store (shared keyvault) resource')
+param keyVaultName string = 'ws-shkv-${baseName}'
 
 @description('Name of the storage account resource')
 param storageAccountName string = replace('st-${baseName}','-','') // replace because only alphanumeric characters are supported
