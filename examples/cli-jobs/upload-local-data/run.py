@@ -7,7 +7,9 @@ import shutil
 import pathlib
 from distutils.util import strtobool
 
+# local imports
 from confidential_io import config_global_rsa_key, read_encrypted, write_encrypted
+
 
 def get_arg_parser(parser=None):
     """Parse the command line arguments for merge using argparse.
@@ -68,9 +70,9 @@ def run(args):
         # unencrypted output, just use shutil copytree
         shutil.copytree(args.input_folder, args.output_folder)
     else:
-        config_global_rsa_key(args.keyvault, args.key_name)
+        config_global_rsa_key(args.keyvault, args.key_name, lazy_init=False)
 
-       # use glob to loop through all files recursively
+        # use glob to loop through all files recursively
         for entry in glob.glob(args.input_folder + "/**", recursive=True):
             if os.path.isfile(entry):
                 logging.getLogger(__name__).info(f"Encrypting input file {entry}")
@@ -101,6 +103,7 @@ def run(args):
                     f"Encrypting input {entry} to output {output_file_path}"
                 )
 
+                # actually do the operations
                 if args.method == "encrypt":
                     with open(entry, mode="r") as f:
                         plain_content = f.read()
@@ -115,6 +118,20 @@ def run(args):
                     with open(output_file_path, mode="w") as f:
                         f.write(plain_content)
 
+
+def config_logger(logger_name=__name__, level=logging.INFO):
+    """Setup the logger"""
+    # Set logging to sys.out
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(level)
+    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(level)
+    handler.setFormatter(log_format)
+    logger.addHandler(handler)
+    return logger
+
+
 def main(cli_args=None):
     """Component main function.
 
@@ -123,14 +140,10 @@ def main(cli_args=None):
     Args:
         cli_args (List[str], optional): list of args to feed script, useful for debugging. Defaults to None.
     """
-    # Set logging to sys.out
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    log_format = logging.Formatter("[%(asctime)s] [%(levelname)s] - %(message)s")
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(log_format)
-    logger.addHandler(handler)
+    # default main logger
+    config_logger()
+    # add logging for confidential_io
+    config_logger(logger_name="confidential_io")
 
     # build an arg parser
     parser = get_arg_parser()
