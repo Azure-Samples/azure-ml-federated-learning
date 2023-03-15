@@ -16,12 +16,16 @@ _RSA_CRYPTO_CLIENT = None
 
 
 def config_global_rsa_key(
-    keyvault_url, rsa_key_name, managed_identity=None, lazy_init=True
+    keyvault_url=None, rsa_key_name=None, managed_identity=None, lazy_init=True
 ):
     global _KEYVAULT_URL, _RSA_KEY_NAME, _MANAGED_IDENTITY
-    _KEYVAULT_URL = keyvault_url
-    _RSA_KEY_NAME = rsa_key_name
-    _MANAGED_IDENTITY = managed_identity or os.environ.get(
+    _KEYVAULT_URL = _KEYVAULT_URL or keyvault_url or os.environ.get(
+        "CONFIDENTIALITY_KEYVAULT", None
+    )
+    _RSA_KEY_NAME = _RSA_KEY_NAME or rsa_key_name or os.environ.get(
+        "CONFIDENTIALITY_KEY_NAME", None
+    )
+    _MANAGED_IDENTITY = _MANAGED_IDENTITY or managed_identity or os.environ.get(
         "DEFAULT_IDENTITY_CLIENT_ID", None
     )
 
@@ -33,6 +37,7 @@ def config_global_rsa_key(
 def get_rsa_client(keyvault_url=None, rsa_key_name=None, managed_identity=None):
     """Get crypto client from Keyvault for RSA key."""
     global _RSA_CRYPTO_CLIENT, _KEYVAULT_URL, _RSA_KEY_NAME, _MANAGED_IDENTITY
+
     # let's not recreate a new client
     if _RSA_CRYPTO_CLIENT is not None:
         logging.getLogger(__name__).info(
@@ -40,19 +45,16 @@ def get_rsa_client(keyvault_url=None, rsa_key_name=None, managed_identity=None):
         )
         return _RSA_CRYPTO_CLIENT
 
-    # verify input values against internal global variables
-    if keyvault_url:
-        _KEYVAULT_URL = keyvault_url
-    if rsa_key_name:
-        _RSA_KEY_NAME = rsa_key_name
+    # if not done already, capture references from env vars
+    config_global_rsa_key(keyvault_url=keyvault_url, rsa_key_name=rsa_key_name)
 
     if _KEYVAULT_URL is None:
         raise ValueError(
-            "To connect to the keyvault you need to provide its url, call config_global_rsa_key(keyvault_url, rsa_key_name) first or call get_rsa_client() with keyvault_url not None"
+            "To connect to the keyvault you need to provide its url, call config_global_rsa_key(keyvault_url, rsa_key_name) first or call config_global_rsa_key() with keyvault_url not None"
         )
     if _RSA_KEY_NAME is None:
         raise ValueError(
-            "To connect to the keyvault you need to provide a key name, call config_global_rsa_key(keyvault_url, rsa_key_name) first or call get_rsa_client() with rsa_key_name not None"
+            "To connect to the keyvault you need to provide a key name, call config_global_rsa_key(keyvault_url, rsa_key_name) first or call config_global_rsa_key() with rsa_key_name not None"
         )
 
     # get credentials

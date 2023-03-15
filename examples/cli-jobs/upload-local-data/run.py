@@ -62,10 +62,6 @@ def run(args):
     Args:
         args (argparse.Namespace): parsed arguments
     """
-    assert args.method == "copy" or (
-        args.keyvault is not None and args.key_name is not None
-    ), "If --method is encrypt or decrypt, --keyvault and --key_name must be provided"
-
     if args.method == "copy":
         # unencrypted output, just use shutil copytree
         shutil.copytree(args.input_folder, args.output_folder)
@@ -105,17 +101,17 @@ def run(args):
 
                 # actually do the operations
                 if args.method == "encrypt":
-                    with open(entry, mode="r") as f:
+                    with open(entry, mode="rb") as f:
                         plain_content = f.read()
 
-                    with write_encrypted(output_file_path, mode="t") as f:
+                    with write_encrypted(output_file_path, mode="b") as f:
                         f.write(plain_content)
 
                 elif args.method == "decrypt":
-                    with read_encrypted(entry, mode="t") as f:
+                    with read_encrypted(entry, mode="b") as f:
                         plain_content = f.read()
 
-                    with open(output_file_path, mode="w") as f:
+                    with open(output_file_path, mode="wb") as f:
                         f.write(plain_content)
 
 
