@@ -8,6 +8,9 @@ from sklearn.preprocessing import StandardScaler
 import pandas as pd
 import mlflow
 
+# helper with confidentiality
+from confidential_io import read_encrypted, write_encrypted
+
 SCALERS = {}
 
 
@@ -101,8 +104,10 @@ def preprocess_data(
     )
 
     logger.debug(f"Loading data...")
-    train_df = pd.read_csv(raw_training_data + f"/train.csv")
-    test_df = pd.read_csv(raw_testing_data + f"/test.csv")
+    with read_encrypted(raw_training_data + f"/train.csv", mode="t") as train_f:
+        train_df = pd.read_csv(train_f)
+    with read_encrypted(raw_testing_data + f"/test.csv", mode="t") as test_f:
+        test_df = pd.read_csv(test_f)
 
     fraud_weight = (
         train_df["is_fraud"].value_counts()[0] / train_df["is_fraud"].value_counts()[1]
@@ -123,9 +128,12 @@ def preprocess_data(
     test_data = test_data.sort_values(by="trans_date_trans_time")
 
     logger.info(f"Saving processed data to {train_data_dir} and {test_data_dir}")
-    train_data.to_csv(train_data_dir + "/data.csv", index=False)
-    np.savetxt(train_data_dir + "/fraud_weight.txt", np.array([fraud_weight]))
-    test_data.to_csv(test_data_dir + "/data.csv", index=False)
+    with write_encrypted(train_data_dir + "/data.csv", mode="t") as train_f:
+        train_data.to_csv(train_f, index=False)
+    with write_encrypted(test_data_dir + "/data.csv", mode="t") as test_f:
+        test_data.to_csv(test_f, index=False)
+    with write_encrypted(train_data_dir + "/fraud_weight.txt", mode="t") as fraud_f:
+        np.savetxt(fraud_f, np.array([fraud_weight]))
 
     # Mlflow logging
     log_metadata(train_data, test_data, metrics_prefix)
