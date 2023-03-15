@@ -46,7 +46,7 @@ Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api
     az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
     ```
 
-    > Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
+    > Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `ws-secrets-fldemo`.
 
 3. With your newly created permissions, you can now create a secret to store the `kaggleusername`.
 
