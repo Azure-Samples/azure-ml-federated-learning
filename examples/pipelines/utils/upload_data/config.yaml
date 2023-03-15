@@ -20,3 +20,8 @@ federated_learning:
 
     - compute: silo2-01 # we are repeating over the same config for silo 3
       datastore: datastore_silo2
+
+confidentiality:
+  enable: true
+  keyvault: https://kv-data-io.vault.azure.net/
+  key_name: data-io-test-rsa
