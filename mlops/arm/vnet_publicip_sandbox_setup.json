@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "17536075077563434654"
+      "templateHash": "14162201911852613086"
     }
   },
   "parameters": {
@@ -166,7 +166,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "9800239542873115852"
+              "templateHash": "1686050596943569961"
             }
           },
           "parameters": {
@@ -229,9 +229,9 @@
             },
             "keyVaultName": {
               "type": "string",
-              "defaultValue": "[format('kv-{0}', parameters('baseName'))]",
+              "defaultValue": "[format('ws-secrets-{0}', parameters('baseName'))]",
               "metadata": {
-                "description": "Name of the key vault resource"
+                "description": "Name of the workspace secrets store (shared keyvault) resource"
               }
             },
             "storageAccountName": {
