@@ -38,19 +38,20 @@ def get_arg_parser(parser=None):
         default="copy",
     )
 
+    # for local testing
     parser.add_argument(
         "--keyvault",
         type=str,
         required=False,
         default=None,
-        help="url to the keyvault (if --enable_output_encryption is True))",
+        help="url to the keyvault (if --method is 'encrypt')",
     )
     parser.add_argument(
         "--key_name",
         type=str,
         required=False,
         default=None,
-        help="name of the key to draw for encryption (if --enable_output_encryption is True))",
+        help="name of the key to draw for encryption (if --method is 'encrypt')",
     )
 
     return parser
@@ -66,8 +67,6 @@ def run(args):
         # unencrypted output, just use shutil copytree
         shutil.copytree(args.input_folder, args.output_folder)
     else:
-        config_global_rsa_key(args.keyvault, args.key_name, lazy_init=False)
-
         # use glob to loop through all files recursively
         for entry in glob.glob(args.input_folder + "/**", recursive=True):
             if os.path.isfile(entry):

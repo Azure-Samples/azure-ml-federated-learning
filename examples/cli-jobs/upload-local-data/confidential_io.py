@@ -8,12 +8,19 @@ from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import padding
 import logging
+import warnings
+from distutils.util import strtobool
 
 _MANAGED_IDENTITY = None
 _KEYVAULT_URL = None
 _RSA_KEY_NAME = None
 _RSA_CRYPTO_CLIENT = None
 
+# WARNING !!!
+_CONFIDENTIALITY_DISABLED = bool(strtobool(os.environ.get("CONFIDENTIALITY_DISABLE", "False")))
+
+if _CONFIDENTIALITY_DISABLED:
+    warnings.warn("confidentiality has been intentionally disabled using CONFIDENTIALITY_DISABLE=True, all outputs will be left in clear.")
 
 def config_global_rsa_key(
     keyvault_url=None, rsa_key_name=None, managed_identity=None, lazy_init=True
@@ -97,6 +104,10 @@ class read_encrypted:
         self._encoding = encoding
 
     def __enter__(self):
+        if _CONFIDENTIALITY_DISABLED:
+            self._file = open(self._file_path, "r"+self._mode)
+            return self._file
+
         # read the data from the input file
         with open(self._file_path, "rb") as f:
             encrypted_aes_key = f.read(
@@ -143,6 +154,10 @@ class write_encrypted:
         self._encoding = encoding
 
     def __enter__(self):
+        if _CONFIDENTIALITY_DISABLED:
+            self._file = open(self._file_path, "w"+self._mode)
+            return self._file
+
         if self._mode == "t":
             self._file = io.StringIO()
         elif self._mode == "b":
@@ -155,6 +170,10 @@ class write_encrypted:
         return self._file
 
     def __exit__(self, exc_type, exc_value, traceback):
+        if _CONFIDENTIALITY_DISABLED:
+            self._file.close()
+            return
+
         # create a random AES key, encrypted using RSA public key
         aes_key = os.urandom(32)
         encrypted_aes_key = self._rsa_client.encrypt(
