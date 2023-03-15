@@ -14,6 +14,7 @@ runs:
     - name: Build bicep into arm
       shell: bash
       run: |
+        az config set bicep.use_binary_from_path=False
         az bicep install --version v0.14.85
         az bicep build --file ${{ inputs.source-file-path }} --stdout | jq -S . > source.json
 
