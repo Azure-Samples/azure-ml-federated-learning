@@ -76,3 +76,8 @@ training_parameters:
 
   # if you want to use the privacy_engine.make_private method, please set the value of dp_noise_multiplier parameter
   # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
+
+confidentiality:
+  enable: true
+  keyvault: https://<keyvault-name>.vault.azure.net # url of the keyvault
+  key_name: data-io-test-rsa # name of the secret containing your encryption public key
