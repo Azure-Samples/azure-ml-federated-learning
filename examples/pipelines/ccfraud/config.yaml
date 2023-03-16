@@ -78,6 +78,6 @@ training_parameters:
   # dp_noise_multiplier: 1.0 # Noise multiplier - to add noise to gradients (DP)
 
 confidentiality:
-  enable: true
+  enable: false
   keyvault: https://<keyvault-name>.vault.azure.net # url of the keyvault
   key_name: dev-rsa-key # name of the secret containing your encryption public key
