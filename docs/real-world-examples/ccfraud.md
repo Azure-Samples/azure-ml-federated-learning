@@ -87,8 +87,9 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
 
     > :closed_lock_with_key: This job supports [encryption at rest](../concepts/confidentiality.md), during the upload the data will be encrypted to a custom key located in an Azure Key Vault. This is a good practice to ensure that your data is encrypted with a key yourself or your team or the cloud provider doesn't have access to. To turn this on:
-    - check out the `confidentiality` section in the config file in `examples/pipelines/utils/upload_data/config.yaml` and set `enable:true`
-    - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
+    >
+    > - check out the `confidentiality` section in the config file in `examples/pipelines/utils/upload_data/config.yaml` and set `enable:true`
+    > - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
 
 2. Submit the experiment by running:
 
@@ -107,8 +108,9 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ccfraud/` to match your setup.
 
     > :closed_lock_with_key: This demo supports [encryption at rest](../concepts/confidentiality.md), the preprocessing will consume and generate encrypted data (you need to have enabled confidentiality in the previous step). To turn this on:
-    - check out the `confidentiality` section in the config file in `examples/pipelines/ccfraud/config.yaml` and set `enable:true`
-    - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
+    >
+    > - check out the `confidentiality` section in the config file in `examples/pipelines/ccfraud/config.yaml` and set `enable:true`
+    > - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
 
 2. Submit the FL experiment by running:
 
