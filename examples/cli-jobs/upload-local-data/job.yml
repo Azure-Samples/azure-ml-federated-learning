@@ -27,6 +27,6 @@ environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest
 environment_variables:
   # used only if method='encrypt'
   CONFIDENTIALITY_KEYVAULT: https://<keyvault-name>.vault.azure.net # url of the keyvault
-  CONFIDENTIALITY_KEY_NAME: data-io-test-rsa # name of the secret containing your encryption public key
+  CONFIDENTIALITY_KEY_NAME: dev-rsa-key # name of the secret containing your encryption public key
 
 compute: azureml:<your-silo-compute-name> # replace '<your-silo-compute-name>' by the actual compute name for your silo

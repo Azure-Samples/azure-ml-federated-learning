@@ -67,6 +67,9 @@ def run(args):
         # unencrypted output, just use shutil copytree
         shutil.copytree(args.input_folder, args.output_folder)
     else:
+        # if we're using local debug
+        config_global_rsa_key(args.keyvault, args.key_name)
+
         # use glob to loop through all files recursively
         for entry in glob.glob(args.input_folder + "/**", recursive=True):
             if os.path.isfile(entry):

@@ -24,4 +24,4 @@ federated_learning:
 confidentiality:
   enable: true
   keyvault: https://<keyvault-name>.vault.azure.net # url of the keyvault
-  key_name: data-io-test-rsa # name of the secret containing your encryption public key
+  key_name: dev-rsa-key # name of the secret containing your encryption public key
