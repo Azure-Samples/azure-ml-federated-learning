@@ -49,6 +49,7 @@ resource confidentialityKeyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
   }
 }
 
+// Generate a development key for the computes to share
 resource key 'Microsoft.KeyVault/vaults/keys@2022-07-01' = if (createDevRSAKey) {
   parent: confidentialityKeyVault
   name: devKeyName
@@ -64,6 +65,7 @@ resource key 'Microsoft.KeyVault/vaults/keys@2022-07-01' = if (createDevRSAKey) 
   }
 }
 
+// Assign RBAC so that compute identities can perform cryptographic operations
 var keyVaultCryptoUserRoleId = '12338af0-0e69-4776-bea7-57ae8d297424' // Key Vault Crypto User
 
 resource roleAssignments 'Microsoft.Authorization/roleAssignments@2022-04-01' = [ for identityPrincipalId in identitiesEnabledCryptoOperations: {
