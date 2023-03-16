@@ -285,6 +285,11 @@ def fl_ccfraud_basic():
                 "CONFIDENTIALITY_KEYVAULT" : YAML_CONFIG.confidentiality.keyvault,
                 "CONFIDENTIALITY_KEY_NAME" : YAML_CONFIG.confidentiality.key_name,
             }
+        else:
+            silo_upload_data_step.environment_variables = {
+                "CONFIDENTIALITY_DISABLE" : "True",
+            }
+
         # add a readable name to the step
         silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
