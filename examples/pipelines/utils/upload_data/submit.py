@@ -188,13 +188,13 @@ def fl_cross_silo_upload_data():
         # if confidentiality is enabled, add the keyvault and key name as environment variables
         if hasattr(YAML_CONFIG, "confidentiality"):
             silo_upload_data_step.environment_variables = {
-                "CONFIDENTIALITY_DISABLE" : str(not YAML_CONFIG.confidentiality.enable),
-                "CONFIDENTIALITY_KEYVAULT" : YAML_CONFIG.confidentiality.keyvault,
-                "CONFIDENTIALITY_KEY_NAME" : YAML_CONFIG.confidentiality.key_name,
+                "CONFIDENTIALITY_DISABLE": str(not YAML_CONFIG.confidentiality.enable),
+                "CONFIDENTIALITY_KEYVAULT": YAML_CONFIG.confidentiality.keyvault,
+                "CONFIDENTIALITY_KEY_NAME": YAML_CONFIG.confidentiality.key_name,
             }
         else:
             silo_upload_data_step.environment_variables = {
-                "CONFIDENTIALITY_DISABLE" : "True",
+                "CONFIDENTIALITY_DISABLE": "True",
             }
 
         # add a readable name to the step

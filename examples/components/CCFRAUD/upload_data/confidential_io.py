@@ -17,23 +17,34 @@ _RSA_KEY_NAME = None
 _RSA_CRYPTO_CLIENT = None
 
 # WARNING !!!
-_CONFIDENTIALITY_DISABLED = bool(strtobool(os.environ.get("CONFIDENTIALITY_DISABLE", "False")))
+_CONFIDENTIALITY_DISABLED = bool(
+    strtobool(os.environ.get("CONFIDENTIALITY_DISABLE", "False"))
+)
 
 if _CONFIDENTIALITY_DISABLED:
-    warnings.warn("confidentiality has been intentionally disabled using CONFIDENTIALITY_DISABLE=True, all outputs will be left in clear.")
+    warnings.warn(
+        "confidentiality has been intentionally disabled using CONFIDENTIALITY_DISABLE=True, all outputs will be left in clear."
+    )
+
 
 def config_global_rsa_key(
     keyvault_url=None, rsa_key_name=None, managed_identity=None, lazy_init=True
 ):
     global _KEYVAULT_URL, _RSA_KEY_NAME, _MANAGED_IDENTITY
-    _KEYVAULT_URL = _KEYVAULT_URL or keyvault_url or os.environ.get(
-        "CONFIDENTIALITY_KEYVAULT", None
+    _KEYVAULT_URL = (
+        _KEYVAULT_URL
+        or keyvault_url
+        or os.environ.get("CONFIDENTIALITY_KEYVAULT", None)
     )
-    _RSA_KEY_NAME = _RSA_KEY_NAME or rsa_key_name or os.environ.get(
-        "CONFIDENTIALITY_KEY_NAME", None
+    _RSA_KEY_NAME = (
+        _RSA_KEY_NAME
+        or rsa_key_name
+        or os.environ.get("CONFIDENTIALITY_KEY_NAME", None)
     )
-    _MANAGED_IDENTITY = _MANAGED_IDENTITY or managed_identity or os.environ.get(
-        "DEFAULT_IDENTITY_CLIENT_ID", None
+    _MANAGED_IDENTITY = (
+        _MANAGED_IDENTITY
+        or managed_identity
+        or os.environ.get("DEFAULT_IDENTITY_CLIENT_ID", None)
     )
 
     if not lazy_init:
@@ -105,7 +116,7 @@ class read_encrypted:
 
     def __enter__(self):
         if _CONFIDENTIALITY_DISABLED:
-            self._file = open(self._file_path, "r"+self._mode)
+            self._file = open(self._file_path, "r" + self._mode)
             return self._file
 
         # read the data from the input file
@@ -155,7 +166,7 @@ class write_encrypted:
 
     def __enter__(self):
         if _CONFIDENTIALITY_DISABLED:
-            self._file = open(self._file_path, "w"+self._mode)
+            self._file = open(self._file_path, "w" + self._mode)
             return self._file
 
         if self._mode == "t":
