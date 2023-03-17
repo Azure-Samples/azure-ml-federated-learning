@@ -12,7 +12,7 @@ from azureml.core import Run, Workspace
 from azureml.core.keyvault import Keyvault
 
 # helper with confidentiality
-from confidential_io import write_encrypted
+from confidential_io import EncryptedFile
 
 SPLITS = {
     1: [["Midwest", "Northeast", "South", "West"]],
@@ -170,9 +170,9 @@ def run(args):
     train_data_filtered = preprocess_data(train_data_filtered)
     test_data_filtered = preprocess_data(test_data_filtered)
 
-    with write_encrypted(train_path, "t") as train_file:
+    with EncryptedFile(train_path, "tw") as train_file:
         train_data_filtered.to_csv(train_file, index=False)
-    with write_encrypted(test_path, "t") as test_file:
+    with EncryptedFile(test_path, "tw") as test_file:
         test_data_filtered.to_csv(test_file, index=False)
 
 
