@@ -4,6 +4,18 @@
 
 **Dataset** - This example is trained using the Kaggle dataset [**Credit Card Transactions Fraud Detection Dataset**](https://www.kaggle.com/datasets/kartik2112/fraud-detection?datasetId=817870&sortBy=voteCount&types=competitions). This dataset is generated using a simulation that contains both genuine and fraudulent transactions.
 
+## Table of contents
+
+- [Install the required dependencies](#install-the-required-dependencies)
+- [Provision an FL sandbox workspace](#provision-an-fl-sandbox-workspace)
+- [Add your Kaggle credentials to the workspace key vault](#add-your-kaggle-credentials-to-the-workspace-key-vault)
+- [Run a job to download and store the dataset in each silo](#run-a-job-to-download-and-store-the-dataset-in-each-silo)
+- [Run the demo experiment](#run-the-demo-experiment)
+- [Beyond the experiment](#beyond-the-experiment)
+  - [Test model variants](#test-model-variants)
+  - [Scale up using distributed training](#scale-up-using-distributed-training)
+  - [Enable confidentiality with encryption at rest](#enable-confidentiality-with-encryption-at-rest)
+
 ## Install the required dependencies
 
 You'll need python to submit experiments to AzureML. You can install the required dependencies by running:
@@ -86,10 +98,10 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
 
-    > :closed_lock_with_key: This job supports [encryption at rest](../concepts/confidentiality.md), during the upload the data will be encrypted to a custom key located in an Azure Key Vault. This is a good practice to ensure that your data is encrypted with a key yourself or your team or the cloud provider doesn't have access to. To turn this on:
-    >
-    > - check out the `confidentiality` section in the config file in `examples/pipelines/utils/upload_data/config.yaml` and set `enable:true`
-    > - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
+    :closed_lock_with_key: This job supports [encryption at rest](../concepts/confidentiality.md), during the upload the data will be encrypted to a custom key located in an Azure Key Vault. This is a good practice to ensure that your data is encrypted with a key yourself or your team or the cloud provider doesn't have access to. To turn this on:
+
+    - check out the `confidentiality` section in the config file in `examples/pipelines/utils/upload_data/config.yaml` and set `enable:true`
+    - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
 
 2. Submit the experiment by running:
 
@@ -107,10 +119,10 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/ccfraud/` to match your setup.
 
-    > :closed_lock_with_key: This demo supports [encryption at rest](../concepts/confidentiality.md), the preprocessing will consume and generate encrypted data (you need to have enabled confidentiality in the previous step). To turn this on:
-    >
-    > - check out the `confidentiality` section in the config file in `examples/pipelines/ccfraud/config.yaml` and set `enable:true`
-    > - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
+    :closed_lock_with_key: This demo supports [encryption at rest](../concepts/confidentiality.md), the preprocessing will consume and generate encrypted data (you need to have enabled confidentiality in the previous step). To turn this on:
+
+    - check out the `confidentiality` section in the config file in `examples/pipelines/ccfraud/config.yaml` and set `enable:true`
+    - modify your key vault name to match with the base name you used during provisioning (ex: `kv-{basename}`).
 
 2. Submit the FL experiment by running:
 
@@ -124,6 +136,8 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 ## Beyond the experiment
 
+### Test model variants
+
 This sample experiment provides multiple models you can try:
 
 - **SimpleLinear** : a model fully composed of `torch.Linear` layers with `ReLU` activations, takes data as-is sample-by-sample
@@ -132,7 +146,7 @@ This sample experiment provides multiple models you can try:
 
 To switch between models, please update the `config.yaml` file in `examples/pipelines/ccfraud/`. Look for the field `model_name` in the `training_parameters` section (use `SimpleLinear`, `SimpleLSTM`, or `SimpleVAE`).
 
-## Distributed training
+### Scale-up using distributed training
 
 This sample can be ran in distributed fashion, using [PyTorch Data Distributed Parallel (DDP) with NCCL backend](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html). However, this requires us to provision new cluster with >1 CUDA enabled GPUs and allow them to access datastorages in corresponding regions. In order to do so follow these steps for every region you want to run distributed training in:
 
@@ -142,3 +156,13 @@ This sample can be ran in distributed fashion, using [PyTorch Data Distributed P
 - If your cluster can be scaled to more than 1 machine, you can modify `config.yaml` in `examples/pipelines/ccfraud/` by adding `instance_count` to your silo config with number of nodes you would like to run the training on
 
 After performing all these steps you can rerun the experiment and it will run using DDP.
+
+### Enable confidentiality with encryption at rest
+
+As mentioned in the tutorial, this demo supports encryption at rest in the preprocessing phase. This means that the data is encrypted with a custom key that is stored in an Azure Key Vault. This is a good practice to ensure that your data is encrypted with a key that the data science team or the cloud provider doesn't have access to, but can be used by the computes automatically.
+
+In this demo experiment, the data upload encrypts the data with a custom key and stores it in the silo. The preprocessing phase then decrypts the data and uses it to train the model.
+
+Note that we have left the model unencrypted before aggregation, but you could apply this same patter in every single step of your pipeline.
+
+To understand how this works, check `confidential_io.py` in `examples/components/CCFRAUD/upload_data/` and `examples/components/CCFRAUD/preprocessing/`. These files contain the logic to encrypt and decrypt data with a few helper functions.
