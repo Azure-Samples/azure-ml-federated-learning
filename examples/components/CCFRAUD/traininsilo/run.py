@@ -12,13 +12,19 @@ import numpy as np
 from torch import nn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torchmetrics.functional import precision_recall, accuracy
+from torchmetrics.functional import precision_recall, accuracy, auroc
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+import multiprocessing
 from typing import List
 import models as models
 import datasets as datasets
+from distutils.util import strtobool
+
+# DP
+from opacus import PrivacyEngine
+from opacus.validators import ModuleValidator
 
 
 class RunningMetrics:
@@ -85,6 +91,11 @@ class CCFraudTrainer:
         lr=0.01,
         epochs=1,
         batch_size=10,
+        dp=False,
+        dp_target_epsilon=50.0,
+        dp_target_delta=1e-5,
+        dp_max_grad_norm=1.0,
+        total_num_of_iterations=1,
         experiment_name="default-experiment",
         iteration_name="default-iteration",
         device_id=None,
@@ -99,6 +110,11 @@ class CCFraudTrainer:
             lr (float, optional): Learning rate. Defaults to 0.01.
             epochs (int, optional): Epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+            dp (bool, optional): Differential Privacy. Default is False (Note: dp, dp_target_epsilon, dp_target_delta, dp_max_grad_norm, and total_num_of_iterations are defined for the only purpose of DP and can be ignored when users don't want to use Differential Privacy)
+            dp_target_epsilon (float, optional): DP target epsilon. Default is 50.0
+            dp_target_delta (float, optional): DP target delta. Default is 1e-5
+            dp_max_grad_norm (float, optional): DP max gradient norm. Default is 1.0
+            total_num_of_iterations (int, optional): Total number of iterations. Defaults to 1
             device_id (int, optional): Device id to run training on. Default to None.
             distributed (bool, optional): Whether to run distributed training. Default to False.
 
@@ -147,10 +163,18 @@ class CCFraudTrainer:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        # get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(
+            multiprocessing.cpu_count() // int(os.environ.get("WORLD_SIZE", "1"))
+        )
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             self.train_dataset_,
             batch_size=batch_size,
+            num_workers=num_workers_per_gpu,
             shuffle=(self.train_sampler_ is None),
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
@@ -174,7 +198,51 @@ class CCFraudTrainer:
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
+
+        # DP
+        logger.info(f"DP: {dp}")
+        if dp:
+            if not ModuleValidator.is_valid(self.model_):
+                self.model_ = ModuleValidator.fix(self.model_)
+
         self.optimizer_ = Adam(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
+
+        if dp:
+            privacy_engine = PrivacyEngine(secure_mode=False)
+            """secure_mode: Set to True if cryptographically strong DP guarantee is
+            required. secure_mode=True uses secure random number generator for
+            noise and shuffling (as opposed to pseudo-rng in vanilla PyTorch) and
+            prevents certain floating-point arithmetic-based attacks.
+            See :meth:~opacus.optimizers.optimizer._generate_noise for details.
+            When set to True requires torchcsprng to be installed"""
+            (
+                self.model_,
+                self.optimizer_,
+                self.train_loader_,
+            ) = privacy_engine.make_private_with_epsilon(
+                module=self.model_,
+                optimizer=self.optimizer_,
+                data_loader=self.train_loader_,
+                epochs=total_num_of_iterations * epochs,
+                target_epsilon=dp_target_epsilon,
+                target_delta=dp_target_delta,
+                max_grad_norm=dp_max_grad_norm,
+            )
+
+            """
+            You can also obtain their counterparts by passing the noise multiplier. 
+            Please refer to the following function.
+            privacy_engine.make_private(
+                module=self.model_,
+                optimizer=self.optimizer_,
+                data_loader=self.train_loader_,
+                noise_multiplier=dp_noise_multiplier,
+                max_grad_norm=dp_max_grad_norm,
+            )
+            """
+            logger.info(
+                f"Target epsilon: {dp_target_epsilon}, delta: {dp_target_delta} and noise multiplier: {self.optimizer_.noise_multiplier}"
+            )
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -252,9 +320,13 @@ class CCFraudTrainer:
         if checkpoint:
             if self._distributed:
                 # DDP comes with "module." prefix: https://pytorch.org/docs/stable/generated/torch.nn.parallel.DistributedDataParallel.html
-                self.model_.module.load_state_dict(torch.load(checkpoint + "/model.pt"))
+                self.model_.module.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
             else:
-                self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+                self.model_.load_state_dict(
+                    torch.load(checkpoint + "/model.pt", map_location=self.device_)
+                )
 
         with mlflow.start_run() as mlflow_run:
             num_of_batches_before_logging = 5
@@ -270,11 +342,9 @@ class CCFraudTrainer:
             logger.debug("Local training started")
 
             train_metrics = RunningMetrics(
-                ["loss", "accuracy", "precision", "recall"], prefix="train"
+                ["loss", "accuracy", "precision", "recall", "auroc"], prefix="train"
             )
-            test_metrics = RunningMetrics(
-                ["accuracy", "precision", "recall"], prefix="test"
-            )
+
             for epoch in range(1, self._epochs + 1):
                 self.model_.train()
                 train_metrics.reset_global()
@@ -300,6 +370,10 @@ class CCFraudTrainer:
                     precision, recall = precision_recall(
                         preds=predictions.detach(), target=labels
                     )
+                    auroc_metric = auroc(
+                        preds=predictions.detach(), target=labels, task="binary"
+                    )
+                    train_metrics.add_metric("auroc", auroc_metric.item())
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
@@ -387,7 +461,7 @@ class CCFraudTrainer:
     def test(self):
         """Test the trained model and report test loss and accuracy"""
         test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall"], prefix="test"
+            ["loss", "accuracy", "precision", "recall", "auroc"], prefix="test"
         )
 
         self.model_.eval()
@@ -406,6 +480,10 @@ class CCFraudTrainer:
                 precision, recall = precision_recall(
                     preds=predictions.detach(), target=labels
                 )
+                auroc_metric = auroc(
+                    preds=predictions.detach(), target=labels, task="binary"
+                )
+                test_metrics.add_metric("auroc", auroc_metric.item())
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
                 test_metrics.add_metric(
@@ -465,7 +543,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--iteration_name", type=str, required=False, help="Iteration name"
     )
-
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -476,6 +553,24 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--dp", type=strtobool, required=False, help="differential privacy"
+    )
+    parser.add_argument(
+        "--dp_target_epsilon", type=float, required=False, help="DP target epsilon"
+    )
+    parser.add_argument(
+        "--dp_target_delta", type=float, required=False, help="DP target delta"
+    )
+    parser.add_argument(
+        "--dp_max_grad_norm", type=float, required=False, help="DP max gradient norm"
+    )
+    parser.add_argument(
+        "--total_num_of_iterations",
+        type=int,
+        required=False,
+        help="Total number of iterations",
+    )
     return parser
 
 
@@ -489,13 +584,13 @@ def run(args):
     logger.info(f"Distributed process rank: {os.environ['RANK']}")
     logger.info(f"Distributed world size: {os.environ['WORLD_SIZE']}")
 
-    if int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available():
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
-            rank=int(os.environ["RANK"]),
-            world_size=int(os.environ["WORLD_SIZE"]),
+            rank=int(os.environ.get("RANK", "0")),
+            world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
-    elif int(os.environ["WORLD_SIZE"]) > 1:
+    elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.init_process_group("gloo")
 
     trainer = CCFraudTrainer(
@@ -506,14 +601,20 @@ def run(args):
         lr=args.lr,
         epochs=args.epochs,
         batch_size=args.batch_size,
+        dp=args.dp,
+        dp_target_epsilon=args.dp_target_epsilon,
+        dp_target_delta=args.dp_target_delta,
+        dp_max_grad_norm=args.dp_max_grad_norm,
+        total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
-        device_id=int(os.environ["RANK"]),
-        distributed=int(os.environ["WORLD_SIZE"]) > 1 and torch.cuda.is_available(),
+        device_id=int(os.environ.get("LOCAL_RANK", "0")),
+        distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
+        and torch.cuda.is_available(),
     )
     trainer.execute(args.checkpoint)
 
-    if torch.cuda.is_available() or int(os.environ["WORLD_SIZE"]) > 1:
+    if int(os.environ.get("WORLD_SIZE", "1")) > 1:
         dist.destroy_process_group()
 
 
@@ -540,7 +641,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

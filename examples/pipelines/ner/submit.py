@@ -237,14 +237,20 @@ def fl_ner_basic():
                 path=silo_config.testing_data.path,
             ),
             tokenizer_name=YAML_CONFIG.training_parameters.tokenizer_name,
-            metrics_prefix=silo_config.compute,
+            metrics_prefix=silo_config.name,
         )
 
         # add a readable name to the step
         silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
 
         # make sure the compute corresponds to the silo
-        silo_pre_processing_step.compute = silo_config.compute
+        silo_pre_processing_step.compute = silo_config.computes[0]
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            silo_pre_processing_step.resources = {
+                "instance_type": silo_config.instance_type
+            }
 
         # assign instance type for AKS, if available
         if hasattr(silo_config, "instance_type"):
@@ -287,7 +293,7 @@ def fl_ner_basic():
         # for each silo, run a distinct training with its own inputs and outputs
         for silo_index, silo_config in enumerate(YAML_CONFIG.federated_learning.silos):
             # Determine number of processes to deploy on a given compute cluster node
-            silo_processes = get_gpus_count(silo_config.compute)
+            silo_processes = get_gpus_count(silo_config.computes[0])
 
             # We need to reload component because otherwise all the instances will share same
             # value for process_count_per_instance
@@ -309,8 +315,18 @@ def fl_ner_basic():
                 epochs=YAML_CONFIG.training_parameters.epochs,
                 # Dataloader batch size
                 batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Differential Privacy
+                dp=YAML_CONFIG.training_parameters.dp,
+                # DP target epsilon
+                dp_target_epsilon=YAML_CONFIG.training_parameters.dp_target_epsilon,
+                # DP target delta
+                dp_target_delta=YAML_CONFIG.training_parameters.dp_target_delta,
+                # DP max gradient norm
+                dp_max_grad_norm=YAML_CONFIG.training_parameters.dp_max_grad_norm,
+                # Total num of iterations
+                total_num_of_iterations=YAML_CONFIG.training_parameters.num_of_iterations,
                 # Silo name/identifier
-                metrics_prefix=silo_config.compute,
+                metrics_prefix=silo_config.name,
                 # Iteration number
                 iteration_num=iteration,
                 # Tokenizer name
@@ -322,7 +338,26 @@ def fl_ner_basic():
             silo_training_step.name = f"silo_{silo_index}_training"
 
             # make sure the compute corresponds to the silo
-            silo_training_step.compute = silo_config.compute
+            silo_training_step.compute = silo_config.computes[0]
+
+            # set distribution according to the number of available GPUs (1 in case of only CPU available)
+            silo_training_step.distribution.process_count_per_instance = silo_processes
+
+            # set number of instances to distribute training across
+            if hasattr(silo_config, "instance_count"):
+                if silo_training_step.resources is None:
+                    silo_training_step.resources = {}
+                silo_training_step.resources[
+                    "instance_count"
+                ] = silo_config.instance_count
+
+            # assign instance type for AKS, if available
+            if hasattr(silo_config, "instance_type"):
+                if silo_training_step.resources is None:
+                    silo_training_step.resources = {}
+                silo_training_step.resources[
+                    "instance_type"
+                ] = silo_config.instance_type
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
             silo_training_step.distribution.process_count_per_instance = silo_processes

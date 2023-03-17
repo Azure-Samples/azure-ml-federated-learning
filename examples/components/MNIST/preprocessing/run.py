@@ -59,10 +59,13 @@ class MnistDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx):
+        if self.Y is None:
+            if self.transform is not None:
+                return self.transform(self.X[idx])
+            else:
+                return self.X[idx]
         if self.transform is not None:
             return self.transform(self.X[idx]), self.Y[idx]
-        elif self.Y is None:
-            return [self.X[idx]]
         return self.X[idx], self.Y[idx]
 
 
@@ -190,7 +193,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.13.1.58284",
-      "templateHash": "8189790991693936999"
+      "version": "0.14.85.62628",
+      "templateHash": "7560492308759527952"
     }
   },
   "parameters": {
@@ -37,9 +37,9 @@
     "siloRegions": {
       "type": "array",
       "defaultValue": [
-        "westus",
-        "francecentral",
-        "brazilsouth"
+        "australiaeast",
+        "eastus",
+        "westeurope"
       ],
       "metadata": {
         "description": "List of each region in which to create an internal silo."
@@ -47,7 +47,7 @@
     },
     "compute1SKU": {
       "type": "string",
-      "defaultValue": "Standard_DS3_v2",
+      "defaultValue": "Standard_DS4_v2",
       "metadata": {
         "description": "The VM used for creating compute clusters in orchestrator and silos."
       }
@@ -61,7 +61,7 @@
     },
     "compute2SKU": {
       "type": "string",
-      "defaultValue": "Standard_DS3_v2",
+      "defaultValue": "Standard_NC6",
       "metadata": {
         "description": "The VM used for creating a second compute cluster in orchestrator and silos."
       }
@@ -116,8 +116,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "2700657795304116427"
+              "version": "0.14.85.62628",
+              "templateHash": "1072571431826254999"
             }
           },
           "parameters": {
@@ -138,7 +138,7 @@
             },
             "machineLearningFriendlyName": {
               "type": "string",
-              "defaultValue": "Sandbox workspace",
+              "defaultValue": "[format('{0} (sandbox/open)', parameters('baseName'))]",
               "metadata": {
                 "description": "Machine learning workspace display name"
               }
@@ -180,9 +180,9 @@
             },
             "keyVaultName": {
               "type": "string",
-              "defaultValue": "[format('kv-{0}', parameters('baseName'))]",
+              "defaultValue": "[format('ws-shkv-{0}', parameters('baseName'))]",
               "metadata": {
-                "description": "Name of the key vault resource"
+                "description": "Name of the workspace secrets store (shared keyvault) resource"
               }
             },
             "storageAccountName": {
@@ -190,27 +190,6 @@
               "defaultValue": "[replace(format('st-{0}', parameters('baseName')), '-', '')]",
               "metadata": {
                 "description": "Name of the storage account resource"
-              }
-            },
-            "defaultComputeName": {
-              "type": "string",
-              "defaultValue": "cpu-cluster",
-              "metadata": {
-                "description": "Name of the default compute cluster in orchestrator"
-              }
-            },
-            "defaultComputeSKU": {
-              "type": "string",
-              "defaultValue": "Standard_DS3_v2",
-              "metadata": {
-                "description": "VM size for the default compute cluster"
-              }
-            },
-            "defaultComputeNodes": {
-              "type": "int",
-              "defaultValue": 4,
-              "metadata": {
-                "description": "VM nodes for the default compute cluster"
               }
             },
             "tags": {
@@ -289,7 +268,7 @@
             },
             {
               "type": "Microsoft.MachineLearningServices/workspaces",
-              "apiVersion": "2022-05-01",
+              "apiVersion": "2022-10-01",
               "name": "[parameters('machineLearningName')]",
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
@@ -304,8 +283,7 @@
                 "applicationInsights": "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
                 "containerRegistry": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('containerRegistryName'))]",
                 "hbiWorkspace": "[parameters('hbiWorkspace')]",
-                "publicNetworkAccess": "Enabled",
-                "imageBuildCompute": "[parameters('defaultComputeName')]"
+                "publicNetworkAccess": "Enabled"
               },
               "dependsOn": [
                 "[resourceId('Microsoft.Insights/components', parameters('applicationInsightsName'))]",
@@ -313,49 +291,12 @@
                 "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
                 "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
               ]
-            },
-            {
-              "type": "Microsoft.MachineLearningServices/workspaces/computes",
-              "apiVersion": "2022-05-01",
-              "name": "[format('{0}/{1}', parameters('machineLearningName'), parameters('defaultComputeName'))]",
-              "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
-              "identity": {
-                "type": "SystemAssigned"
-              },
-              "properties": {
-                "computeType": "AmlCompute",
-                "computeLocation": "[parameters('location')]",
-                "description": "default cluster",
-                "disableLocalAuth": true,
-                "properties": {
-                  "vmPriority": "Dedicated",
-                  "vmSize": "[parameters('defaultComputeSKU')]",
-                  "enableNodePublicIp": true,
-                  "isolatedNetwork": false,
-                  "osType": "Linux",
-                  "remoteLoginPortPublicAccess": "NotSpecified",
-                  "scaleSettings": {
-                    "maxNodeCount": "[parameters('defaultComputeNodes')]",
-                    "minNodeCount": 0,
-                    "nodeIdleTimeBeforeScaleDown": "PT300S"
-                  },
-                  "subnet": "[json('null')]"
-                }
-              },
-              "dependsOn": [
-                "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('machineLearningName'))]"
-              ]
             }
           ],
           "outputs": {
             "storageName": {
               "type": "string",
               "value": "[parameters('storageAccountName')]"
-            },
-            "computeName": {
-              "type": "string",
-              "value": "[format('{0}/{1}', parameters('machineLearningName'), parameters('defaultComputeName'))]"
             },
             "workspaceName": {
               "type": "string",
@@ -401,7 +342,16 @@
             "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
+          },
+          "compute2": {
+            "value": false
+          },
+          "compute2SKU": {
+            "value": "[parameters('compute2SKU')]"
+          },
+          "compute2Name": {
+            "value": "orchestrator-02"
           },
           "compute2": {
             "value": "[parameters('compute2')]"
@@ -428,8 +378,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "18086147921670967123"
+              "version": "0.14.85.62628",
+              "templateHash": "17130926876543764853"
             }
           },
           "parameters": {
@@ -592,8 +542,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "11798981346718210369"
+                      "version": "0.14.85.62628",
+                      "templateHash": "8073065165220131475"
                     }
                   },
                   "parameters": {
@@ -858,8 +808,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "16833630592776216645"
+                      "version": "0.14.85.62628",
+                      "templateHash": "5985899113874875908"
                     }
                   },
                   "parameters": {
@@ -1023,8 +973,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "16833630592776216645"
+                      "version": "0.14.85.62628",
+                      "templateHash": "5985899113874875908"
                     }
                   },
                   "parameters": {
@@ -1167,8 +1117,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "8496672138142568903"
+                      "version": "0.14.85.62628",
+                      "templateHash": "7765934047439622108"
                     }
                   },
                   "parameters": {
@@ -1285,7 +1235,16 @@
             "value": "[parameters('compute1SKU')]"
           },
           "computeNodes": {
-            "value": 4
+            "value": 2
+          },
+          "compute2": {
+            "value": "[parameters('compute2')]"
+          },
+          "compute2SKU": {
+            "value": "[parameters('compute2SKU')]"
+          },
+          "compute2Name": {
+            "value": "[format('silo{0}-02', range(0, variables('siloCount'))[copyIndex()])]"
           },
           "compute2": {
             "value": "[parameters('compute2')]"
@@ -1312,8 +1271,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "18086147921670967123"
+              "version": "0.14.85.62628",
+              "templateHash": "17130926876543764853"
             }
           },
           "parameters": {
@@ -1476,8 +1435,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "11798981346718210369"
+                      "version": "0.14.85.62628",
+                      "templateHash": "8073065165220131475"
                     }
                   },
                   "parameters": {
@@ -1742,8 +1701,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "16833630592776216645"
+                      "version": "0.14.85.62628",
+                      "templateHash": "5985899113874875908"
                     }
                   },
                   "parameters": {
@@ -1907,8 +1866,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "16833630592776216645"
+                      "version": "0.14.85.62628",
+                      "templateHash": "5985899113874875908"
                     }
                   },
                   "parameters": {
@@ -2051,8 +2010,8 @@
                   "metadata": {
                     "_generator": {
                       "name": "bicep",
-                      "version": "0.13.1.58284",
-                      "templateHash": "8496672138142568903"
+                      "version": "0.14.85.62628",
+                      "templateHash": "7765934047439622108"
                     }
                   },
                   "parameters": {
@@ -2160,8 +2119,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "8496672138142568903"
+              "version": "0.14.85.62628",
+              "templateHash": "7765934047439622108"
             }
           },
           "parameters": {

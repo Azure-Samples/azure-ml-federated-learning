@@ -41,6 +41,8 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
+
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
@@ -56,8 +58,10 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
+
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
-#### References
+## References
 
 - [HuggingFace Token Classification](https://huggingface.co/course/chapter7/2?fw=pt#token-classification)

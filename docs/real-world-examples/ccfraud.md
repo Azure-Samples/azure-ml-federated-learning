@@ -2,7 +2,7 @@
 
 **Scenario** - This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for credit card fraud detection in federating learning fashion. The example utilizes multitude of model architectures to demonstrate versatility of the proposed solution on a typical use case for the finance indutry. We have simulated a FL scenario by splitting the data into **distinct geo-location**. The sample provides a simple implementation  for **preprocessing** on **tabular data**.
 
-**Dataset** - This example is trained using the Kaggle dataset [**Credit Card Transactions Fraud Detection Dataset**](https://www.kaggle.com/datasets/kartik2112/fraud-detection?datasetId=817870&sortBy=voteCount&types=competitions). This dataset is generated using a simulation that contains both genuine and fraudulent transactions. 
+**Dataset** - This example is trained using the Kaggle dataset [**Credit Card Transactions Fraud Detection Dataset**](https://www.kaggle.com/datasets/kartik2112/fraud-detection?datasetId=817870&sortBy=voteCount&types=competitions). This dataset is generated using a simulation that contains both genuine and fraudulent transactions.
 
 ## Install the required dependencies
 
@@ -33,25 +33,35 @@ Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api
 
 ### Option 1: using Azure CLI
 
-1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step. 
-```bash
-az ad signed-in-user show | jq ".id"
-```
+1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step.
+
+    ```bash
+    az ad signed-in-user show --query id
+    ```
+
 2. Create a new key vault policy for yourself, and grant permissions to list, set & delete secrets.
-```bash
-az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
-```
-> Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
-3. With your newly created permissions, you can now create a secret to store the `kaggleusername`. 
-```bash
-az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
-```
-> Make sure to provide your *Kaggle Username*.
+
+    ```bash
+    az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
+    ```
+
+    > Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `ws-shkv-fldemo`.
+
+3. With your newly created permissions, you can now create a secret to store the `kaggleusername`.
+
+    ```bash
+    az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
+    ```
+
+    > Make sure to provide your *Kaggle Username*.
+
 4. Create a secret to store the `kagglekey`.
-```bash
-az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
-```
-> Make sure to provide the *[Kaggle API Token]((https://github.com/Kaggle/kaggle-api#api-credentials))*.
+
+    ```bash
+    az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
+    ```
+
+    > Make sure to provide the *[Kaggle API Token]((<https://github.com/Kaggle/kaggle-api#api-credentials>))*.
 
 ### Option 2: using Azure UI
 
@@ -59,14 +69,14 @@ az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <k
 
 2. Select *List, Set & Delete* right under "Secret Management Operations" and press "Next".
 
-3. Lookup currently logged in user (using user id or an email), select it and press "Next". 
+3. Lookup currently logged in user (using user id or an email), select it and press "Next".
 
 4. Press "Next" and "Create" in the next screens.
 
     We are now able to create a secret in the key vault.
 
 5. Open the "Secrets" tab. Create two plain text secrets:
-    
+
     - **kaggleusername** - specifies your Kaggle user name
     - **kagglekey** - this is the API key that can be obtained from your account page on the Kaggle website.
 
@@ -83,6 +93,8 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
+
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
@@ -96,6 +108,8 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```bash
    python ./examples/pipelines/ccfraud/submit.py --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
+   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
+
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.

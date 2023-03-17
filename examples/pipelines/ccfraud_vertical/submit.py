@@ -22,8 +22,7 @@ from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
 from azure.ai.ml import MLClient, Input, Output
 from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
-from azure.ai.ml import load_component, load_job
-from azure.ai.ml.entities import CommandComponent, Command
+from azure.ai.ml import load_component
 
 # to handle yaml config easily
 from omegaconf import OmegaConf
@@ -43,10 +42,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
@@ -83,7 +82,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components_vertical", "CCFRAUD"
+    os.path.dirname(__file__), "..", "..", "components", "CCFRAUD_VERTICAL"
 )
 
 ###########################
@@ -128,8 +127,12 @@ preprocessing_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
 )
 
-training_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
+training_contributor_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor_spec.yaml")
+)
+
+training_host_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "host_spec.yaml")
 )
 
 
@@ -216,6 +219,14 @@ def fl_ccfraud_vertical_basic():
         # make sure the compute corresponds to the silo
         silo_pre_processing_step.compute = silo_config.compute
 
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_pre_processing_step.resources is None:
+                silo_pre_processing_step.resources = {}
+            silo_pre_processing_step.resources[
+                "instance_type"
+            ] = silo_config.instance_type
+
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
@@ -246,49 +257,79 @@ def fl_ccfraud_vertical_basic():
     for silo_index, silo_config in enumerate(
         [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
-
-        # we're using training component here
-        silo_training_step = training_component(
-            # with the train_data from the pre_processing step
-            train_data=silo_preprocessed_train_data[silo_index],
-            # with the test_data from the pre_processing step
-            test_data=silo_preprocessed_test_data[silo_index],
-            # Learning rate for local training
-            lr=YAML_CONFIG.training_parameters.lr,
-            # Number of epochs
-            epochs=YAML_CONFIG.training_parameters.epochs,
-            # Dataloader batch size
-            batch_size=YAML_CONFIG.training_parameters.batch_size,
-            # Silo name/identifier
-            metrics_prefix=silo_config.compute,
-            # Model name
-            model_name=YAML_CONFIG.training_parameters.model_name,
-            global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
-            global_rank=silo_index,
-            encrypted=YAML_CONFIG.training_parameters.encrypted,
-        )
-
-        # add a readable name to the step
         if silo_index == 0:
+            # we're using training component here
+            silo_training_step = training_host_component(
+                # with the train_data from the pre_processing step
+                train_data=silo_preprocessed_train_data[silo_index],
+                # with the test_data from the pre_processing step
+                test_data=silo_preprocessed_test_data[silo_index],
+                # Learning rate for local training
+                lr=YAML_CONFIG.training_parameters.lr,
+                # Number of epochs
+                epochs=YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
+                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+                global_rank=silo_index,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
+            )
+            # add a readable name to the step
             silo_training_step.name = f"host_training"
+            outputs[f"host_output"] = silo_training_step.outputs.model
         else:
-            silo_training_step.name = f"silo_{silo_index}_training"
+            # we're using training component here
+            silo_training_step = training_contributor_component(
+                # with the train_data from the pre_processing step
+                train_data=silo_preprocessed_train_data[silo_index],
+                # with the test_data from the pre_processing step
+                test_data=silo_preprocessed_test_data[silo_index],
+                # Learning rate for local training
+                lr=YAML_CONFIG.training_parameters.lr,
+                # Number of epochs
+                epochs=YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
+                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+                global_rank=silo_index,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
+            )
+            # add a readable name to the step
+            silo_training_step.name = f"contributor_{silo_index}_training"
+            outputs[
+                f"contributor_{silo_index}_output"
+            ] = silo_training_step.outputs.model
 
         # make sure the compute corresponds to the silo
         silo_training_step.compute = silo_config.compute
 
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_training_step.resources is None:
+                silo_training_step.resources = {}
+            silo_training_step.resources["instance_type"] = silo_config.instance_type
+
         # make sure the data is written in the right datastore
+        model_file_name = "host" if silo_index == 0 else f"contributor_{silo_index}"
         silo_training_step.outputs.model = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
-                # IMPORTANT: writing the output of training into the orchestrator datastore
-                YAML_CONFIG.federated_learning.orchestrator.datastore,
-                f"model/silo{silo_index}",
+                # IMPORTANT: writing the output of training into the host datastore
+                YAML_CONFIG.federated_learning.host.datastore,
+                f"model/{model_file_name}",
             ),
         )
-        outputs[f"silo_{silo_index}_output"] = silo_training_step.outputs.model
-        # outputs.append(silo_training_step.outputs.model)
 
     return outputs
 
@@ -298,7 +339,7 @@ pipeline_job = fl_ccfraud_vertical_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     ML_CLIENT = connect_to_aml()

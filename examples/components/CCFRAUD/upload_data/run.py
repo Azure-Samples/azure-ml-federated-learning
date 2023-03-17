@@ -17,7 +17,7 @@ SPLITS = {
     3: [["South"], ["Midwest"], ["West", "Northeast"]],
     4: [["South"], ["West"], ["Midwest"], ["Northeast"]],
 }
-CATEGORICAL_PROPS = ["category", "region", "gender", "state", "job"]
+CATEGORICAL_PROPS = ["category", "region", "gender", "state"]
 ENCODERS = {}
 
 
@@ -67,23 +67,18 @@ def preprocess_data(df):
     useful_props = [
         "amt",
         "age",
-        # "cc_num",
         "merch_lat",
         "merch_long",
         "category",
         "region",
         "gender",
         "state",
-        # "zip",
         "lat",
         "long",
         "city_pop",
-        "job",
-        # "dob",
         "trans_date_trans_time",
         "is_fraud",
     ]
-    categorical = ["category", "region", "gender", "state", "job"]
 
     df.loc[:, "age"] = (pd.Timestamp.now() - pd.to_datetime(df["dob"])) // pd.Timedelta(
         "1y"
@@ -92,7 +87,7 @@ def preprocess_data(df):
     # Filter only useful columns
     df = df[useful_props]
 
-    for column in categorical:
+    for column in CATEGORICAL_PROPS:
         encoder = ENCODERS.get(column)
         encoded_data = encoder.transform(df[column].values.reshape(-1, 1)).toarray()
         encoded_df = pd.DataFrame(
@@ -240,7 +235,6 @@ def main(cli_args=None):
 
 
 if __name__ == "__main__":
-
     # Set logging to sys.out
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)

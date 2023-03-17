@@ -47,19 +47,19 @@ param orchestratorAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
-  'westus'
-  'francecentral'
-  'brazilsouth'
+  'australiaeast'
+  'eastus'
+  'westeurope'
 ]
 
 @description('The VM used for creating compute clusters in orchestrator and silos.')
-param compute1SKU string = 'Standard_DS3_v2'
+param compute1SKU string = 'Standard_DS4_v2'
 
 @description('Flag whether to create a second compute or not')
 param compute2 bool = false
 
 @description('The VM used for creating a second compute cluster in orchestrator and silos.')
-param compute2SKU string = 'Standard_DS3_v2'
+param compute2SKU string = 'Standard_NC6'
 
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = false
@@ -113,8 +113,8 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
 
     compute1Name: 'orchestrator-01' // let's not use demo base name in cluster name
     compute1SKU: compute1SKU
-    computeNodes: 4
-    compute2: compute2
+    computeNodes: 2
+    compute2: false
     compute2SKU: compute2SKU
     compute2Name: 'orchestrator-02'
 
@@ -174,7 +174,7 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
 
     compute1Name: 'silo${i}-01' // let's not use demo base name in cluster name
     compute1SKU: compute1SKU
-    computeNodes: 4
+    computeNodes: 2
     compute2: compute2
     compute2SKU: compute2SKU
     compute2Name: 'silo${i}-02'

@@ -4,8 +4,8 @@
   "metadata": {
     "_generator": {
       "name": "bicep",
-      "version": "0.13.1.58284",
-      "templateHash": "8750631546098202852"
+      "version": "0.14.85.62628",
+      "templateHash": "5673376537418599610"
     }
   },
   "parameters": {
@@ -57,7 +57,7 @@
       "type": "string",
       "defaultValue": "private",
       "metadata": {
-        "description": "Name of the storage container resource to create for the pair"
+        "description": "Name of the storage container to use for the pair datastore"
       }
     },
     "datastoreName": {
@@ -194,6 +194,12 @@
           },
           "tags": {
             "value": "[parameters('tags')]"
+          },
+          "workspaceRegion": {
+            "value": "[parameters('machineLearningRegion')]"
+          },
+          "enableNodePublicIp": {
+            "value": "[parameters('enableNodePublicIp')]"
           }
         },
         "template": {
@@ -202,8 +208,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "15265711405718393717"
+              "version": "0.14.85.62628",
+              "templateHash": "17553148586584182485"
             }
           },
           "parameters": {
@@ -211,6 +217,12 @@
               "type": "string",
               "metadata": {
                 "description": "Azure region of the deployment"
+              }
+            },
+            "workspaceRegion": {
+              "type": "string",
+              "metadata": {
+                "description": "Region of the AzureML workspace"
               }
             },
             "tags": {
@@ -224,136 +236,117 @@
               "metadata": {
                 "description": "Name of the network security group"
               }
+            },
+            "enableNodePublicIp": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Set rules to allow for compute with public IP"
+              }
             }
           },
           "resources": [
             {
               "type": "Microsoft.Network/networkSecurityGroups",
-              "apiVersion": "2022-01-01",
+              "apiVersion": "2022-07-01",
               "name": "[parameters('nsgName')]",
               "location": "[parameters('location')]",
-              "tags": "[parameters('tags')]",
+              "tags": "[parameters('tags')]"
+            },
+            {
+              "condition": "[parameters('enableNodePublicIp')]",
+              "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureMLPublicIPInbound')]",
               "properties": {
-                "securityRules": [
-                  {
-                    "name": "BatchNodeManagement",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "29876-29877",
-                      "sourceAddressPrefix": "BatchNodeManagement",
-                      "destinationAddressPrefix": "*",
-                      "access": "Allow",
-                      "priority": 120,
-                      "direction": "Inbound"
-                    }
-                  },
-                  {
-                    "name": "AzureMachineLearning",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "44224",
-                      "sourceAddressPrefix": "AzureMachineLearning",
-                      "destinationAddressPrefix": "*",
-                      "access": "Allow",
-                      "priority": 130,
-                      "direction": "Inbound"
-                    }
-                  },
-                  {
-                    "name": "AzureActiveDirectory",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "*",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "AzureActiveDirectory",
-                      "access": "Allow",
-                      "priority": 140,
-                      "direction": "Outbound"
-                    }
-                  },
-                  {
-                    "name": "AzureMachineLearningOutbound",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "AzureMachineLearning",
-                      "access": "Allow",
-                      "priority": 150,
-                      "direction": "Outbound"
-                    }
-                  },
-                  {
-                    "name": "AzureResourceManager",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "AzureResourceManager",
-                      "access": "Allow",
-                      "priority": 160,
-                      "direction": "Outbound"
-                    }
-                  },
-                  {
-                    "name": "AzureStorageAccount",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "[format('Storage.{0}', parameters('location'))]",
-                      "access": "Allow",
-                      "priority": 170,
-                      "direction": "Outbound"
-                    }
-                  },
-                  {
-                    "name": "AzureFrontDoor",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "AzureFrontDoor.FrontEnd",
-                      "access": "Allow",
-                      "priority": 180,
-                      "direction": "Outbound"
-                    }
-                  },
-                  {
-                    "name": "AzureContainerRegistry",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "*",
-                      "destinationAddressPrefix": "[format('AzureContainerRegistry.{0}', parameters('location'))]",
-                      "access": "Allow",
-                      "priority": 190,
-                      "direction": "Outbound"
-                    }
-                  },
-                  {
-                    "name": "MicrosoftContainerRegistry",
-                    "properties": {
-                      "protocol": "Tcp",
-                      "sourcePortRange": "*",
-                      "destinationPortRange": "443",
-                      "sourceAddressPrefix": "VirtualNetwork",
-                      "destinationAddressPrefix": "MicrosoftContainerRegistry",
-                      "access": "Allow",
-                      "priority": 200,
-                      "direction": "Outbound"
-                    }
-                  }
-                ]
-              }
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "44224",
+                "sourceAddressPrefix": "AzureMachineLearning",
+                "destinationAddressPrefix": "*",
+                "access": "Allow",
+                "priority": 130,
+                "direction": "Inbound"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureMLOutboundTcp')]",
+              "properties": {
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRanges": [
+                  "443",
+                  "8787",
+                  "18881"
+                ],
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "AzureMachineLearning",
+                "access": "Allow",
+                "priority": 150,
+                "direction": "Outbound"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureMLOutboundUdp')]",
+              "properties": {
+                "protocol": "Udp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "5831",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "AzureMachineLearning",
+                "access": "Allow",
+                "priority": 151,
+                "direction": "Outbound"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('nsgName'), 'BatchNodeManagementOutbound')]",
+              "properties": {
+                "protocol": "*",
+                "sourcePortRange": "*",
+                "destinationPortRange": "443",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "[format('BatchNodeManagement.{0}', parameters('workspaceRegion'))]",
+                "access": "Allow",
+                "priority": 152,
+                "direction": "Outbound"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureStorageAccount')]",
+              "properties": {
+                "protocol": "Tcp",
+                "sourcePortRange": "*",
+                "destinationPortRange": "443",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "[format('Storage.{0}', parameters('workspaceRegion'))]",
+                "access": "Allow",
+                "priority": 143,
+                "direction": "Outbound"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+              ]
             }
           ],
           "outputs": {
@@ -405,8 +398,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "14849721543240475874"
+              "version": "0.14.85.62628",
+              "templateHash": "6565408118333802825"
             }
           },
           "parameters": {
@@ -580,8 +573,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "10388514803379944400"
+              "version": "0.14.85.62628",
+              "templateHash": "8114961441289877491"
             }
           },
           "parameters": {
@@ -752,6 +745,9 @@
           "storageRegion": {
             "value": "[parameters('pairRegion')]"
           },
+          "containerName": {
+            "value": "[parameters('existingStorageContainerName')]"
+          },
           "datastoreName": {
             "value": "[parameters('datastoreName')]"
           },
@@ -765,8 +761,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "10708852151951398015"
+              "version": "0.14.85.62628",
+              "templateHash": "3205176988572460763"
             }
           },
           "parameters": {
@@ -915,8 +911,8 @@
           "metadata": {
             "_generator": {
               "name": "bicep",
-              "version": "0.13.1.58284",
-              "templateHash": "8244502187852536957"
+              "version": "0.14.85.62628",
+              "templateHash": "13553466402936175088"
             }
           },
           "parameters": {
