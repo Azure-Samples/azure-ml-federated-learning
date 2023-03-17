@@ -234,12 +234,6 @@ def fl_cross_silo_internal_basic():
                 "instance_type": silo_config.instance_type
             }
 
-        # assign instance type for AKS, if available
-        if hasattr(silo_config, "instance_type"):
-            silo_pre_processing_step.resources = {
-                "instance_type": silo_config.instance_type
-            }
-
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
@@ -308,12 +302,6 @@ def fl_cross_silo_internal_basic():
 
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.computes[0]
-
-            # assign instance type for AKS, if available
-            if hasattr(silo_config, "instance_type"):
-                silo_training_step.resources = {
-                    "instance_type": silo_config.instance_type
-                }
 
             # assign instance type for AKS, if available
             if hasattr(silo_config, "instance_type"):

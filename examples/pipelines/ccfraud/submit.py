@@ -291,12 +291,6 @@ def fl_ccfraud_basic():
                 "instance_type": silo_config.instance_type
             }
 
-        # assign instance type for AKS, if available
-        if hasattr(silo_config, "instance_type"):
-            silo_pre_processing_step.resources = {
-                "instance_type": silo_config.instance_type
-            }
-
         # make sure the data is written in the right datastore
         silo_pre_processing_step.outputs.processed_train_data = Output(
             type=AssetTypes.URI_FOLDER,
@@ -376,25 +370,6 @@ def fl_ccfraud_basic():
 
             # make sure the compute corresponds to the silo
             silo_training_step.compute = silo_config.computes[0]
-
-            # set distribution according to the number of available GPUs (1 in case of only CPU available)
-            silo_training_step.distribution.process_count_per_instance = silo_processes
-
-            # set number of instances to distribute training across
-            if hasattr(silo_config, "instance_count"):
-                if silo_training_step.resources is None:
-                    silo_training_step.resources = {}
-                silo_training_step.resources[
-                    "instance_count"
-                ] = silo_config.instance_count
-
-            # assign instance type for AKS, if available
-            if hasattr(silo_config, "instance_type"):
-                if silo_training_step.resources is None:
-                    silo_training_step.resources = {}
-                silo_training_step.resources[
-                    "instance_type"
-                ] = silo_config.instance_type
 
             # set distribution according to the number of available GPUs (1 in case of only CPU available)
             silo_training_step.distribution.process_count_per_instance = silo_processes

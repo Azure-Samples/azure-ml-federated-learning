@@ -89,9 +89,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-if args.vertical:
-    assert args.example in ["CCFRAUD", "MNIST"]
-
 # load the config from a local yaml file
 YAML_CONFIG = OmegaConf.load(args.config)
 
