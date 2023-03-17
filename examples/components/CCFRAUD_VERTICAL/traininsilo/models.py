@@ -242,7 +242,7 @@ class SimpleVAEBottom(nn.Module):
         kl_loss = self.kl_loss(mu, log_var)
         y_hat = z.repeat([x.shape[1], 1, 1]).permute((1, 0, 2))
 
-        return y_hat, reconstruction_loss + kl_loss
+        return y_hat, (reconstruction_loss, kl_loss)
 
 
 class SimpleVAETop(nn.Module):

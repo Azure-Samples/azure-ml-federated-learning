@@ -9,6 +9,7 @@ from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
 import torch
+from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from torch import nn
@@ -233,6 +234,17 @@ class CCFraudTrainer:
         if checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
+        if isinstance(self.model_, models.SimpleVAETop):
+            # Contributors are training VAE
+            for epoch in range(1, self._epochs + 1):
+                for i, _ in enumerate(
+                    tqdm(self.train_loader_, desc=f"Training VAE, epoch: {epoch}")
+                ):
+                    if (i + 1) % 10 == 0 or (i + 1) == len(self.train_loader_):
+                        for j in range(1, self._global_size):
+                            assert self._global_comm.recv(j) == "step"
+                self.test(pretraining=True)
+
         with mlflow.start_run() as mlflow_run:
             num_of_batches_before_logging = 5
 
@@ -370,7 +382,7 @@ class CCFraudTrainer:
                 )
             logger.info(", ".join(log_message))
 
-    def test(self):
+    def test(self, pretraining=False):
         """Test the trained model and report test loss and accuracy"""
         test_metrics = RunningMetrics(
             ["loss", "accuracy", "precision", "recall"], prefix="test"
@@ -378,35 +390,41 @@ class CCFraudTrainer:
 
         self.model_.eval()
         with torch.no_grad():
-            for batch in self.test_loader_:
-                data = batch.to(self.device_)
+            if isinstance(self.model_, models.SimpleVAETop) and pretraining:
+                for i, _ in enumerate(tqdm(self.test_loader_, desc=f"Testing VAE")):
+                    if (i + 1) % 10 == 0 or (i + 1) == len(self.test_loader_):
+                        for j in range(1, self._global_size):
+                            assert self._global_comm.recv(j) == "step"
+            else:
+                for batch in self.test_loader_:
+                    data = batch.to(self.device_)
 
-                outputs = []
-                for j in range(1, self._global_size):
-                    output = self._global_comm.recv(j).to(self.device_)
-                    outputs.append(output)
+                    outputs = []
+                    for j in range(1, self._global_size):
+                        output = self._global_comm.recv(j).to(self.device_)
+                        outputs.append(output)
 
-                outputs = torch.stack(outputs).mean(dim=0)
-                predictions, net_loss = self.model_(outputs)
+                    outputs = torch.stack(outputs).mean(dim=0)
+                    predictions, net_loss = self.model_(outputs)
 
-                self.criterion_.weight = (
-                    ((data == 1) * (self.fraud_weight_ - 1)) + 1
-                ).to(self.device_)
-                loss = self.criterion_(predictions, data.type(torch.float)).item()
-                if net_loss is not None:
-                    loss += net_loss * 1e-5
+                    self.criterion_.weight = (
+                        ((data == 1) * (self.fraud_weight_ - 1)) + 1
+                    ).to(self.device_)
+                    loss = self.criterion_(predictions, data.type(torch.float)).item()
+                    if net_loss is not None:
+                        loss += net_loss[0] + net_loss[1] * 1e-4
 
-                precision, recall = precision_recall(
-                    preds=predictions.detach(), target=data
-                )
-                test_metrics.add_metric("precision", precision.item())
-                test_metrics.add_metric("recall", recall.item())
-                test_metrics.add_metric(
-                    "accuracy",
-                    accuracy(preds=predictions.detach(), target=data).item(),
-                )
-                test_metrics.add_metric("loss", loss / data.shape[0])
-                test_metrics.step()
+                    precision, recall = precision_recall(
+                        preds=predictions.detach(), target=data
+                    )
+                    test_metrics.add_metric("precision", precision.item())
+                    test_metrics.add_metric("recall", recall.item())
+                    test_metrics.add_metric(
+                        "accuracy",
+                        accuracy(preds=predictions.detach(), target=data).item(),
+                    )
+                    test_metrics.add_metric("loss", loss / data.shape[0])
+                    test_metrics.step()
 
         return test_metrics
 
