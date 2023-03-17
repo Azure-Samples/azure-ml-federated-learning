@@ -68,6 +68,6 @@ runs:
     - name: Set kaggle credentials in the Azure key vault
       shell: bash
       run: |
-        az keyvault set-policy -n kv-${{ inputs.demo-base-name }} --secret-permissions list set delete --object-id ${{ inputs.github-sp-object-id }}
-        az keyvault secret set --name kaggleusername --vault-name kv-${{ inputs.demo-base-name }} --value ${{ inputs.kaggle-username }}
-        az keyvault secret set --name kagglekey --vault-name kv-${{ inputs.demo-base-name }} --value ${{ inputs.kaggle-api-token }}
+        az keyvault set-policy -n ws-shkv-${{ inputs.demo-base-name }} --secret-permissions list set delete --object-id ${{ inputs.github-sp-object-id }}
+        az keyvault secret set --name kaggleusername --vault-name ws-shkv-${{ inputs.demo-base-name }} --value ${{ inputs.kaggle-username }}
+        az keyvault secret set --name kagglekey --vault-name ws-shkv-${{ inputs.demo-base-name }} --value ${{ inputs.kaggle-api-token }}
