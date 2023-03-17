@@ -161,7 +161,6 @@ def write_encrypted_file(
         EncryptionAlgorithm.rsa1_5, aes_key
     ).ciphertext
 
-
     # plus generate random IV
     iv = os.urandom(16)
 
