@@ -91,7 +91,6 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```bash
    python ./examples/pipelines/utils/upload_data/submit.py --example CCFRAUD --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
-   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
@@ -108,7 +107,6 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    ```bash
    python ./examples/pipelines/ccfraud/submit.py --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
-   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
@@ -127,6 +125,7 @@ To switch between models, please update the `config.yaml` file in `examples/pipe
 ## Distributed training
 
 This sample can be ran in distributed fashion, using [PyTorch Data Distributed Parallel (DDP) with NCCL backend](https://pytorch.org/tutorials/intermediate/ddp_tutorial.html). However, this requires us to provision new cluster with >1 CUDA enabled GPUs and allow them to access datastorages in corresponding regions. In order to do so follow these steps for every region you want to run distributed training in:
+
 - Provision GPU cluster with 1+ NVIDIA GPU alongside with storage according to tutorial [here](../provisioning/README.md)
 - Adjust the config file  `config.yaml` in `examples/pipelines/ccfraud/` to use the newly created compute
 - The pipeline automatically detects number of GPUs on a given compute and scales the job accordingly

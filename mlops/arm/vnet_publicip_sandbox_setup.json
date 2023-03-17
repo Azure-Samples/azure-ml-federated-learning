@@ -402,15 +402,6 @@
           "compute2Name": {
             "value": "orchestrator-02"
           },
-          "compute2": {
-            "value": "[parameters('compute2')]"
-          },
-          "compute2SKU": {
-            "value": "[parameters('compute2SKU')]"
-          },
-          "compute2Name": {
-            "value": "orchestrator-02"
-          },
           "storageAccountName": {
             "value": "[variables('orchestratorStorageAccountCleanName')]"
           },
@@ -2062,15 +2053,6 @@
           },
           "computeNodes": {
             "value": 2
-          },
-          "compute2": {
-            "value": "[parameters('compute2')]"
-          },
-          "compute2SKU": {
-            "value": "[parameters('compute2SKU')]"
-          },
-          "compute2Name": {
-            "value": "[format('silo{0}-02', range(0, variables('siloCount'))[copyIndex()])]"
           },
           "compute2": {
             "value": "[parameters('compute2')]"

@@ -188,4 +188,5 @@ Submit the job by running the following command.
 ```bash
 python ./examples/pipelines/fl_cross_silo_literal/submit.py --example HELLOWORLD
 ```
+
 > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
