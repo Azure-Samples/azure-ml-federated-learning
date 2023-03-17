@@ -8,7 +8,7 @@ import pathlib
 from distutils.util import strtobool
 
 # local imports
-from confidential_io import config_global_rsa_key, read_encrypted, write_encrypted
+from confidential_io import config_global_rsa_key, EncryptedFile
 
 
 def get_arg_parser(parser=None):
@@ -97,22 +97,30 @@ def run(args):
                 if os.path.isfile(output_file_path):
                     logging.getLogger(__name__).warning("Overwriting existing file")
 
-                logging.getLogger(__name__).info(
-                    f"Encrypting input {entry} to output {output_file_path}"
-                )
-
                 # actually do the operations
                 if args.method == "encrypt":
+                    logging.getLogger(__name__).info(
+                        f"Reading in clear from {entry}..."
+                    )
                     with open(entry, mode="rb") as f:
                         plain_content = f.read()
 
-                    with write_encrypted(output_file_path, mode="b") as f:
+                    logging.getLogger(__name__).info(
+                        f"Encrypting in {output_file_path}..."
+                    )
+                    with EncryptedFile(output_file_path, mode="wb") as f:
                         f.write(plain_content)
 
                 elif args.method == "decrypt":
-                    with read_encrypted(entry, mode="b") as f:
+                    logging.getLogger(__name__).info(
+                        f"Reading encrypted from {entry}..."
+                    )
+                    with EncryptedFile(entry, mode="rb") as f:
                         plain_content = f.read()
 
+                    logging.getLogger(__name__).info(
+                        f"Writing in clear in {output_file_path}..."
+                    )
                     with open(output_file_path, mode="wb") as f:
                         f.write(plain_content)
 
