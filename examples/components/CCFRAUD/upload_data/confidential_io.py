@@ -160,7 +160,6 @@ def write_encrypted_file(
     encrypted_aes_key = rsa_client.encrypt(
         EncryptionAlgorithm.rsa1_5, aes_key
     ).ciphertext
-    print(len(encrypted_aes_key))
 
     # plus generate random IV
     iv = os.urandom(16)
