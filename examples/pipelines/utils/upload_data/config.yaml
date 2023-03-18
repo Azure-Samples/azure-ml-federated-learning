@@ -20,3 +20,8 @@ federated_learning:
 
     - compute: silo2-01 # we are repeating over the same config for silo 3
       datastore: datastore_silo2
+
+confidentiality:
+  enable: false
+  keyvault: https://kv-fldemo.vault.azure.net # url of the keyvault
+  key_name: dev-rsa-key # name of the secret containing your encryption public key
