@@ -118,7 +118,15 @@ class AMLCommSocket(AMLComm):
     using pickle library.
     """
 
-    def __init__(self, rank, world_size, run_id, host_ip=None, host_port=None, encryption=None,) -> None:
+    def __init__(
+        self,
+        rank,
+        world_size,
+        run_id,
+        host_ip=None,
+        host_port=None,
+        encryption=None,
+    ) -> None:
         """Initializes AMLComm communicator
 
         Args:
@@ -128,7 +136,9 @@ class AMLCommSocket(AMLComm):
             host_ip (Optional): IP address of the host node, if not provided MLFlow is used to communicate it
             host_port (Optional): port of the host node, if not provided MLFlow is used to communicate it
         """
-        super(AMLCommSocket, self).__init__(rank, world_size, run_id, encryption=encryption)
+        super(AMLCommSocket, self).__init__(
+            rank, world_size, run_id, encryption=encryption
+        )
 
         self._host_ip, self._host_port = host_ip, host_port
         self._connections = {}
@@ -354,7 +364,9 @@ class AMLCommSocket(AMLComm):
         if self._encryption is not None:
             msg_payload = self._encryption.encrypt(msg_payload, destination)
 
-        msg_size = pickle.dumps({"flag": FLAGS.SIZE, "data": sys.getsizeof(msg_payload)})
+        msg_size = pickle.dumps(
+            {"flag": FLAGS.SIZE, "data": sys.getsizeof(msg_payload)}
+        )
         if self._encryption is not None:
             msg_size = self._encryption.encrypt(msg_size, destination)
 
@@ -584,7 +596,9 @@ class AMLCommRedis(AMLComm):
         binary_data_size = math.ceil(sys.getsizeof(binary_data) / self._max_msg_size)
         if self._encryption:
             binary_data_size_msg = binary_data_size.to_bytes(2, "big")
-            binary_data_size_msg = self._encryption.encrypt(binary_data_size_msg, destination)
+            binary_data_size_msg = self._encryption.encrypt(
+                binary_data_size_msg, destination
+            )
         else:
             binary_data_size_msg = binary_data_size
 

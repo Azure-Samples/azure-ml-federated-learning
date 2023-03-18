@@ -223,7 +223,6 @@ class MnistTrainer:
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
-
         if pipeline_level:
             client.log_metric(
                 run_id=run_id,
@@ -248,7 +247,6 @@ class MnistTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
             logger.debug(f"Root runId: {mlflow_run.data.tags.get('mlflow.rootRunId')}")
@@ -265,7 +263,6 @@ class MnistTrainer:
             test_acc = 0.0
 
             for epoch in range(self._epochs):
-
                 running_loss = 0.0
                 running_acc = 0.0
                 num_of_batches_before_logging = 100

@@ -345,11 +345,17 @@ def main(cli_args=None):
 
     if args.communication_backend == "socket":
         global_comm = AMLCommSocket(
-            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID"), encryption=encryption
+            args.global_rank,
+            args.global_size,
+            os.environ.get("AZUREML_ROOT_RUN_ID"),
+            encryption=encryption,
         )
     elif args.communication_backend == "redis":
         global_comm = AMLCommRedis(
-            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID"), encryption=encryption
+            args.global_rank,
+            args.global_size,
+            os.environ.get("AZUREML_ROOT_RUN_ID"),
+            encryption=encryption,
         )
     else:
         raise ValueError("Communication backend not supported")
