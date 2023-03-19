@@ -132,3 +132,17 @@ This sample can be ran in distributed fashion, using [PyTorch Data Distributed P
 - If your cluster can be scaled to more than 1 machine, you can modify `config.yaml` in `examples/pipelines/ccfraud/` by adding `instance_count` to your silo config with number of nodes you would like to run the training on
 
 After performing all these steps you can rerun the experiment and it will run using DDP.
+
+## Communication encryption
+
+The communication between nodes, which includes intermediate outputs and gradients, can be optionally encoded. This may be very important in case of using *Redis* as communication backend. To enable the encryption follow these steps:
+
+1. Open the config file  `config.yaml` in `examples/pipelines/ccfraud/`
+2. Set `encryption` field, under `communication` to `true`
+
+### How does the encryption works?
+Whole encryption is handled by `AMLSPMC` class in `examples/components/CCFRAUD_VERTICAL/aml_smpc.py`. By initiating the class every node generates it's own public/private key set. The public part is communicated to other parties, which they use when communicating with this node. Thus, the private part resides at all time on the local node and is well protected. The message itself is encrypted using hybrid encryption, which can be broken down as follows:
+
+**Encryption:** Firstly, the data are encoded using symmetric key, new symmetric key is generated for every message. Afterwards, this symmetric key is encoded using public key of receiving party and attached to the message.
+
+**Decryption:** Firstly, receiving party decodes the symmetric key using its private key and afterwards the data are decoded using this symmetric key.

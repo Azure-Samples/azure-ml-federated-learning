@@ -19,7 +19,10 @@ logger.addHandler(handler)
 
 
 class AMLSMPC:
+    """Class for encryption and decryption using RSA and Fernet."""
+
     def __init__(self) -> None:
+        """Initialize the class by generating a private key for current node and a dictionary for remote public keys."""
         self._key = rsa.generate_private_key(
             backend=crypto_default_backend, public_exponent=65537, key_size=2048
         )
@@ -32,6 +35,14 @@ class AMLSMPC:
         encoding: crypto_serialization.Encoding = crypto_serialization.Encoding.OpenSSH,
         overwrite=False,
     ):
+        """Add a public key for a remote destination.
+
+        Args:
+            destination (int): Destination node id.
+            key (bytes): Public key.
+            encoding (crypto_serialization.Encoding, optional): Encoding of the public key. Defaults to crypto_serialization.Encoding.OpenSSH.
+            overwrite (bool, optional): If True, overwrite the public key if already present. Defaults to False.
+        """
         logger.debug(f"Adding public key for destination: {destination}, key: {key}")
 
         if destination in self._remote_keys:
@@ -66,6 +77,12 @@ class AMLSMPC:
         encoding: crypto_serialization.Encoding = crypto_serialization.Encoding.OpenSSH,
         format: crypto_serialization.PublicFormat = crypto_serialization.PublicFormat.OpenSSH,
     ) -> bytes:
+        """Get the public key of the current node.
+
+        Args:
+            encoding (crypto_serialization.Encoding, optional): Encoding of the public key. Defaults to crypto_serialization.Encoding.OpenSSH.
+            format (crypto_serialization.PublicFormat, optional): Format of the public key. Defaults to crypto_serialization.PublicFormat.OpenSSH.
+        """
         return self._key.public_key().public_bytes(encoding, format)
 
     def encrypt(
@@ -78,6 +95,13 @@ class AMLSMPC:
             label=None,
         ),
     ) -> bytes:
+        """Encrypt data using Fernet and the public key of the destination node.
+
+        Args:
+            data (bytes): Data to be encrypted.
+            destination (int): Destination node id.
+            padding_type (padding.AsymmetricPadding, optional): Encryption padding type. Defaults to padding.OAEP(mgf=padding.MGF1(algorithm=crypto_hashes.SHA256()),algorithm=crypto_hashes.SHA256(),label=None).
+        """
         assert destination in self._remote_keys
 
         sym_key = Fernet.generate_key()
@@ -99,6 +123,12 @@ class AMLSMPC:
             label=None,
         ),
     ) -> bytes:
+        """Decrypt data using Fernet and the private key of the current node.
+
+        Args:
+            data (bytes): Data to be decrypted.
+            padding_type (padding.AsymmetricPadding, optional): Encryption padding type. Defaults to padding.OAEP(mgf=padding.MGF1(algorithm=crypto_hashes.SHA256()),algorithm=crypto_hashes.SHA256(),label=None).
+        """
         data = pickle.loads(data)
         assert "encrypted_key" in data and "encrypted_data" in data
         sym_key = self._key.decrypt(data["encrypted_key"], padding_type)
