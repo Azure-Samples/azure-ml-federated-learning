@@ -361,7 +361,7 @@ class CCFraudTrainer:
                     metrics.add_metric("reconstruction_loss", reconstruction_loss)
                     metrics.add_metric("kl_loss", kl_loss)
                     metrics.step()
-                    if (i + 1) % 10 == 0 or (i + 1) == len(self.train_loader_):
+                    if (i + 1) % 10 == 0 or (i + 1) == len(self.test_loader_):
                         self._global_comm.send("step", 0)
                 return metrics
             else:
