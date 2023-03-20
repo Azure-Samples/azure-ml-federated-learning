@@ -29,9 +29,8 @@ param location string = resourceGroup().location
 @description('Specifies whether to reduce telemetry collection and enable additional encryption.')
 param hbiWorkspace bool = false
 
-
 @description('Name of the application insights log analytics workspace')
-param appInsightLogAnalyticsName string = 'log-analy-${baseName}'
+param appInsightLogAnalyticsName string = 'logs-${baseName}'
 
 @description('Name of the application insights resource')
 param applicationInsightsName string = 'appi-${baseName}'
