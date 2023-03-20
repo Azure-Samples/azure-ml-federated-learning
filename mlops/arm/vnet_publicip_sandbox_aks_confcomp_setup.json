@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "8834019903643320938"
+      "templateHash": "9922889128364808730"
     }
   },
   "parameters": {
@@ -148,7 +148,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "1072571431826254999"
+              "templateHash": "11936496485825703582"
             }
           },
           "parameters": {
@@ -193,6 +193,13 @@
               "defaultValue": false,
               "metadata": {
                 "description": "Specifies whether to reduce telemetry collection and enable additional encryption."
+              }
+            },
+            "appInsightLogAnalyticsName": {
+              "type": "string",
+              "defaultValue": "[format('log-analy-{0}', parameters('baseName'))]",
+              "metadata": {
+                "description": "Name of the application insights log analytics workspace"
               }
             },
             "applicationInsightsName": {
@@ -287,6 +294,20 @@
               }
             },
             {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2021-06-01",
+              "name": "[parameters('appInsightLogAnalyticsName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30,
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Disabled"
+              }
+            },
+            {
               "type": "Microsoft.Insights/components",
               "apiVersion": "2020-02-02",
               "name": "[parameters('applicationInsightsName')]",
@@ -294,8 +315,13 @@
               "tags": "[parameters('tags')]",
               "kind": "web",
               "properties": {
-                "Application_Type": "web"
-              }
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('appInsightLogAnalyticsName'))]",
+                "Flow_Type": "Bluefield"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('appInsightLogAnalyticsName'))]"
+              ]
             },
             {
               "type": "Microsoft.MachineLearningServices/workspaces",
