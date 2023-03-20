@@ -189,13 +189,13 @@ def fl_demo_bank_marketing_vertical():
         if silo_index == 0:
             # we're using training component here
             silo_training_step = training_host_component(
-                # with the train_data from the pre_processing step
+                # with the train_data uploaded to the datastore
                 train_data=Input(
                     type=silo_config.training_data.type,
                     mode=silo_config.training_data.mode,
                     path=silo_config.training_data.path,
                 ),
-                # with the test_data from the pre_processing step
+                # with the train_data uploaded to the datastore
                 test_data=Input(
                     type=silo_config.testing_data.type,
                     mode=silo_config.testing_data.mode,
