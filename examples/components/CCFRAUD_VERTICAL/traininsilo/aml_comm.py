@@ -135,6 +135,7 @@ class AMLCommSocket(AMLComm):
             run_id: specifier of the run share across the nodes
             host_ip (Optional): IP address of the host node, if not provided MLFlow is used to communicate it
             host_port (Optional): port of the host node, if not provided MLFlow is used to communicate it
+            encryption (Optional): encryption used for messaging (must expose API like AMLSPMC)
         """
         super(AMLCommSocket, self).__init__(
             rank, world_size, run_id, encryption=encryption
@@ -428,6 +429,7 @@ class AMLCommRedis(AMLComm):
             connection_string (str, optional): connection string to the Redis server. Defaults to None.
             message_timeout (int, optional): timeout for the Redis messages. Defaults to 60.
             connect_timeout (int, optional): timeout for the initial connection to other nodes. Defaults to 1800.
+            encryption (Optional): encryption used for messaging (must expose API like AMLSPMC)
         """
         super().__init__(rank, world_size, run_id, encryption=encryption)
 
