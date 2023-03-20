@@ -1,6 +1,6 @@
 # Vertically federated cross-geo bank marketing campaign prediction
 
-**Scenario** - This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for bank marketing campaign in vertical federating learning fashion. The example showcases how to setup training in the case, where part of the data is owned by the host. We have simulated a FL scenario by splitting the data into **distinct geo-location**. The sample provides a simple implementation  for **preprocessing** on **tabular data**.
+**Scenario** - This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for bank marketing campaign in vertical federating learning fashion. The example showcases how to setup training in the case, where part of the data, including the feature space, is owned by the host. We have simulated a FL scenario by splitting the data into **distinct geo-location**. The sample utilizes **tabular data**.
 
 **Dataset** - This example is trained using the Kaggle dataset [**Bank marketing campaigns dataset | Opening Deposit**](https://www.kaggle.com/datasets/volodymyrgavrysh/bank-marketing-campaigns-dataset). This dataset is describing Portugal bank marketing campaign results, where the campaigns were conducted by calling clients and offering them to place a term deposit.
 

@@ -46,7 +46,7 @@ Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace k
 
 ### BANK_MARKETING
 
-Please follow steps in [BANK_MARKETING - Add your Kaggle credentials to the workspace key vault](../real-world-examples/bank-marketing.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example BANK_MARKETING`**).
+This example is similar to **CCFRAUD**, however here also host owns part of the feature space. Please follow steps in [BANK_MARKETING - Add your Kaggle credentials to the workspace key vault](../real-world-examples/bank-marketing.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example BANK_MARKETING`**).
 
 ### MNIST
 
