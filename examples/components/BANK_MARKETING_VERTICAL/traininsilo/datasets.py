@@ -14,7 +14,6 @@ class BankMarketingDataset(Dataset):
     """
 
     def __init__(self, df):
-        print(df.info())
         if "label" in df.columns:
             if len(df.columns) > 1:
                 self.X = torch.tensor(

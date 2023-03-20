@@ -3,7 +3,7 @@ import argparse
 import logging
 import sys
 import os
-from aml_comm import AMLCommRedis
+from aml_comm import AMLCommSocket, AMLCommRedis
 
 import mlflow
 import torch
@@ -260,6 +260,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--communication_backend",
+        type=str,
+        required=False,
+        default="socket",
+        help="Type of communication to use between the nodes",
+    )
     return parser
 
 
@@ -301,9 +308,16 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    global_comm = AMLCommRedis(
-        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
-    )
+    if args.communication_backend == "socket":
+        global_comm = AMLCommSocket(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    elif args.communication_backend == "redis":
+        global_comm = AMLCommRedis(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    else:
+        raise ValueError("Communication backend not supported")
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")

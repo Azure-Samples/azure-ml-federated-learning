@@ -56,23 +56,29 @@ class AMLComm(ABC):
         self._world_size = world_size
         self._run_id = run_id
         self._stats = {
-            "msg_received": 0,
-            "msg_sent": 0,
-            "sending_time": 0.0,
-            "receiving_time": 0.0,
-            "waiting_time": 0.0,
+            "send_cnt": 0,
+            "recv_cnt": 0,
+            "send_retries_cnt": 0,
+            "recv_retries_cnt": 0,
+            "send_time": 0.0,
+            "recv_time": 0.0,
+            "send_wait_time": 0.0,
+            "recv_wait_time": 0.0,
         }
 
     def log_stats(self, mlflow_client: mlflow.MlflowClient):
-        self._stats["sending_time_avg"] = self._stats["sending_time"] / float(
-            self._stats["msg_sent"]
+        self._stats["send_time_avg_w_waiting"] = self._stats["send_time"] / float(
+            self._stats["send_cnt"]
         )
-        self._stats["receiving_time_avg_w_waiting"] = self._stats[
-            "receiving_time"
-        ] / float(self._stats["msg_received"])
-        self._stats["receiving_time_avg_wo_waiting"] = (
-            self._stats["receiving_time"] - self._stats["waiting_time"]
-        ) / float(self._stats["msg_received"])
+        self._stats["send_time_avg_wo_waiting"] = (
+            self._stats["send_time"] - self._stats["send_wait_time"]
+        ) / float(self._stats["send_cnt"])
+        self._stats["recv_time_avg_w_waiting"] = self._stats["recv_time"] / float(
+            self._stats["recv_cnt"]
+        )
+        self._stats["recv_time_avg_wo_waiting"] = (
+            self._stats["recv_time"] - self._stats["recv_wait_time"]
+        ) / float(self._stats["recv_cnt"])
 
         for key, value in self._stats.items():
             mlflow_client.log_metric(
@@ -207,18 +213,13 @@ class AMLCommSocket(AMLComm):
             assert msg["flag"] == FLAGS.OK_CONN
 
     def _send(self, data, destination, flag, ok_flag):
-        assert destination != self._rank
-        if self._rank != 0:
-            assert destination == 0
-
         if self._rank == 0:
             conn = self._connections[destination][0]
         else:
             conn = self._socket
 
-        time_start = time.time()
-        tries = 0
-        while tries < 3:
+        retries = 0
+        while retries < 3:
             try:
                 msg = pickle.dumps({"flag": flag, "data": data})
                 conn.sendall(msg)
@@ -233,7 +234,8 @@ class AMLCommSocket(AMLComm):
                     )
             except Exception as e:
                 logger.exception(e)
-                tries += 1
+                retries += 1
+                self._stats["send_retries"] += 1
                 continue
 
         if type(msg) != dict or "flag" not in msg or msg["flag"] != ok_flag:
@@ -241,14 +243,7 @@ class AMLCommSocket(AMLComm):
                 f"Failed sending message to {destination}, flag: {flag}, data: {data}"
             )
 
-        self._stats["msg_sent"] += 1
-        self._stats["sending_time"] += time.time() - time_start
-
-    def _receive(self, source, flag, ok_flag, msg_size=None):
-        assert source != self._rank
-        if self._rank != 0:
-            assert source == 0
-
+    def _recv(self, source, flag, ok_flag, msg_size=None):
         if self._rank == 0:
             conn = self._connections[source][0]
         else:
@@ -259,17 +254,16 @@ class AMLCommSocket(AMLComm):
         else:
             packet_max_size = msg_size
 
-        time_start = time.time()
         data = None
-        tries = 0
-        while tries < 3:
+        retries = 0
+
+        while retries < 3:
             try:
                 msg = b""
                 # The socket may use buffers smaller than suggested size
                 # and thus we may receive multiple of them
                 while sys.getsizeof(msg) < packet_max_size:
                     packet = conn.recv(packet_max_size)
-                    self._stats["waiting_time"] += time.time() - time_start
                     if not packet:
                         break
                     msg += packet
@@ -290,7 +284,8 @@ class AMLCommSocket(AMLComm):
                 conn.setblocking(0)
                 time.sleep(1)
                 conn.setblocking(1)
-                tries += 1
+                retries += 1
+                self._stats["recv_retries"] += 1
                 # Send information about failure
                 conn.sendall(pickle.dumps({"flag": FLAGS.FAIL, "data": None}))
                 continue
@@ -304,9 +299,6 @@ class AMLCommSocket(AMLComm):
         bytes_str = pickle.dumps({"flag": ok_flag, "data": None})
         conn.sendall(bytes_str)
 
-        self._stats["msg_received"] += 1
-        self._stats["receiving_time"] += time.time() - time_start
-
         return data
 
     def send(self, data, destination):
@@ -316,16 +308,24 @@ class AMLCommSocket(AMLComm):
             data: data to be sent
             destination: rank of the receiver node
         """
+        assert destination != self._rank, "Cannot send data to self"
+        if self._rank != 0:
+            assert destination == 0, "Only rank 0 can send data to other nodes"
+
+        time_start = time.time()
 
         # Get size of the payload
         bytes_str_tensor = pickle.dumps({"flag": FLAGS.DATA, "data": data})
         size = sys.getsizeof(bytes_str_tensor)
+        self._stats["send_wait_time"] += time.time() - time_start
 
         # Notify destination about size of the payload and wait for confirmation
         self._send(size, destination, FLAGS.SIZE, FLAGS.OK_SIZE)
 
         # Send the payload
         self._send(data, destination, FLAGS.DATA, FLAGS.OK_DATA)
+        self._stats["send_cnt"] += 1
+        self._stats["send_time"] += time.time() - time_start
 
     def recv(self, source):
         """Receives data from the source rank node
@@ -333,15 +333,24 @@ class AMLCommSocket(AMLComm):
         Args:
             source: rank of the sender node
         """
+        assert source != self._rank
+        if self._rank != 0:
+            assert source == 0
+
+        time_start = time.time()
 
         # Receive size information about size of the payload
-        size = self._receive(source, FLAGS.SIZE, FLAGS.OK_SIZE)
+        size = self._recv(source, FLAGS.SIZE, FLAGS.OK_SIZE)
+        self._stats["recv_wait_time"] += time.time() - time_start
+
         # Receive payload
-        tensor_data = self._receive(source, FLAGS.DATA, FLAGS.OK_DATA, size)
+        tensor_data = self._recv(source, FLAGS.DATA, FLAGS.OK_DATA, size)
+        self._stats["recv_cnt"] += 1
+        self._stats["recv_time"] += time.time() - time_start
+
         return tensor_data
 
-    def close(self):
-        """Close the communication channels gracefully"""
+    def _close(self):
         logger.info("Closing AMLCommSocket clients")
         if self._rank == 0:
             for c in self._connections:
@@ -351,7 +360,7 @@ class AMLCommSocket(AMLComm):
 
     def __del__(self):
         """Close the communication channels gracefully on object dereferencing"""
-        self.close()
+        self._close()
 
 
 class AMLCommRedis(AMLComm):
@@ -381,7 +390,7 @@ class AMLCommRedis(AMLComm):
         """
         super().__init__(rank, world_size, run_id)
 
-        if connection_string is None or len(connection_string) == 0:
+        if not connection_string:
             connection_string = self._get_connection_string()
         connection_string = self._format_connection_string(connection_string)
 
@@ -455,7 +464,7 @@ class AMLCommRedis(AMLComm):
             ws = run.experiment.workspace
             kv: Keyvault = ws.get_default_keyvault()
             connection_string = kv.get_secret("amlcomm-redis-connection-string")
-            logger.warning("Got Redis connection string from Azure ML Key Vault")
+            logger.info("Got Redis connection string from Azure ML Key Vault")
             return connection_string
         except Exception as e:
             logger.warning("Failed to get connection string from Azure ML Key Vault")
@@ -509,8 +518,6 @@ class AMLCommRedis(AMLComm):
         while time.time() - time_start < self._timeout and retries < 3:
             try:
                 self._client.xadd(session_id, {"data": data})
-                self._stats["msg_sent"] += 1
-                self._stats["sending_time"] += time.time() - time_start
                 return
             except Exception as e:
                 logger.exception(
@@ -519,6 +526,7 @@ class AMLCommRedis(AMLComm):
                 logger.exception(e)
 
                 retries += 1
+                self._stats["send_retries"] += 1
                 if retries >= 3:
                     raise e
 
@@ -533,13 +541,17 @@ class AMLCommRedis(AMLComm):
             data: data to be sent
             destination: rank of the receiver node
         """
-        assert destination != self._rank
+        assert destination != self._rank, "Cannot send data to self"
         if self._rank != 0:
-            assert destination == 0
+            assert destination == 0, "Only rank 0 can send data to other nodes"
+
+        time_start = time.time()
 
         session_id = self._get_session_id(self._rank, destination)
         binary_data = pickle.dumps(data)
         binary_data_size = sys.getsizeof(binary_data)
+        self._stats["send_wait_time"] += time.time() - time_start
+
         self._send(
             math.ceil(binary_data_size / self._max_msg_size), session_id, destination
         )
@@ -549,6 +561,8 @@ class AMLCommRedis(AMLComm):
                 session_id,
                 destination,
             )
+        self._stats["send_cnt"] += 1
+        self._stats["send_time"] += time.time() - time_start
 
     def _recv(self, session_id, source):
         """Receives data from the source rank node
@@ -566,15 +580,11 @@ class AMLCommRedis(AMLComm):
                     {session_id: 0}, count=1, block=self._timeout * 1000
                 )
                 if len(message) > 0:
-                    self._stats["waiting_time"] += time.time() - time_start
-
                     # Get first message received [0]
                     # get contents of that message [1]
                     # get first message in that list [0]
                     message_id, message = message[0][1][0]
                     self._client.xdel(session_id, message_id)
-                    self._stats["msg_received"] += 1
-                    self._stats["receiving_time"] += time.time() - time_start
                     return message[b"data"]
             except Exception as e:
                 logger.exception(
@@ -583,6 +593,7 @@ class AMLCommRedis(AMLComm):
                 logger.exception(e)
 
                 retries += 1
+                self._stats["recv_retries"] += 1
                 if retries >= 3:
                     raise e
 
@@ -605,14 +616,17 @@ class AMLCommRedis(AMLComm):
 
         # Receive number of messages
         total_packets = int(self._recv(session_id, source))
+        self._stats["recv_wait_time"] += time.time() - time_start
 
         # Receive packets
         data = b"".join([self._recv(session_id, source) for _ in range(total_packets)])
         data = pickle.loads(data)
+        self._stats["recv_cnt"] += 1
+        self._stats["recv_time"] += time.time() - time_start
 
         return data
 
-    def close(self):
+    def _close(self):
         logger.info("Closing Redis clients")
         if self._rank == 0:
             for i in range(1, self._world_size):
@@ -623,4 +637,5 @@ class AMLCommRedis(AMLComm):
         self._client.close()
 
     def __del__(self):
-        self.close()
+        """Close the communication channels gracefully on object dereferencing"""
+        self._close()

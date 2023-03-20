@@ -4,7 +4,7 @@ import logging
 import sys
 import copy
 import os
-from aml_comm import AMLCommRedis
+from aml_comm import AMLCommSocket, AMLCommRedis
 
 import mlflow
 import torch
@@ -61,7 +61,7 @@ class RunningMetrics:
     def get_step(self):
         """Provide average value for every metric since last `reset_step` call"""
         return {
-            f"{self._prefix}_step_{name}": value / self._batch_count_step
+            f"{self._prefix}_{name}_running": value / self._batch_count_step
             for name, value in self._running_step_metrics.items()
         }
 
@@ -253,6 +253,7 @@ class BankMarketingTrainer:
             )
 
             for epoch in range(1, self._epochs + 1):
+                # Host owns both features and labels and thus we need to have both models here
                 self.model_bottom.train()
                 self.model_top.train()
                 train_metrics.reset_global()
@@ -384,6 +385,7 @@ class BankMarketingTrainer:
             ["loss", "accuracy", "precision", "recall"], prefix="test"
         )
 
+        # Host owns both features and labels and thus we need to have both models here
         self.model_bottom.eval()
         self.model_top.eval()
         with torch.no_grad():
@@ -483,6 +485,13 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
+    parser.add_argument(
+        "--communication_backend",
+        type=str,
+        required=False,
+        default="socket",
+        help="Type of communication to use between the nodes",
+    )
     return parser
 
 
@@ -524,9 +533,16 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    global_comm = AMLCommRedis(
-        args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
-    )
+    if args.communication_backend == "socket":
+        global_comm = AMLCommSocket(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    elif args.communication_backend == "redis":
+        global_comm = AMLCommRedis(
+            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+        )
+    else:
+        raise ValueError("Communication backend not supported")
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
