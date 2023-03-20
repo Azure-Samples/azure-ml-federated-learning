@@ -58,6 +58,8 @@ class AMLComm(ABC):
         self._stats = {
             "send_cnt": 0,
             "recv_cnt": 0,
+            "send_retries_cnt": 0,
+            "recv_retries_cnt": 0,
             "send_time": 0.0,
             "recv_time": 0.0,
             "send_wait_time": 0.0,
@@ -233,6 +235,7 @@ class AMLCommSocket(AMLComm):
             except Exception as e:
                 logger.exception(e)
                 retries += 1
+                self._stats["send_retries"] += 1
                 continue
 
         if type(msg) != dict or "flag" not in msg or msg["flag"] != ok_flag:
@@ -282,6 +285,7 @@ class AMLCommSocket(AMLComm):
                 time.sleep(1)
                 conn.setblocking(1)
                 retries += 1
+                self._stats["recv_retries"] += 1
                 # Send information about failure
                 conn.sendall(pickle.dumps({"flag": FLAGS.FAIL, "data": None}))
                 continue
@@ -304,9 +308,9 @@ class AMLCommSocket(AMLComm):
             data: data to be sent
             destination: rank of the receiver node
         """
-        assert destination != self._rank
+        assert destination != self._rank, "Cannot send data to self"
         if self._rank != 0:
-            assert destination == 0
+            assert destination == 0, "Only rank 0 can send data to other nodes"
 
         time_start = time.time()
 
@@ -522,6 +526,7 @@ class AMLCommRedis(AMLComm):
                 logger.exception(e)
 
                 retries += 1
+                self._stats["send_retries"] += 1
                 if retries >= 3:
                     raise e
 
@@ -536,9 +541,9 @@ class AMLCommRedis(AMLComm):
             data: data to be sent
             destination: rank of the receiver node
         """
-        assert destination != self._rank
+        assert destination != self._rank, "Cannot send data to self"
         if self._rank != 0:
-            assert destination == 0
+            assert destination == 0, "Only rank 0 can send data to other nodes"
 
         time_start = time.time()
 
@@ -588,6 +593,7 @@ class AMLCommRedis(AMLComm):
                 logger.exception(e)
 
                 retries += 1
+                self._stats["recv_retries"] += 1
                 if retries >= 3:
                     raise e
 
