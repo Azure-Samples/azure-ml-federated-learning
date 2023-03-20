@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "9922889128364808730"
+      "templateHash": "6114457056815058655"
     }
   },
   "parameters": {
@@ -148,7 +148,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "11936496485825703582"
+              "templateHash": "17729024177500983615"
             }
           },
           "parameters": {
@@ -197,7 +197,7 @@
             },
             "appInsightLogAnalyticsName": {
               "type": "string",
-              "defaultValue": "[format('log-analy-{0}', parameters('baseName'))]",
+              "defaultValue": "[format('logs-{0}', parameters('baseName'))]",
               "metadata": {
                 "description": "Name of the application insights log analytics workspace"
               }
