@@ -42,10 +42,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
@@ -282,7 +282,7 @@ pipeline_job = fl_demo_bank_marketing_vertical()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     ML_CLIENT = connect_to_aml()
@@ -315,4 +315,4 @@ if args.submit:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")
