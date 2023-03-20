@@ -34,9 +34,9 @@ For the production workspace, we suggest the following setup.
 
     This can be quite flexible and can be set up to allow for different levels of peer-review depending on the branch. You can also require specific reviewers for specific branches. This is all configurable in Azure DevOps or GitHub.
 
-3. Restrict RBAC role of your users to _Reader_ of the Azure ML workspace. They won't be able to run a job, but they will be able to see the code and the results of the experiments.
+3. **Restrict RBAC role of your users to _Reader_** of the Azure ML workspace. They won't be able to run a job, but they will be able to see the code and the results of the experiments.
 
-4. Create a **service principal (SP) with the _Contributor_ role** on the Azure ML workspace (see [How-to](#how-to-implement-mlops-with-azure-ml) below).
+4. **Create a service principal (SP) with the _Contributor_ role** on the Azure ML workspace (see [How-to](#how-to-implement-mlops-with-azure-ml) below).
 
     This service principal will be used by the MLOps pipeline to run jobs in the production workspace.
 
