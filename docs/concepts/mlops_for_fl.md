@@ -1,4 +1,4 @@
-# Integrate and Secure Federated Learning experiments with MLOps
+# Integrate and secure FL experiments with MLOps
 
 This page tries to answer the following question: What can we do to avoid users running a job intentionally or unintentionally leaking sensitive data?
 
