@@ -1,6 +1,12 @@
 # Vertically federated cross-geo bank marketing campaign prediction
 
-**Scenario** - This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for bank marketing campaign in vertical federating learning fashion. The example showcases how to setup training in the case, where part of the data, including the feature space, is owned by the host. We have simulated a FL scenario by splitting the data into **distinct geo-location**. The sample utilizes **tabular data**.
+**Scenario** - This is a short example where we showcase possibilities of using Azure Machine Learning(AML) for training a model for bank marketing campaign in vertical federating learning fashion. The example showcases how to setup training in the case, where part of the data, including the feature space, is owned by the host. We have simulated a FL scenario by splitting the data into **distinct geo-location**. The sample utilizes **tabular data**. In case of default settings (host and 3 contributors) the features are split as follows:
+- **host**:`["age", "job", "marital", "education", "default", "housing", "loan"]`
+- **contributor 1**: `["contact", "month", "day_of_week", "duration"]`
+- **contributor 2**: `["campaign", "pdays", "previous", "poutcome"]`
+- **contributor 3**: `["emp.var.rate", "cons.price.idx", "cons.conf.idx", "euribor3m", "nr.employed"]`
+
+This is also the reason why **host** needs to own both the **lower model**, responsible for creating latent space representation of the input data, as well as **upper model**, responsible for predicting label for the data. Of course the **lower model** will only learn latent representation for features directly owned by the **host**, which in default case means: `["age", "job", "marital", "education", "default", "housing", "loan"]`.
 
 **Dataset** - This example is trained using the Kaggle dataset [**Bank marketing campaigns dataset | Opening Deposit**](https://www.kaggle.com/datasets/volodymyrgavrysh/bank-marketing-campaigns-dataset). This dataset is describing Portugal bank marketing campaign results, where the campaigns were conducted by calling clients and offering them to place a term deposit.
 
