@@ -16,11 +16,11 @@ federated_learning:
     training_data:
       type: uri_file
       mode: 'download'
-      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/ccfraud_vertical/raw_train_data
+      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/bank_marketing_vertical/raw_train_data
     testing_data:
       type: uri_file
       mode: 'download'
-      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/ccfraud_vertical/raw_test_data
+      path: azureml://datastores/datastore_orchestrator/paths/federated_learning/bank_marketing_vertical/raw_test_data
 
   silos:
     - compute: silo0-01
@@ -28,31 +28,31 @@ federated_learning:
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud_vertical/raw_train_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/bank_marketing_vertical/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud_vertical/raw_test_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/bank_marketing_vertical/raw_test_data
     - compute: silo1-01
       datastore: datastore_silo1
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud_vertical/raw_train_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/bank_marketing_vertical/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud_vertical/raw_test_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/bank_marketing_vertical/raw_test_data
     - compute: silo2-01
       datastore: datastore_silo2
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud_vertical/raw_train_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/bank_marketing_vertical/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud_vertical/raw_test_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/bank_marketing_vertical/raw_test_data
 
 # training parameters
 training_parameters:
