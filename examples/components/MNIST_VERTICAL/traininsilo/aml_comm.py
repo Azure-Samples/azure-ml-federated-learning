@@ -673,6 +673,7 @@ class AMLCommRedis(AMLComm):
             assert source == 0
 
         session_id = self._get_session_id(source, self._rank)
+        time_start = time.time()
 
         # Receive number of messages
         total_packets = self._recv(session_id, source)
