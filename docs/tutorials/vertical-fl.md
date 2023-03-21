@@ -89,6 +89,20 @@ Once you provision *Azure Cache for Redis* (this can be provisioned in whichever
 8. In your pipeline configuration file change `communication_backend` value from `socket` to `redis`
 9. Continue to training section
 
+## Communication encryption (only CCFRAUD_VERTICAL example)
+
+The communication between nodes, which includes intermediate outputs and gradients, can be optionally encoded. This may be very important in case of using *Redis* as communication backend. To enable the encryption follow these steps:
+
+1. Open the config file  `config.yaml` in `examples/pipelines/ccfraud_vertical/`
+2. Set `encrypted` field, under `communication` to `true`
+
+### How does the encryption works?
+Whole encryption is handled by `AMLSPMC` class in `examples/components/CCFRAUD_VERTICAL/aml_smpc.py`. By initiating the class every node generates its own public/private key set. The public part is communicated to other parties, which they use when communicating with this node. Thus, the private part resides at all time on the local node and is well protected. The message itself is encrypted using hybrid encryption, which can be broken down as follows:
+
+**Encryption:** Firstly, the data are encoded using symmetric key, new symmetric key is generated for every message. Afterwards, this symmetric key is encoded using public key of receiving party and attached to the message.
+
+**Decryption:** Firstly, receiving party decodes the symmetric key using its private key and afterwards the data are decoded using this symmetric key.
+
 ## Training
 
 ### Overview
