@@ -3,7 +3,9 @@ import argparse
 import logging
 import sys
 import os
+from distutils.util import strtobool
 from aml_comm import AMLCommSocket, AMLCommRedis
+from aml_smpc import AMLSMPC
 from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
@@ -385,6 +387,13 @@ def get_arg_parser(parser=None):
         default="socket",
         help="Type of communication to use between the nodes",
     )
+    parser.add_argument(
+        "--communication_encrypted",
+        type=strtobool,
+        required=False,
+        default=False,
+        help="Encrypt messages exchanged between the nodes",
+    )
     return parser
 
 
@@ -427,13 +436,24 @@ def main(cli_args=None):
     logger.info(args.train_data)
     logger.info(args.test_data)
 
+    if args.communication_encrypted:
+        encryption = AMLSMPC()
+    else:
+        encryption = None
+
     if args.communication_backend == "socket":
         global_comm = AMLCommSocket(
-            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+            args.global_rank,
+            args.global_size,
+            os.environ.get("AZUREML_ROOT_RUN_ID"),
+            encryption=encryption,
         )
     elif args.communication_backend == "redis":
         global_comm = AMLCommRedis(
-            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+            args.global_rank,
+            args.global_size,
+            os.environ.get("AZUREML_ROOT_RUN_ID"),
+            encryption=encryption,
         )
     else:
         raise ValueError("Communication backend not supported")

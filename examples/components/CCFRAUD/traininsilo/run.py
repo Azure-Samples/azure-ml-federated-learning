@@ -26,6 +26,9 @@ from distutils.util import strtobool
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
 
+# helper with confidentiality
+from confidential_io import EncryptedFile
+
 
 class RunningMetrics:
     def __init__(self, metrics: List[str], prefix: str = None) -> None:
@@ -253,9 +256,12 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
-        train_df = pd.read_csv(train_data_dir + "/data.csv")
-        test_df = pd.read_csv(test_data_dir + "/data.csv")
+        with EncryptedFile(train_data_dir + "/fraud_weight.txt") as f:
+            self.fraud_weight_ = np.loadtxt(f).item()
+        with EncryptedFile(train_data_dir + "/data.csv") as f:
+            train_df = pd.read_csv(f)
+        with EncryptedFile(test_data_dir + "/data.csv") as f:
+            test_df = pd.read_csv(f)
         if model_name == "SimpleLinear":
             train_dataset = datasets.FraudDataset(train_df)
             test_dataset = datasets.FraudDataset(test_df)
