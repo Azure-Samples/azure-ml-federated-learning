@@ -159,9 +159,9 @@ class SimpleVAEBottom(nn.Module):
 
         self.input_dim = input_dim
         self._hidden_dim = 128
-        self._num_layers = 2
+        self._num_layers = 1
         self._bidirectional = False
-        self._latent_dim = 1000
+        self._latent_dim = 100
         self._embedding_dropout = 0.5
 
         # Encoder Part
@@ -250,7 +250,7 @@ class SimpleVAETop(nn.Module):
 
     def __init__(self) -> None:
         super().__init__()
-        self._latent_dim = 1000
+        self._latent_dim = 100
 
         self.output = torch.nn.Linear(
             in_features=self._latent_dim,
