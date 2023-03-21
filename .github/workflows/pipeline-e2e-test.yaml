@@ -2,7 +2,6 @@ name: End-to-end-pipeline-test
 
 on:
   pull_request:
-    types: [review_requested, ready_for_review]
     branches:
     - main
     paths:
@@ -17,6 +16,7 @@ concurrency:
 jobs:
   paths-filter:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     outputs:
       provisioning-modules: ${{ steps.filter.outputs.provisioning-modules }}
       open-sandbox: ${{ steps.filter.outputs.open-sandbox }}
@@ -100,6 +100,7 @@ jobs:
 
   arm-template-test:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     steps:
     - uses: actions/checkout@v2
 
