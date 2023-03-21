@@ -285,7 +285,7 @@ class AMLCommSocket(AMLComm):
                 time.sleep(1)
                 conn.setblocking(1)
                 retries += 1
-                self._stats["recv_retries"] += 1
+                self._stats["recv_retries_cnt"] += 1
                 # Send information about failure
                 conn.sendall(pickle.dumps({"flag": FLAGS.FAIL, "data": None}))
                 continue
@@ -593,7 +593,7 @@ class AMLCommRedis(AMLComm):
                 logger.exception(e)
 
                 retries += 1
-                self._stats["recv_retries"] += 1
+                self._stats["recv_retries_cnt"] += 1
                 if retries >= 3:
                     raise e
 
