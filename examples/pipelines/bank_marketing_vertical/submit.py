@@ -213,7 +213,8 @@ def fl_demo_bank_marketing_vertical():
                 model_name=YAML_CONFIG.training_parameters.model_name,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                communication_backend=YAML_CONFIG.federated_learning.communication_backend,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
             )
             # add a readable name to the step
             silo_training_step.name = f"host_training"
@@ -245,7 +246,8 @@ def fl_demo_bank_marketing_vertical():
                 model_name=YAML_CONFIG.training_parameters.model_name,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                communication_backend=YAML_CONFIG.federated_learning.communication_backend,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
             )
             # add a readable name to the step
             silo_training_step.name = f"contributor_{silo_index}_training"
