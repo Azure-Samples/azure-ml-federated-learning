@@ -605,18 +605,16 @@ class AMLCommRedis(AMLComm):
         if self._encryption:
             binary_data = self._encryption.encrypt(binary_data, destination)
 
-        binary_data_size = math.ceil(sys.getsizeof(binary_data) / self._max_msg_size)
+        packets_count = math.ceil(sys.getsizeof(binary_data) / self._max_msg_size)
         if self._encryption:
-            binary_data_size_msg = binary_data_size.to_bytes(2, "big")
-            binary_data_size_msg = self._encryption.encrypt(
-                binary_data_size_msg, destination
-            )
+            packets_count_msg = packets_count.to_bytes(2, "big")
+            packets_count_msg = self._encryption.encrypt(packets_count_msg, destination)
         else:
-            binary_data_size_msg = binary_data_size
+            packets_count_msg = packets_count
 
         self._stats["send_wait_time"] += time.time() - time_start
-        self._send(binary_data_size_msg, session_id, destination)
-        for i in range(math.ceil(binary_data_size / self._max_msg_size)):
+        self._send(packets_count_msg, session_id, destination)
+        for i in range(packets_count):
             self._send(
                 binary_data[i * self._max_msg_size : (i + 1) * self._max_msg_size],
                 session_id,
