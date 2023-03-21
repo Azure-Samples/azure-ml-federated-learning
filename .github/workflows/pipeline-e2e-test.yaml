@@ -2,7 +2,7 @@ name: End-to-end-pipeline-test
 
 on:
   pull_request:
-    types: [ready_for_review, synchronize, reopened]
+    types: [review_requested, ready_for_review]
     branches:
     - main
     paths:
