@@ -235,7 +235,7 @@ class AMLCommSocket(AMLComm):
             except Exception as e:
                 logger.exception(e)
                 retries += 1
-                self._stats["send_retries"] += 1
+                self._stats["send_retries_cnt"] += 1
                 continue
 
         if type(msg) != dict or "flag" not in msg or msg["flag"] != ok_flag:
@@ -526,7 +526,7 @@ class AMLCommRedis(AMLComm):
                 logger.exception(e)
 
                 retries += 1
-                self._stats["send_retries"] += 1
+                self._stats["send_retries_cnt"] += 1
                 if retries >= 3:
                     raise e
 
