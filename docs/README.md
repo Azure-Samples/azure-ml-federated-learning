@@ -25,6 +25,7 @@
   - [Provisioning guide](#provisioning-guide)
   - [How to adapt the "literal" and the "scatter-gather" code for your own scenario](#how-to-adapt-the-literal-and-the-scatter-gather-code-for-your-own-scenario)
   - [Read local data in an on-premises Kubernetes silo](#read-local-data-in-an-on-premises-kubernetes-silo)
+  - [Differential privacy for cross-silo horizontal federated learning](#differential-privacy-for-cross-silo-horizontal-federated-learning)
   - [Upload local data to silo storage account](#upload-local-data-to-silo-storage-account)
 - [Troubleshooting guide](#troubleshooting-guide)
 
