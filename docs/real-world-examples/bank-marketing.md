@@ -95,7 +95,7 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 2. Submit the experiment by running:
 
    ```bash
-   python ./examples/pipelines/utils/upload_data/submit.py --example CCFRAUD --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/utils/upload_data/submit.py --example BANK_MARKETING_VERTICAL --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
