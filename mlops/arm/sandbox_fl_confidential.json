@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "14343392800612222688"
+      "templateHash": "5469232825209649678"
     }
   },
   "parameters": {
@@ -41,15 +41,11 @@
         "description": "The VM used for creating compute clusters in orchestrator and silos."
       }
     },
-    "orchestratorStorageNetworkAccess": {
-      "type": "string",
-      "defaultValue": "private",
-      "allowedValues": [
-        "public",
-        "private"
-      ],
+    "orchestratorEyesOn": {
+      "type": "bool",
+      "defaultValue": false,
       "metadata": {
-        "description": "Set the orchestrator storage network access as private, with private endpoints into each silo."
+        "description": "Uses public network access for the orchestrator storage, allowing it to be eyes-on."
       }
     },
     "applyVNetPeering": {
@@ -83,9 +79,7 @@
           "computeSKU": {
             "value": "[parameters('computeSKU')]"
           },
-          "orchestratorStorageNetworkAccess": {
-            "value": "[parameters('orchestratorStorageNetworkAccess')]"
-          },
+          "orchestratorStorageNetworkAccess": "[if(parameters('orchestratorEyesOn'), createObject('value', 'public'), createObject('value', 'private'))]",
           "siloStorageNetworkAccess": {
             "value": "private"
           },

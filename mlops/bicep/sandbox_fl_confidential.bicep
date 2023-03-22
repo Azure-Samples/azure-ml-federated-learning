@@ -21,12 +21,8 @@ param siloRegions array = [
 @description('The VM used for creating compute clusters in orchestrator and silos.')
 param computeSKU string = 'Standard_DC4as_v5'
 
-@description('Set the orchestrator storage network access as private, with private endpoints into each silo.')
-@allowed([
-  'public'
-  'private'
-])
-param orchestratorStorageNetworkAccess string = 'private'
+@description('Uses public network access for the orchestrator storage, allowing it to be eyes-on.')
+param orchestratorEyesOn bool = false
 
 @description('Apply vnet peering to allow for vertical FL')
 param applyVNetPeering bool = true
@@ -51,7 +47,7 @@ module sandbox 'vnet_publicip_sandbox_aks_confcomp_setup.bicep' = {
     computeSKU: computeSKU
   
     // eyes-on/eyes-off settings
-    orchestratorStorageNetworkAccess: orchestratorStorageNetworkAccess
+    orchestratorStorageNetworkAccess: orchestratorEyesOn ? 'public' : 'private'
     siloStorageNetworkAccess: 'private'
 
     // ready for vertical FL

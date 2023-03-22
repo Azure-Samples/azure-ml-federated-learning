@@ -1,6 +1,6 @@
 // This BICEP script will fully provision a federated learning sandbox
 // with eyes-off orchestrator and silos storages
-// and only one compute (cpu by default)
+// and only one compute (gpu by default)
 
 targetScope = 'resourceGroup'
 

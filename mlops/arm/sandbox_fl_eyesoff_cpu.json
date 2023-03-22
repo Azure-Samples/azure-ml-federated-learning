@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "12402257147277811419"
+      "templateHash": "12352513268470353436"
     }
   },
   "parameters": {
@@ -43,7 +43,7 @@
     },
     "orchestratorEyesOn": {
       "type": "bool",
-      "defaultValue": true,
+      "defaultValue": false,
       "metadata": {
         "description": "Uses public network access for the orchestrator storage, allowing it to be eyes-on."
       }
