@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "8854393090375203931"
+      "templateHash": "8256567375918972673"
     }
   },
   "parameters": {
@@ -184,7 +184,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "17729024177500983615"
+              "templateHash": "5219671468848917786"
             }
           },
           "parameters": {
@@ -398,6 +398,14 @@
             "region": {
               "type": "string",
               "value": "[parameters('location')]"
+            },
+            "workspaceSecretStoreId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+            },
+            "workspaceSecretStoreName": {
+              "type": "string",
+              "value": "[parameters('keyVaultName')]"
             }
           }
         }
@@ -4319,5 +4327,15 @@
         "silos"
       ]
     }
-  ]
+  ],
+  "outputs": {
+    "workspaceSecretStoreId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceSecretStoreId.value]"
+    },
+    "workspaceSecretStoreName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceSecretStoreName.value]"
+    }
+  }
 }

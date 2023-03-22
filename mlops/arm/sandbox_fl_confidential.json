@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "5469232825209649678"
+      "templateHash": "2937070433591051028"
     }
   },
   "parameters": {
@@ -54,9 +54,47 @@
       "metadata": {
         "description": "Apply vnet peering to allow for vertical FL"
       }
+    },
+    "kaggleUsername": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Provide your Kaggle API user name to run our samples relying on Kaggle datasets."
+      }
+    },
+    "kaggleKey": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Provide your Kaggle API key to run our samples relying on Kaggle datasets."
+      }
     }
   },
   "resources": [
+    {
+      "condition": "[not(empty(parameters('kaggleUsername')))]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2022-07-01",
+      "name": "[format('ws-shkv-{0}/kaggleusername', parameters('demoBaseName'))]",
+      "properties": {
+        "value": "[parameters('kaggleUsername')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'sandbox')]"
+      ]
+    },
+    {
+      "condition": "[not(empty(parameters('kaggleUsername')))]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2022-07-01",
+      "name": "[format('ws-shkv-{0}/kagglekey', parameters('demoBaseName'))]",
+      "properties": {
+        "value": "[parameters('kaggleKey')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', 'sandbox')]"
+      ]
+    },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
@@ -94,7 +132,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "3193155044510035489"
+              "templateHash": "1810000442779468320"
             }
           },
           "parameters": {
@@ -248,7 +286,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "17729024177500983615"
+                      "templateHash": "5219671468848917786"
                     }
                   },
                   "parameters": {
@@ -462,6 +500,14 @@
                     "region": {
                       "type": "string",
                       "value": "[parameters('location')]"
+                    },
+                    "workspaceSecretStoreId": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+                    },
+                    "workspaceSecretStoreName": {
+                      "type": "string",
+                      "value": "[parameters('keyVaultName')]"
                     }
                   }
                 }
@@ -4511,7 +4557,17 @@
                 "silos"
               ]
             }
-          ]
+          ],
+          "outputs": {
+            "workspaceSecretStoreId": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceSecretStoreId.value]"
+            },
+            "workspaceSecretStoreName": {
+              "type": "string",
+              "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceSecretStoreName.value]"
+            }
+          }
         }
       }
     }
