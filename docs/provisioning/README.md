@@ -4,7 +4,7 @@ This page provides a "pick and choose" guide to provisioning a new FL environmen
 
 A lot of those steps are still marked :construction:, we are actively working to provide them im the coming iterations.
 
-If you are looking for a ready-to-use sandbox environment, please check out our [sandboxes](./docs/provisioning/sandboxes.md).
+If you are looking for a ready-to-use sandbox environment, please check out our [sandboxes](./sandboxes.md).
 
 ## Prerequisites
 
