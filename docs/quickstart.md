@@ -11,7 +11,6 @@ To enjoy this quickstart, you will need to:
 
 * have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
 * have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
-  * Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
 * [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
 ## Create a sandbox environment
@@ -19,6 +18,8 @@ To enjoy this quickstart, you will need to:
 Click on the buttons below depending on your goal. It will open in Azure Portal a page to deploy the resources in your subscription. You can find other available sandbox setups in our [sandboxes provisioning page](./provisioning/sandboxes.md).
 
 This will provision a Federated Learning setup with 3 [_internal silos_](./concepts/glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be to run the examples in the `./examples/pipelines` directory.
+
+<a style="color:darkorange">These sandboxes require you to be the _Owner_ of an Azure resource group.</a> _Contributor_ role is not enough. In your subscription, depending on admin policies, even if you can create a resource group yourself, you might not be the _Owner_ of it. Without ownership, you will not be able to set the RBAC roles necessary for provisioning these sandboxes. Ask your subscription administrator for help.
 
 | Button | Description |
 | :-- | :-- |
