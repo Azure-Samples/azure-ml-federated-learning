@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "6114457056815058655"
+      "templateHash": "3193155044510035489"
     }
   },
   "parameters": {
@@ -23,7 +23,7 @@
         "description": "Region of the orchestrator (workspace, central storage and compute)."
       }
     },
-    "orchestratorAccess": {
+    "orchestratorStorageNetworkAccess": {
       "type": "string",
       "defaultValue": "public",
       "allowedValues": [
@@ -32,6 +32,17 @@
       ],
       "metadata": {
         "description": "Set the orchestrator storage as private, with endpoints into each silo."
+      }
+    },
+    "siloStorageNetworkAccess": {
+      "type": "string",
+      "defaultValue": "public",
+      "allowedValues": [
+        "public",
+        "private"
+      ],
+      "metadata": {
+        "description": "Set the silo storage network access as private, with private endpoints into each silo."
       }
     },
     "siloRegions": {
@@ -94,7 +105,7 @@
       "tags": "[parameters('tags')]"
     },
     {
-      "condition": "[equals(parameters('orchestratorAccess'), 'private')]",
+      "condition": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]",
       "type": "Microsoft.Network/privateDnsZones/A",
       "apiVersion": "2020-06-01",
       "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), variables('orchestratorStorageAccountCleanName'))]",
@@ -129,7 +140,7 @@
             "value": "[format('aml-{0}', parameters('demoBaseName'))]"
           },
           "machineLearningDescription": {
-            "value": "[format('Azure ML demo workspace for federated learning (orchestratorAccess={0}, applyVNetPeering={1})', parameters('orchestratorAccess'), parameters('applyVNetPeering'))]"
+            "value": "[format('Azure ML demo workspace for federated learning (orchestratorStorageNetworkAccess={0}, applyVNetPeering={1})', parameters('orchestratorStorageNetworkAccess'), parameters('applyVNetPeering'))]"
           },
           "baseName": {
             "value": "[parameters('demoBaseName')]"
@@ -417,7 +428,7 @@
             "value": "172.19.0.0/24"
           },
           "useStorageStaticIP": {
-            "value": "[equals(parameters('orchestratorAccess'), 'private')]"
+            "value": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]"
           },
           "storagePLEStaticIP": {
             "value": "172.19.0.150"
@@ -425,7 +436,7 @@
           "enableNodePublicIp": {
             "value": true
           },
-          "storagePublicNetworkAccess": "[if(equals(parameters('orchestratorAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
+          "storagePublicNetworkAccess": "[if(equals(parameters('orchestratorStorageNetworkAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
           "blobPrivateDNSZoneName": {
             "value": "[format('privatelink.blob.{0}', environment().suffixes.storage)]"
           },
@@ -2141,9 +2152,7 @@
           "enableNodePublicIp": {
             "value": true
           },
-          "storagePublicNetworkAccess": {
-            "value": "Disabled"
-          },
+          "storagePublicNetworkAccess": "[if(equals(parameters('siloStorageNetworkAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
           "blobPrivateDNSZoneName": {
             "value": "[format('privatelink.blob.{0}', environment().suffixes.storage)]"
           },
@@ -3811,7 +3820,7 @@
         "name": "orchToSiloPrivateEndpoints",
         "count": "[length(range(0, variables('siloCount')))]"
       },
-      "condition": "[equals(parameters('orchestratorAccess'), 'private')]",
+      "condition": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
       "name": "[format('{0}-orch-to-silo{1}-endpoint', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
