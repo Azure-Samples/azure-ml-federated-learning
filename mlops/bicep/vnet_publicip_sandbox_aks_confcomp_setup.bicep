@@ -38,7 +38,14 @@ param orchestratorRegion string = 'eastus'
   'public'
   'private'
 ])
-param orchestratorAccess string = 'public'
+param orchestratorStorageNetworkAccess string = 'public'
+
+@description('Set the silo storage network access as private, with private endpoints into each silo.')
+@allowed([
+  'public'
+  'private'
+])
+param siloStorageNetworkAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
@@ -79,7 +86,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
-    machineLearningDescription: 'Azure ML demo workspace for federated learning (orchestratorAccess=${orchestratorAccess}, applyVNetPeering=${applyVNetPeering})'
+    machineLearningDescription: 'Azure ML demo workspace for federated learning (orchestratorStorageNetworkAccess=${orchestratorStorageNetworkAccess}, applyVNetPeering=${applyVNetPeering})'
     baseName: demoBaseName
     location: orchestratorRegion
     tags: tags
@@ -123,7 +130,7 @@ module orchestrator './modules/fl_pairs/vnet_aks_storage_pair.bicep' = {
     // (to orch vnet and to each silo vnet)
     // we need to set static IP to create a unique record in DNS zone
     // with all the IPs to the orchestrator storage
-    useStorageStaticIP: orchestratorAccess == 'private'
+    useStorageStaticIP: orchestratorStorageNetworkAccess == 'private'
     storagePLEStaticIP: '172.19.0.150'
 
     // IMPORTANT: compute still has public ip to let workspace submit job
@@ -132,7 +139,7 @@ module orchestrator './modules/fl_pairs/vnet_aks_storage_pair.bicep' = {
 
     // IMPORTANT: below means all traffic allowed (with permissions via UAI)
     // alternative is vNetOnly for specific vnets, or Disabled for service endpoints
-    storagePublicNetworkAccess: orchestratorAccess == 'public' ? 'Enabled' : 'Disabled'
+    storagePublicNetworkAccess: orchestratorStorageNetworkAccess == 'public' ? 'Enabled' : 'Disabled'
 
     //allowedSubnetIds: [for i in range(0, siloCount): silos[i].outputs.subnetId]
 
@@ -176,7 +183,7 @@ module silos './modules/fl_pairs/vnet_aks_storage_pair.bicep' = [for i in range(
     enableNodePublicIp: true
 
     // IMPORTANT: below Disabled means data will be only accessible via private service endpoints
-    storagePublicNetworkAccess: 'Disabled'
+    storagePublicNetworkAccess: siloStorageNetworkAccess == 'public' ? 'Enabled' : 'Disabled'
 
     blobPrivateDNSZoneName: storagePrivateDnsZone.name
     blobPrivateDNSZoneLocation: storagePrivateDnsZone.location
@@ -188,7 +195,7 @@ module silos './modules/fl_pairs/vnet_aks_storage_pair.bicep' = [for i in range(
 
 // Attach orchestrator and silos together with private endpoints and RBAC
 // Create a private service endpoints internal to each pair for their respective storages
-module orchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): if (orchestratorAccess == 'private') {
+module orchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): if (orchestratorStorageNetworkAccess == 'private') {
   name: '${demoBaseName}-orch-to-silo${i}-endpoint'
   scope: resourceGroup()
   params: {
@@ -218,7 +225,7 @@ module orchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' 
 // the IP address of each endpoint will overwrite the previous one.
 // we are using static IP adresses so that we can create a unique record in the DNS zone
 // with all the IP adresses from each vnet (orch + silos)
-resource privateDnsARecordOrchestratorStorage 'Microsoft.Network/privateDnsZones/A@2020-06-01' = if (orchestratorAccess == 'private') {
+resource privateDnsARecordOrchestratorStorage 'Microsoft.Network/privateDnsZones/A@2020-06-01' = if (orchestratorStorageNetworkAccess == 'private') {
   name: orchestratorStorageAccountCleanName
   parent: storagePrivateDnsZone
   properties: {
