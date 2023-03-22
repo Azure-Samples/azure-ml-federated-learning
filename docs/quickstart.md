@@ -11,71 +11,25 @@ To enjoy this quickstart, you will need to:
 
 * have an active [Azure subscription](https://azure.microsoft.com) that you can use for development purposes,
 * have permissions to create resources, set permissions, and create identities in this subscription (or at least in one resource group),
-  * Note that to set permissions, you typically need _Owner_ role in the subscription or resource group - _Contributor_ role is not enough. This is key for being able to _secure_ the setup.
 * [install the Azure CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).
 
-## Deploy demo resources in Azure
+## Create a sandbox environment
 
-### Option 1: One click ARM deployment
+Click on the buttons below depending on your goal. It will open in Azure Portal a page to deploy the resources in your subscription. You can find other available sandbox setups in our [sandboxes provisioning page](./provisioning/sandboxes.md).
 
-Click on the buttons below depending on your goal. It will open in Azure Portal a page to deploy the resources in your subscription.
+This will provision a Federated Learning setup with 3 [_internal silos_](./concepts/glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be to run the examples in the `./examples/pipelines` directory.
+
+:rotating_light: :rotating_light: :rotating_light: **IMPORTANT: These sandboxes require you to be the _Owner_ of an Azure resource group.** _Contributor_ role is not enough. In your subscription, depending on admin policies, even if you can create a resource group yourself, you might not be the _Owner_ of it. Without ownership, you will not be able to set the RBAC roles necessary for provisioning these sandboxes. Ask your subscription administrator for help.
 
 | Button | Description |
 | :-- | :-- |
-| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fopen_sandbox_setup.json) | Deploy a completely open sandbox to allow you to try things out in an eyes-on environment. This setup is intended only for demo purposes. The data is still accessible by the users of your subscription when opening the storage accounts, and data exfiltration is possible. |
-| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | Deploy a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_minimal.json) | [3-5 mins] A very minimal open sandbox to allow you to try things out. This setup works quick but only for this quickstart code and is intended for demo purposes. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_fl_eyesoff_cpu.json) | [5-7 mins] Deploy a full sandbox where the storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. This works with all our samples including both horizontal FL and vertical FL. |
 
 > Notes:
 >
 > * If someone already provisioned a demo with the same name in your subscription, change **Demo Base Name** parameter to a unique value.
-> * If you need to provision GPU's instead of CPU's, you can just use a GPU SKU value for the "Compute SKU" parameter, `Standard_NC12s_v3` for instance. An overview of the GPU SKU's available in Azure can be found [here](https://learn.microsoft.com/en-us/azure/virtual-machines/sizes-gpu). Beware though, SKU availability may vary depending on the region you choose, so you may have to use different Azure regions instead of the default ones.
-
-### Option 2: Step by step tutorial
-
-In this section, we will use [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) scripts to automatically provision a minimal set of resources for an FL sandbox demo.
-
-This will help you provision a Federated Learning setup with [_internal silos_](./concepts/glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be able to use this setup to run the examples in the `./examples/pipelines` directory.
-
-In this setup, the communications between the silos and the orchestrator are secure, and the silos will not have any access to the other silos' data.
-
-We will provision:
-
-* 1 Azure ML workspace
-* 1 CPU cluster and 1 blob storage account for the [orchestrator](./concepts/glossary.md)
-* 3 [internal silos](./concepts/glossary.md) in 3 different regions (`westus`, `francecentral`, `brazilsouth`) with their respective compute cluster and storage account
-* 4 user assigned identifies (1 for orchestration, 1 for each silo) to restrict access to the silo's storage accounts.
-
-1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
-
-    ```bash
-    az login
-    az account set --name <subscription name>
-    ```
-
-2. Optional: Create a new resource group for the demo resources. Having a new group would make it easier to delete the resources afterwards (deleting this RG will delete all resources within).
-
-    ```bash
-    # create a resource group for the resources
-    az group create --name <resource group name> --location <region>
-    ```
-
-    > Notes:
-    >
-    > * If you have _Owner_ role only in a given resource group (as opposed to in the whole subscription), just use that resource group instead of creating a new one.
-
-3. Run the bicep deployment script in a resource group you own:
-
-    ```bash
-    # deploy the demo resources in your resource group
-    az deployment group create --template-file ./mlops/bicep/open_sandbox_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
-    ```
-
-    > Notes:
-      > * If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
-      > * :warning: **IMPORTANT** :warning: This setup is intended only for demo purposes. The data is still accessible by the users of your subscription when opening the storage accounts, and data exfiltration is possible.
-      > * Alternatively, you can try provisioning a sandbox where the silos storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. To try it out, use `--template-file ./mlops/bicep/vnet_publicip_sandbox_setup.bicep` instead. Please check the header of that bicep file to understand its capabilities and limitations. To enable VNet Peering, set the `applyVNetPeering` parameter to `true`.
-      > * By default, only one CPU compute is created for each silo. Please set the `compute2` parameter to `true` if you wish to create both CPU & GPU computes for each silo.
-      > * Some regions don't have enough quota to provision GPU computes. Please look at the headers of the `bicep` script to change the `region`/`computeSKU`.
+> * To deploy a sandbox manually using bicep, check our [configurable sandboxes tutorial](./provisioning/sandboxes.md#configurable-sandboxes).
 
 ## Launch the demo experiment
 

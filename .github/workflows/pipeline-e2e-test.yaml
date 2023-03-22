@@ -46,7 +46,7 @@ jobs:
           provisioning-modules:
             - 'mlops/bicep/modules/**'
           open-sandbox:
-            - 'mlops/bicep/open_sandbox_setup.bicep'
+            - 'mlops/bicep/sandbox_minimal.bicep'
           vnet-sandbox:
             - 'mlops/bicep/vnet_publicip_sandbox_setup.bicep'
             - 'examples/pipelines/mnist_vertical/**'
@@ -112,11 +112,47 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    - name: Test open sandbox ARM template
+    - name: Test minimal sandbox ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
       with:
-        source-file-path: "mlops/bicep/open_sandbox_setup.bicep"
-        target-file-path: "mlops/arm/open_sandbox_setup.json"
+        source-file-path: "mlops/bicep/sandbox_minimal.bicep"
+        target-file-path: "mlops/arm/sandbox_minimal.json"
+
+    - name: Test eyes-on cpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyeson_cpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyeson_cpu.json"
+
+    - name: Test eyes-on gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyeson_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyeson_gpu.json"
+
+    - name: Test eyes-on cpu-gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyeson_cpu_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyeson_cpu_gpu.json"
+
+    - name: Test eyes-off cpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyesoff_cpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyesoff_cpu.json"
+
+    - name: Test eyes-off gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyesoff_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyesoff_gpu.json"
+
+    - name: Test eyes-off cpu-gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyesoff_cpu_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyesoff_cpu_gpu.json"
 
     - name: Test vnet publicip sandbox ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
@@ -176,7 +212,7 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
-        deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
+        deployment-file-path: ./mlops/bicep/sandbox_minimal.bicep
         deployment-name: open_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
         github-sp-object-id: ${{ secrets.CI_CD_SP_OBJECT_ID }}
