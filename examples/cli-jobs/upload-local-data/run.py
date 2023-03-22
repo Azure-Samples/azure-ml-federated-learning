@@ -7,8 +7,8 @@ import shutil
 import pathlib
 from distutils.util import strtobool
 
-# local imports
-from confidential_io import config_global_rsa_key, EncryptedFile
+# check our repository's helper code under /examples/common
+from common.confidential_io import EncryptedFile
 
 
 def get_arg_parser(parser=None):
