@@ -16,6 +16,14 @@ Deploy a completely open sandbox to allow you to try things out in an eyes-on en
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fopen_sandbox_setup.json)
 
+### :exclamation: Important parameters
+
+| Parameter | Description | Values |
+| --- | --- | --- |
+| **compute1SKU** | SKU of the first compute to provision.| ex: `Standard_DS4_v2` |
+| **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. | ex: `["australiaeast", "eastus", "westeurope"]` |
+| **kaggleUsername** and **kaggleKey** | Optional: some of our samples require kaggle credentials to download datasets, this will ensure the credentials get injected in the workspace secret store properly. |
+
 ### Relevant Documentation
 
 To manually reproduce this full provisioning, see relevant documentation:
@@ -43,6 +51,7 @@ These sandboxes are typical of a cross-geo federated learning scenario. Each sil
 | **secondarySKU** | SKU of the second compute to provision. | ex: `STANDARD_NC6` |
 | **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. | ex: `["australiaeast", "eastus", "westeurope"]` |
 | **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
+| **kaggleUsername** and **kaggleKey** | Optional: some of our samples require kaggle credentials to download datasets, this will ensure the credentials get injected in the workspace secret store properly. |
 
 ### Architecture
 
@@ -77,6 +86,7 @@ Deploy a sandbox where the silos storages are kept eyes-off by a private service
 | **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. | ex: `["australiaeast", "eastus", "westeurope"]` |
 | **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`, default) or private (`false`). |  `true` or `false` |
 | **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
+| **kaggleUsername** and **kaggleKey** | Optional: some of our samples require kaggle credentials to download datasets, this will ensure the credentials get injected in the workspace secret store properly. |
 
 ### Architecture
 
@@ -110,6 +120,7 @@ Note: to take full benefit of the VMs, you will need to finalize the setup of th
 | **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. :exclamation: make sure you have quota in those regions for confidential compute in particular. | ex: `["australiaeast", "eastus", "westeurope"]` |
 | **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`, default) or private (`false`). |  `true` or `false` |
 | **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
+| **kaggleUsername** and **kaggleKey** | Optional: some of our samples require kaggle credentials to download datasets, this will ensure the credentials get injected in the workspace secret store properly. |
 
 ### Architecture
 
