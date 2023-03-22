@@ -252,6 +252,7 @@ class EncryptedFile:
         # disabling confidentiality means just closing as a regular file
         if _CONFIDENTIALITY_DISABLED:
             self._file.close()
+            return
 
         if "w" in self._mode:
             self._file.seek(0)
