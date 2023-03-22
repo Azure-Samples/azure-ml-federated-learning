@@ -7,7 +7,7 @@
 ## Table of contents
 
 - [Install the required dependencies](#install-the-required-dependencies)
-- [Provision an FL sandbox workspace](#provision-an-fl-sandbox-workspace)
+- [Provision an FL sandbox workspace](#provision-an-fl-sandbox-with-your-kaggle-credentials)
 - [Add your Kaggle credentials to the workspace key vault](#add-your-kaggle-credentials-to-the-workspace-key-vault)
 - [Run a job to download and store the dataset in each silo](#run-a-job-to-download-and-store-the-dataset-in-each-silo)
 - [Run the demo experiment](#run-the-demo-experiment)
