@@ -19,7 +19,7 @@ Click on the buttons below depending on your goal. It will open in Azure Portal 
 
 This will provision a Federated Learning setup with 3 [_internal silos_](./concepts/glossary.md), _i.e._ silos that are in the same Azure tenant as the orchestrator. You will be to run the examples in the `./examples/pipelines` directory.
 
-<a style="color:darkorange">These sandboxes require you to be the _Owner_ of an Azure resource group.</a> _Contributor_ role is not enough. In your subscription, depending on admin policies, even if you can create a resource group yourself, you might not be the _Owner_ of it. Without ownership, you will not be able to set the RBAC roles necessary for provisioning these sandboxes. Ask your subscription administrator for help.
+:rotating_light: :rotating_light: :rotating_light: **IMPORTANT: These sandboxes require you to be the _Owner_ of an Azure resource group.** _Contributor_ role is not enough. In your subscription, depending on admin policies, even if you can create a resource group yourself, you might not be the _Owner_ of it. Without ownership, you will not be able to set the RBAC roles necessary for provisioning these sandboxes. Ask your subscription administrator for help.
 
 | Button | Description |
 | :-- | :-- |
