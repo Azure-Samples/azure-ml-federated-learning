@@ -22,7 +22,7 @@ param siloRegions array = [
 param computeSKU string = 'Standard_NC6'
 
 @description('Uses public network access for the orchestrator storage, allowing it to be eyes-on.')
-param orchestratorEyesOn bool = true
+param orchestratorEyesOn bool = false
 
 @description('Apply vnet peering to allow for vertical FL')
 param applyVNetPeering bool = true

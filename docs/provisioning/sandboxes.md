@@ -84,7 +84,7 @@ Deploy a sandbox where the silos storages are kept eyes-off by a private service
 | **primarySKU** | SKU of the first compute to provision.| ex: `Standard_DS4_v2` |
 | **secondarySKU** | SKU of the second compute to provision. | ex: `STANDARD_NC6` |
 | **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. | ex: `["australiaeast", "eastus", "westeurope"]` |
-| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`, default) or private (`false`). |  `true` or `false` |
+| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`) or private (`false`, default). |  `true` or `false` |
 | **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
 | **kaggleUsername** and **kaggleKey** | Optional: some of our samples require kaggle credentials to download datasets, this will ensure the credentials get injected in the workspace secret store properly. |
 
@@ -118,7 +118,7 @@ Note: to take full benefit of the VMs, you will need to finalize the setup of th
 | --- | --- | --- |
 | **computeSKU** | VM to provision in the AKS cluster (default will use [a CVM from dcasv5](https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series)). You can also use any non-confidential SKU. | ex: `Standard_DC4as_v5` |
 | **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. :exclamation: make sure you have quota in those regions for confidential compute in particular. | ex: `["australiaeast", "eastus", "westeurope"]` |
-| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`, default) or private (`false`). |  `true` or `false` |
+| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`) or private (`false`, default). |  `true` or `false` |
 | **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
 | **kaggleUsername** and **kaggleKey** | Optional: some of our samples require kaggle credentials to download datasets, this will ensure the credentials get injected in the workspace secret store properly. |
 
