@@ -24,7 +24,7 @@ from azure.ai.ml.constants import AssetTypes
 from azure.ai.ml.dsl import pipeline
 from azure.ai.ml import load_component
 
-# To Handle YAML config easily
+# to handle yaml config easily
 from omegaconf import OmegaConf
 
 
