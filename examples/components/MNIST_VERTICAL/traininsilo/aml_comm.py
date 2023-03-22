@@ -1,4 +1,5 @@
 from abc import ABC
+import os
 import sys
 import math
 import time
@@ -525,7 +526,7 @@ class AMLCommRedis(AMLComm):
 
         logger.info("Getting Redis connection string from environment variable")
         if "AML_COMM_REDIS_CONNECTION_STRING" in os.environ:
-            logger.warning("Got Redis connection string from environment variable")
+            logger.info("Got Redis connection string from environment variable")
             return os.environ["AML_COMM_REDIS_CONNECTION_STRING"]
         else:
             logger.warning("Failed to get connection string from environment variable")

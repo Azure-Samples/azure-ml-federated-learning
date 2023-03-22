@@ -87,6 +87,7 @@ command: >-
   $[[--batch_size ${{inputs.batch_size}}]]
   $[[--communication_backend ${{inputs.communication_backend}}]]
   $[[--communication_encrypted ${{inputs.communication_encrypted}}]]
+
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

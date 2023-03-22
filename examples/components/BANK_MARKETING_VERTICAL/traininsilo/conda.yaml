@@ -1,4 +1,4 @@
-name: ccfraud_vertical_train_conda_env
+name: bank_marketing_vertical_train_conda_env
 channels:
   - defaults
   - pytorch
