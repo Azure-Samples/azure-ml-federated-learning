@@ -35,11 +35,11 @@ param compute2SKU string = 'Standard_NC6'
 param confidentialityKeyVaultName string = 'kv-${demoBaseName}'
 
 @description('Provide your Kaggle API user name to run our samples relying on Kaggle datasets.')
-param kaggleUsername string
+param kaggleUsername string = ''
 
 @description('Provide your Kaggle API key to run our samples relying on Kaggle datasets.')
 @secure()
-param kaggleKey string
+param kaggleKey string = ''
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {

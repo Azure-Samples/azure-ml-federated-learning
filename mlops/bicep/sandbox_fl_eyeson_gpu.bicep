@@ -24,6 +24,13 @@ param computeSKU string = 'Standard_NC6'
 @description('Apply vnet peering to allow for vertical FL')
 param applyVNetPeering bool = true
 
+@description('Provide your Kaggle API user name to run our samples relying on Kaggle datasets.')
+param kaggleUsername string = ''
+
+@description('Provide your Kaggle API key to run our samples relying on Kaggle datasets.')
+@secure()
+param kaggleKey string = ''
+
 
 // run the generic sandbox bicep script with proper arguments
 module sandbox 'vnet_publicip_sandbox_setup.bicep' = {
@@ -32,7 +39,7 @@ module sandbox 'vnet_publicip_sandbox_setup.bicep' = {
     demoBaseName: demoBaseName
     orchestratorRegion: orchestratorRegion
     siloRegions: siloRegions
-
+  
     // computes
     compute1SKU: computeSKU
     compute2: false
@@ -44,4 +51,25 @@ module sandbox 'vnet_publicip_sandbox_setup.bicep' = {
     // ready for vertical FL
     applyVNetPeering: applyVNetPeering
   }
+}
+
+// Add kaggle secrets if given
+resource kaggleSecretUsername 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(kaggleUsername)) {
+  name: 'ws-shkv-${demoBaseName}/kaggleusername'
+  properties: {
+    value: kaggleUsername
+  }
+  dependsOn: [
+    sandbox
+  ]
+}
+
+resource kaggleSecretKey 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(kaggleUsername)) {
+  name: 'ws-shkv-${demoBaseName}/kagglekey'
+  properties: {
+    value: kaggleKey
+  }
+  dependsOn: [
+    sandbox
+  ]
 }
