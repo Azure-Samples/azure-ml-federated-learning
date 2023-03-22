@@ -1,10 +1,10 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_vertical_train_in_silo_contributor
+name: bank_marketing_train_in_silo_contributor
 version: 0.0.1
-display_name: CC Fraud Train (in silo)
+display_name: Bank Marketing Train (in silo)
 type: command
-description: Component to train a model to classify CC Fraud.
+description: Component to train a model to classify Bank Marketing.
 is_deterministic: false
 
 inputs:
@@ -87,7 +87,7 @@ command: >-
   $[[--batch_size ${{inputs.batch_size}}]]
   $[[--communication_backend ${{inputs.communication_backend}}]]
   $[[--communication_encrypted ${{inputs.communication_encrypted}}]]
-
+  
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
