@@ -2,7 +2,6 @@
 import argparse
 import logging
 import sys
-import copy
 import os
 from distutils.util import strtobool
 from aml_comm import AMLCommSocket, AMLCommRedis
@@ -14,7 +13,6 @@ import torch
 import pandas as pd
 import numpy as np
 from torch import nn
-from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from typing import List
@@ -22,61 +20,7 @@ import models as models
 import datasets as datasets
 
 
-class RunningMetrics:
-    def __init__(self, metrics: List[str], prefix: str = None) -> None:
-        self._allowed_metrics = copy.deepcopy(metrics)
-        self._running_step_metrics = {name: 0 for name in metrics}
-        self._running_global_metrics = {name: 0 for name in metrics}
-        self._batch_count_step = 0
-        self._batch_count_global = 0
-        self._prefix = "" if prefix is None else prefix
-
-    def add_metric(self, name: str, value: float):
-        """Add measurement to the set
-
-        Args:
-            name: name of the metrics
-            value: value of the metrics
-        """
-        if name not in self._allowed_metrics:
-            raise ValueError(f"Metric with name '{name}' not in logged metrics")
-        self._running_step_metrics[name] += value
-        self._running_global_metrics[name] += value
-
-    def step(self):
-        """Increases number of measurements taken. Must be called after every batch"""
-        self._batch_count_step += 1
-        self._batch_count_global += 1
-
-    def reset_step(self):
-        """Soft reset of the counter. Only reset counter for subset of batches."""
-        self._batch_count_step = 0
-        self._running_step_metrics = {name: 0 for name in self._running_step_metrics}
-
-    def reset_global(self):
-        """Reset all counters and steps"""
-        self.reset_step()
-        self._batch_count_global = 0
-        self._running_global_metrics = {
-            name: 0 for name in self._running_global_metrics
-        }
-
-    def get_step(self):
-        """Provide average value for every metric since last `reset_step` call"""
-        return {
-            f"{self._prefix}_{name}_running": value / self._batch_count_step
-            for name, value in self._running_step_metrics.items()
-        }
-
-    def get_global(self):
-        """Provide average value for every metric since last `reset_global` call"""
-        return {
-            f"{self._prefix}_{name}": value / self._batch_count_global
-            for name, value in self._running_global_metrics.items()
-        }
-
-
-class CCFraudTrainer:
+class BankMarketingTrainer:
     def __init__(
         self,
         model_name,
@@ -91,30 +35,29 @@ class CCFraudTrainer:
         batch_size=10,
         experiment_name="default-experiment",
     ):
-        """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
+        """Bank Marketing Trainer trains simple model on the Bank Marketing dataset.
 
         Args:
-            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
-            global_rank(int): Rank of the current node.
-            global_size(int): Total number of nodes.
-            global_comm(AMLComm): Communication method.
-            train_data_dir(str, optional): Training data directory path.
-            test_data_dir(str, optional): Testing data directory path.
-            model_path(str, optional): Path to save model.
-            lr (float, optional): Learning rate. Defaults to 0.01.
-            epochs (int, optional): Epochs. Defaults to 1.
-            batch_size (int, optional): DataLoader batch size. Defaults to 64.
-            experiment_name (str, optional): Name of the experiment. Defaults to "default-experiment".
+             model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
+             global_rank(int): Rank of the current node.
+             global_size(int): Total number of nodes.
+             global_comm(AMLComm): Communication method.
+             train_data_dir(str, optional): Training data directory path.
+             test_data_dir(str, optional): Testing data directory path.
+             model_path(str, optional): Path to save model.
+             lr (float, optional): Learning rate. Defaults to 0.01.
+             epochs (int, optional): Epochs. Defaults to 1.
+             batch_size (int, optional): DataLoader batch size. Defaults to 64.
+             experiment_name (str, optional): Name of the experiment. Defaults to "default-experiment".
 
-        Attributes:
-            model_: Model
-            device_: Location of the model
-            criterion_: BCELoss loss
-            optimizer_: Stochastic gradient descent
-            train_dataset_: Training Dataset obj
-            train_loader_: Training DataLoader
-            test_dataset_: Testing Dataset obj
-            test_loader_: Testing DataLoader
+         Attributes:
+             model_: Model
+             device_: Location of the model
+             optimizer_: Stochastic gradient descent
+             train_dataset_: Training Dataset obj
+             train_loader_: Training DataLoader
+             test_dataset_: Testing Dataset obj
+             test_loader_: Testing DataLoader
         """
 
         # Training setup
@@ -157,10 +100,10 @@ class CCFraudTrainer:
 
         # Build model
         self._model_name = model_name
-        self.model_ = getattr(models, model_name + "Top")().to(self.device_)
+        self.model_ = getattr(models, model_name + "Bottom")(self._input_dim).to(
+            self.device_
+        )
         self._model_path = model_path
-
-        self.criterion_ = nn.BCELoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
     def load_dataset(self, train_data_dir, test_data_dir, model_name):
@@ -172,15 +115,10 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
-        if model_name == "SimpleLinear":
-            train_dataset = datasets.FraudDataset(train_df)
-            test_dataset = datasets.FraudDataset(test_df)
-        else:
-            train_dataset = datasets.FraudTimeDataset(train_df)
-            test_dataset = datasets.FraudTimeDataset(test_df)
+        train_dataset = datasets.BankMarketingDataset(train_df)
+        test_dataset = datasets.BankMarketingDataset(test_df)
 
         logger.info(
             f"Train data samples: {len(train_df)}, Test data samples: {len(test_df)}"
@@ -199,11 +137,6 @@ class CCFraudTrainer:
             run_id=run_id,
             key=f"batch_size {self._experiment_name}",
             value=self._batch_size,
-        )
-        client.log_param(
-            run_id=run_id,
-            key=f"loss {self._experiment_name}",
-            value=self.criterion_.__class__.__name__,
         )
         client.log_param(
             run_id=run_id,
@@ -236,8 +169,6 @@ class CCFraudTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-            num_of_batches_before_logging = 5
-
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
             root_run_id = os.environ.get("AZUREML_ROOT_RUN_ID")
@@ -248,169 +179,44 @@ class CCFraudTrainer:
 
             logger.debug("Local training started")
 
-            train_metrics = RunningMetrics(
-                ["loss", "accuracy", "precision", "recall"], prefix="train"
-            )
-            test_metrics = RunningMetrics(
-                ["accuracy", "precision", "recall"], prefix="test"
-            )
-
-            for epoch in range(1, self._epochs + 1):
+            for _ in range(1, self._epochs + 1):
                 self.model_.train()
-                train_metrics.reset_global()
 
-                for i, batch in enumerate(self.train_loader_):
+                for batch in self.train_loader_:
                     data = batch.to(self.device_)
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
-                    outputs = []
-                    for j in range(1, self._global_size):
-                        output = torch.tensor(
-                            self._global_comm.recv(j), requires_grad=True
-                        ).to(self.device_)
-                        outputs.append(output)
+                    output = self.model_(data)
+                    output = output.contiguous()
+                    # Send intermediate output to the global model
+                    # such that it can calculate gradients and metrics
+                    self._global_comm.send(output, 0)
 
-                    # Average all intermediate results
-                    outputs = torch.stack(outputs)
-
-                    predictions, net_loss = self.model_(outputs.mean(dim=0))
-                    # Compute loss
-                    self.criterion_.weight = (
-                        ((data == 1) * (self.fraud_weight_ - 1)) + 1
-                    ).to(self.device_)
-                    loss = self.criterion_(predictions, data.to(torch.float32))
-
-                    # Compute gradients and adjust learning weights
-                    loss.backward(retain_graph=True)
-                    gradients = torch.autograd.grad(loss, outputs)[0]
+                    # Receive gradients from the host and update local model
+                    gradient = self._global_comm.recv(0).to(self.device_)
+                    output.backward(gradient)
                     self.optimizer_.step()
 
-                    for j in range(1, self._global_size):
-                        self._global_comm.send(gradients[j - 1], j)
-
-                    precision, recall = precision_recall(
-                        preds=predictions.detach(), target=data
-                    )
-                    train_metrics.add_metric("precision", precision.item())
-                    train_metrics.add_metric("recall", recall.item())
-                    train_metrics.add_metric(
-                        "accuracy",
-                        accuracy(
-                            preds=predictions.detach(), target=data, threshold=0.5
-                        ).item(),
-                    )
-                    train_metrics.add_metric("loss", loss.item())
-                    train_metrics.step()
-
-                    if (i + 1) % num_of_batches_before_logging == 0 or (i + 1) == len(
-                        self.train_loader_
-                    ):
-                        log_message = [
-                            f"Epoch: {epoch}/{self._epochs}",
-                            f"Iteration: {i+1}/{len(self.train_loader_)}",
-                        ]
-
-                        for name, value in train_metrics.get_step().items():
-                            log_message.append(f"{name}: {value}")
-                            self.log_metrics(
-                                mlflow_client,
-                                root_run_id,
-                                name,
-                                value,
-                            )
-                        logger.info(", ".join(log_message))
-                        train_metrics.reset_step()
-
-                test_metrics = self.test()
-                log_message = [
-                    f"Epoch: {epoch}/{self._epochs}",
-                ]
-
-                # log test metrics after each epoch
-                for name, value in train_metrics.get_global().items():
-                    log_message.append(f"{name}: {value}")
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        name,
-                        value,
-                    )
-                for name, value in test_metrics.get_global().items():
-                    log_message.append(f"{name}: {value}")
-                    self.log_metrics(
-                        mlflow_client,
-                        root_run_id,
-                        name,
-                        value,
-                    )
-                logger.info(", ".join(log_message))
+                self.test()
 
             log_message = [
                 f"End of training",
             ]
-
-            # log metrics at the pipeline level
-            for name, value in train_metrics.get_global().items():
-                log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
-
-            for name, value in test_metrics.get_global().items():
-                log_message.append(f"{name}: {value}")
-                self.log_metrics(
-                    mlflow_client,
-                    root_run_id,
-                    name,
-                    value,
-                    pipeline_level=True,
-                )
             logger.info(", ".join(log_message))
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
-        test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall"], prefix="test"
-        )
-
         self.model_.eval()
+
         with torch.no_grad():
             for batch in self.test_loader_:
                 data = batch.to(self.device_)
 
-                outputs = []
-                for j in range(1, self._global_size):
-                    output = self._global_comm.recv(j).to(self.device_)
-                    outputs.append(output)
-
-                outputs = torch.stack(outputs).mean(dim=0)
-                predictions, net_loss = self.model_(outputs)
-
-                self.criterion_.weight = (
-                    ((data == 1) * (self.fraud_weight_ - 1)) + 1
-                ).to(self.device_)
-                loss = self.criterion_(predictions, data.type(torch.float)).item()
-                if net_loss is not None:
-                    loss += net_loss * 1e-5
-
-                precision, recall = precision_recall(
-                    preds=predictions.detach(), target=data
-                )
-                test_metrics.add_metric("precision", precision.item())
-                test_metrics.add_metric("recall", recall.item())
-                test_metrics.add_metric(
-                    "accuracy",
-                    accuracy(preds=predictions.detach(), target=data).item(),
-                )
-                test_metrics.add_metric("loss", loss / data.shape[0])
-                test_metrics.step()
-
-        return test_metrics
+                # Send intermediate output to the global model
+                # such that it can calculate metrics
+                output = self.model_(data).contiguous()
+                self._global_comm.send(output, 0)
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.
@@ -463,7 +269,6 @@ def get_arg_parser(parser=None):
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
-
     parser.add_argument(
         "--lr", type=float, required=False, help="Training algorithm's learning rate"
     )
@@ -498,7 +303,7 @@ def run(args, global_comm):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    trainer = CCFraudTrainer(
+    trainer = BankMarketingTrainer(
         model_name=args.model_name,
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,

@@ -1,4 +1,4 @@
-"""Federated Learning Cross-Silo Vertical basic pipeline for ccfraud.
+"""Federated Learning Cross-Silo Vertical basic pipeline for bank marketing.
 
 This script:
 1) reads a config file in yaml specifying the number of silos and their parameters,
@@ -82,7 +82,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", "CCFRAUD_VERTICAL"
+    os.path.dirname(__file__), "..", "..", "components", "BANK_MARKETING_VERTICAL"
 )
 
 ###########################
@@ -123,10 +123,6 @@ def connect_to_aml():
 ####################################
 
 # Loading the component from their yaml specifications
-preprocessing_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
-)
-
 training_contributor_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor_spec.yaml")
 )
@@ -180,74 +176,7 @@ pipeline_identifier = getUniqueIdentifier()
 @pipeline(
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
-def fl_ccfraud_vertical_basic():
-    ######################
-    ### PRE-PROCESSING ###
-    ######################
-
-    # once per silo, we're running a pre-processing step
-
-    silo_preprocessed_train_data = (
-        []
-    )  # list of preprocessed train datasets for each silo
-    silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
-
-    for silo_index, silo_config in enumerate(
-        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
-    ):
-        # run the pre-processing component once
-        silo_pre_processing_step = preprocessing_component(
-            raw_training_data=Input(
-                type=silo_config.training_data.type,
-                mode=silo_config.training_data.mode,
-                path=silo_config.training_data.path,
-            ),
-            raw_testing_data=Input(
-                type=silo_config.testing_data.type,
-                mode=silo_config.testing_data.mode,
-                path=silo_config.testing_data.path,
-            ),
-            metrics_prefix=silo_config.compute,
-        )
-
-        # add a readable name to the step
-        if silo_index == 0:
-            silo_pre_processing_step.name = f"host_preprocessing"
-        else:
-            silo_pre_processing_step.name = f"silo_{silo_index}_preprocessing"
-
-        # make sure the compute corresponds to the silo
-        silo_pre_processing_step.compute = silo_config.compute
-
-        # assign instance type for AKS, if available
-        if hasattr(silo_config, "instance_type"):
-            if silo_pre_processing_step.resources is None:
-                silo_pre_processing_step.resources = {}
-            silo_pre_processing_step.resources[
-                "instance_type"
-            ] = silo_config.instance_type
-
-        # make sure the data is written in the right datastore
-        silo_pre_processing_step.outputs.processed_train_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=custom_fl_data_path(silo_config.datastore, "train_data"),
-        )
-        silo_pre_processing_step.outputs.processed_test_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=custom_fl_data_path(silo_config.datastore, "test_data"),
-        )
-
-        # store a handle to the train data for this silo
-        silo_preprocessed_train_data.append(
-            silo_pre_processing_step.outputs.processed_train_data
-        )
-        # store a handle to the test data for this silo
-        silo_preprocessed_test_data.append(
-            silo_pre_processing_step.outputs.processed_test_data
-        )
-
+def fl_demo_bank_marketing_vertical():
     ################
     ### TRAINING ###
     ################
@@ -260,10 +189,18 @@ def fl_ccfraud_vertical_basic():
         if silo_index == 0:
             # we're using training component here
             silo_training_step = training_host_component(
-                # with the train_data from the pre_processing step
-                train_data=silo_preprocessed_train_data[silo_index],
-                # with the test_data from the pre_processing step
-                test_data=silo_preprocessed_test_data[silo_index],
+                # with the train_data uploaded to the datastore
+                train_data=Input(
+                    type=silo_config.training_data.type,
+                    mode=silo_config.training_data.mode,
+                    path=silo_config.training_data.path,
+                ),
+                # with the train_data uploaded to the datastore
+                test_data=Input(
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path,
+                ),
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
@@ -286,9 +223,17 @@ def fl_ccfraud_vertical_basic():
             # we're using training component here
             silo_training_step = training_contributor_component(
                 # with the train_data from the pre_processing step
-                train_data=silo_preprocessed_train_data[silo_index],
+                train_data=Input(
+                    type=silo_config.training_data.type,
+                    mode=silo_config.training_data.mode,
+                    path=silo_config.training_data.path,
+                ),
                 # with the test_data from the pre_processing step
-                test_data=silo_preprocessed_test_data[silo_index],
+                test_data=Input(
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path,
+                ),
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
@@ -334,7 +279,7 @@ def fl_ccfraud_vertical_basic():
     return outputs
 
 
-pipeline_job = fl_ccfraud_vertical_basic()
+pipeline_job = fl_demo_bank_marketing_vertical()
 
 # Inspect built pipeline
 print(pipeline_job)
@@ -344,7 +289,7 @@ if not args.offline:
 
     ML_CLIENT = connect_to_aml()
     pipeline_job = ML_CLIENT.jobs.create_or_update(
-        pipeline_job, experiment_name="fl_demo_ccfraud_vertical"
+        pipeline_job, experiment_name="fl_demo_bank_marketing_vertical"
     )
 
     print("The url to see your live job running is returned by the sdk:")
@@ -372,4 +317,4 @@ if not args.offline:
         if status in ["Failed", "Canceled"]:
             sys.exit(1)
 else:
-    print("The pipeline was NOT submitted, use --submit to send it to AzureML.")
+    print("The pipeline was NOT submitted, omit --offline to send it to AzureML.")

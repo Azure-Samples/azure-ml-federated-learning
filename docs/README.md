@@ -18,12 +18,14 @@
   - [Why should you consider Federated Learning?](#why-should-you-consider-federated-learning)
   - [How to plan for your Federated Learning project](#how-to-plan-for-your-federated-learning-project)
   - [Vertical federated learning](#vertical-federated-learning)
+  - [Integrate and secure FL experiments with mlops](#integrate-and-secure-fl-experiments-with-mlops)
   - [Glossary](#glossary)
 - [Tutorials](#tutorials)
   - [What this repo has to offer?](#what-this-repo-has-to-offer)
   - [Provisioning guide](#provisioning-guide)
   - [How to adapt the "literal" and the "scatter-gather" code for your own scenario](#how-to-adapt-the-literal-and-the-scatter-gather-code-for-your-own-scenario)
   - [Read local data in an on-premises Kubernetes silo](#read-local-data-in-an-on-premises-kubernetes-silo)
+  - [Differential privacy for cross-silo horizontal federated learning](#differential-privacy-for-cross-silo-horizontal-federated-learning)
   - [Upload local data to silo storage account](#upload-local-data-to-silo-storage-account)
 - [Troubleshooting guide](#troubleshooting-guide)
 
@@ -102,6 +104,10 @@ We wrote a generic guide on how to get started, ramp-up and mature your [FL proj
 Vertical federated learning is a branch of federated learning where the data are split across the features (vertically) instead of across the samples (horizontally). This provides communication challenges as the nodes running the code needs to exchange intermediate outputs and their corresponding gradients of aligned samples.
 
 We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes. We invite you to learn more about this approach in the [vertical federated learing tutorial](./tutorials/vertical-fl.md).
+
+## Integrate and secure FL experiments with MLOps
+
+What can we do to secure the code that is being run in an FL experiment? In particular, what can we do to avoid (un)intentional bad practices and security breaches. The [solution we're proposing](./concepts/mlops_for_fl.md) is to leverage Azure ML integration with MLOps to allow only for peer-reviewed code to run in a production FL environment.
 
 ## Glossary
 

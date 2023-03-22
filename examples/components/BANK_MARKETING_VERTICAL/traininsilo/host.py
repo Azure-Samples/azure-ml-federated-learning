@@ -76,7 +76,7 @@ class RunningMetrics:
         }
 
 
-class CCFraudTrainer:
+class BankMarketingTrainer:
     def __init__(
         self,
         model_name,
@@ -91,7 +91,7 @@ class CCFraudTrainer:
         batch_size=10,
         experiment_name="default-experiment",
     ):
-        """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
+        """Bank Marketing Trainer trains simple model on the Bank Marketing dataset.
 
         Args:
             model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
@@ -130,7 +130,7 @@ class CCFraudTrainer:
         logger.info(f"Using device: {self.device_}")
 
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
-            train_data_dir, test_data_dir, model_name
+            train_data_dir, test_data_dir
         )
         self.train_sampler_ = VerticallyDistributedBatchSampler(
             data_source=self.train_dataset_,
@@ -157,13 +157,23 @@ class CCFraudTrainer:
 
         # Build model
         self._model_name = model_name
-        self.model_ = getattr(models, model_name + "Top")().to(self.device_)
+        self.model_top = getattr(models, model_name + "Top")(self._global_size).to(
+            self.device_
+        )
+        self.model_bottom = getattr(models, model_name + "Bottom")(self._input_dim).to(
+            self.device_
+        )
         self._model_path = model_path
 
-        self.criterion_ = nn.BCELoss()
-        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
+        self.criterion_ = nn.BCELoss(reduction="mean")
+        self.optimizer_top = SGD(
+            self.model_top.parameters(), lr=self._lr, weight_decay=1e-5
+        )
+        self.optimizer_bottom = SGD(
+            self.model_bottom.parameters(), lr=self._lr, weight_decay=1e-5
+        )
 
-    def load_dataset(self, train_data_dir, test_data_dir, model_name):
+    def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
 
         Args:
@@ -172,15 +182,13 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
+        self.subscribe_weight_ = np.loadtxt(
+            train_data_dir + "/subscribe_weight.txt"
+        ).item()
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
-        if model_name == "SimpleLinear":
-            train_dataset = datasets.FraudDataset(train_df)
-            test_dataset = datasets.FraudDataset(test_df)
-        else:
-            train_dataset = datasets.FraudTimeDataset(train_df)
-            test_dataset = datasets.FraudTimeDataset(test_df)
+        train_dataset = datasets.BankMarketingDataset(train_df)
+        test_dataset = datasets.BankMarketingDataset(test_df)
 
         logger.info(
             f"Train data samples: {len(train_df)}, Test data samples: {len(test_df)}"
@@ -207,8 +215,13 @@ class CCFraudTrainer:
         )
         client.log_param(
             run_id=run_id,
-            key=f"optimizer {self._experiment_name}",
-            value=self.optimizer_.__class__.__name__,
+            key=f"optimizer bottom {self._experiment_name}",
+            value=self.optimizer_bottom.__class__.__name__,
+        )
+        client.log_param(
+            run_id=run_id,
+            key=f"optimizer top {self._experiment_name}",
+            value=self.optimizer_top.__class__.__name__,
         )
 
     def log_metrics(self, client, run_id, key, value, pipeline_level=False):
@@ -233,7 +246,10 @@ class CCFraudTrainer:
         """
 
         if checkpoint:
-            self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
+            self.model_bottom.load_state_dict(
+                torch.load(checkpoint + "/model_bottom.pt")
+            )
+            self.model_top.load_state_dict(torch.load(checkpoint + "/model_top.pt"))
 
         with mlflow.start_run() as mlflow_run:
             num_of_batches_before_logging = 5
@@ -256,15 +272,19 @@ class CCFraudTrainer:
             )
 
             for epoch in range(1, self._epochs + 1):
-                self.model_.train()
+                # Host owns both features and labels and thus we need to have both models here
+                self.model_bottom.train()
+                self.model_top.train()
                 train_metrics.reset_global()
 
                 for i, batch in enumerate(self.train_loader_):
-                    data = batch.to(self.device_)
+                    data, labels = batch[0].to(self.device_), batch[1].to(self.device_)
                     # Zero gradients for every batch
-                    self.optimizer_.zero_grad()
+                    self.optimizer_bottom.zero_grad()
+                    self.optimizer_top.zero_grad()
 
-                    outputs = []
+                    local_bottom_output = self.model_bottom(data)
+                    outputs = [local_bottom_output.data]
                     for j in range(1, self._global_size):
                         output = torch.tensor(
                             self._global_comm.recv(j), requires_grad=True
@@ -273,34 +293,40 @@ class CCFraudTrainer:
 
                     # Average all intermediate results
                     outputs = torch.stack(outputs)
+                    predictions = self.model_top(outputs)
 
-                    predictions, net_loss = self.model_(outputs.mean(dim=0))
                     # Compute loss
                     self.criterion_.weight = (
-                        ((data == 1) * (self.fraud_weight_ - 1)) + 1
+                        ((labels == 1) * (self.subscribe_weight_ - 1)) + 1
                     ).to(self.device_)
-                    loss = self.criterion_(predictions, data.to(torch.float32))
+                    loss = self.criterion_(predictions, labels.to(torch.float32))
 
                     # Compute gradients and adjust learning weights
                     loss.backward(retain_graph=True)
                     gradients = torch.autograd.grad(loss, outputs)[0]
-                    self.optimizer_.step()
+                    self.optimizer_top.step()
 
                     for j in range(1, self._global_size):
-                        self._global_comm.send(gradients[j - 1], j)
+                        self._global_comm.send(gradients[j], j)
+
+                    # Perform backward pass on local bottom model
+                    local_bottom_output.backward(gradients[0].to(self.device_))
+                    self.optimizer_bottom.step()
 
                     precision, recall = precision_recall(
-                        preds=predictions.detach(), target=data
+                        preds=predictions.detach(), target=labels
                     )
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
                         "accuracy",
                         accuracy(
-                            preds=predictions.detach(), target=data, threshold=0.5
+                            preds=predictions.detach(), target=labels, threshold=0.5
                         ).item(),
                     )
-                    train_metrics.add_metric("loss", loss.item())
+                    train_metrics.add_metric(
+                        "loss", (loss.detach() / labels.shape[0]).item()
+                    )
                     train_metrics.step()
 
                     if (i + 1) % num_of_batches_before_logging == 0 or (i + 1) == len(
@@ -378,36 +404,37 @@ class CCFraudTrainer:
             ["loss", "accuracy", "precision", "recall"], prefix="test"
         )
 
-        self.model_.eval()
+        # Host owns both features and labels and thus we need to have both models here
+        self.model_bottom.eval()
+        self.model_top.eval()
         with torch.no_grad():
             for batch in self.test_loader_:
-                data = batch.to(self.device_)
+                data, labels = batch[0].to(self.device_), batch[1].to(self.device_)
 
-                outputs = []
+                local_bottom_output = self.model_bottom(data)
+                outputs = [local_bottom_output.data]
                 for j in range(1, self._global_size):
                     output = self._global_comm.recv(j).to(self.device_)
                     outputs.append(output)
 
-                outputs = torch.stack(outputs).mean(dim=0)
-                predictions, net_loss = self.model_(outputs)
+                outputs = torch.stack(outputs)  # .mean(dim=0)
+                predictions = self.model_top(outputs)
 
                 self.criterion_.weight = (
-                    ((data == 1) * (self.fraud_weight_ - 1)) + 1
+                    ((labels == 1) * (self.subscribe_weight_ - 1)) + 1
                 ).to(self.device_)
-                loss = self.criterion_(predictions, data.type(torch.float)).item()
-                if net_loss is not None:
-                    loss += net_loss * 1e-5
+                loss = self.criterion_(predictions, labels.type(torch.float)).item()
 
                 precision, recall = precision_recall(
-                    preds=predictions.detach(), target=data
+                    preds=predictions.detach(), target=labels
                 )
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
                 test_metrics.add_metric(
                     "accuracy",
-                    accuracy(preds=predictions.detach(), target=data).item(),
+                    accuracy(preds=predictions.detach(), target=labels).item(),
                 )
-                test_metrics.add_metric("loss", loss / data.shape[0])
+                test_metrics.add_metric("loss", loss / labels.shape[0])
                 test_metrics.step()
 
         return test_metrics
@@ -422,7 +449,10 @@ class CCFraudTrainer:
         self.local_train(checkpoint)
 
         logger.debug("Save model")
-        torch.save(self.model_.state_dict(), self._model_path)
+        torch.save(
+            self.model_bottom.state_dict(), self._model_path + "/model_bottom.pt"
+        )
+        torch.save(self.model_top.state_dict(), self._model_path + "/model_top.pt")
         logger.info(f"Model saved to {self._model_path}")
 
 
@@ -498,11 +528,11 @@ def run(args, global_comm):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    trainer = CCFraudTrainer(
+    trainer = BankMarketingTrainer(
         model_name=args.model_name,
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,
-        model_path=args.model_path + "/model.pt",
+        model_path=args.model_path,
         lr=args.lr,
         epochs=args.epochs,
         batch_size=args.batch_size,
