@@ -24,7 +24,7 @@ This will provision a Federated Learning setup with 3 [_internal silos_](./conce
 | Button | Description |
 | :-- | :-- |
 | [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_minimal.json) | [3-5 mins] A very minimal open sandbox to allow you to try things out. This setup works quick but only for this quickstart code and is intended for demo purposes. |
-| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_fl_eyesoff_cpu.json) | [5-7 mins] Deploy a full sandbox where are kept the storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. This works with all our samples including both horizontal FL and vertical FL. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_fl_eyesoff_cpu.json) | [5-7 mins] Deploy a full sandbox where the storages are kept eyes-off by a private service endpoint, accessible only by the silo compute through a vnet. This works with all our samples including both horizontal FL and vertical FL. |
 
 > Notes:
 >
