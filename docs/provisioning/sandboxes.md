@@ -6,6 +6,7 @@ This page describes the different sandboxes that you can **fully provision and u
 - [Eyes-on sandboxes](#eyes-on-sandboxes) : a sandbox where you can debug your code, but the data is still accessible by the users of your subscription
 - [Eyes-off sandboxes](#eyes-off-sandboxes) : a sandbox where the data is kept in storages without public network access, and only accessible by the computes through a vnet
 - [Confidential VM sandboxes](#confidential-sandboxes) : a sandbox where the data is kept in storages without public network access, and only accessible by the computes through a vnet, and the computes are Confidential VMs
+- [Configurable sandboxes](#configurable-sandboxes) : at the root of our eyes-on/eyes-off sandboxes, these bicep scripts allow you to modify multiple parameters to fit your needs.
 
 <a style="color:red">All these sandboxes require you to be the Owner of an Azure resource group.</a> Without ownership, you will not be able to set the RBAC roles necessary for provisioning these sandboxes. Ask your subscription administrator for help.
 
@@ -74,7 +75,7 @@ Deploy a sandbox where the silos storages are kept eyes-off by a private service
 | **primarySKU** | SKU of the first compute to provision.| ex: `Standard_DS4_v2` |
 | **secondarySKU** | SKU of the second compute to provision. | ex: `STANDARD_NC6` |
 | **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. | ex: `["australiaeast", "eastus", "westeurope"]` |
-| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`) or private (`false`, default). |  `true` or `false` |
+| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`, default) or private (`false`). |  `true` or `false` |
 | **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
 
 ### Architecture
@@ -107,7 +108,7 @@ Note: to take full benefit of the VMs, you will need to finalize the setup of th
 | --- | --- | --- |
 | **computeSKU** | VM to provision in the AKS cluster (default will use [a CVM from dcasv5](https://learn.microsoft.com/en-us/azure/virtual-machines/dcasv5-dcadsv5-series)). You can also use any non-confidential SKU. | ex: `Standard_DC4as_v5` |
 | **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. :exclamation: make sure you have quota in those regions for confidential compute in particular. | ex: `["australiaeast", "eastus", "westeurope"]` |
-| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`) or private (`false`, default). |  `true` or `false` |
+| **orchestratorEyesOn** | Sets the orchestrator network access to either public (`true`, default) or private (`false`). |  `true` or `false` |
 | **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
 
 ### Architecture
@@ -128,3 +129,55 @@ To manually reproduce this full provisioning, see relevant documentation:
 - [How to deploy Kubernetes extension](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-deploy-kubernetes-extension?tabs=deploy-extension-with-cli)
 - [How to attach Kubernetes to Workspace](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-attach-kubernetes-to-workspace?tabs=cli)
 - [Manage user-assigned managed identities](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/how-manage-user-assigned-managed-identities)
+
+
+## Configurable sandboxes
+
+In this section, we'll expose the generic sandbox provisioning scripts we're using to create the sandboxes above. Feel free to adapt the parameters to your own needs.
+
+### Using the Azure Portal
+
+| Deploy | Description |
+| :-- | :-- |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fvnet_publicip_sandbox_setup.json) | Deploy a sandbox with a vnet and public IP for the orchestrator, either eyes-on/eyes-off, vnet peering or not. |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fvnet_publicip_sandbox_aks_confcomp_setup.json) | Deploy a sandbox with a vnet and public IP for the orchestrator, using confidential computes in AKS, either eyes-on/eyes-off, vnet peering or not. |
+
+### Using bicep
+
+In this section, we will use [bicep](https://learn.microsoft.com/en-us/azure/azure-resource-manager/bicep/overview) scripts to automatically provision a set of resources for an FL sandbox.
+
+1. Using the [`az` cli](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli), log into your Azure subscription:
+
+    ```bash
+    az login
+    az account set --name <subscription name>
+    ```
+
+2. Optional: Create a new resource group for the demo resources. Having a new group would make it easier to delete the resources afterwards (deleting this RG will delete all resources within).
+
+    ```bash
+    # create a resource group for the resources
+    az group create --name <resource group name> --location <region>
+    ```
+
+    > Notes: If you have _Owner_ role only in a given resource group (as opposed to in the whole subscription), just use that resource group instead of creating a new one.
+
+3. Run the bicep deployment script in a resource group you own:
+
+    ```bash
+    # deploy the demo resources in your resource group
+    az deployment group create --template-file ./mlops/bicep/vnet_publicip_sandbox_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
+    ```
+
+    > Notes:
+    >
+    > - If someone already provisioned a demo with the same name in your subscription, change `demoBaseName` parameter to a unique value.
+    > - By default, only one CPU compute is created for each silo. Please set the `compute2` parameter to `true` if you wish to create both CPU & GPU computes for each silo.
+    > - Some regions don't have enough quota to provision GPU computes. Please look at the headers of the `bicep` script to change the `region`/`computeSKU`.
+
+4. Alternatively, you can provision the confidential compute sandbox the same way:
+
+    ```bash
+    # deploy the demo resources in your resource group
+    az deployment group create --template-file ./mlops/bicep/vnet_publicip_sandbox_aks_confcomp_setup.bicep --resource-group <resource group name> --parameters demoBaseName="fldemo"
+    ```
