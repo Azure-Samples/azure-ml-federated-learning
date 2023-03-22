@@ -35,7 +35,7 @@ During deployment, you may encounter the following exception:
 ```json
 {
     "code": "InvalidTemplateDeployment",
-    "message": "The template deployment 'open_sandbox_setup' is not valid according to the validation procedure. The tracking id is 'f6e64397-6b33-4990-a7b3-48b4ba92c4c8'. See inner errors for details."
+    "message": "The template deployment 'minimal' is not valid according to the validation procedure. The tracking id is 'f6e64397-6b33-4990-a7b3-48b4ba92c4c8'. See inner errors for details."
 }
 "Inner Errors": {
     "code": "PreflightValidationCheckFailed",
