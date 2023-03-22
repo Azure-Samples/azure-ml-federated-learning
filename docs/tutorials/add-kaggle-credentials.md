@@ -38,7 +38,7 @@ You first need to locate your workspace key vault. It is provisioned by default 
     az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
     ```
 
-    > Make sure to provide the *[Kaggle API Token]((<https://github.com/Kaggle/kaggle-api#api-credentials>))*.
+    > Make sure to provide the *[Kaggle API Token](https://www.kaggle.com/docs/api#authentication)*.
 
 ### Option 2: using Azure UI
 

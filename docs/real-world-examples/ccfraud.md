@@ -37,7 +37,7 @@ To run this example, you will need to provision one of our [sandboxes](../provis
 
 If you have already provisioned a sandbox during the [quickstart](../quickstart.md) you can reuse it, but you need to **make sure you have added your [Kaggle](https://www.kaggle.com/) credentials** so we can upload the required dataset in each silo. If not, please refer to our [tutorial on how to add your kaggle credentials](../tutorials/add-kaggle-credentials.md) to the workspace secret store before running the following sections.
 
-You can also [re-provision another sandbox](../provisioning/sandboxes.md) with a different base name using the deploy buttons above, and provide your **kaggleUsername** and **kaggleKey** as parameters, so they will be injected securely in your workspace secret store.
+You can also [re-provision another sandbox](../provisioning/sandboxes.md) with a different base name using the [deploy buttons on the sandbox page](../provisioning/sandboxes.md), and provide your **kaggleUsername** and **kaggleKey** as parameters, so they will be injected securely in your workspace secret store.
 
 :notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
 
