@@ -34,6 +34,13 @@ param compute2SKU string = 'Standard_NC6'
 @description('Name of the keyvault to use for storing actual secrets (ex: encryption at rest).')
 param confidentialityKeyVaultName string = 'kv-${demoBaseName}'
 
+@description('Provide your Kaggle API user name to run our samples relying on Kaggle datasets.')
+param kaggleUsername string = ''
+
+@description('Provide your Kaggle API key to run our samples relying on Kaggle datasets.')
+@secure()
+param kaggleKey string = ''
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -44,6 +51,8 @@ param tags object = {
 }
 
 // Create Azure Machine Learning workspace
+var workspaceSecretStoreName = 'ws-shkv-${demoBaseName}'
+
 module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
@@ -52,6 +61,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
     machineLearningName: 'aml-${demoBaseName}'
     machineLearningDescription: 'Azure ML demo workspace for federated learning (use for dev purpose only)'
     location: orchestratorRegion
+    keyVaultName: workspaceSecretStoreName
     tags: tags
   }
 }
@@ -154,5 +164,32 @@ module confidentialityKeyVault './modules/resources/confidentiality_keyvault.bic
   dependsOn: [
     silos
     orchestrator
+  ]
+}
+
+// Add kaggle secrets if given
+resource workspaceSecretStore 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+  name: workspaceSecretStoreName
+}
+
+resource kaggleSecretUsername 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(kaggleUsername)) {
+  parent: workspaceSecretStore
+  name: 'kaggleusername'
+  properties: {
+    value: kaggleUsername
+  }
+  dependsOn: [
+    workspace
+  ]
+}
+
+resource kaggleSecretKey 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(kaggleUsername)) {
+  parent: workspaceSecretStore
+  name: 'kagglekey'
+  properties: {
+    value: kaggleKey
+  }
+  dependsOn: [
+    workspace
   ]
 }

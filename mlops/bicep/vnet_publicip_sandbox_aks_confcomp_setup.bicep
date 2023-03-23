@@ -290,3 +290,7 @@ module confidentialityKeyVault './modules/resources/confidentiality_keyvault.bic
     orchestrator
   ]
 }
+
+// returned outputs
+output workspaceSecretStoreId string = workspace.outputs.workspaceSecretStoreId
+output workspaceSecretStoreName string = workspace.outputs.workspaceSecretStoreName

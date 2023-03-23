@@ -28,6 +28,7 @@ This will provision a Federated Learning setup with 3 [_internal silos_](./conce
 
 > Notes:
 >
+> * :warning: To provision a sandbox you can also use for our real world examples, please provide your **kaggleUsername** and **kaggleKey** during the deployment, they will be stored in the workspace secret store.
 > * If someone already provisioned a demo with the same name in your subscription, change **Demo Base Name** parameter to a unique value.
 > * To deploy a sandbox manually using bicep, check our [configurable sandboxes tutorial](./provisioning/sandboxes.md#configurable-sandboxes).
 
