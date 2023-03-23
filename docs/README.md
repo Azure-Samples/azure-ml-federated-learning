@@ -130,6 +130,8 @@ This repo provides some code samples for running a federated learning pipeline i
 
 This guide will help you adapt your own setup depending on your provisioning strategy and your constraints. See [here](./provisioning/README.md) for detailed instructions.
 
+If you are looking for a ready-to-use sandbox environment, please check out our [sandboxes](./provisioning/sandboxes.md).
+
 ## How to adapt the "literal" and the "scatter-gather" code for your own scenario
 
 The complete tutorial can be found [**here**](./tutorials/literal-scatter-gather-tutorial.md)

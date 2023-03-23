@@ -1,28 +1,6 @@
 // This BICEP script will fully provision a functional federated learning sandbox
 // based on simple internal silos secured with only Managed Identities.
 
-// IMPORTANT: This setup is intended only for demo purpose. The data is still accessible
-// by the users when opening the storage accounts, and data exfiltration is easy.
-
-// For a given set of regions, it will provision:
-// - an AzureML workspace and compute cluster for orchestration
-// - per region, a silo (1 storage with 1 dedicated containers, 1 compute, 1 UAI)
-
-// The demo permission model is represented by the following matrix:
-// |               | orch.compute | siloA.compute | siloB.compute |
-// |---------------|--------------|---------------|---------------|
-// | orch.storage  |     R/W      |      R/W      |      R/W      |
-// | siloA.storage |      -       |      R/W      |       -       |
-// | siloB.storage |      -       |       -       |      R/W      |
-
-// Usage (sh):
-// > az login
-// > az account set --name <subscription name>
-// > az group create --name <resource group name> --location <region>
-// > az deployment group create --template-file .\mlops\bicep\open_sandbox_setup.bicep \
-//                              --resource-group <resource group name \
-//                              --parameters demoBaseName="fldemo"
-
 targetScope = 'resourceGroup'
 
 // please specify the base name for all resources
@@ -56,6 +34,13 @@ param compute2SKU string = 'Standard_NC6'
 @description('Name of the keyvault to use for storing actual secrets (ex: encryption at rest).')
 param confidentialityKeyVaultName string = 'kv-${demoBaseName}'
 
+@description('Provide your Kaggle API user name to run our samples relying on Kaggle datasets.')
+param kaggleUsername string = ''
+
+@description('Provide your Kaggle API key to run our samples relying on Kaggle datasets.')
+@secure()
+param kaggleKey string = ''
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -66,6 +51,8 @@ param tags object = {
 }
 
 // Create Azure Machine Learning workspace
+var workspaceSecretStoreName = 'ws-shkv-${demoBaseName}'
+
 module workspace './modules/azureml/open_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
@@ -74,6 +61,7 @@ module workspace './modules/azureml/open_azureml_workspace.bicep' = {
     machineLearningName: 'aml-${demoBaseName}'
     machineLearningDescription: 'Azure ML demo workspace for federated learning (use for dev purpose only)'
     location: orchestratorRegion
+    keyVaultName: workspaceSecretStoreName
     tags: tags
   }
 }
@@ -176,5 +164,32 @@ module confidentialityKeyVault './modules/resources/confidentiality_keyvault.bic
   dependsOn: [
     silos
     orchestrator
+  ]
+}
+
+// Add kaggle secrets if given
+resource workspaceSecretStore 'Microsoft.KeyVault/vaults@2022-07-01' existing = {
+  name: workspaceSecretStoreName
+}
+
+resource kaggleSecretUsername 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(kaggleUsername)) {
+  parent: workspaceSecretStore
+  name: 'kaggleusername'
+  properties: {
+    value: kaggleUsername
+  }
+  dependsOn: [
+    workspace
+  ]
+}
+
+resource kaggleSecretKey 'Microsoft.KeyVault/vaults/secrets@2022-07-01' = if (!empty(kaggleUsername)) {
+  parent: workspaceSecretStore
+  name: 'kagglekey'
+  properties: {
+    value: kaggleKey
+  }
+  dependsOn: [
+    workspace
   ]
 }

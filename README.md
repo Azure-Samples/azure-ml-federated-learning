@@ -24,6 +24,8 @@ To understand the journey to achieve production-ready Federated Learning, please
 
 To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./docs/provisioning/README.md).
 
+If you are looking for a ready-to-use sandbox environment, please check out our [sandboxes](./docs/provisioning/sandboxes.md).
+
 ### :star: Success stories
 
 Here are some links showing applications of FL on Azure ML in production:

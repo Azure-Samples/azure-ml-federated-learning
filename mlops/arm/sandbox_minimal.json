@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "15530030893852387602"
+      "templateHash": "11633454165432816420"
     }
   },
   "parameters": {
@@ -73,6 +73,20 @@
         "description": "Name of the keyvault to use for storing actual secrets (ex: encryption at rest)."
       }
     },
+    "kaggleUsername": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Provide your Kaggle API user name to run our samples relying on Kaggle datasets."
+      }
+    },
+    "kaggleKey": {
+      "type": "securestring",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Provide your Kaggle API key to run our samples relying on Kaggle datasets."
+      }
+    },
     "tags": {
       "type": "object",
       "defaultValue": {
@@ -88,9 +102,34 @@
     }
   },
   "variables": {
+    "workspaceSecretStoreName": "[format('ws-shkv-{0}', parameters('demoBaseName'))]",
     "siloCount": "[length(parameters('siloRegions'))]"
   },
   "resources": [
+    {
+      "condition": "[not(empty(parameters('kaggleUsername')))]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2022-07-01",
+      "name": "[format('{0}/{1}', variables('workspaceSecretStoreName'), 'kaggleusername')]",
+      "properties": {
+        "value": "[parameters('kaggleUsername')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))]"
+      ]
+    },
+    {
+      "condition": "[not(empty(parameters('kaggleUsername')))]",
+      "type": "Microsoft.KeyVault/vaults/secrets",
+      "apiVersion": "2022-07-01",
+      "name": "[format('{0}/{1}', variables('workspaceSecretStoreName'), 'kagglekey')]",
+      "properties": {
+        "value": "[parameters('kaggleKey')]"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion')))]"
+      ]
+    },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
@@ -113,6 +152,9 @@
           "location": {
             "value": "[parameters('orchestratorRegion')]"
           },
+          "keyVaultName": {
+            "value": "[variables('workspaceSecretStoreName')]"
+          },
           "tags": {
             "value": "[parameters('tags')]"
           }
@@ -124,7 +166,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "17729024177500983615"
+              "templateHash": "5219671468848917786"
             }
           },
           "parameters": {
@@ -338,6 +380,14 @@
             "region": {
               "type": "string",
               "value": "[parameters('location')]"
+            },
+            "workspaceSecretStoreId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+            },
+            "workspaceSecretStoreName": {
+              "type": "string",
+              "value": "[parameters('keyVaultName')]"
             }
           }
         }

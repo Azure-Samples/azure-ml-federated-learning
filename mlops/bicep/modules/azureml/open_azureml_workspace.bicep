@@ -164,3 +164,5 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-10-0
 output storageName string = storage.name
 output workspaceName string = machineLearning.name
 output region string = location
+output workspaceSecretStoreId string = keyVault.id
+output workspaceSecretStoreName string = keyVault.name
