@@ -49,6 +49,6 @@ runs:
     - name: Run unit tests
       shell: bash
       run: |
-        coverage run --source=examples\components\shared -m unittest discover -s tests\examples\components\shared
+        coverage run --source=examples/components/shared -m unittest discover -s tests/examples/components/shared
         coverage combine
         coverage report -m
