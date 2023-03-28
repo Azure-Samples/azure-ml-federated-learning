@@ -2,19 +2,17 @@
 import argparse
 import logging
 import sys
-import copy
 import os
+from distutils.util import strtobool
 from aml_comm import AMLCommSocket, AMLCommRedis
+from aml_smpc import AMLSMPC
 from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
 import torch
 import pandas as pd
-import numpy as np
-from torch import nn
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
-from typing import List
 import models as models
 import datasets as datasets
 
@@ -441,6 +439,13 @@ def get_arg_parser(parser=None):
         default="socket",
         help="Type of communication to use between the nodes",
     )
+    parser.add_argument(
+        "--communication_encrypted",
+        type=strtobool,
+        required=False,
+        default=False,
+        help="Encrypt messages exchanged between the nodes",
+    )
     return parser
 
 
@@ -482,13 +487,24 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
+    if args.communication_encrypted:
+        encryption = AMLSMPC()
+    else:
+        encryption = None
+
     if args.communication_backend == "socket":
         global_comm = AMLCommSocket(
-            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+            args.global_rank,
+            args.global_size,
+            os.environ.get("AZUREML_ROOT_RUN_ID"),
+            encryption=encryption,
         )
     elif args.communication_backend == "redis":
         global_comm = AMLCommRedis(
-            args.global_rank, args.global_size, os.environ.get("AZUREML_ROOT_RUN_ID")
+            args.global_rank,
+            args.global_size,
+            os.environ.get("AZUREML_ROOT_RUN_ID"),
+            encryption=encryption,
         )
     else:
         raise ValueError("Communication backend not supported")

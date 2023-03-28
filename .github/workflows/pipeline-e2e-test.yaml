@@ -2,6 +2,7 @@ name: End-to-end-pipeline-test
 
 on:
   pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
     branches:
     - main
     paths:
@@ -16,6 +17,7 @@ concurrency:
 jobs:
   paths-filter:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     outputs:
       provisioning-modules: ${{ steps.filter.outputs.provisioning-modules }}
       open-sandbox: ${{ steps.filter.outputs.open-sandbox }}
@@ -32,6 +34,7 @@ jobs:
       ccfraud-vertical: ${{ steps.filter.outputs.ccfraud-vertical }}
       pneumonia-nvflare: ${{ steps.filter.outputs.pneumonia-nvflare }}
       pneumonia-flwr: ${{ steps.filter.outputs.pneumonia-flwr }}
+      bank-marketing-vertical: ${{ steps.filter.outputs.bank-marketing-vertical }}
       utils-upload-data: ${{ steps.filter.outputs.utils-upload-data }}
       pneumonia-multiply-data: ${{ steps.filter.outputs.pneumonia-multiply-data }}
     steps:
@@ -43,17 +46,19 @@ jobs:
           provisioning-modules:
             - 'mlops/bicep/modules/**'
           open-sandbox:
-            - 'mlops/bicep/open_sandbox_setup.bicep'
+            - 'mlops/bicep/sandbox_minimal.bicep'
           vnet-sandbox:
             - 'mlops/bicep/vnet_publicip_sandbox_setup.bicep'
             - 'examples/pipelines/mnist_vertical/**'
             - 'examples/pipelines/ccfraud_vertical/**'
             - 'examples/pipelines/pneumonia_flwr/**'
             - 'examples/pipelines/pneumonia_nvflare/**'
+            - 'examples/pipelines/bank_marketing_vertical/**'
             - 'examples/components/MNIST_VERTICAL/**'
             - 'examples/components/CCFRAUD_VERTICAL/**'
             - 'examples/components/NVFLARE/**'
             - 'examples/components/FLWR/**'
+            - 'examples/components/BANK_MARKETING_VERTICAL/**'
           components-helloworld:
             - 'examples/components/HELLOWORLD/**'
           components-mnist:
@@ -90,6 +95,10 @@ jobs:
           pneumonia-flwr:
             - 'examples/pipelines/pneumonia_flwr/**'
             - 'examples/components/FLWR/**'
+          bank-marketing-vertical:
+            - 'examples/pipelines/bank_marketing_vertical/**'
+            - 'examples/components/BANK_MARKETING_VERTICAL/**'
+            - 'examples/components/BANK_MARKETING_VERTICAL/upload_data/**'
           utils-upload-data:
             - 'examples/pipelines/utils/upload_data/**'
           pneumonia-multiply-data:
@@ -99,14 +108,51 @@ jobs:
 
   arm-template-test:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     steps:
     - uses: actions/checkout@v2
 
-    - name: Test open sandbox ARM template
+    - name: Test minimal sandbox ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
       with:
-        source-file-path: "mlops/bicep/open_sandbox_setup.bicep"
-        target-file-path: "mlops/arm/open_sandbox_setup.json"
+        source-file-path: "mlops/bicep/sandbox_minimal.bicep"
+        target-file-path: "mlops/arm/sandbox_minimal.json"
+
+    - name: Test eyes-on cpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyeson_cpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyeson_cpu.json"
+
+    - name: Test eyes-on gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyeson_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyeson_gpu.json"
+
+    - name: Test eyes-on cpu-gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyeson_cpu_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyeson_cpu_gpu.json"
+
+    - name: Test eyes-off cpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyesoff_cpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyesoff_cpu.json"
+
+    - name: Test eyes-off gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyesoff_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyesoff_gpu.json"
+
+    - name: Test eyes-off cpu-gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_eyesoff_cpu_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_eyesoff_cpu_gpu.json"
 
     - name: Test vnet publicip sandbox ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
@@ -166,7 +212,7 @@ jobs:
         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         resource-group: open-${{ secrets.RESOURCE_GROUP_TMP }}
-        deployment-file-path: ./mlops/bicep/open_sandbox_setup.bicep
+        deployment-file-path: ./mlops/bicep/sandbox_minimal.bicep
         deployment-name: open_sandbox_${{ github.run_attempt }}${{ github.run_id }}
         demo-base-name: fl1${{ github.run_attempt }}${{ github.run_id }}
         github-sp-object-id: ${{ secrets.CI_CD_SP_OBJECT_ID }}
@@ -552,6 +598,35 @@ jobs:
         resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
         workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
         example: pneumonia_flwr
+
+  bank-marketing-vertical-test:
+    runs-on: ubuntu-latest
+    needs: [paths-filter, vnet-sandbox-test]
+    if: ${{ needs.paths-filter.outputs.bank-marketing-vertical == 'true' }} 
+    permissions:
+      id-token: write
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Submit the BANK MARKETING vertical upload data pipeline
+      uses: ./.github/actions/submit-upload-data-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: BANK_MARKETING_VERTICAL
+
+    - name: Submit the BANK MARKETING VERTICAL example pipeline
+      uses: ./.github/actions/submit-example-pipeline
+      with:
+        client-id: ${{ secrets.AZURE_CLIENT_ID }}
+        tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+        subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        resource-group: vnet-${{ secrets.RESOURCE_GROUP_TMP }}
+        workspace-name: aml-fl2${{ github.run_attempt }}${{ github.run_id }}
+        example: bank_marketing_vertical
 
   pneumonia-multiply-dataset:
     runs-on: ubuntu-latest

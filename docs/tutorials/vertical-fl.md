@@ -43,6 +43,11 @@ The data format for VFL is different from regular FL. That is why each of our ex
 
 Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace key vault](../real-world-examples/ccfraud.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example CCFRAUD_VERTICAL`**).
 
+
+### BANK_MARKETING
+
+This example is similar to **CCFRAUD**, however here also host owns part of the feature space. Please follow steps in [BANK_MARKETING - Add your Kaggle credentials to the workspace key vault](../real-world-examples/bank-marketing.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example BANK_MARKETING_VERTICAL`**).
+
 ### MNIST
 
 This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
@@ -83,6 +88,20 @@ Once you provision *Azure Cache for Redis* (this can be provisioned in whichever
 7. Go to *Secrets* and *Generate* new one with previously copied connection string and the following name "amlcomm-redis-connection-string".
 8. In your pipeline configuration file change `communication_backend` value from `socket` to `redis`
 9. Continue to training section
+
+## Communication encryption (only CCFRAUD_VERTICAL example)
+
+The communication between nodes, which includes intermediate outputs and gradients, can be optionally encoded. This may be very important in case of using *Redis* as communication backend. To enable the encryption follow these steps:
+
+1. Open the config file  `config.yaml` in `examples/pipelines/ccfraud_vertical/`
+2. Set `encrypted` field, under `communication` to `true`
+
+### How does the encryption works?
+Whole encryption is handled by `AMLSPMC` class in `examples/components/CCFRAUD_VERTICAL/aml_smpc.py`. By initiating the class every node generates its own public/private key set. The public part is communicated to other parties, which they use when communicating with this node. Thus, the private part resides at all time on the local node and is well protected. The message itself is encrypted using hybrid encryption, which can be broken down as follows:
+
+**Encryption:** Firstly, the data are encoded using symmetric key, new symmetric key is generated for every message. Afterwards, this symmetric key is encoded using public key of receiving party and attached to the message.
+
+**Decryption:** Firstly, receiving party decodes the symmetric key using its private key and afterwards the data are decoded using this symmetric key.
 
 ## Training
 

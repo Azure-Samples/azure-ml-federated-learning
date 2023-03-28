@@ -18,12 +18,14 @@
   - [Why should you consider Federated Learning?](#why-should-you-consider-federated-learning)
   - [How to plan for your Federated Learning project](#how-to-plan-for-your-federated-learning-project)
   - [Vertical federated learning](#vertical-federated-learning)
+  - [Integrate and secure FL experiments with mlops](#integrate-and-secure-fl-experiments-with-mlops)
   - [Glossary](#glossary)
 - [Tutorials](#tutorials)
   - [What this repo has to offer?](#what-this-repo-has-to-offer)
   - [Provisioning guide](#provisioning-guide)
   - [How to adapt the "literal" and the "scatter-gather" code for your own scenario](#how-to-adapt-the-literal-and-the-scatter-gather-code-for-your-own-scenario)
   - [Read local data in an on-premises Kubernetes silo](#read-local-data-in-an-on-premises-kubernetes-silo)
+  - [Differential privacy for cross-silo horizontal federated learning](#differential-privacy-for-cross-silo-horizontal-federated-learning)
   - [Upload local data to silo storage account](#upload-local-data-to-silo-storage-account)
 - [Troubleshooting guide](#troubleshooting-guide)
 
@@ -103,6 +105,10 @@ Vertical federated learning is a branch of federated learning where the data are
 
 We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes. We invite you to learn more about this approach in the [vertical federated learing tutorial](./tutorials/vertical-fl.md).
 
+## Integrate and secure FL experiments with MLOps
+
+What can we do to secure the code that is being run in an FL experiment? In particular, what can we do to avoid (un)intentional bad practices and security breaches. The [solution we're proposing](./concepts/mlops_for_fl.md) is to leverage Azure ML integration with MLOps to allow only for peer-reviewed code to run in a production FL environment.
+
 ## Glossary
 
 The complete glossary list can be seen [**here**](./concepts/glossary.md).
@@ -123,6 +129,8 @@ This repo provides some code samples for running a federated learning pipeline i
 ## Provisioning guide
 
 This guide will help you adapt your own setup depending on your provisioning strategy and your constraints. See [here](./provisioning/README.md) for detailed instructions.
+
+If you are looking for a ready-to-use sandbox environment, please check out our [sandboxes](./provisioning/sandboxes.md).
 
 ## How to adapt the "literal" and the "scatter-gather" code for your own scenario
 

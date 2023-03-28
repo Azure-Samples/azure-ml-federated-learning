@@ -8,7 +8,9 @@ aml:
 
 # federated learning parameters
 federated_learning:
-  communication_backend: socket
+  communication:
+    backend: socket
+    encrypted: false
 
   host:
     compute: orchestrator-01

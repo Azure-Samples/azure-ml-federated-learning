@@ -36,4 +36,6 @@ command: >-
 
 # NOTE: using one of Azure ML's curated environments
 # which has all the dependencies needed for this job
-environment: azureml:AzureML-sklearn-1.0-ubuntu20.04-py38-cpu@latest
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

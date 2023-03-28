@@ -56,6 +56,7 @@ parser.add_argument(
         "MNIST",
         "CCFRAUD_VERTICAL",
         "MNIST_VERTICAL",
+        "BANK_MARKETING_VERTICAL",
     ],
     help="dataset name",
 )
@@ -185,6 +186,17 @@ def fl_cross_silo_upload_data():
         silo_upload_data_step = upload_data_component(
             silo_count=len(silos), silo_index=silo_index
         )
+        # if confidentiality is enabled, add the keyvault and key name as environment variables
+        if hasattr(YAML_CONFIG, "confidentiality"):
+            silo_upload_data_step.environment_variables = {
+                "CONFIDENTIALITY_DISABLE": str(not YAML_CONFIG.confidentiality.enable),
+                "CONFIDENTIALITY_KEYVAULT": YAML_CONFIG.confidentiality.keyvault,
+                "CONFIDENTIALITY_KEY_NAME": YAML_CONFIG.confidentiality.key_name,
+            }
+        else:
+            silo_upload_data_step.environment_variables = {
+                "CONFIDENTIALITY_DISABLE": "True",
+            }
 
         # add a readable name to the step
         silo_upload_data_step.name = f"silo_{silo_index}_upload_data"

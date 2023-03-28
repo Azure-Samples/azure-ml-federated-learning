@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "9662552762426929605"
+      "templateHash": "1810000442779468320"
     }
   },
   "parameters": {
@@ -23,7 +23,7 @@
         "description": "Region of the orchestrator (workspace, central storage and compute)."
       }
     },
-    "orchestratorAccess": {
+    "orchestratorStorageNetworkAccess": {
       "type": "string",
       "defaultValue": "public",
       "allowedValues": [
@@ -32,6 +32,17 @@
       ],
       "metadata": {
         "description": "Set the orchestrator storage as private, with endpoints into each silo."
+      }
+    },
+    "siloStorageNetworkAccess": {
+      "type": "string",
+      "defaultValue": "public",
+      "allowedValues": [
+        "public",
+        "private"
+      ],
+      "metadata": {
+        "description": "Set the silo storage network access as private, with private endpoints into each silo."
       }
     },
     "siloRegions": {
@@ -57,6 +68,13 @@
       "defaultValue": true,
       "metadata": {
         "description": "WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication."
+      }
+    },
+    "confidentialityKeyVaultName": {
+      "type": "string",
+      "defaultValue": "[format('kv-{0}', parameters('demoBaseName'))]",
+      "metadata": {
+        "description": "Name of the keyvault to use for storing actual secrets (ex: encryption at rest)."
       }
     },
     "tags": {
@@ -87,7 +105,7 @@
       "tags": "[parameters('tags')]"
     },
     {
-      "condition": "[equals(parameters('orchestratorAccess'), 'private')]",
+      "condition": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]",
       "type": "Microsoft.Network/privateDnsZones/A",
       "apiVersion": "2020-06-01",
       "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), variables('orchestratorStorageAccountCleanName'))]",
@@ -122,7 +140,7 @@
             "value": "[format('aml-{0}', parameters('demoBaseName'))]"
           },
           "machineLearningDescription": {
-            "value": "[format('Azure ML demo workspace for federated learning (orchestratorAccess={0}, applyVNetPeering={1})', parameters('orchestratorAccess'), parameters('applyVNetPeering'))]"
+            "value": "[format('Azure ML demo workspace for federated learning (orchestratorStorageNetworkAccess={0}, applyVNetPeering={1})', parameters('orchestratorStorageNetworkAccess'), parameters('applyVNetPeering'))]"
           },
           "baseName": {
             "value": "[parameters('demoBaseName')]"
@@ -141,7 +159,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "1072571431826254999"
+              "templateHash": "5219671468848917786"
             }
           },
           "parameters": {
@@ -186,6 +204,13 @@
               "defaultValue": false,
               "metadata": {
                 "description": "Specifies whether to reduce telemetry collection and enable additional encryption."
+              }
+            },
+            "appInsightLogAnalyticsName": {
+              "type": "string",
+              "defaultValue": "[format('logs-{0}', parameters('baseName'))]",
+              "metadata": {
+                "description": "Name of the application insights log analytics workspace"
               }
             },
             "applicationInsightsName": {
@@ -280,6 +305,20 @@
               }
             },
             {
+              "type": "Microsoft.OperationalInsights/workspaces",
+              "apiVersion": "2021-06-01",
+              "name": "[parameters('appInsightLogAnalyticsName')]",
+              "location": "[parameters('location')]",
+              "properties": {
+                "sku": {
+                  "name": "PerGB2018"
+                },
+                "retentionInDays": 30,
+                "publicNetworkAccessForIngestion": "Enabled",
+                "publicNetworkAccessForQuery": "Disabled"
+              }
+            },
+            {
               "type": "Microsoft.Insights/components",
               "apiVersion": "2020-02-02",
               "name": "[parameters('applicationInsightsName')]",
@@ -287,8 +326,13 @@
               "tags": "[parameters('tags')]",
               "kind": "web",
               "properties": {
-                "Application_Type": "web"
-              }
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('appInsightLogAnalyticsName'))]",
+                "Flow_Type": "Bluefield"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.OperationalInsights/workspaces', parameters('appInsightLogAnalyticsName'))]"
+              ]
             },
             {
               "type": "Microsoft.MachineLearningServices/workspaces",
@@ -329,6 +373,14 @@
             "region": {
               "type": "string",
               "value": "[parameters('location')]"
+            },
+            "workspaceSecretStoreId": {
+              "type": "string",
+              "value": "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+            },
+            "workspaceSecretStoreName": {
+              "type": "string",
+              "value": "[parameters('keyVaultName')]"
             }
           }
         }
@@ -384,7 +436,7 @@
             "value": "172.19.0.0/24"
           },
           "useStorageStaticIP": {
-            "value": "[equals(parameters('orchestratorAccess'), 'private')]"
+            "value": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]"
           },
           "storagePLEStaticIP": {
             "value": "172.19.0.150"
@@ -392,7 +444,7 @@
           "enableNodePublicIp": {
             "value": true
           },
-          "storagePublicNetworkAccess": "[if(equals(parameters('orchestratorAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
+          "storagePublicNetworkAccess": "[if(equals(parameters('orchestratorStorageNetworkAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
           "blobPrivateDNSZoneName": {
             "value": "[format('privatelink.blob.{0}', environment().suffixes.storage)]"
           },
@@ -2108,9 +2160,7 @@
           "enableNodePublicIp": {
             "value": true
           },
-          "storagePublicNetworkAccess": {
-            "value": "Disabled"
-          },
+          "storagePublicNetworkAccess": "[if(equals(parameters('siloStorageNetworkAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
           "blobPrivateDNSZoneName": {
             "value": "[format('privatelink.blob.{0}', environment().suffixes.storage)]"
           },
@@ -3778,7 +3828,7 @@
         "name": "orchToSiloPrivateEndpoints",
         "count": "[length(range(0, variables('siloCount')))]"
       },
-      "condition": "[equals(parameters('orchestratorAccess'), 'private')]",
+      "condition": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
       "name": "[format('{0}-orch-to-silo{1}-endpoint', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
@@ -4201,6 +4251,194 @@
         "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
         "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]"
       ]
+    },
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2020-10-01",
+      "name": "[format('{0}-kv-confidentiality', parameters('demoBaseName'))]",
+      "properties": {
+        "expressionEvaluationOptions": {
+          "scope": "inner"
+        },
+        "mode": "Incremental",
+        "parameters": {
+          "keyVaultName": {
+            "value": "[parameters('confidentialityKeyVaultName')]"
+          },
+          "tags": {
+            "value": "[parameters('tags')]"
+          },
+          "region": {
+            "value": "[parameters('orchestratorRegion')]"
+          },
+          "identitiesEnabledCryptoOperations": {
+            "copy": [
+              {
+                "name": "value",
+                "count": "[length(range(0, variables('siloCount')))]",
+                "input": "[format('{0}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex('value')]])), '2020-10-01').outputs.identityPrincipalId.value)]"
+              }
+            ]
+          },
+          "secondaryIdentitiesEnabledCryptoOperations": {
+            "value": [
+              "[format('{0}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.identityPrincipalId.value)]"
+            ]
+          }
+        },
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "metadata": {
+            "_generator": {
+              "name": "bicep",
+              "version": "0.14.85.62628",
+              "templateHash": "16858202248000565148"
+            }
+          },
+          "parameters": {
+            "keyVaultName": {
+              "type": "string",
+              "metadata": {
+                "description": "Name of the keyvault."
+              }
+            },
+            "region": {
+              "type": "string",
+              "defaultValue": "[resourceGroup().location]",
+              "metadata": {
+                "description": "Region of the keyvault."
+              }
+            },
+            "tags": {
+              "type": "object",
+              "defaultValue": {},
+              "metadata": {
+                "description": "Tags to curate the resources in Azure."
+              }
+            },
+            "identitiesEnabledCryptoOperations": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "List of principal ids that will be allowed cryptographic operations (Key Vault Crypto User)."
+              }
+            },
+            "secondaryIdentitiesEnabledCryptoOperations": {
+              "type": "array",
+              "defaultValue": [],
+              "metadata": {
+                "description": "Just in case you need a second list of identities as argument."
+              }
+            },
+            "createDevRSAKey": {
+              "type": "bool",
+              "defaultValue": true
+            },
+            "devKeyName": {
+              "type": "string",
+              "defaultValue": "dev-rsa-key"
+            }
+          },
+          "variables": {
+            "keyVaultCryptoUserRoleId": "12338af0-0e69-4776-bea7-57ae8d297424"
+          },
+          "resources": [
+            {
+              "type": "Microsoft.KeyVault/vaults",
+              "apiVersion": "2022-07-01",
+              "name": "[parameters('keyVaultName')]",
+              "location": "[parameters('region')]",
+              "tags": "[parameters('tags')]",
+              "properties": {
+                "tenantId": "[subscription().tenantId]",
+                "sku": {
+                  "name": "standard",
+                  "family": "A"
+                },
+                "createMode": "default",
+                "enablePurgeProtection": true,
+                "enableSoftDelete": true,
+                "enableRbacAuthorization": true,
+                "publicNetworkAccess": "Enabled",
+                "accessPolicies": [],
+                "enabledForDeployment": false,
+                "enabledForDiskEncryption": true,
+                "enabledForTemplateDeployment": false
+              }
+            },
+            {
+              "condition": "[parameters('createDevRSAKey')]",
+              "type": "Microsoft.KeyVault/vaults/keys",
+              "apiVersion": "2022-07-01",
+              "name": "[format('{0}/{1}', parameters('keyVaultName'), parameters('devKeyName'))]",
+              "properties": {
+                "kty": "RSA",
+                "keyOps": [
+                  "encrypt",
+                  "decrypt",
+                  "sign",
+                  "verify"
+                ],
+                "keySize": 2048
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "roleAssignments",
+                "count": "[length(parameters('identitiesEnabledCryptoOperations'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "name": "[guid(resourceGroup().id, parameters('keyVaultName'), parameters('identitiesEnabledCryptoOperations')[copyIndex()], variables('keyVaultCryptoUserRoleId'))]",
+              "properties": {
+                "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('keyVaultCryptoUserRoleId'))]",
+                "principalId": "[parameters('identitiesEnabledCryptoOperations')[copyIndex()]]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            },
+            {
+              "copy": {
+                "name": "secondaryRoleAssignments",
+                "count": "[length(parameters('secondaryIdentitiesEnabledCryptoOperations'))]"
+              },
+              "type": "Microsoft.Authorization/roleAssignments",
+              "apiVersion": "2022-04-01",
+              "scope": "[format('Microsoft.KeyVault/vaults/{0}', parameters('keyVaultName'))]",
+              "name": "[guid(resourceGroup().id, parameters('keyVaultName'), parameters('secondaryIdentitiesEnabledCryptoOperations')[copyIndex()], variables('keyVaultCryptoUserRoleId'))]",
+              "properties": {
+                "roleDefinitionId": "[format('/subscriptions/{0}/providers/Microsoft.Authorization/roleDefinitions/{1}', subscription().subscriptionId, variables('keyVaultCryptoUserRoleId'))]",
+                "principalId": "[parameters('secondaryIdentitiesEnabledCryptoOperations')[copyIndex()]]",
+                "principalType": "ServicePrincipal"
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.KeyVault/vaults', parameters('keyVaultName'))]"
+              ]
+            }
+          ]
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))]",
+        "silos"
+      ]
     }
-  ]
+  ],
+  "outputs": {
+    "workspaceSecretStoreId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceSecretStoreId.value]"
+    },
+    "workspaceSecretStoreName": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))), '2020-10-01').outputs.workspaceSecretStoreName.value]"
+    }
+  }
 }
