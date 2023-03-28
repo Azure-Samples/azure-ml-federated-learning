@@ -89,7 +89,7 @@ class AMLComm(ABC):
             self.send(pub_key, 0)
         self._encryption = self._temp_encryption
 
-    def log_stats(self, mlflow_client: mlflow.MlflowClient):
+    def log_stats(self, mlflow_client: mlflow.MlflowClient):  # pragma: no cover
         self._stats["send_time_avg_w_waiting"] = self._stats["send_time"] / float(
             self._stats["send_cnt"]
         )

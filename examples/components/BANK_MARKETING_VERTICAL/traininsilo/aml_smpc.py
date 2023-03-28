@@ -68,7 +68,7 @@ class AMLSMPC:
                 key
             )
         else:
-            raise Exception(
+            raise ValueError(
                 f"Encoding {encoding} not supported, use one of OpenSSH, DER, PEM"
             )
 
