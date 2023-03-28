@@ -153,7 +153,7 @@ class AMLCommSocket(AMLComm):
         self._setup_master()
         self.after_connection()
 
-    def _get_open_port(self): # pragma: no cover
+    def _get_open_port(self):  # pragma: no cover
         from contextlib import closing
 
         with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as s:
@@ -162,7 +162,7 @@ class AMLCommSocket(AMLComm):
             return str(s.getsockname()[1])
 
     def _setup_master(self):
-        if self._host_ip is None or self._host_port is None: # pragma: no cover
+        if self._host_ip is None or self._host_port is None:  # pragma: no cover
             host_ip, host_port = None, None
             with mlflow.start_run() as mlflow_run:
                 mlflow_client = mlflow.tracking.client.MlflowClient()
@@ -220,7 +220,7 @@ class AMLCommSocket(AMLComm):
                 while True:
                     try:
                         msg = conn.recv(1024)
-                        if not msg: # pragma: no cover
+                        if not msg:  # pragma: no cover
                             break
 
                         msg = pickle.loads(msg)
@@ -300,7 +300,7 @@ class AMLCommSocket(AMLComm):
                 # and thus we may receive multiple of them
                 while sys.getsizeof(msg) < packet_max_size:
                     packet = conn.recv(packet_max_size)
-                    if not packet: # pragma: no cover
+                    if not packet:  # pragma: no cover
                         break
                     msg += packet
                     if msg_size is None:
@@ -401,7 +401,7 @@ class AMLCommSocket(AMLComm):
 
         return tensor_data
 
-    def _close(self): # pragma: no cover
+    def _close(self):  # pragma: no cover
         if self._socket is None:
             return
         logger.info("Closing AMLCommSocket clients")
@@ -464,7 +464,7 @@ class AMLCommRedis(AMLComm):
             socket_keepalive=True,
         )
 
-    def _wait_for_connection(self, connect_timeout: int): # pragma: no cover
+    def _wait_for_connection(self, connect_timeout: int):  # pragma: no cover
         if self._rank == 0:
             connected = []
             for i in range(1, self._world_size):
@@ -514,7 +514,7 @@ class AMLCommRedis(AMLComm):
 
             raise Exception(f"Failed to connect to client 0")
 
-    def _get_connection_string(self) -> str: # pragma: no cover
+    def _get_connection_string(self) -> str:  # pragma: no cover
         try:
             from azureml.core import Run, Keyvault
 
@@ -563,7 +563,7 @@ class AMLCommRedis(AMLComm):
             return f"{self._run_id}:{source}=>{destination}"
         return f"{self._run_id}:{source}=>{destination}:{FLAGS[flag].name}"
 
-    def _send(self, data, session_id, destination) -> None: # pragma: no cover
+    def _send(self, data, session_id, destination) -> None:  # pragma: no cover
         """Sends data to the destination node
 
         Args:
@@ -629,7 +629,7 @@ class AMLCommRedis(AMLComm):
         self._stats["send_cnt"] += 1
         self._stats["send_time"] += time.time() - time_start
 
-    def _recv(self, session_id, source): # pragma: no cover
+    def _recv(self, session_id, source):  # pragma: no cover
         """Receives data from the source rank node
 
         Args:
@@ -698,7 +698,7 @@ class AMLCommRedis(AMLComm):
 
         return data
 
-    def _close(self): # pragma: no cover
+    def _close(self):  # pragma: no cover
         if self._client is None:
             return
         logger.info("Closing Redis clients")
