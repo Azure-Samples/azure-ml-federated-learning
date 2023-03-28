@@ -24,7 +24,7 @@ jobs:
       if: github.base_ref
 
     - name: Intall python dependencies
-      run: pip install -r examples/pipelines/requirements.txt
+      run: pip install -r examples/pipelines/requirements_test.txt
     
     - name: Validate fl_cross_silo_literal pipeline
       run: python examples/pipelines/fl_cross_silo_literal/submit.py --offline
