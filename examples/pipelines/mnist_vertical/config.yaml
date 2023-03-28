@@ -8,6 +8,10 @@ aml:
 
 # federated learning parameters
 federated_learning:
+  communication:
+    backend: socket
+    encrypted: false
+
   host:
     compute: orchestrator-01
     datastore: datastore_orchestrator

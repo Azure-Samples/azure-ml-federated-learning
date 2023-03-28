@@ -12,6 +12,7 @@ This repo provides some code samples for running a federated learning pipeline i
 - [Real world examples](#real-world-examples)
 - [FL Frameworks](#fl-frameworks)
 - [Documentation](#documentation)
+- [Real-world example benchmarks](#real-world-example-benchmarks)
 - [Need Support?](#need-support)
 - [Contributing](#contributing)
 
@@ -22,6 +23,8 @@ No time to read? Go directly to the [**quickstart**](./docs/quickstart.md) to pr
 To understand the journey to achieve production-ready Federated Learning, please check our guide to [**Plan Your FL Project**](./docs/concepts/plan-your-fl-project.md).
 
 To know more about the resource provisioning alternatives, please go to the provisioning [**cookbook**](./docs/provisioning/README.md).
+
+If you are looking for a ready-to-use sandbox environment, please check out our [sandboxes](./docs/provisioning/sandboxes.md).
 
 ### :star: Success stories
 
@@ -50,6 +53,15 @@ If you are already using a specific FL framework, you can port your code to work
 ### Documentation
 
 Please find a full documentation of this project [**here**](docs/README.md).
+
+### Real-world example benchmarks
+
+A benchmarking analysis is performed for each real-world example to understand the validy, efficiency and scalability of our implementation of FL:
+
+|  Training overhead  | Model performance  | Scalability |
+|:-:|:-:|:-:|
+| [![overhead icon](./docs/pics/pneumonia_time.jpg)](./docs/concepts/benchmarking.md/#21-training-overhead)| [![performance icon](./docs/pics/pneumonia_acc.jpg)](./docs/concepts/benchmarking.md/#22-model-performance)| [![scala icon](./docs/pics/pneumonia_ddp.jpg)](./docs/concepts/benchmarking.md/#23-scalability-with-training)
+
 
 ### Need Support?
 

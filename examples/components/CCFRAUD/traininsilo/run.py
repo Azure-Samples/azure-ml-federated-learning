@@ -16,6 +16,7 @@ from torchmetrics.functional import precision_recall, accuracy, auroc
 from torch.optim import Adam
 from torch.utils.data.dataloader import DataLoader
 from torch.utils.data.distributed import DistributedSampler
+import multiprocessing
 from typing import List
 import models as models
 import datasets as datasets
@@ -24,6 +25,9 @@ from distutils.util import strtobool
 # DP
 from opacus import PrivacyEngine
 from opacus.validators import ModuleValidator
+
+# helper with confidentiality
+from confidential_io import EncryptedFile
 
 
 class RunningMetrics:
@@ -162,10 +166,18 @@ class CCFraudTrainer:
             self.train_sampler_ = None
             self.test_sampler_ = None
 
+        # get number of cpu to load data for each gpu
+        num_workers_per_gpu = int(
+            multiprocessing.cpu_count() // int(os.environ.get("WORLD_SIZE", "1"))
+        )
+        logger.info(f"The num_work per GPU is: {num_workers_per_gpu}")
+
         self.train_loader_ = DataLoader(
             self.train_dataset_,
             batch_size=batch_size,
+            num_workers=num_workers_per_gpu,
             shuffle=(self.train_sampler_ is None),
+            prefetch_factor=3,
             sampler=self.train_sampler_,
         )
         self.test_loader_ = DataLoader(
@@ -244,9 +256,12 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
-        train_df = pd.read_csv(train_data_dir + "/data.csv")
-        test_df = pd.read_csv(test_data_dir + "/data.csv")
+        with EncryptedFile(train_data_dir + "/fraud_weight.txt") as f:
+            self.fraud_weight_ = np.loadtxt(f).item()
+        with EncryptedFile(train_data_dir + "/data.csv") as f:
+            train_df = pd.read_csv(f)
+        with EncryptedFile(test_data_dir + "/data.csv") as f:
+            test_df = pd.read_csv(f)
         if model_name == "SimpleLinear":
             train_dataset = datasets.FraudDataset(train_df)
             test_dataset = datasets.FraudDataset(test_df)
@@ -578,7 +593,7 @@ def run(args):
     if int(os.environ.get("WORLD_SIZE", "1")) > 1 and torch.cuda.is_available():
         dist.init_process_group(
             "nccl",
-            rank=int(os.environ["RANK"]),
+            rank=int(os.environ.get("RANK", "0")),
             world_size=int(os.environ.get("WORLD_SIZE", "1")),
         )
     elif int(os.environ.get("WORLD_SIZE", "1")) > 1:
@@ -599,7 +614,7 @@ def run(args):
         total_num_of_iterations=args.total_num_of_iterations,
         experiment_name=args.metrics_prefix,
         iteration_name=args.iteration_name,
-        device_id=int(os.environ["RANK"]),
+        device_id=int(os.environ.get("LOCAL_RANK", "0")),
         distributed=int(os.environ.get("WORLD_SIZE", "1")) > 1
         and torch.cuda.is_available(),
     )

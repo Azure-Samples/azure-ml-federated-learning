@@ -42,10 +42,10 @@ parser.add_argument(
     help="path to a config yaml file",
 )
 parser.add_argument(
-    "--submit",
+    "--offline",
     default=False,
     action="store_true",
-    help="actually submits the experiment to AzureML",
+    help="Sets flag to not submit the experiment to AzureML",
 )
 
 parser.add_argument(
@@ -214,8 +214,8 @@ def fl_mnist_vertical_basic():
                 metrics_prefix=silo_config.compute,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                local_size=1,
-                local_rank=0,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
             )
             # add a readable name to the step
             silo_training_step.name = f"host_training"
@@ -243,8 +243,8 @@ def fl_mnist_vertical_basic():
                 metrics_prefix=silo_config.compute,
                 global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
                 global_rank=silo_index,
-                local_size=1,
-                local_rank=0,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
             )
             # add a readable name to the step
             silo_training_step.name = f"contributor_{silo_index}_training"
@@ -281,7 +281,7 @@ pipeline_job = fl_mnist_vertical_basic()
 # Inspect built pipeline
 print(pipeline_job)
 
-if args.submit:
+if not args.offline:
     print("Submitting the pipeline job to your AzureML workspace...")
 
     ML_CLIENT = connect_to_aml()
