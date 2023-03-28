@@ -99,7 +99,7 @@ var orchestratorStorageAccountName = replace('st${demoBaseName}orch','-','')
 var orchestratorStorageAccountCleanName = substring(orchestratorStorageAccountName, 0, min(length(orchestratorStorageAccountName),24))
 
 // Create an orchestrator compute+storage pair and attach to workspace
-module orchestrator './modules/fl_pairs/vnet_aks_storage_pair.bicep' = {
+module orchestrator './modules/fl_pairs/vnet_aks_with_confcomp_storage_pair.bicep' = {
   name: '${demoBaseName}-vnetpair-orchestrator'
   scope: resourceGroup()
   params: {
@@ -155,7 +155,7 @@ var siloCount = length(siloRegions)
 
 // Create all silos as a compute+storage pair and attach to workspace
 // This pair will be considered eyes-off
-module silos './modules/fl_pairs/vnet_aks_storage_pair.bicep' = [for i in range(0, siloCount): {
+module silos './modules/fl_pairs/vnet_aks_with_confcomp_storage_pair.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-vnetpair-silo-${i}'
   scope: resourceGroup()
   params: {
