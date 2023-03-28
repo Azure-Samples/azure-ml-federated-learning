@@ -28,19 +28,19 @@ runs:
       with:
         python-version: 3.8
 
-    - name: Azure login
-      uses: azure/login@v1
-      with:
-          client-id: ${{ inputs.client-id }}
-          tenant-id: ${{ inputs.tenant-id }}
-          subscription-id: ${{ inputs.subscription-id }}
+    # - name: Azure login
+    #   uses: azure/login@v1
+    #   with:
+    #       client-id: ${{ inputs.client-id }}
+    #       tenant-id: ${{ inputs.tenant-id }}
+    #       subscription-id: ${{ inputs.subscription-id }}
 
-    - name: Install azure ml latest extension
-      shell: bash
-      run: |
-        az extension remove -n azure-cli-ml || echo "azure-cli-ml extension is not installed."
-        az extension remove -n ml || echo "ml extension is not installed."
-        az extension add -n ml -y
+    # - name: Install azure ml latest extension
+    #   shell: bash
+    #   run: |
+    #     az extension remove -n azure-cli-ml || echo "azure-cli-ml extension is not installed."
+    #     az extension remove -n ml || echo "ml extension is not installed."
+    #     az extension add -n ml -y
 
     - name: Install python dependencies
       shell: bash
