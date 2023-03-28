@@ -35,7 +35,7 @@ def init_send_recv(
 
     if rank != 0:
         # Make sure the first process is started before the others
-        time.sleep(0.5)
+        time.sleep(1)
     if use_redis:
         comm = TestAMLCommRedis(
             shared_dict, rank, world_size, run_id, host, port, encryption=encryption
