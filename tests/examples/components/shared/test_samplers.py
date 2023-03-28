@@ -1,11 +1,12 @@
 import os
 import sys
+import time
 import math
 import unittest
 import multiprocessing as mp
 
 import torch
-from torch.utils.data import TensorDataset, DataLoader
+from torch.utils.data import TensorDataset
 
 from utils import get_free_port
 
@@ -20,9 +21,9 @@ from examples.components.shared.aml_comm import AMLCommSocket
 def init_sampler(
     rank, world_size, run_id, host, port, ds, shared_dict, batch_size, shuffle=False
 ):
-    # import coverage
-    # coverage.process_startup()
-
+    if rank != 0:
+        # Make sure the first process is started before the others
+        time.sleep(0.5)
     comm = AMLCommSocket(rank, world_size, run_id, host, port)
     sampler = VerticallyDistributedBatchSampler(
         ds, batch_size, comm, rank, world_size, shuffle=shuffle

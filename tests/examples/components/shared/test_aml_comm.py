@@ -2,9 +2,7 @@ import os
 import sys
 import time
 import unittest
-import unittest.mock as mock
 from unittest.mock import MagicMock
-from collections import defaultdict
 import multiprocessing as mp
 
 import torch
@@ -31,13 +29,13 @@ def init_send_recv(
     encrypted=False,
     use_redis=False,
 ):
-    # import coverage
-    # coverage.process_startup()
-
     encryption = None
     if encrypted:
         encryption = AMLSMPC()
 
+    if rank != 0:
+        # Make sure the first process is started before the others
+        time.sleep(0.5)
     if use_redis:
         comm = TestAMLCommRedis(
             shared_dict, rank, world_size, run_id, host, port, encryption=encryption
