@@ -190,6 +190,24 @@ jobs:
         source-file-path: "mlops/bicep/modules/fl_pairs/open_aks_with_confcomp_storage_pair.bicep"
         target-file-path: "mlops/arm/open_aks_with_confcomp_storage_pair.json"
 
+    - name: Test open aks storage pair ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/modules/fl_pairs/open_aks_storage_pair.bicep"
+        target-file-path: "mlops/arm/open_aks_storage_pair.json"
+
+    - name: Test vnet aks confcomp storage pair ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/modules/fl_pairs/vnet_aks_with_confcomp_storage_pair.bicep"
+        target-file-path: "mlops/arm/vnet_aks_with_confcomp_storage_pair.json"
+
+    - name: Test vnet aks storage pair ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/modules/fl_pairs/vnet_aks_storage_pair.bicep"
+        target-file-path: "mlops/arm/vnet_aks_storage_pair.json"
+
     - name: Test jumpbox ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
       with:
