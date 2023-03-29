@@ -23,7 +23,7 @@ param amlComputeName string
 @description('Name of the existing UAI for the compute cluster.')
 param computeUaiName string
 
-// provision a user assigned identify for this silo
+// provision a user assigned identity for this silo
 resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' existing = {
   name: computeUaiName
   scope: resourceGroup()
