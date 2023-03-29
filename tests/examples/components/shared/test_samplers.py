@@ -82,26 +82,27 @@ class TestVerticallyDistributedBatchSampler(unittest.TestCase):
                 p2.join()
 
                 # Check that the number of batches is correct
-                assert (
-                    shared_dict[0][1]
-                    == shared_dict[1][1]
-                    == math.ceil(len(data) / batch_size)
-                )
+                self.assertEquals(shared_dict[0][1], shared_dict[1][1])
+                self.assertEquals(shared_dict[0][1], math.ceil(len(data) / batch_size))
 
                 if shuffle:
                     # Check that the batches are distributed correctly
                     for batch1, batch2 in zip(shared_dict[0][0], shared_dict[1][0]):
-                        assert torch.all(batch1 == batch2)
+                        self.assertTrue(torch.all(batch1 == batch2))
                 else:
                     # Check that the batches are distributed correctly
                     for i, (batch1, batch2) in enumerate(
                         zip(shared_dict[0][0], shared_dict[1][0])
                     ):
-                        assert torch.all(batch1 == batch2) and torch.all(
-                            batch1
-                            == torch.tensor(
-                                range(
-                                    i * batch_size, min((i + 1) * batch_size, len(data))
+                        self.assertTrue(torch.all(batch1 == batch2))
+                        self.assertTrue(
+                            torch.all(
+                                batch1
+                                == torch.tensor(
+                                    range(
+                                        i * batch_size,
+                                        min((i + 1) * batch_size, len(data)),
+                                    )
                                 )
                             )
                         )

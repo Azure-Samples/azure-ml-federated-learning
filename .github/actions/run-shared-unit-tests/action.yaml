@@ -16,6 +16,10 @@ runs:
     - name: Run unit tests
       shell: bash
       run: |
-        coverage run --source=examples/components/shared -m unittest discover -s tests/examples/components/shared
+        coverage run --source=examples/components/shared -m unittest discover -s tests/examples/components/shared -v
+
+    - name: Run coverage
+      shell: bash
+      run: |
         coverage combine
         coverage report -m

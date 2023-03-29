@@ -23,8 +23,8 @@ class TestAMLSMPC(unittest.TestCase):
         msg_2 = smpc1.encrypt(str.encode(TEST_MSG(2)), 2)
         msg_1 = smpc2.encrypt(str.encode(TEST_MSG(1)), 1)
 
-        assert smpc1.decrypt(msg_1) == str.encode(TEST_MSG(1))
-        assert smpc2.decrypt(msg_2) == str.encode(TEST_MSG(2))
+        self.assertEquals(smpc1.decrypt(msg_1), str.encode(TEST_MSG(1)))
+        self.assertEquals(smpc2.decrypt(msg_2), str.encode(TEST_MSG(2)))
 
     def test_aml_smpc_empty(self):
         TEST_MSG = lambda _: ""
@@ -38,8 +38,8 @@ class TestAMLSMPC(unittest.TestCase):
         msg_2 = smpc1.encrypt(str.encode(TEST_MSG(2)), 2)
         msg_1 = smpc2.encrypt(str.encode(TEST_MSG(1)), 1)
 
-        assert smpc1.decrypt(msg_1) == str.encode(TEST_MSG(1))
-        assert smpc2.decrypt(msg_2) == str.encode(TEST_MSG(2))
+        self.assertEquals(smpc1.decrypt(msg_1), str.encode(TEST_MSG(1)))
+        self.assertEquals(smpc2.decrypt(msg_2), str.encode(TEST_MSG(2)))
 
     def test_aml_smpc_encodings_formats(self):
         TEST_MSG = lambda recv: f"Message to {recv}"
@@ -74,8 +74,8 @@ class TestAMLSMPC(unittest.TestCase):
                 msg_2 = smpc1.encrypt(str.encode(TEST_MSG(2)), 2)
                 msg_1 = smpc2.encrypt(str.encode(TEST_MSG(1)), 1)
 
-                assert smpc1.decrypt(msg_1) == str.encode(TEST_MSG(1))
-                assert smpc2.decrypt(msg_2) == str.encode(TEST_MSG(2))
+                self.assertEquals(smpc1.decrypt(msg_1), str.encode(TEST_MSG(1)))
+                self.assertEquals(smpc2.decrypt(msg_2), str.encode(TEST_MSG(2)))
 
     def test_aml_smpc_encoding_fail(self):
         smpc = AMLSMPC()
@@ -100,8 +100,8 @@ class TestAMLSMPC(unittest.TestCase):
         msg_1 = smpc2.encrypt(str.encode(TEST_MSG(1)), 1)
 
         self.assertRaises(ValueError, smpc2.decrypt, msg_2)
-        assert smpc1.decrypt(msg_1) == str.encode(TEST_MSG(1))
-        assert smpc2_new.decrypt(msg_2) == str.encode(TEST_MSG(2))
+        self.assertEquals(smpc1.decrypt(msg_1), str.encode(TEST_MSG(1)))
+        self.assertEquals(smpc2_new.decrypt(msg_2), str.encode(TEST_MSG(2)))
 
     def test_aml_smpc_overwrite_fail(self):
         TEST_MSG = lambda recv: f"Message to {recv}"
@@ -122,8 +122,8 @@ class TestAMLSMPC(unittest.TestCase):
         msg_1 = smpc2.encrypt(str.encode(TEST_MSG(1)), 1)
 
         self.assertRaises(ValueError, smpc2_new.decrypt, msg_2)
-        assert smpc1.decrypt(msg_1) == str.encode(TEST_MSG(1))
-        assert smpc2.decrypt(msg_2) == str.encode(TEST_MSG(2))
+        self.assertEquals(smpc1.decrypt(msg_1), str.encode(TEST_MSG(1)))
+        self.assertEquals(smpc2.decrypt(msg_2), str.encode(TEST_MSG(2)))
 
 
 if __name__ == "__main__":
