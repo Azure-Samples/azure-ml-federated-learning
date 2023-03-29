@@ -87,8 +87,56 @@ class TestAMLCommRedis(AMLCommRedis):
 
 
 class TestAMLComm(unittest.TestCase):
-    def test_aml_comm_socket_simple(self):
+    def test_aml_comm_simple(self):
         TEST_MSG = lambda recv: f"Message to {recv}"
+
+        for encrypted in [True, False]:
+            for use_redis in [True, False]:
+                with self.subTest(encrypted=encrypted, use_redis=use_redis):
+                    # Create two processes that send each other message
+                    manager = mp.Manager()
+                    shared_dict = manager.dict()
+                    port = get_free_port()
+                    p1 = mp.Process(
+                        target=init_send_recv,
+                        args=(
+                            0,
+                            2,
+                            "test_run_id",
+                            "localhost",
+                            port,
+                            TEST_MSG(1),
+                            TEST_MSG(0),
+                            shared_dict,
+                            encrypted,
+                            use_redis,
+                        ),
+                    )
+                    p2 = mp.Process(
+                        target=init_send_recv,
+                        args=(
+                            1,
+                            2,
+                            "test_run_id",
+                            "localhost",
+                            port,
+                            TEST_MSG(0),
+                            TEST_MSG(1),
+                            shared_dict,
+                            encrypted,
+                            use_redis,
+                        ),
+                    )
+                    p1.start()
+                    p2.start()
+                    p1.join()
+                    p2.join()
+
+                    for i in range(2):
+                        self.assertTrue(shared_dict[i])
+
+    def test_aml_comm_empty(self):
+        TEST_MSG = lambda _: ""
 
         for encrypted in [True, False]:
             for use_redis in [True, False]:
@@ -178,4 +226,4 @@ class TestAMLComm(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(verbosity=2)

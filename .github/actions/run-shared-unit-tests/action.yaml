@@ -1,24 +1,5 @@
 name: Run unit tests for shared component files
 description: Run unit tests for shared components files and provide coverage
-inputs:
-  client-id:
-    description: Client ID of the service principal
-    required: true
-  tenant-id:
-    description: Tenant ID of the service principal
-    required: true
-  subscription-id:
-    description: Subscription to use for resources
-    required: true
-  resource-group:
-    description: Resource group of the AML workspace
-    required: true
-  workspace-name:
-    description: Workspace name
-    required: true
-  example:
-    description: Example pipline to run
-    required: true
 
 runs:
   using: composite
@@ -30,7 +11,7 @@ runs:
 
     - name: Install python dependencies
       shell: bash
-      run: pip install -r examples/pipelines/requirements.txt
+      run: pip install -r ./.github/actions/run-shared-unit-tests/requirements.txt
 
     - name: Run unit tests
       shell: bash

@@ -59,6 +59,13 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 * Search the repository (https://github.com/[organization-name]/[repository-name]/pulls) for an open or closed PR
   that relates to your submission. You don't want to duplicate effort.
 
+* If you have made changes to one of the files in `examples/components/shared` folder or any of their copies in other folder, please make sure that you updated and run unit tests. Unit tests can be run as follows:
+  * Install dependencies: `pip install -r .github/actions/run-shared-unit-tests/requirements.txt`
+  * Run the tests with coverage using sequence of following commands:
+    * `coverage run --source=examples\components\shared -m unittest discover -s tests\examples\components\shared`
+    * `coverage combine`
+    * `coverage report -m`
+
 * Make your changes in a new git fork:
 
 * Commit your changes using a descriptive commit message
