@@ -1,4 +1,4 @@
-// This BICEP script will provision an AKS cluster with confidential computes
+// This BICEP script will provision an AKS cluster
 // behind a vnet and subnet, attached to a workspace
 // plus managed identity for permissions management.
 
