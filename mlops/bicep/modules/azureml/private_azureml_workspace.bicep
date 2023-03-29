@@ -60,15 +60,11 @@ param vnetName string = 'vnet-ws-${baseName}'
 @description('Virtual network address prefix')
 param vnetAddressPrefix string = '10.0.0.0/16'
 
-@description('Training subnet address prefix')
-param trainingSubnetPrefix string = '10.0.1.0/24'
+@description('Workspace resources subnet address prefix')
+param wsSubnetPrefix string = '10.0.0.0/24'
 
-param trainingSubnetName string = 'snet-training'
-
-@description('Scoring subnet address prefix')
-param scoringSubnetPrefix string = '10.0.2.0/24'
-
-param scoringSubnetName string = 'snet-scoring'
+@description('Workspace resources subnet name')
+param wsSubnetName string = 'snet-ws'
 
 @description('Public network access to the Azure ML workspace itself')
 @allowed([
@@ -102,12 +98,8 @@ module vnet '../networking/vnet.bicep' = {
     vnetAddressPrefix: vnetAddressPrefix
     subnets: [
       {
-        name: trainingSubnetName
-        addressPrefix: trainingSubnetPrefix
-      }
-      {
-        name: scoringSubnetName
-        addressPrefix: scoringSubnetPrefix
+        name: wsSubnetName
+        addressPrefix: wsSubnetPrefix
       }
     ]
     tags: tags
@@ -137,7 +129,7 @@ module storage '../resources/private_storage.bicep' = {
     storageRegion: location
     storageName: storageAccountName
     storageSKU: 'Standard_LRS'
-    subnetId: '${vnet.outputs.id}/subnets/${trainingSubnetName}'
+    subnetId: '${vnet.outputs.id}/subnets/${wsSubnetName}'
     virtualNetworkId: vnet.outputs.id
     blobPrivateDNSZoneName: blobStoragePrivateDnsZone.name
     blobPrivateDNSZoneLocation: blobStoragePrivateDnsZone.location
@@ -158,7 +150,7 @@ module keyVault '../resources/private_keyvault.bicep' = {
   params: {
     location: location
     keyvaultName: keyVaultName
-    subnetId: '${vnet.outputs.id}/subnets/${trainingSubnetName}'
+    subnetId: '${vnet.outputs.id}/subnets/${wsSubnetName}'
     virtualNetworkId: vnet.outputs.id
     privateDNSZoneName: keyVaultPrivateDnsZone.name
     privateDNSZoneLocation: keyVaultPrivateDnsZone.location
@@ -177,7 +169,7 @@ module containerRegistry '../resources/private_acr.bicep' = {
   params: {
     location: location
     containerRegistryName: containerRegistryName
-    subnetId: '${vnet.outputs.id}/subnets/${trainingSubnetName}'
+    subnetId: '${vnet.outputs.id}/subnets/${wsSubnetName}'
     virtualNetworkId: vnet.outputs.id
     privateDNSZoneName: acrPrivateDnsZone.name
     privateDNSZoneLocation: acrPrivateDnsZone.location
@@ -246,7 +238,7 @@ resource imageBuildCompute 'Microsoft.MachineLearningServices/workspaces/compute
   
       // networking
       subnet: {
-        id: '${vnet.outputs.id}/subnets/${trainingSubnetName}'
+        id: '${vnet.outputs.id}/subnets/${wsSubnetName}'
       }
       enableNodePublicIp: false
       isolatedNetwork: false
@@ -281,7 +273,7 @@ resource machineLearningPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022
       }
     ]
     subnet: {
-      id: '${vnet.outputs.id}/subnets/${trainingSubnetName}'
+      id: '${vnet.outputs.id}/subnets/${wsSubnetName}'
     }
   }
 }
