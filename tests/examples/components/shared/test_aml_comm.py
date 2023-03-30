@@ -100,7 +100,9 @@ class TestAMLComm(unittest.TestCase):
         for encrypted in [True, False]:
             for use_redis in [True, False]:
                 with self.subTest(encrypted=encrypted, use_redis=use_redis):
-                    print(f"Testing: test_aml_comm_simple, encrypted: {encrypted}, use_redis: {use_redis}")
+                    print(
+                        f"Testing: test_aml_comm_simple, encrypted: {encrypted}, use_redis: {use_redis}"
+                    )
                     # Create two processes that send each other message
                     manager = mp.Manager()
                     shared_dict = manager.dict()
@@ -149,7 +151,9 @@ class TestAMLComm(unittest.TestCase):
         for encrypted in [True, False]:
             for use_redis in [True, False]:
                 with self.subTest(encrypted=encrypted, use_redis=use_redis):
-                    print(f"Testing: test_aml_comm_empty, encrypted: {encrypted}, use_redis: {use_redis}")
+                    print(
+                        f"Testing: test_aml_comm_empty, encrypted: {encrypted}, use_redis: {use_redis}"
+                    )
                     # Create two processes that send each other message
                     manager = mp.Manager()
                     shared_dict = manager.dict()
