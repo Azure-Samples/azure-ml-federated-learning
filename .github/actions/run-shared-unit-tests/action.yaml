@@ -4,14 +4,9 @@ description: Run unit tests for shared components files and provide coverage
 runs:
   using: composite
   steps:
-    - name: Setup python
-      uses: actions/setup-python@v2.2.1
-      with:
-        python-version: 3.8
-
     - name: Install python dependencies
       shell: bash
-      run: pip install -r ./.github/actions/run-shared-unit-tests/requirements.txt
+      run: pip install -r tests/requirements.txt
 
     - name: Run unit tests
       shell: bash

@@ -37,6 +37,7 @@ def init_send_recv(
     if rank != 0:
         # Make sure the first process is started before the others
         time.sleep(1)
+
     if use_redis:
         comm = TestAMLCommRedis(
             shared_dict, rank, world_size, run_id, host, port, encryption=encryption
@@ -52,6 +53,9 @@ def init_send_recv(
     else:
         result = comm.recv(0) == msg_recv
         comm.send(msg_send, 0)
+
+    # Make sure the last process to send/receive message is still online for the others to send/receive
+    time.sleep(1)
 
     if hasattr(result, "__len__"):
         shared_dict[rank] = torch.all(result)
