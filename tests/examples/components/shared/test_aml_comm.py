@@ -57,10 +57,12 @@ def init_send_recv(
     # Make sure the last process to send/receive message is still online for the others to send/receive
     time.sleep(1)
 
+    print(f"Shared dict before: {shared_dict}")
     if hasattr(result, "__len__"):
         shared_dict[rank] = torch.all(result)
     else:
         shared_dict[rank] = result
+    print(f"Shared dict after: {shared_dict}")
 
 
 # Mock the redis connection to avoid having to run a redis server
@@ -98,6 +100,7 @@ class TestAMLComm(unittest.TestCase):
         for encrypted in [True, False]:
             for use_redis in [True, False]:
                 with self.subTest(encrypted=encrypted, use_redis=use_redis):
+                    print(f"Testing: test_aml_comm_simple, encrypted: {encrypted}, use_redis: {use_redis}")
                     # Create two processes that send each other message
                     manager = mp.Manager()
                     shared_dict = manager.dict()
@@ -146,6 +149,7 @@ class TestAMLComm(unittest.TestCase):
         for encrypted in [True, False]:
             for use_redis in [True, False]:
                 with self.subTest(encrypted=encrypted, use_redis=use_redis):
+                    print(f"Testing: test_aml_comm_empty, encrypted: {encrypted}, use_redis: {use_redis}")
                     # Create two processes that send each other message
                     manager = mp.Manager()
                     shared_dict = manager.dict()
@@ -189,6 +193,8 @@ class TestAMLComm(unittest.TestCase):
                         self.assertTrue(shared_dict[i])
 
     def test_aml_comm_socket_large_tensor(self):
+        print(f"Testing: test_aml_comm_socket_large_tensor")
+
         TEST_MSG_0 = torch.randn(1000, 1000, 100)
         TEST_MSG_1 = torch.randn(1000, 1000, 100)
 
