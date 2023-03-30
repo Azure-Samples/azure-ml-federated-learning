@@ -26,6 +26,7 @@ def init_send_recv(
     msg_send,
     msg_recv,
     shared_dict,
+    shared_lock,
     encrypted=False,
     use_redis=False,
 ):
@@ -40,7 +41,14 @@ def init_send_recv(
 
     if use_redis:
         comm = TestAMLCommRedis(
-            shared_dict, rank, world_size, run_id, host, port, encryption=encryption
+            shared_dict,
+            shared_lock,
+            rank,
+            world_size,
+            run_id,
+            host,
+            port,
+            encryption=encryption,
         )
     else:
         comm = AMLCommSocket(
@@ -67,8 +75,9 @@ def init_send_recv(
 
 # Mock the redis connection to avoid having to run a redis server
 class TestAMLCommRedis(AMLCommRedis):
-    def __init__(self, buffer, *args, **kwargs):
+    def __init__(self, buffer, lock, *args, **kwargs):
         self.buffer = buffer
+        self.lock = lock
         self._get_connection_string = MagicMock(return_value="localhost")
         self._format_connection_string = MagicMock(return_value="localhost")
         self._wait_for_connection = MagicMock()
@@ -83,161 +92,95 @@ class TestAMLCommRedis(AMLCommRedis):
         return session_id
 
     def _send(self, data, session_id, _) -> None:
-        self.buffer[session_id] = self.buffer[session_id] + [data]
+        try:
+            self.lock.acquire(True)
+            self.buffer[session_id] = self.buffer[session_id] + [data]
+        finally:
+            self.lock.release()
 
     def _recv(self, session_id, _) -> bytes:
-        while len(self.buffer[session_id]) == 0:
-            time.sleep(1)
-        item = self.buffer[session_id][0]
-        self.buffer[session_id] = self.buffer[session_id][1:]
+        item = None
+        try:
+            self.lock.acquire(True)
+            while len(self.buffer[session_id]) == 0:
+                self.lock.release()
+                time.sleep(1)
+                self.lock.acquire(True)
+
+            item = self.buffer[session_id][0]
+            self.buffer[session_id] = self.buffer[session_id][1:]
+        finally:
+            self.lock.release()
         return item
 
 
 class TestAMLComm(unittest.TestCase):
-    def test_aml_comm_simple(self):
-        TEST_MSG = lambda recv: f"Message to {recv}"
+    def test_aml_comm_full(self):
+        message_fns = {
+            "basic": lambda recv: f"Message to {recv}",
+            "empty": lambda _: f"",
+            "large": lambda _: torch.randn(1000, 1000, 100),
+        }
 
-        for encrypted in [True, False]:
-            for use_redis in [True, False]:
-                with self.subTest(encrypted=encrypted, use_redis=use_redis):
-                    print(
-                        f"Testing: test_aml_comm_simple, encrypted: {encrypted}, use_redis: {use_redis}"
-                    )
-                    # Create two processes that send each other message
-                    manager = mp.Manager()
-                    shared_dict = manager.dict()
-                    port = get_free_port()
-                    p1 = mp.Process(
-                        target=init_send_recv,
-                        args=(
-                            0,
-                            2,
-                            "test_run_id",
-                            "localhost",
-                            port,
-                            TEST_MSG(1),
-                            TEST_MSG(0),
-                            shared_dict,
-                            encrypted,
-                            use_redis,
-                        ),
-                    )
-                    p2 = mp.Process(
-                        target=init_send_recv,
-                        args=(
-                            1,
-                            2,
-                            "test_run_id",
-                            "localhost",
-                            port,
-                            TEST_MSG(0),
-                            TEST_MSG(1),
-                            shared_dict,
-                            encrypted,
-                            use_redis,
-                        ),
-                    )
-                    p1.start()
-                    p2.start()
-                    p1.join()
-                    p2.join()
+        for message_type in message_fns:
+            for encrypted in [False, True]:
+                for use_redis in [False, True]:
+                    with self.subTest(
+                        encrypted=encrypted,
+                        use_redis=use_redis,
+                        message_type=message_type,
+                    ):
+                        print(
+                            f"Testing: test_aml_comm_simple, encrypted: {encrypted}, use_redis: {use_redis}, message_type: {message_type}"
+                        )
 
-                    for i in range(2):
-                        self.assertTrue(shared_dict[i])
+                        message_0 = message_fns[message_type](0)
+                        message_1 = message_fns[message_type](1)
 
-    def test_aml_comm_empty(self):
-        TEST_MSG = lambda _: ""
+                        # Create two processes that send each other message
+                        manager = mp.Manager()
+                        shared_dict = manager.dict()
+                        shared_lock = manager.Lock()
+                        port = get_free_port()
+                        p1 = mp.Process(
+                            target=init_send_recv,
+                            args=(
+                                0,
+                                2,
+                                "test_run_id",
+                                "localhost",
+                                port,
+                                message_1,
+                                message_0,
+                                shared_dict,
+                                shared_lock,
+                                encrypted,
+                                use_redis,
+                            ),
+                        )
+                        p2 = mp.Process(
+                            target=init_send_recv,
+                            args=(
+                                1,
+                                2,
+                                "test_run_id",
+                                "localhost",
+                                port,
+                                message_0,
+                                message_1,
+                                shared_dict,
+                                shared_lock,
+                                encrypted,
+                                use_redis,
+                            ),
+                        )
+                        p1.start()
+                        p2.start()
+                        p1.join()
+                        p2.join()
 
-        for encrypted in [True, False]:
-            for use_redis in [True, False]:
-                with self.subTest(encrypted=encrypted, use_redis=use_redis):
-                    print(
-                        f"Testing: test_aml_comm_empty, encrypted: {encrypted}, use_redis: {use_redis}"
-                    )
-                    # Create two processes that send each other message
-                    manager = mp.Manager()
-                    shared_dict = manager.dict()
-                    port = get_free_port()
-                    p1 = mp.Process(
-                        target=init_send_recv,
-                        args=(
-                            0,
-                            2,
-                            "test_run_id",
-                            "localhost",
-                            port,
-                            TEST_MSG(1),
-                            TEST_MSG(0),
-                            shared_dict,
-                            encrypted,
-                            use_redis,
-                        ),
-                    )
-                    p2 = mp.Process(
-                        target=init_send_recv,
-                        args=(
-                            1,
-                            2,
-                            "test_run_id",
-                            "localhost",
-                            port,
-                            TEST_MSG(0),
-                            TEST_MSG(1),
-                            shared_dict,
-                            encrypted,
-                            use_redis,
-                        ),
-                    )
-                    p1.start()
-                    p2.start()
-                    p1.join()
-                    p2.join()
-
-                    for i in range(2):
-                        self.assertTrue(shared_dict[i])
-
-    def test_aml_comm_socket_large_tensor(self):
-        print(f"Testing: test_aml_comm_socket_large_tensor")
-
-        TEST_MSG_0 = torch.randn(1000, 1000, 100)
-        TEST_MSG_1 = torch.randn(1000, 1000, 100)
-
-        manager = mp.Manager()
-        shared_dict = manager.dict()
-        port = get_free_port()
-        p1 = mp.Process(
-            target=init_send_recv,
-            args=(
-                0,
-                2,
-                "test_run_id",
-                "localhost",
-                port,
-                TEST_MSG_0,
-                TEST_MSG_1,
-                shared_dict,
-            ),
-        )
-        p2 = mp.Process(
-            target=init_send_recv,
-            args=(
-                1,
-                2,
-                "test_run_id",
-                "localhost",
-                port,
-                TEST_MSG_1,
-                TEST_MSG_0,
-                shared_dict,
-            ),
-        )
-        p1.start()
-        p2.start()
-        p1.join()
-        p2.join()
-
-        for i in range(2):
-            self.assertTrue(shared_dict[i])
+                        for i in range(2):
+                            self.assertTrue(shared_dict[i])
 
 
 if __name__ == "__main__":

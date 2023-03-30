@@ -29,7 +29,7 @@ class TestAMLSMPC(unittest.TestCase):
             ],
         )
 
-        for message_type in ["full", "empty"]:
+        for message_type in message_fns:
             for encoding, format in encoding_formats:
                 with self.subTest(
                     message_type=message_type, encoding=encoding, format=format
