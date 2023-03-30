@@ -125,10 +125,6 @@ class TestAMLComm(unittest.TestCase):
                         use_redis=use_redis,
                         message_type=message_type,
                     ):
-                        print(
-                            f"Testing: test_aml_comm_simple, encrypted: {encrypted}, use_redis: {use_redis}, message_type: {message_type}"
-                        )
-
                         message_0 = message_fns[message_type](0)
                         message_1 = message_fns[message_type](1)
 
