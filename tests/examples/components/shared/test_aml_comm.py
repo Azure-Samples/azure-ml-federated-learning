@@ -29,6 +29,7 @@ def init_send_recv(
     encrypted=False,
     use_redis=False,
 ):
+    shared_dict[rank] = False
     encryption = None
     if encrypted:
         encryption = AMLSMPC()
