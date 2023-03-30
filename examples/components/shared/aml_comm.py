@@ -139,6 +139,7 @@ class AMLCommSocket(AMLComm):
         host_ip=None,
         host_port=None,
         encryption=None,
+        timeout=600,
     ) -> None:
         """Initializes AMLComm communicator
 
@@ -149,12 +150,14 @@ class AMLCommSocket(AMLComm):
             host_ip (Optional): IP address of the host node, if not provided MLFlow is used to communicate it
             host_port (Optional): port of the host node, if not provided MLFlow is used to communicate it
             encryption (Optional): encryption used for messaging (must expose API like AMLSPMC)
+            timeout (Optional): timeout for socket operations. Defaults to 600 seconds (10 minutes)
         """
         super(AMLCommSocket, self).__init__(
             rank, world_size, run_id, encryption=encryption
         )
 
         self._host_ip, self._host_port = host_ip, host_port
+        self._timeout = timeout
         self._connections = {}
         self._setup_master()
         self.after_connection()
@@ -212,9 +215,7 @@ class AMLCommSocket(AMLComm):
 
         self._local_ip = str(socket.gethostbyname(socket.gethostname()))
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self._socket.settimeout(
-            600.0
-        )  # Set timeout to 30 minutes so we do not wait for any request indefinitely
+        self._socket.settimeout(self._timeout)
 
         if self._rank == 0:
             self._socket.bind(("", int(self._host_port)))

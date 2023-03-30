@@ -24,7 +24,7 @@ def init_sampler(
     if rank != 0:
         # Make sure the first process is started before the others
         time.sleep(1)
-    comm = AMLCommSocket(rank, world_size, run_id, host, port)
+    comm = AMLCommSocket(rank, world_size, run_id, host, port, timeout=10)
     sampler = VerticallyDistributedBatchSampler(
         ds, batch_size, comm, rank, world_size, shuffle=shuffle
     )

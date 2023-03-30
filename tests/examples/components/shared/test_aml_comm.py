@@ -44,7 +44,7 @@ def init_send_recv(
         )
     else:
         comm = AMLCommSocket(
-            rank, world_size, run_id, host, port, encryption=encryption
+            rank, world_size, run_id, host, port, encryption=encryption, timeout=10
         )
 
     if rank == 0:
