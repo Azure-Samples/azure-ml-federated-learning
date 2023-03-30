@@ -52,7 +52,7 @@ def init_send_recv(
         )
     else:
         comm = AMLCommSocket(
-            rank, world_size, run_id, host, port, encryption=encryption, timeout=10
+            rank, world_size, run_id, host, port, encryption=encryption, timeout=30
         )
 
     if rank == 0:
@@ -61,9 +61,6 @@ def init_send_recv(
     else:
         result = comm.recv(0) == msg_recv
         comm.send(msg_send, 0)
-
-    # Make sure the last process to send/receive message is still online for the others to send/receive
-    time.sleep(1)
 
     if hasattr(result, "__len__"):
         shared_dict[rank] = torch.all(result)
