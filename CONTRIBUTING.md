@@ -60,9 +60,9 @@ Before you submit your Pull Request (PR) consider the following guidelines:
   that relates to your submission. You don't want to duplicate effort.
 
 * If you have made changes to one of the files in `examples/components/shared` folder or any of their copies in other folder, please make sure that you updated and run unit tests. Unit tests can be run as follows:
-  * Install dependencies: `pip install -r .github/actions/run-shared-unit-tests/requirements.txt`
+  * Install dependencies: `pip install -r tests/requirements.txt`
   * Run the tests with coverage using sequence of following commands:
-    * `coverage run --source=examples\components\shared -m unittest discover -s tests\examples\components\shared`
+    * `coverage run --source=examples/components/shared -m unittest discover -s tests/examples/components/shared -v`
     * `coverage combine`
     * `coverage report -m`
 
