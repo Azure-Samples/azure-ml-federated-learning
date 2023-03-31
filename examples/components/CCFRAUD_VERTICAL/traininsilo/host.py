@@ -91,6 +91,9 @@ class CCFraudTrainer:
         epochs=1,
         batch_size=10,
         experiment_name="default-experiment",
+        contributor_1_embeddings=None,
+        contributor_2_embeddings=None,
+        contributor_3_embeddings=None,
     ):
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
@@ -106,6 +109,9 @@ class CCFraudTrainer:
             epochs (int, optional): Epochs. Defaults to 1.
             batch_size (int, optional): DataLoader batch size. Defaults to 64.
             experiment_name (str, optional): Name of the experiment. Defaults to "default-experiment".
+            contributor_1_embeddings (str, optional): Path to contributor 1 pre-computed embeddings. Defaults to None.
+            contributor_2_embeddings (str, optional): Path to contributor 2 pre-computed embeddings. Defaults to None.
+            contributor_3_embeddings (str, optional): Path to contributor 3 pre-computed embeddings. Defaults to None.
 
         Attributes:
             model_: Model
@@ -127,38 +133,58 @@ class CCFraudTrainer:
         self._global_size = global_size
         self._global_comm = global_comm
 
+        self._embeddings = []
+        for embeddings in [
+            contributor_1_embeddings,
+            contributor_2_embeddings,
+            contributor_3_embeddings,
+        ]:
+            if embeddings is not None:
+                print("Loading embeddings from: ", embeddings)
+                print("Embedding files: ", os.listdir(embeddings))
+                self._embeddings.append(embeddings)
+
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device_}")
 
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
             train_data_dir, test_data_dir, model_name
         )
-        self.train_sampler_ = VerticallyDistributedBatchSampler(
-            data_source=self.train_dataset_,
-            batch_size=batch_size,
-            comm=self._global_comm,
-            rank=self._global_rank,
-            world_size=self._global_size,
-            shuffle=True,
-        )
-        self.test_sampler_ = VerticallyDistributedBatchSampler(
-            data_source=self.test_dataset_,
-            batch_size=batch_size,
-            comm=self._global_comm,
-            rank=self._global_rank,
-            world_size=self._global_size,
-            shuffle=False,
-        )
-        self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_sampler=self.train_sampler_
-        )
-        self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_sampler=self.test_sampler_
-        )
+
+        if len(self._embeddings) > 0:
+            self.train_loader_ = DataLoader(
+                self.train_dataset_, batch_size=self._batch_size, shuffle=True
+            )
+            self.test_loader_ = DataLoader(
+                self.test_dataset_, batch_size=self._batch_size, shuffle=False
+            )
+        else:
+            self.train_sampler_ = VerticallyDistributedBatchSampler(
+                data_source=self.train_dataset_,
+                batch_size=batch_size,
+                comm=self._global_comm,
+                rank=self._global_rank,
+                world_size=self._global_size,
+                shuffle=True,
+            )
+            self.test_sampler_ = VerticallyDistributedBatchSampler(
+                data_source=self.test_dataset_,
+                batch_size=batch_size,
+                comm=self._global_comm,
+                rank=self._global_rank,
+                world_size=self._global_size,
+                shuffle=False,
+            )
+            self.train_loader_ = DataLoader(
+                self.train_dataset_, batch_sampler=self.train_sampler_
+            )
+            self.test_loader_ = DataLoader(
+                self.test_dataset_, batch_sampler=self.test_sampler_
+            )
 
         # Build model
         self._model_name = model_name
-        self.model_ = getattr(models, model_name + "Top")().to(self.device_)
+        self.model_ = getattr(models, model_name + "Top")(self._input_dim).to(self.device_)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
@@ -176,12 +202,22 @@ class CCFraudTrainer:
         self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
-        if model_name == "SimpleLinear":
-            train_dataset = datasets.FraudDataset(train_df)
-            test_dataset = datasets.FraudDataset(test_df)
-        else:
+        if "LSTM" in model_name:
             train_dataset = datasets.FraudTimeDataset(train_df)
             test_dataset = datasets.FraudTimeDataset(test_df)
+        else:
+            train_dataset = datasets.FraudDataset(
+                train_df,
+                embeddings=[
+                    os.path.join(e, "train_embeddings.npy") for e in self._embeddings
+                ],
+            )
+            test_dataset = datasets.FraudDataset(
+                test_df,
+                embeddings=[
+                    os.path.join(e, "test_embeddings.npy") for e in self._embeddings
+                ],
+            )
 
         logger.info(
             f"Train data samples: {len(train_df)}, Test data samples: {len(test_df)}"
@@ -236,16 +272,16 @@ class CCFraudTrainer:
         if checkpoint:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
-        if isinstance(self.model_, models.SimpleVAETop):
-            # Contributors are training VAE
-            for epoch in range(1, self._epochs + 1):
-                for i, _ in enumerate(
-                    tqdm(self.train_loader_, desc=f"Training VAE, epoch: {epoch}")
-                ):
-                    if (i + 1) % 10 == 0 or (i + 1) == len(self.train_loader_):
-                        for j in range(1, self._global_size):
-                            assert self._global_comm.recv(j) == "step"
-                self.test(pretraining=True)
+        # if isinstance(self.model_, models.SimpleVAETop):
+        #     # Contributors are training VAE
+        #     for epoch in range(1, self._epochs + 1):
+        #         for i, _ in enumerate(
+        #             tqdm(self.train_loader_, desc=f"Training VAE, epoch: {epoch}")
+        #         ):
+        #             if (i + 1) % 10 == 0 or (i + 1) == len(self.train_loader_):
+        #                 for j in range(1, self._global_size):
+        #                     assert self._global_comm.recv(j) == "step"
+        #         self.test(pretraining=True)
 
         with mlflow.start_run() as mlflow_run:
             num_of_batches_before_logging = 5
@@ -271,45 +307,51 @@ class CCFraudTrainer:
                 self.model_.train()
                 train_metrics.reset_global()
 
-                for i, batch in enumerate(self.train_loader_):
-                    data = batch.to(self.device_)
+                for i, (data, target) in enumerate(self.train_loader_):
+                    data, target = data.to(self.device_), target.to(self.device_)
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
-                    outputs = []
-                    for j in range(1, self._global_size):
-                        output = torch.tensor(
-                            self._global_comm.recv(j), requires_grad=True
-                        ).to(self.device_)
-                        outputs.append(output)
+                    if len(self._embeddings) == 0:
+                        outputs = []
+                        for j in range(1, self._global_size):
+                            output = torch.tensor(
+                                self._global_comm.recv(j), requires_grad=True
+                            ).to(self.device_)
+                            outputs.append(output)
 
-                    # Average all intermediate results
-                    outputs = torch.stack(outputs)
+                        # Average all intermediate results
+                        outputs = torch.stack(outputs)
+                        data = outputs.mean(dim=0)
 
-                    predictions, net_loss = self.model_(outputs.mean(dim=0))
+                    predictions = self.model_(data)
                     # Compute loss
                     self.criterion_.weight = (
-                        ((data == 1) * (self.fraud_weight_ - 1)) + 1
+                        ((target == 1) * (self.fraud_weight_//2)) + 1
                     ).to(self.device_)
-                    loss = self.criterion_(predictions, data.to(torch.float32))
+                    loss = self.criterion_(predictions, target.to(torch.float32))
 
-                    # Compute gradients and adjust learning weights
-                    loss.backward(retain_graph=True)
-                    gradients = torch.autograd.grad(loss, outputs)[0]
-                    self.optimizer_.step()
+                    if len(self._embeddings) == 0:
+                        # Compute gradients and adjust learning weights
+                        loss.backward(retain_graph=True)
+                        gradients = torch.autograd.grad(loss, outputs)[0]
+                        self.optimizer_.step()
 
-                    for j in range(1, self._global_size):
-                        self._global_comm.send(gradients[j - 1], j)
+                        for j in range(1, self._global_size):
+                            self._global_comm.send(gradients[j - 1], j)
+                    else:
+                        loss.backward()
+                        self.optimizer_.step()
 
                     precision, recall = precision_recall(
-                        preds=predictions.detach(), target=data
+                        preds=predictions.detach(), target=target
                     )
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
                         "accuracy",
                         accuracy(
-                            preds=predictions.detach(), target=data, threshold=0.5
+                            preds=predictions.detach(), target=target, threshold=0.5
                         ).item(),
                     )
                     train_metrics.add_metric("loss", loss.item())
@@ -384,7 +426,7 @@ class CCFraudTrainer:
                 )
             logger.info(", ".join(log_message))
 
-    def test(self, pretraining=False):
+    def test(self):
         """Test the trained model and report test loss and accuracy"""
         test_metrics = RunningMetrics(
             ["loss", "accuracy", "precision", "recall"], prefix="test"
@@ -392,41 +434,35 @@ class CCFraudTrainer:
 
         self.model_.eval()
         with torch.no_grad():
-            if isinstance(self.model_, models.SimpleVAETop) and pretraining:
-                for i, _ in enumerate(tqdm(self.test_loader_, desc=f"Testing VAE")):
-                    if (i + 1) % 10 == 0 or (i + 1) == len(self.test_loader_):
-                        for j in range(1, self._global_size):
-                            assert self._global_comm.recv(j) == "step"
-            else:
-                for batch in self.test_loader_:
-                    data = batch.to(self.device_)
+            for data, target in self.test_loader_:
+                data, target = data.to(self.device_), target.to(self.device_)
 
+                if len(self._embeddings) == 0:
                     outputs = []
                     for j in range(1, self._global_size):
                         output = self._global_comm.recv(j).to(self.device_)
                         outputs.append(output)
 
-                    outputs = torch.stack(outputs).mean(dim=0)
-                    predictions, net_loss = self.model_(outputs)
+                    data = torch.stack(outputs).mean(dim=0)
 
-                    self.criterion_.weight = (
-                        ((data == 1) * (self.fraud_weight_ - 1)) + 1
-                    ).to(self.device_)
-                    loss = self.criterion_(predictions, data.type(torch.float)).item()
-                    if net_loss is not None:
-                        loss += net_loss[0] + net_loss[1] * 1e-4
+                predictions = self.model_(data)
 
-                    precision, recall = precision_recall(
-                        preds=predictions.detach(), target=data
-                    )
-                    test_metrics.add_metric("precision", precision.item())
-                    test_metrics.add_metric("recall", recall.item())
-                    test_metrics.add_metric(
-                        "accuracy",
-                        accuracy(preds=predictions.detach(), target=data).item(),
-                    )
-                    test_metrics.add_metric("loss", loss / data.shape[0])
-                    test_metrics.step()
+                self.criterion_.weight = (
+                    ((target == 1) * (self.fraud_weight_ - 1)) + 1
+                ).to(self.device_)
+                loss = self.criterion_(predictions, target.type(torch.float)).item()
+
+                precision, recall = precision_recall(
+                    preds=predictions.detach(), target=target
+                )
+                test_metrics.add_metric("precision", precision.item())
+                test_metrics.add_metric("recall", recall.item())
+                test_metrics.add_metric(
+                    "accuracy",
+                    accuracy(preds=predictions.detach(), target=target).item(),
+                )
+                test_metrics.add_metric("loss", loss / target.shape[0])
+                test_metrics.step()
 
         return test_metrics
 
@@ -464,6 +500,9 @@ def get_arg_parser(parser=None):
     parser.add_argument("--train_data", type=str, required=True, help="")
     parser.add_argument("--test_data", type=str, required=True, help="")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
+    parser.add_argument("--contributor_1_embeddings", type=str, required=False, help="")
+    parser.add_argument("--contributor_2_embeddings", type=str, required=False, help="")
+    parser.add_argument("--contributor_3_embeddings", type=str, required=False, help="")
     parser.add_argument("--model_path", type=str, required=True, help="")
     parser.add_argument("--model_name", type=str, required=True, help="")
     parser.add_argument(
@@ -516,6 +555,10 @@ def run(args, global_comm):
         args (argparse.namespace): command line arguments provided to script
     """
 
+    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
+    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
+
     trainer = CCFraudTrainer(
         model_name=args.model_name,
         train_data_dir=args.train_data,
@@ -528,6 +571,9 @@ def run(args, global_comm):
         global_rank=args.global_rank,
         global_size=args.global_size,
         global_comm=global_comm,
+        contributor_1_embeddings=args.contributor_1_embeddings,
+        contributor_2_embeddings=args.contributor_2_embeddings,
+        contributor_3_embeddings=args.contributor_3_embeddings,
     )
     trainer.execute(args.checkpoint)
 
@@ -547,36 +593,41 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    if args.communication_encrypted:
-        encryption = AMLSMPC()
-    else:
-        encryption = None
+    if args.contributor_1_embeddings is None and args.contributor_2_embeddings is None and args.contributor_3_embeddings is None:
+        print("Creating communication backend")                
+        if args.communication_encrypted:
+            encryption = AMLSMPC()
+        else:
+            encryption = None
 
-    if args.communication_backend == "socket":
-        global_comm = AMLCommSocket(
-            args.global_rank,
-            args.global_size,
-            os.environ.get("AZUREML_ROOT_RUN_ID"),
-            encryption=encryption,
-        )
-    elif args.communication_backend == "redis":
-        global_comm = AMLCommRedis(
-            args.global_rank,
-            args.global_size,
-            os.environ.get("AZUREML_ROOT_RUN_ID"),
-            encryption=encryption,
-        )
+        if args.communication_backend == "socket":
+            global_comm = AMLCommSocket(
+                args.global_rank,
+                args.global_size,
+                os.environ.get("AZUREML_ROOT_RUN_ID"),
+                encryption=encryption,
+            )
+        elif args.communication_backend == "redis":
+            global_comm = AMLCommRedis(
+                args.global_rank,
+                args.global_size,
+                os.environ.get("AZUREML_ROOT_RUN_ID"),
+                encryption=encryption,
+            )
+        else:
+            raise ValueError("Communication backend not supported")
     else:
-        raise ValueError("Communication backend not supported")
+        global_comm = None
 
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
     run(args, global_comm)
 
-    # log messaging stats
-    with mlflow.start_run() as mlflow_run:
-        mlflow_client = mlflow.tracking.client.MlflowClient()
-        global_comm.log_stats(mlflow_client)
+    if args.contributor_1_embeddings is None and args.contributor_2_embeddings is None and args.contributor_3_embeddings is None:
+        # log messaging stats
+        with mlflow.start_run() as mlflow_run:
+            mlflow_client = mlflow.tracking.client.MlflowClient()
+            global_comm.log_stats(mlflow_client)
 
 
 if __name__ == "__main__":

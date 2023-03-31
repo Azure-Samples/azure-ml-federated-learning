@@ -28,6 +28,10 @@ inputs:
     type: uri_folder
     description: a given pre-existing checkpoint
     optional: true
+  pretrained_checkpoints_path:
+    type: uri_folder
+    description: a given pre-existing checkpoint
+    optional: true
   lr:
     type: number
     description: learning rate

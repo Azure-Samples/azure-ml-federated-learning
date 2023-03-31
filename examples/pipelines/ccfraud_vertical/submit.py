@@ -127,6 +127,10 @@ preprocessing_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
 )
 
+pretraining_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "pretraining", "spec.yaml")
+)
+
 training_contributor_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor_spec.yaml")
 )
@@ -248,11 +252,84 @@ def fl_ccfraud_vertical_basic():
             silo_pre_processing_step.outputs.processed_test_data
         )
 
+    # Store model checkpoint outputs
+    outputs = {}
+
+    ###############################
+    ### (OPTIONAL) PRE-TRAINING ###
+    ###############################
+
+    embeddings_paths = {}
+
+    if YAML_CONFIG.training_parameters.model_name == "SimpleVAE":
+        # for each silo, run a distinct training with its own inputs and outputs
+        for silo_index, silo_config in enumerate(
+            [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
+        ):
+            if silo_index == 0:
+                continue
+            # we're using training component here
+            silo_pretraining_step = pretraining_component(
+                # with the train_data from the pre_processing step
+                train_data=silo_preprocessed_train_data[silo_index],
+                # with the test_data from the pre_processing step
+                test_data=silo_preprocessed_test_data[silo_index],
+                # Learning rate for local training
+                lr=YAML_CONFIG.training_parameters.lr,
+                # Number of epochs
+                epochs=YAML_CONFIG.training_parameters.epochs,
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
+                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+                global_rank=silo_index,
+            )
+            # add a readable name to the step
+            silo_pretraining_step.name = f"contributor_{silo_index}_pretraining"
+
+            # make sure the data is written in the right datastore
+            silo_pretraining_step.outputs.model = Output(
+                type=AssetTypes.URI_FOLDER,
+                mode="mount",
+                path=custom_fl_data_path(silo_config.datastore, "pretrained_model"),
+            )
+
+            # make sure the data is written in the right datastore
+            silo_pretraining_step.outputs.embeddings = Output(
+                type=AssetTypes.URI_FOLDER,
+                mode="mount",
+                path=custom_fl_data_path(
+                    # IMPORTANT: writing the output of training into the orchestrator datastore
+                    YAML_CONFIG.federated_learning.host.datastore,
+                    f"embeddings_{silo_index}",
+                ),
+            )
+
+            embeddings_paths[
+                f"contributor_{silo_index}_embeddings"
+            ] = silo_pretraining_step.outputs.embeddings
+            outputs[
+                f"contributor_{silo_index}_output"
+            ] = silo_pretraining_step.outputs.model
+
+            # make sure the compute corresponds to the silo
+            silo_pretraining_step.compute = silo_config.compute
+
+            # assign instance type for AKS, if available
+            if hasattr(silo_config, "instance_type"):
+                if silo_pretraining_step.resources is None:
+                    silo_pretraining_step.resources = {}
+                silo_pretraining_step.resources[
+                    "instance_type"
+                ] = silo_config.instance_type
+
     ################
     ### TRAINING ###
     ################
 
-    outputs = {}
     # for each silo, run a distinct training with its own inputs and outputs
     for silo_index, silo_config in enumerate(
         [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
@@ -278,11 +355,12 @@ def fl_ccfraud_vertical_basic():
                 global_rank=silo_index,
                 communication_backend=YAML_CONFIG.federated_learning.communication.backend,
                 communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
+                **embeddings_paths,
             )
             # add a readable name to the step
             silo_training_step.name = f"host_training"
             outputs[f"host_output"] = silo_training_step.outputs.model
-        else:
+        elif len(embeddings_paths) == 0:
             # we're using training component here
             silo_training_step = training_contributor_component(
                 # with the train_data from the pre_processing step
@@ -309,6 +387,8 @@ def fl_ccfraud_vertical_basic():
             outputs[
                 f"contributor_{silo_index}_output"
             ] = silo_training_step.outputs.model
+        else:
+            continue
 
         # make sure the compute corresponds to the silo
         silo_training_step.compute = silo_config.compute

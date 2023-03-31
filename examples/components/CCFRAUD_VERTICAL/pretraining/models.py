@@ -47,102 +47,6 @@ class SimpleLinearBottom(nn.Module):
         return self.model(x), None
 
 
-class SimpleLinearTop(nn.Module):
-    """Top (Host) part of the model composed of only Linear model interleaved with ReLU activations"""
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.model = nn.Sequential(
-            nn.Linear(4, 1),
-            nn.Sigmoid(),
-        )
-        self._init_weights()
-
-    def _init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Embedding):
-                torch.nn.init.uniform_(m.weight, -0.001, 0.001)
-            elif isinstance(m, nn.Linear):
-                torch.nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
-
-    def forward(self, x):
-        return self.model(x).squeeze(), None
-
-
-class SimpleLSTMBottom(nn.Module):
-    """Bottom (Contributor) part of the model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
-
-    Args:
-        input_dim (int):
-        number of features to be consumed by the model
-
-    Note:
-        Input must be 3D such that it contains time-dependent sequences
-    """
-
-    def __init__(self, input_dim) -> None:
-        super().__init__()
-
-        self.input_dim = input_dim
-        self.lstm = nn.LSTM(
-            input_size=input_dim,
-            hidden_size=128,
-            num_layers=4,
-            batch_first=True,
-            bidirectional=True,
-        )
-        self.dropout = nn.Dropout(p=0.5)
-        self._init_weights()
-
-    def _init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                torch.nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
-
-    def forward(self, x):
-        x, _ = self.lstm(x)
-        x = self.dropout(x)
-        return x, None
-
-
-class SimpleLSTMTop(nn.Module):
-    """Top (Host) part of the model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations"""
-
-    def __init__(self) -> None:
-        super().__init__()
-
-        self.denseseq = nn.Sequential(
-            nn.Linear(256, 128),
-            nn.ReLU(),
-            nn.Linear(128, 64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 16),
-            nn.ReLU(),
-            nn.Linear(16, 8),
-            nn.ReLU(),
-            nn.Linear(8, 4),
-            nn.ReLU(),
-            nn.Linear(4, 1),
-            nn.Sigmoid(),
-        )
-        self._init_weights()
-
-    def _init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Linear):
-                torch.nn.init.xavier_uniform_(m.weight)
-                m.bias.data.fill_(0.01)
-
-    def forward(self, x):
-        x = self.denseseq(x).squeeze()
-        return x, None
-
-
 class SimpleVAEBottom(nn.Module):
     """Bottom (Contributor) part of the VAE with head composed of Linear layers interleaved by ReLU activations
 
@@ -202,6 +106,13 @@ class SimpleVAEBottom(nn.Module):
                 torch.nn.init.xavier_uniform_(m.weight)
                 m.bias.data.fill_(0.01)
 
+    def kl_loss(self, mu, log_var):
+        # KL Divergence
+        kl = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
+        kl = kl.sum(-1)
+        kl = kl.mean()
+        return kl
+
     def encoder(self, x):
         # Encoder
         for i, layer in enumerate(self.encoder_layers):
@@ -211,8 +122,16 @@ class SimpleVAEBottom(nn.Module):
         std = torch.exp(0.5 * log_variance)
 
         # Generate a unit gaussian noise.
-        noise = torch.randn(x.shape[0], self._latent_dim).to(x.device)
-        z = noise * std + mu
+        try:
+            noise = torch.randn(*x.shape[:-1], self._latent_dim).to(x.device)
+            z = noise * std + mu
+        except Exception as e:
+            print(x.shape)
+            print(self._latent_dim)
+            print(noise.shape)
+            print(std.shape)
+            print(mu.shape)
+            raise e
 
         return z, mu, log_variance
 
@@ -228,25 +147,39 @@ class SimpleVAEBottom(nn.Module):
     def forward(self, x):
         # Encoder
         z, mu, log_variance = self.encoder(x)
-        self.decoder(z)
+        x_hat = self.decoder(z)
 
-        return x, (mu, log_variance)
+        # Compute architecture loss (difference between input/output + difference between predicted distribution and Gaussian distribution)
+        reconstruction_loss = F.mse_loss(x_hat.reshape(-1), x.reshape(-1))
+        kl_loss = self.kl_loss(mu, log_variance)
+        y_hat = z
+
+        return y_hat, (reconstruction_loss, kl_loss)
 
 
-class SimpleVAETop(nn.Module):
-    """Top (Host) part of the LSTM based VAE with head composed of Linear layers interleaved by ReLU activations"""
+class SimpleLSTMBottom(nn.Module):
+    """Bottom (Contributor) part of the model composed of LSTM layers along with head composed of Linear layers interleaved by ReLU activations
 
-    def __init__(self, latent_dim, hidden_dim=32) -> None:
+    Args:
+        input_dim (int):
+        number of features to be consumed by the model
+
+    Note:
+        Input must be 3D such that it contains time-dependent sequences
+    """
+
+    def __init__(self, input_dim) -> None:
         super().__init__()
-        self._latent_dim = latent_dim
-        self._hidden_dim = hidden_dim
 
-        self.seq = torch.nn.Sequential(
-            nn.Linear(in_features=self._latent_dim, out_features=self._hidden_dim),
-            nn.ReLU(),
-            nn.Linear(in_features=self._hidden_dim, out_features=1),
-            nn.Sigmoid()
+        self.input_dim = input_dim
+        self.lstm = nn.LSTM(
+            input_size=input_dim,
+            hidden_size=128,
+            num_layers=4,
+            batch_first=True,
+            bidirectional=True,
         )
+        self.dropout = nn.Dropout(p=0.5)
         self._init_weights()
 
     def _init_weights(self):
@@ -256,8 +189,9 @@ class SimpleVAETop(nn.Module):
                 m.bias.data.fill_(0.01)
 
     def forward(self, x):
-        x = self.seq(x).squeeze()
-        return x
+        x, _ = self.lstm(x)
+        x = self.dropout(x)
+        return x, None
 
 
 class SimpleLSTMVAEBottom(nn.Module):
@@ -360,23 +294,3 @@ class SimpleLSTMVAEBottom(nn.Module):
         y_hat = z.repeat([x.shape[1], 1, 1]).permute((1, 0, 2))
 
         return y_hat, (reconstruction_loss, kl_loss)
-
-
-class SimpleLSTMVAETop(nn.Module):
-    """Top (Host) part of the LSTM based VAE with head composed of Linear layers interleaved by ReLU activations"""
-
-    def __init__(self) -> None:
-        super().__init__()
-        self._latent_dim = 100
-
-        self.output = torch.nn.Linear(
-            in_features=self._latent_dim,
-            out_features=1,
-        )
-        self.sigmoid = torch.nn.Sigmoid()
-
-    def forward(self, x):
-        y_hat = self.output(x).squeeze()
-        y_hat = self.sigmoid(y_hat)
-
-        return y_hat, None
