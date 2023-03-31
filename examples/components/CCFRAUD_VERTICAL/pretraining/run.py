@@ -237,8 +237,8 @@ class CCFraudTrainer:
                 self.model_.train()
                 train_metrics.reset_global()
 
-                for i, batch in enumerate(self.train_loader_):
-                    data = batch.to(self.device_)
+                for i, data in enumerate(self.train_loader_):
+                    data = data.to(self.device_)
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
@@ -330,8 +330,8 @@ class CCFraudTrainer:
                 ["reconstruction_loss", "kl_loss"],
                 prefix="test_" + str(self._global_rank),
             )
-            for i, batch in enumerate(self.test_loader_):
-                data = batch.to(self.device_)
+            for data in self.test_loader_:
+                data = data.to(self.device_)
 
                 # Send intermediate output to the global model
                 # such that it can calculate metrics
@@ -348,24 +348,28 @@ class CCFraudTrainer:
 
         self.model_.eval()
         with torch.no_grad():
-            for batch in tqdm(self.train_loader_, desc="Saving train embeddings"):
-                data = batch.to(self.device_)
+            for data in tqdm(self.train_loader_, desc="Saving train embeddings"):
+                data = data.to(self.device_)
                 train_embeddings.append(self.model_(data)[0].cpu().numpy())
 
         print("Concatenating embeddings, batch shape: ", train_embeddings[0].shape)
         train_embeddings = np.concatenate(train_embeddings, axis=0)
         np.save(f"{self._embeddings_path}/train_embeddings.npy", train_embeddings)
-        print(f"Train embeddings saved to {self._embeddings_path}/train_embeddings.npy, shape: {train_embeddings.shape}")
+        print(
+            f"Train embeddings saved to {self._embeddings_path}/train_embeddings.npy, shape: {train_embeddings.shape}"
+        )
         del train_embeddings
 
         with torch.no_grad():
-            for batch in tqdm(self.test_loader_, desc="Saving test embeddings"):
-                data = batch.to(self.device_)
+            for data in tqdm(self.test_loader_, desc="Saving test embeddings"):
+                data = data.to(self.device_)
                 test_embeddings.append(self.model_(data)[0].cpu().numpy())
 
         test_embeddings = np.concatenate(test_embeddings, axis=0)
         np.save(f"{self._embeddings_path}/test_embeddings.npy", test_embeddings)
-        print(f"Test embeddings saved to {self._embeddings_path}/test_embeddings.npy, shape: {test_embeddings.shape}")
+        print(
+            f"Test embeddings saved to {self._embeddings_path}/test_embeddings.npy, shape: {test_embeddings.shape}"
+        )
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.

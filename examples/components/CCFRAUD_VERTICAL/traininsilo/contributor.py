@@ -17,60 +17,6 @@ import models as models
 import datasets as datasets
 
 
-class RunningMetrics:
-    def __init__(self, metrics: List[str], prefix: str = None) -> None:
-        self._allowed_metrics = copy.deepcopy(metrics)
-        self._running_step_metrics = {name: 0 for name in metrics}
-        self._running_global_metrics = {name: 0 for name in metrics}
-        self._batch_count_step = 0
-        self._batch_count_global = 0
-        self._prefix = "" if prefix is None else prefix
-
-    def add_metric(self, name: str, value: float):
-        """Add measurement to the set
-
-        Args:
-            name: name of the metrics
-            value: value of the metrics
-        """
-        if name not in self._allowed_metrics:
-            raise ValueError(f"Metric with name '{name}' not in logged metrics")
-        self._running_step_metrics[name] += value
-        self._running_global_metrics[name] += value
-
-    def step(self):
-        """Increases number of measurements taken. Must be called after every batch"""
-        self._batch_count_step += 1
-        self._batch_count_global += 1
-
-    def reset_step(self):
-        """Soft reset of the counter. Only reset counter for subset of batches."""
-        self._batch_count_step = 0
-        self._running_step_metrics = {name: 0 for name in self._running_step_metrics}
-
-    def reset_global(self):
-        """Reset all counters and steps"""
-        self.reset_step()
-        self._batch_count_global = 0
-        self._running_global_metrics = {
-            name: 0 for name in self._running_global_metrics
-        }
-
-    def get_step(self):
-        """Provide average value for every metric since last `reset_step` call"""
-        return {
-            f"{self._prefix}_{name}_running": value / self._batch_count_step
-            for name, value in self._running_step_metrics.items()
-        }
-
-    def get_global(self):
-        """Provide average value for every metric since last `reset_global` call"""
-        return {
-            f"{self._prefix}_{name}": value / self._batch_count_global
-            for name, value in self._running_global_metrics.items()
-        }
-
-
 class CCFraudTrainer:
     def __init__(
         self,
@@ -154,6 +100,7 @@ class CCFraudTrainer:
         self.model_ = getattr(models, model_name + "Bottom")(self._input_dim).to(
             self.device_
         )
+        self._global_comm.send(self.model_.latent_dim, 0)
         self._model_path = model_path
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
@@ -231,107 +178,29 @@ class CCFraudTrainer:
 
             # log params
             self.log_params(mlflow_client, root_run_id)
-
-            if isinstance(self.model_, models.SimpleVAEBottom):
-                logger.debug("VAE pre-training started")
-                train_metrics = RunningMetrics(
-                    ["reconstruction_loss", "kl_loss", "net_loss"],
-                    prefix="train_" + str(self._global_rank),
-                )
-
-                for epoch in range(1, self._epochs + 1):
-                    self.model_.train()
-
-                    for i, batch in enumerate(self.train_loader_):
-                        data = batch.to(self.device_)
-                        # Zero gradients for every batch
-                        self.optimizer_.zero_grad()
-
-                        reconstruction_loss, kl_loss = self.model_(data)[1]
-                        net_loss = reconstruction_loss + kl_loss * 1e-4
-                        net_loss.backward(retain_graph=True)
-                        self.optimizer_.step()
-
-                        train_metrics.add_metric(
-                            "reconstruction_loss",
-                            reconstruction_loss.item(),
-                        )
-                        train_metrics.add_metric("kl_loss", kl_loss.item())
-                        train_metrics.add_metric("net_loss", net_loss.item())
-                        train_metrics.step()
-                        if (i + 1) % 10 == 0 or (i + 1) == len(self.train_loader_):
-                            self._global_comm.send("step", 0)
-
-                        if (i + 1) % 5 == 0 or (i + 1) == len(self.train_loader_):
-                            log_message = [
-                                f"Epoch: {epoch}/{self._epochs}",
-                                f"Iteration: {i+1}/{len(self.train_loader_)}",
-                            ]
-
-                            for name, value in train_metrics.get_step().items():
-                                log_message.append(f"{name}: {value}")
-                                self.log_metrics(
-                                    mlflow_client,
-                                    root_run_id,
-                                    name,
-                                    value,
-                                )
-                            logger.info(", ".join(log_message))
-                            train_metrics.reset_step()
-
-                    test_metrics = self.test(pretraining=True)
-                    log_message = [
-                        f"Epoch: {epoch}/{self._epochs}",
-                    ]
-
-                    # log test metrics after each epoch
-                    for name, value in train_metrics.get_global().items():
-                        log_message.append(f"{name}: {value}")
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            name,
-                            value,
-                        )
-                    for name, value in test_metrics.get_global().items():
-                        log_message.append(f"{name}: {value}")
-                        self.log_metrics(
-                            mlflow_client,
-                            root_run_id,
-                            name,
-                            value,
-                        )
-                    logger.info(", ".join(log_message))
-
             logger.debug("Local training started")
 
             for _ in range(1, self._epochs + 1):
                 self.model_.train()
 
-                for i, batch in enumerate(self.train_loader_):
+                for batch in self.train_loader_:
                     data = batch.to(self.device_)
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
-                    if isinstance(self.model_, models.SimpleVAEBottom):
-                        with torch.no_grad():
-                            output, net_loss = self.model_(data)
-                    else:
-                        output, net_loss = self.model_(data)
+                    output = self.model_(data)
                     output = output.contiguous()
                     # Send intermediate output to the global model
                     # such that it can calculate gradients and metrics
                     self._global_comm.send(output, 0)
+                    # if net_loss is not None:
+                    #     net_loss = net_loss * 1e-5
+                    #     net_loss.backward(retain_graph=True)
 
                     # Receive gradients from the host and update local model
                     gradient = self._global_comm.recv(0).to(self.device_)
-                    if not isinstance(self.model_, models.SimpleVAEBottom):
-                        if net_loss is not None:
-                            net_loss = net_loss[0] + (net_loss[1] * 1e-4)
-                            net_loss.backward(retain_graph=True)
-
-                        output.backward(gradient)
-                        self.optimizer_.step()
+                    output.backward(gradient)
+                    self.optimizer_.step()
 
                 self.test()
 
@@ -340,36 +209,18 @@ class CCFraudTrainer:
             ]
             logger.info(", ".join(log_message))
 
-    def test(self, pretraining=False):
+    def test(self):
         """Test the trained model and report test loss and accuracy"""
         self.model_.eval()
 
         with torch.no_grad():
-            if isinstance(self.model_, models.SimpleVAEBottom) and pretraining:
-                metrics = RunningMetrics(
-                    ["reconstruction_loss", "kl_loss"],
-                    prefix="test_" + str(self._global_rank),
-                )
-                for i, batch in enumerate(self.test_loader_):
-                    data = batch.to(self.device_)
+            for batch in self.test_loader_:
+                data = batch.to(self.device_)
 
-                    # Send intermediate output to the global model
-                    # such that it can calculate metrics
-                    reconstruction_loss, kl_loss = self.model_(data)[1]
-                    metrics.add_metric("reconstruction_loss", reconstruction_loss)
-                    metrics.add_metric("kl_loss", kl_loss)
-                    metrics.step()
-                    if (i + 1) % 10 == 0 or (i + 1) == len(self.test_loader_):
-                        self._global_comm.send("step", 0)
-                return metrics
-            else:
-                for batch in self.test_loader_:
-                    data = batch.to(self.device_)
-
-                    # Send intermediate output to the global model
-                    # such that it can calculate metrics
-                    output = self.model_(data)[0].contiguous()
-                    self._global_comm.send(output, 0)
+                # Send intermediate output to the global model
+                # such that it can calculate metrics
+                output = self.model_(data).contiguous()
+                self._global_comm.send(output, 0)
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.

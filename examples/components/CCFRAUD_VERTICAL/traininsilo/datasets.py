@@ -49,9 +49,9 @@ class FraudDataset(Dataset):
 
     def __getitem__(self, idx):
         if self.Y is None:
-            return self.X[idx], None
+            return self.X[idx]
         elif self.X is None:
-            return None, self.Y[idx]
+            return self.Y[idx]
         else:
             return self.X[idx], self.Y[idx]
 
@@ -109,9 +109,9 @@ class FraudTimeDataset(Dataset):
                 * (self._time_steps // self._time_step_overlaps) : idx
                 * (self._time_steps // self._time_step_overlaps)
                 + self._time_steps
-            ], [None]*self._time_steps
+            ]
         elif self.X is None:
-            return [None]*self._time_steps, self.Y[
+            return self.Y[
                 idx
                 * (self._time_steps // self._time_step_overlaps) : idx
                 * (self._time_steps // self._time_step_overlaps)

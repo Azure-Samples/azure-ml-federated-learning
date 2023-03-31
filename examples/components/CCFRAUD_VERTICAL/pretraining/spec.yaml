@@ -1,11 +1,11 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_vertical_train_in_silo_host
+name: ccfraud_vertical_pretrain_contributor
 version: 0.0.1
-display_name: CC Fraud Train (in silo)
+display_name: CC Fraud Pre-Train (in silo)
 type: command
-description: Component to train a model to classify CC Fraud.
-is_deterministic: true
+description: Component to train a model to generate embeddings representative of contributor samples.
+is_deterministic: false
 
 inputs:
   train_data:
