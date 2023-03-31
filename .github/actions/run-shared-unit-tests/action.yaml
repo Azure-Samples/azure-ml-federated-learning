@@ -1,0 +1,20 @@
+name: Run unit tests for shared component files
+description: Run unit tests for shared components files and provide coverage
+
+runs:
+  using: composite
+  steps:
+    - name: Install python dependencies
+      shell: bash
+      run: pip install -r tests/requirements.txt
+
+    - name: Run unit tests
+      shell: bash
+      run: |
+        coverage run --source=examples/components/shared -m unittest discover -s tests/examples/components/shared -v
+
+    - name: Run coverage
+      shell: bash
+      run: |
+        coverage combine
+        coverage report -m
