@@ -181,10 +181,12 @@ class CCFraudTrainer:
             self.test_loader_ = DataLoader(
                 self.test_dataset_, batch_sampler=self.test_sampler_
             )
+
+            # Get latent representation dimensions from each contributor
+            # and make sure they are all equal
             self._input_dim = [
                 self._global_comm.recv(i) for i in range(1, self._global_size)
             ]
-            print("Received input dim: ", self._input_dim)
             self._input_dim = list(sorted(self._input_dim))
             assert self._input_dim[0] == self._input_dim[-1]
             self._input_dim = self._input_dim[0]
