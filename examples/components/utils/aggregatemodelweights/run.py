@@ -7,6 +7,7 @@ import glob
 import shutil
 from distutils.util import strtobool
 import torch
+import mltable
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -198,6 +199,19 @@ class PyTorchStateDictFedAvg:
 #         os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
 #     )
 
+def get_relative_path(azureml_file_path) -> str:
+    """Get relative path from azureml file path.
+
+    Args:
+        azureml_file_path (str): azureml file path 
+    
+    Returns:   
+        str: relative path
+    """
+    # remove the datastore name from the path
+    return str(azureml_file_path).split("/",1)[1]
+
+
 def main(cli_args=None):
     """Component main function.
 
@@ -215,14 +229,20 @@ def main(cli_args=None):
     print(f"Running script with arguments: {args}")
     
     model_paths = []
-    import os
-    for subdir, dirs, files in os.walk(args.input):
-        for file in files:
-            print(file)
-            if file.endswith(".pt"):
-                model_paths.append(os.path.join(subdir, file))
+    
+    # Load MLTable 
+    tbl = mltable.load(args.input)
+    df = tbl.to_pandas_dataframe()
+    
+    for path in df["Path"]:
+        print(path)
+        file_path = get_relative_path(path)
+        if file_path.endswith(".pt"):
+            model_paths.append(file_path)
 
+    print(f"Current working directory: {os.getcwd()}")
     print(model_paths)
+    print([f for f in os.listdir(os.getcwd())])
     model_handler = PyTorchStateDictFedAvg()
     for model_path in model_paths:
         model_handler.add_model(model_path)
