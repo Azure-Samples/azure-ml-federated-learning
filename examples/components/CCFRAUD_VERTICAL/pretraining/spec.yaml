@@ -43,23 +43,12 @@ inputs:
     description: batch size
     default: 100
     optional: true
-  runtime_args:
-    type: string
-    description: stringified json config for a silo
-    optional: true
   global_size:
     type: number
     optional: false
   global_rank:
     type: number
     optional: false
-  communication_backend:
-    type: string
-    enum:
-      - socket
-      - redis
-    default: socket
-    optional: true
 
 outputs:
   model:
