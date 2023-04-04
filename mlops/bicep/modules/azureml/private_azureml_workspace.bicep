@@ -77,7 +77,7 @@ param workspacePublicNetworkAccess string = 'Disabled'
 param tags object = {}
 
 
-// Virtual network and network security group of the workspace itself
+// Virtual network and network security group of the workspace resources
 module nsg '../networking/azureml_workspace_nsg.bicep' = { 
   name: 'nsg-${baseName}-aml-compute'
   scope: resourceGroup()
@@ -85,6 +85,7 @@ module nsg '../networking/azureml_workspace_nsg.bicep' = {
     location: location
     nsgName: nsgName
     tags: tags
+    workspaceRegion: location
   }
 }
 
