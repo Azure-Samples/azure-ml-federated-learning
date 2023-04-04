@@ -20,11 +20,12 @@ TEMPLATE FOR MONTHLY UPDATES
 
 We are changing the release process of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning). We are moving from monthly releases to continuous releases. We will however keep updating this changelog once a month to highlight the most significant changes.
 
-Our major updates for this month are the addition of resources to provision various sorts of FL sandboxes, and the support for data encryption at rest.
+Our major updates for this month are the addition of resources to provision various flavors of FL sandboxes, a new example for Vertical FL, and better support for encryption (data at rest, communications in Vertical FL).
 
 ### FL Experience
 - Added support for data encryption at rest to the CCFRAUD example (instructions [here](./docs/real-world-examples/ccfraud.md#enable-confidentiality-with-encryption-at-rest)).
-- Added logging to measure communication times in Vertical FL jobs.
+- Introduced new Vertical FL example: [Bank Marketing Campaign Prediction](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/docs/real-world-examples/bank-marketing.md).
+- Improved the communications in Vertical FL jobs (support for redis streams and encrypted communications, better logging to measure communications overhead).
 
 ### Provisioning
 - Released a [new bicep script](./mlops/bicep/modules/fl_pairs/open_aks_with_confcomp_storage_pair.bicep) to deploy silos with AKS clusters using confidential computes and set up open orchestrator.
@@ -36,7 +37,7 @@ Our major updates for this month are the addition of resources to provision vari
 - Added [generic instructions](./docs/tutorials/update-local-data-to-silo-storage-account.md) for uploading encrypted data.
 
 ### Repository structure
-- Added more CI/CD tests for examples introduced last month.
+- Added more CI/CD tests for the examples introduced last month.
 - Added unit tests for communication and encryption components.
 
 
