@@ -15,4 +15,4 @@ dependencies:
     - pandas==1.5.2
     - torchmetrics==0.10.3
     - redis==4.5.1
-    - tqdm
+    - tqdm==4.64.1

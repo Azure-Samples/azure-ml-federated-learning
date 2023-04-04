@@ -103,32 +103,11 @@ class FraudTimeDataset(Dataset):
         return None
 
     def __getitem__(self, idx):
+        left = idx * (self._time_steps // self._time_step_overlaps)
+        right = idx * (self._time_steps // self._time_step_overlaps) + self._time_steps
         if self.Y is None:
-            return self.X[
-                idx
-                * (self._time_steps // self._time_step_overlaps) : idx
-                * (self._time_steps // self._time_step_overlaps)
-                + self._time_steps
-            ]
+            return self.X[left:right]
         elif self.X is None:
-            return self.Y[
-                idx
-                * (self._time_steps // self._time_step_overlaps) : idx
-                * (self._time_steps // self._time_step_overlaps)
-                + self._time_steps
-            ]
+            return self.Y[left:right]
         else:
-            return (
-                self.X[
-                    idx
-                    * (self._time_steps // self._time_step_overlaps) : idx
-                    * (self._time_steps // self._time_step_overlaps)
-                    + self._time_steps
-                ],
-                self.Y[
-                    idx
-                    * (self._time_steps // self._time_step_overlaps) : idx
-                    * (self._time_steps // self._time_step_overlaps)
-                    + self._time_steps
-                ],
-            )
+            return (self.X[left:right], self.Y[left:right])

@@ -7,8 +7,10 @@ class SimpleVAEBottom(nn.Module):
     """Bottom (Contributor) part of the VAE with head composed of Linear layers interleaved by ReLU activations
 
     Args:
-        input_dim (int):
-        number of features to be consumed by the model
+        input_dim (int): number of features to be consumed by the model
+        hidden_dim (int): number of hidden units in the hidden layers of the model (default: 128)
+        latent_dim (int): number of latent units in the model (default: 32)
+        num_layers (int): number of hidden layers in the model (default: 2)
 
     Note:
         Input must be 3D such that it contains time-dependent sequences
@@ -78,16 +80,8 @@ class SimpleVAEBottom(nn.Module):
         std = torch.exp(0.5 * log_variance)
 
         # Generate a unit gaussian noise.
-        try:
-            noise = torch.randn(*x.shape[:-1], self._latent_dim).to(x.device)
-            z = noise * std + mu
-        except Exception as e:
-            print(x.shape)
-            print(self._latent_dim)
-            print(noise.shape)
-            print(std.shape)
-            print(mu.shape)
-            raise e
+        noise = torch.randn(*x.shape[:-1], self._latent_dim).to(x.device)
+        z = noise * std + mu
 
         return z, mu, log_variance
 

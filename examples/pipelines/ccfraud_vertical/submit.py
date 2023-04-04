@@ -334,7 +334,9 @@ def fl_ccfraud_vertical_basic():
     for silo_index, silo_config in enumerate(
         [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
-        if silo_index == 0:
+        if silo_index != 0 and len(embeddings_paths) != 0:
+            continue
+        elif silo_index == 0:
             # we're using training component here
             silo_training_step = training_host_component(
                 # with the train_data from the pre_processing step
@@ -360,7 +362,7 @@ def fl_ccfraud_vertical_basic():
             # add a readable name to the step
             silo_training_step.name = f"host_training"
             outputs[f"host_output"] = silo_training_step.outputs.model
-        elif len(embeddings_paths) == 0:
+        else:
             # we're using training component here
             silo_training_step = training_contributor_component(
                 # with the train_data from the pre_processing step
@@ -387,8 +389,6 @@ def fl_ccfraud_vertical_basic():
             outputs[
                 f"contributor_{silo_index}_output"
             ] = silo_training_step.outputs.model
-        else:
-            continue
 
         # make sure the compute corresponds to the silo
         silo_training_step.compute = silo_config.compute

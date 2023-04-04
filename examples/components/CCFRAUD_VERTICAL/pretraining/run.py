@@ -94,7 +94,7 @@ class CCFraudTrainer:
             model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
             global_rank(int): Rank of the current node.
             global_size(int): Total number of nodes.
-            global_comm(AMLComm): Communication method.
+            embeddings_path(str): Path to save embeddings.
             train_data_dir(str, optional): Training data directory path.
             test_data_dir(str, optional): Testing data directory path.
             model_path(str, optional): Path to save model.
