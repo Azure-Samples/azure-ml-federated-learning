@@ -20,7 +20,7 @@ TEMPLATE FOR MONTHLY UPDATES
 
 We are changing the release process of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning). We are moving from monthly releases to continuous releases. We will however keep updating this changelog once a month to highlight the most significant changes.
 
-Our major updates for this month are the addition of resources to provision various flavors of FL sandboxes, a new example for Vertical FL, and better support for encryption (data at rest, communications in Vertical FL).
+Our major updates for this month are the addition of resources to provision various flavors of FL sandboxes, a new example for Vertical FL, and better support for confidentiality (encryption at rest, communications in Vertical FL).
 
 ### FL Experience
 - Added support for data encryption at rest to the CCFRAUD example (instructions [here](./docs/real-world-examples/ccfraud.md#enable-confidentiality-with-encryption-at-rest)).
@@ -30,11 +30,12 @@ Our major updates for this month are the addition of resources to provision vari
 ### Provisioning
 - Released a [new bicep script](./mlops/bicep/modules/fl_pairs/open_aks_with_confcomp_storage_pair.bicep) to deploy silos with AKS clusters using confidential computes and set up open orchestrator.
 - Added support for including Kaggle credentials during workspace provisioning (useful for downloading Kaggle data to run our examples); see instructions included in our [real-world examples documentation](./docs/real-world-examples/), or standalone instructions [here](./docs/tutorials/add-kaggle-credentials.md).
+- Added a "confidentiality keyvault" to our provisioning scripts to host a custom key for encryption at rest during preprocessing and training.
 
 ### Documentation
 - Added some [documentation](./docs/provisioning/sandboxes.md) and the associated bicep scripts to easily deploy sandboxes for exploring different variants of FL setups.
 - Added [instructions](./docs/concepts/mlops_for_fl.md) on how to leverage MLOps to restrict FL to peer-reviewed code.
-- Added [generic instructions](./docs/tutorials/update-local-data-to-silo-storage-account.md) for uploading encrypted data.
+- Updated our [generic instructions](./docs/tutorials/update-local-data-to-silo-storage-account.md) to support encryption of the uploaded data using confidentiality keyvault.
 
 ### Repository structure
 - Added more CI/CD tests for the examples introduced last month.
