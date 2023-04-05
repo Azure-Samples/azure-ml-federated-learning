@@ -36,12 +36,12 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 ```
 
 ## Data provisioning
-The data format for VFL is different from regular FL. That is why each of our examples contains its own script for uploading training data.
+The data format for VFL is different from regular FL. That is why each of our examples contains its own script for uploading training and validation data.
 
 > Note: This will split the data such that each contributor owns its portion of the features and the host owns only the labels (except for the Bank Marketing Prediction example).
 
 ### CCFRAUD
-Please follow the steps in [CCFRAUD - Run a job to download and store the dataset in each silo](../real-world-examples/ccfraud.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above.
+Please follow the steps in [CCFRAUD - Run a job to download and store the dataset in each silo](../real-world-examples/ccfraud.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above. You will also need to adjust the `--example` argument to "CCFRAUD_VERTICAL".
 
 
 ### BANK_MARKETING
