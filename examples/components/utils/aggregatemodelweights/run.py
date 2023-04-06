@@ -199,7 +199,7 @@ class PyTorchStateDictFedAvg:
 #         os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
 #     )
 
-def get_relative_path(azureml_file_path) -> str:
+def get_path_and_datastore_name(azureml_file_path) -> str:
     """Get relative path from azureml file path.
 
     Args:
@@ -209,7 +209,8 @@ def get_relative_path(azureml_file_path) -> str:
         str: relative path
     """
     # remove the datastore name from the path
-    return str(azureml_file_path).split("/",1)[1]
+    datastore_name, file_path = str(azureml_file_path).split("/",1)
+    return datastore_name, file_path
 
 
 def main(cli_args=None):
@@ -233,10 +234,28 @@ def main(cli_args=None):
     # Load MLTable 
     tbl = mltable.load(args.input)
     df = tbl.to_pandas_dataframe()
-    
+
+    import os
+
+    from azure.ai.ml import MLClient
+    from azure.identity import DefaultAzureCredential
+    from azureml.core import Workspace, Datastore
+
+    subscription_id = "48bbc269-ce89-4f6f-9a12-c6f91fcb772d"
+    resource_group = "amitgarg-fldev-rg"
+    workspace = "aml-vnetdowhiletest"
+
+    # Get the client
+    ml_client = MLClient(
+        DefaultAzureCredential(), subscription_id, resource_group, workspace
+    )
+    ws = Workspace.from_config()
+
     for path in df["Path"]:
         print(path)
-        file_path = get_relative_path(path)
+        datastore_name, file_path = get_path_and_datastore_name(path)
+        datastore = Datastore.get(ws, datastore_name)
+        datastore.download("./", file_path, overwrite=True)
         if file_path.endswith(".pt"):
             model_paths.append(file_path)
 
