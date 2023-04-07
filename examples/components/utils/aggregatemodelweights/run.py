@@ -239,23 +239,30 @@ def main(cli_args=None):
 
     from azure.ai.ml import MLClient
     from azure.identity import DefaultAzureCredential
-    from azureml.core import Workspace, Datastore
+    from azureml.core import Workspace, Datastore, Run
 
-    subscription_id = "48bbc269-ce89-4f6f-9a12-c6f91fcb772d"
-    resource_group = "amitgarg-fldev-rg"
-    workspace = "aml-vnetdowhiletest"
-
-    # Get the client
-    ml_client = MLClient(
-        DefaultAzureCredential(), subscription_id, resource_group, workspace
-    )
-    ws = Workspace.from_config()
-
+    # subscription_id = "48bbc269-ce89-4f6f-9a12-c6f91fcb772d"
+    # resource_group = "amitgarg-fldev-rg"
+    # workspace = "aml-vnetdowhiletest"
+    # credential = DefaultAzureCredential()
+    # # Check if given credential can get token successfully.
+    # credential.get_token("https://management.azure.com/.default")
+    # # Get the workspace
+    # ws = Workspace.get(name=workspace,
+    #            subscription_id=subscription_id,
+    #            resource_group=resource_group, auth=credential)
+    run: Run = Run.get_context()
+    logging.info(f"Got run context: {run}")
+    ws: Workspace = run.experiment.workspace
+    
     for path in df["Path"]:
         print(path)
         datastore_name, file_path = get_path_and_datastore_name(path)
-        datastore = Datastore.get(ws, datastore_name)
-        datastore.download("./", file_path, overwrite=True)
+        # datastore = Datastore.get(ws, datastore_name)
+        datastore = ws.get_default_datastore()
+        print(datastore)
+        print(file_path)
+        datastore.download("./", "./", overwrite=True)
         if file_path.endswith(".pt"):
             model_paths.append(file_path)
 
