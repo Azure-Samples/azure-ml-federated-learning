@@ -471,15 +471,15 @@ def run(args):
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
     os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
-    embeddings = []
-    for embeddings in [
-        args.contributor_1_embeddings,
-        args.contributor_2_embeddings,
-        args.contributor_3_embeddings,
-    ]:
-        if embeddings is not None:
-            embeddings.append(embeddings)
-
+    embeddings = [
+        emb
+        for emb in [
+            args.contributor_1_embeddings,
+            args.contributor_2_embeddings,
+            args.contributor_3_embeddings,
+        ]
+        if emb is not None
+    ]
     assert len(embeddings) > 0, "At least one contributor must have embeddings"
 
     trainer = CCFraudTrainer(
