@@ -187,7 +187,9 @@ def fl_ccfraud_vertical_basic():
 
     # once per silo, we're running a pre-processing step
 
-    silo_preprocessed_train_data = [] # list of preprocessed train datasets for each silo
+    silo_preprocessed_train_data = (
+        []
+    )  # list of preprocessed train datasets for each silo
     silo_preprocessed_test_data = []  # list of preprocessed test datasets for each silo
 
     for silo_index, silo_config in enumerate(
@@ -313,9 +315,7 @@ def fl_ccfraud_vertical_basic():
         if hasattr(silo_config, "instance_type"):
             if silo_pretraining_step.resources is None:
                 silo_pretraining_step.resources = {}
-            silo_pretraining_step.resources[
-                "instance_type"
-            ] = silo_config.instance_type
+            silo_pretraining_step.resources["instance_type"] = silo_config.instance_type
 
     ################
     ### TRAINING ###
@@ -344,7 +344,7 @@ def fl_ccfraud_vertical_basic():
     # add a readable name to the step
     silo_training_step.name = f"host_training"
     outputs[f"host_output"] = silo_training_step.outputs.model
-    
+
     # make sure the compute corresponds to the silo
     silo_training_step.compute = YAML_CONFIG.federated_learning.host.compute
 
@@ -352,7 +352,9 @@ def fl_ccfraud_vertical_basic():
     if hasattr(YAML_CONFIG.federated_learning.host.compute, "instance_type"):
         if silo_training_step.resources is None:
             silo_training_step.resources = {}
-        silo_training_step.resources["instance_type"] = YAML_CONFIG.federated_learning.host.compute.instance_type
+        silo_training_step.resources[
+            "instance_type"
+        ] = YAML_CONFIG.federated_learning.host.compute.instance_type
 
     # make sure the data is written in the right datastore
     model_file_name = "host" if silo_index == 0 else f"contributor_{silo_index}"

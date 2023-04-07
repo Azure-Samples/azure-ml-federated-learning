@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class SimpleVAETop(nn.Module):
     """Top (Host) part of the LSTM based VAE with head composed of Linear layers interleaved by ReLU activations"""
 

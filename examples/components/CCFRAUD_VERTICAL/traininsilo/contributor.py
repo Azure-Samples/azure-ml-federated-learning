@@ -94,9 +94,7 @@ class CCFraudTrainer:
         )
 
         # Build model
-        self.model_ = models.SimpleLinearBottom(self._input_dim).to(
-            self.device_
-        )
+        self.model_ = models.SimpleLinearBottom(self._input_dim).to(self.device_)
         self._global_comm.send(self.model_.latent_dim, 0)
         self._model_path = model_path
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)

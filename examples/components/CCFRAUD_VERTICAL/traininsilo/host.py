@@ -165,15 +165,11 @@ class CCFraudTrainer:
         self._input_dim = self._input_dim[0]
 
         # Build model
-        self.model_ = models.SimpleLinearTop(self._input_dim).to(
-            self.device_
-        )
+        self.model_ = models.SimpleLinearTop(self._input_dim).to(self.device_)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
-        self.optimizer_ = SGD(
-            self.model_.parameters(), lr=self._lr, weight_decay=1e-5
-        )
+        self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -268,9 +264,9 @@ class CCFraudTrainer:
                     target = batch.to(self.device_)
                     # Receive intermediate results from other contributors
                     outputs = [
-                        torch.tensor(
-                            self._global_comm.recv(j), requires_grad=True
-                        ).to(self.device_)
+                        torch.tensor(self._global_comm.recv(j), requires_grad=True).to(
+                            self.device_
+                        )
                         for j in range(1, self._global_size)
                     ]
                     # Average all intermediate results
@@ -513,7 +509,7 @@ def run(args, global_comm):
         experiment_name=args.metrics_prefix,
         global_rank=args.global_rank,
         global_size=args.global_size,
-        global_comm=global_comm
+        global_comm=global_comm,
     )
     trainer.execute(args.checkpoint)
 

@@ -8,7 +8,7 @@ class FraudDataset(Dataset):
 
     Args:
         df: Pandas dataframe containing features and labels
-        kwargs: 
+        kwargs:
             embeddings: list of embeddings to be concatenated to features
 
     Returns:

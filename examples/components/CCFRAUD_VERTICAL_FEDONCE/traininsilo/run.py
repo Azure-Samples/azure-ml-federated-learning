@@ -89,7 +89,7 @@ class CCFraudTrainer:
         lr=0.01,
         epochs=1,
         batch_size=10,
-        experiment_name="default-experiment"
+        experiment_name="default-experiment",
     ):
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
@@ -140,15 +140,11 @@ class CCFraudTrainer:
         )
 
         # Build model
-        self.model_ = models.SimpleVAETop(self._input_dim).to(
-            self.device_
-        )
+        self.model_ = models.SimpleVAETop(self._input_dim).to(self.device_)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
-        self.optimizer_ = Adam(
-            self.model_.parameters(), lr=self._lr, weight_decay=1e-5
-        )
+        self.optimizer_ = Adam(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
     def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
@@ -251,9 +247,7 @@ class CCFraudTrainer:
                     self.optimizer_.zero_grad()
 
                     # Move data to device
-                    data, target = data.to(self.device_), target.to(
-                        self.device_
-                    )
+                    data, target = data.to(self.device_), target.to(self.device_)
 
                     # Forward pass
                     predictions = self.model_(data)

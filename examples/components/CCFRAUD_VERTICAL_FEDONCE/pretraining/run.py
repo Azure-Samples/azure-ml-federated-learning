@@ -134,9 +134,7 @@ class CCFraudTrainer:
         )
 
         # Build model
-        self.model_ = models.SimpleVAEBottom(self._input_dim).to(
-            self.device_
-        )
+        self.model_ = models.SimpleVAEBottom(self._input_dim).to(self.device_)
         self._model_path = model_path
         self._embeddings_path = embeddings_path
 

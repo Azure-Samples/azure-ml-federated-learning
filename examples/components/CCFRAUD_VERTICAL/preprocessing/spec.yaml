@@ -1,7 +1,7 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: ccfraud_vertical_preprocessing_in_silo
-version: 0.0.1
+version: 0.0.2
 display_name: CC Fraud Pre-Processing (in silo)
 type: command
 description: Component for preprocessing raw data from silo's blob storage
