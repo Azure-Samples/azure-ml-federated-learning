@@ -77,7 +77,7 @@ outputs:
 code: .
 
 command: >-
-  python host.py
+  python run.py
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}

@@ -43,8 +43,11 @@ The data format for VFL is different from regular FL. That is why each of our ex
 
 Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace key vault](../real-world-examples/ccfraud.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example CCFRAUD_VERTICAL`**).
 
+### CCFRAUD with FEDONCE
+Please refer to [FedOnce](#fedonce) section below for more information. Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace key vault](../real-world-examples/ccfraud.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example CCFRAUD_VERTICAL_FEDONCE`**).
 
-### BANK_MARKETING
+
+### BANK MARKETING
 
 This example is similar to **CCFRAUD**, however here also host owns part of the feature space. Please follow steps in [BANK_MARKETING - Add your Kaggle credentials to the workspace key vault](../real-world-examples/bank-marketing.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example BANK_MARKETING_VERTICAL`**).
 
@@ -66,10 +69,18 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
-## Model preparation for VFL
-It is an ongoing research topic on how the model can be orchestrated in VFL. We have decided to make the most common approach as default by splitting it between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and/or activation function. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work. However, **CCFRAUD** example is also runnable with unsupervised latent representation learning through Variational Autoencoder (VAE), which is shared once with the host and thus significantly reduces communication overhead. The host then uses these latent representations to predict the target values. More about this approach, and how to set it up, can be read in the section [below](#single-shot-learning-through-variational-autoencoder).
+## Model preparation
 
-## Communication
+### Split learning(all but CCFRAUD_VERTICAL_FEDONCE example)
+It is an ongoing research topic on how the model can be orchestrated in VFL. The most common approach involves splitting the model between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and loss computation. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
+
+### FedOnce(only CCFRAUD_VERTICAL_FEDONCE example)
+Inspired by [work from Wu et. al.](https://arxiv.org/pdf/2208.10278.pdf), we also implemented communication efficient vertical federated learning approach that relies on learning latent representation of data in all contributing parties through unsupervised learning by utilizing Variational Autoencoders (VAE). The latent representation of overlapping samples is shared to host upon convergence of VAEs. This is done only once during the training and thus significantly reduces communication overhead. The host then uses these latent representations to train predictor using labels. Advantage of this approach is that each contributor can fully utilize all samples for training no matter the overlap with other parties due to the nature of unsupervised learning. The step-by-step flow of the training is as follows:
+1. Each contributor collects its portion of features and trains the VAE (in case of **CCFRAUD** example this is done by the `ccfraud_vertical_pretrain_contributor` component that can be found in `examples/components/CCFRAUD_VERTICAL_FEDONCE/pretraining`) until convergence.
+2. Each contributor stores its model in its own data storage and then stores the latent representations of data in the host storage (in this way the output of each contributor is transferred only once compared to regular VFL where number of transfers of all data is equal to number of epochs).
+3. Host loads the data labels as well as all the latent representations created by the contributors and use them for training its portion of the model until convergence.
+
+## Communication (all but CCFRAUD_VERTICAL_FEDONCE example)
 The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enable communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
 
 ### Sockets
@@ -135,14 +146,6 @@ Afterwards, we can continue with regular training loop:
    > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
-
-## Single shot learning through variational autoencoder
-Autoencoders offer convenient way of compressing the data representation, while retaining as much value as possible to be able to reconstruct original sample. Advantage of this approach is that the entity training these models does not need to own any labels as this approach is unsupervised. We have implemented this approach for **CCFRAUD** example. The flow of the training is as follows:
-1. Each contributor collects its portion of features and trains the VAE (in case of **CCFRAUD** example this is done by the `ccfraud_vertical_pretrain_contributor` component that can be found in `examples/components/CCFRAUD_VERTICAL/pretraining`)
-2. Each contributor stores its model in its own data storage and stores the latent representations of data in the host storage (in this way the output of each contributor is transferred only once compared to regular VFL where number of transfers of all data is equal to number of epochs)
-3. Host loads the data labels as well as all the latent representations created by the contributors and use them for training its portion of the model
-
-If you were able to run regular VFL example, running this example is as simple as opening config file `examples/pipelines/ccfraud_vertical/config.yaml` and change `model_name` name to `SimpleVAE`, the pipeline will take care of the rest.
 
 ## Tips and pitfalls
 1. **Socket timeout**
