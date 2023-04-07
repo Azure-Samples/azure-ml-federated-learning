@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 
@@ -16,18 +15,15 @@ class FraudDataset(Dataset):
     def __init__(self, df):
         if "is_fraud" in df.columns:
             if len(df.columns) > 1:
-                self.X = df.loc[:, df.columns != "is_fraud"].values
+                self.X = torch.tensor(
+                    df.loc[:, df.columns != "is_fraud"].values, dtype=torch.float
+                )
             else:
                 self.X = None
-            self.Y = df.loc[:, "is_fraud"].values
+            self.Y = torch.tensor(df.loc[:, "is_fraud"].values, dtype=torch.int)
         else:
-            self.X = df.values
+            self.X = torch.tensor(df.values, dtype=torch.float)
             self.Y = None
-
-        if self.X is not None:
-            self.X = torch.tensor(self.X, dtype=torch.float)
-        if self.Y is not None:
-            self.Y = torch.tensor(self.Y, dtype=torch.int)
 
     def __len__(self):
         if self.Y is None:

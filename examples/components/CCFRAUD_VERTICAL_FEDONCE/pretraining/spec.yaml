@@ -19,11 +19,6 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
-  model_name:
-    type: string
-    description: Type of the model to train
-    enum: [SimpleLSTM, SimpleVAE, SimpleLinear]
-    optional: false
   checkpoint:
     type: uri_folder
     description: a given pre-existing checkpoint
@@ -66,7 +61,6 @@ command: >-
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}
   --embeddings_path ${{outputs.embeddings}}
-  --model_name ${{inputs.model_name}}
   --global_size ${{inputs.global_size}}
   --global_rank ${{inputs.global_rank}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]

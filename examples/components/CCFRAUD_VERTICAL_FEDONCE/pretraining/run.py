@@ -76,7 +76,6 @@ class RunningMetrics:
 class CCFraudTrainer:
     def __init__(
         self,
-        model_name,
         global_rank,
         global_size,
         embeddings_path,
@@ -91,7 +90,6 @@ class CCFraudTrainer:
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
             global_rank(int): Rank of the current node.
             global_size(int): Total number of nodes.
             embeddings_path(str): Path to save embeddings.
@@ -126,7 +124,7 @@ class CCFraudTrainer:
         logger.info(f"Using device: {self.device_}")
 
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
-            train_data_dir, test_data_dir, model_name
+            train_data_dir, test_data_dir
         )
         self.train_loader_ = DataLoader(
             self.train_dataset_, batch_size=self._batch_size, shuffle=False
@@ -136,8 +134,7 @@ class CCFraudTrainer:
         )
 
         # Build model
-        self._model_name = model_name
-        self.model_ = getattr(models, model_name + "Bottom")(self._input_dim).to(
+        self.model_ = models.SimpleVAEBottom(self._input_dim).to(
             self.device_
         )
         self._model_path = model_path
@@ -146,23 +143,18 @@ class CCFraudTrainer:
         self.criterion_ = nn.BCELoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
-    def load_dataset(self, train_data_dir, test_data_dir, model_name):
+    def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
 
         Args:
             train_data_dir(str): Training data directory path
             test_data_dir(str): Testing data directory path
-            model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
-        if "LSTM" not in model_name:
-            train_dataset = datasets.FraudDataset(train_df)
-            test_dataset = datasets.FraudDataset(test_df)
-        else:
-            train_dataset = datasets.FraudTimeDataset(train_df)
-            test_dataset = datasets.FraudTimeDataset(test_df)
+        train_dataset = datasets.FraudDataset(train_df)
+        test_dataset = datasets.FraudDataset(test_df)
 
         logger.info(
             f"Train data samples: {len(train_df)}, Test data samples: {len(test_df)}"
@@ -411,7 +403,6 @@ def get_arg_parser(parser=None):
     parser.add_argument("--checkpoint", type=str, required=False, help="")
     parser.add_argument("--model_path", type=str, required=True, help="")
     parser.add_argument("--embeddings_path", type=str, required=True, help="")
-    parser.add_argument("--model_name", type=str, required=True, help="")
     parser.add_argument(
         "--global_size",
         type=int,
@@ -449,7 +440,6 @@ def run(args):
     """
 
     trainer = CCFraudTrainer(
-        model_name=args.model_name,
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,
         model_path=args.model_path + "/model.pt",
