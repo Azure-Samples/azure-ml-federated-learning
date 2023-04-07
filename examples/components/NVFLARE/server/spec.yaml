@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: nvflare_server
+name: msft_fl_nvflare_server
 version: 0.0.5
 display_name: NVFlare server
 type: command

@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: helloworld_train_in_silo
+name: msft_fl_helloworld_train_in_silo
 version: 0.3.0
 display_name: Train (in silo)
 type: command

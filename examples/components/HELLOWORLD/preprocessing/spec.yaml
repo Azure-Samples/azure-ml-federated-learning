@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: helloworld_preprocessing_in_silo
+name: msft_fl_helloworld_preprocessing_in_silo
 version: 0.3.0
 display_name: Pre-Processing (in silo)
 type: command
