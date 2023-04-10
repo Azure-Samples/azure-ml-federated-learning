@@ -200,19 +200,6 @@ class PyTorchStateDictFedAvg:
 #         os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
 #     )
 
-def get_path_and_datastore_name(azureml_file_path) -> str:
-    """Get relative path from azureml file path.
-
-    Args:
-        azureml_file_path (str): azureml file path 
-    
-    Returns:   
-        str: relative path
-    """
-    # remove the datastore name from the path
-    datastore_name, file_path = str(azureml_file_path).split("/",1)
-    return datastore_name, file_path
-
 def get_silos_output_path(aggregated_model):
     import os
     for root, dirs, _ in os.walk(aggregated_model):
