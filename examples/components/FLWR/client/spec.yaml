@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: flower_client
+name: msft_fl_flower_client
 version: 0.0.5
 display_name: Flower client
 type: command

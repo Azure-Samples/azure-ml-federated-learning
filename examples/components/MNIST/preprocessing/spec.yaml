@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: mnist_preprocessing_in_silo
+name: msft_fl_mnist_preprocessing_in_silo
 version: 0.3.0
 display_name: MNIST Pre-Processing (in silo)
 type: command

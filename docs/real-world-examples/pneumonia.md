@@ -20,72 +20,21 @@ Alternatively, you can just install the required dependencies:
 python -m pip install -r ./examples/pipelines/requirements.txt
 ```
 
-## Provision an FL sandbox workspace
+## Provision an FL sandbox (with your kaggle credentials!)
 
-To run this example, you will need to provision an AzureML workspace ready for Federated Learning. We strongly recommend you use the setup provided in the repository [quickstart](../quickstart.md). We will use the same names for the computes and datastores created by default during this quickstart.
+To run this example, you will need to provision one of our [sandboxes](../provisioning/sandboxes.md). Any sandbox should work with this tutorial below (if not, please [reach out](https://github.com/Azure-Samples/azure-ml-federated-learning/issues)). We will use the same names for the computes and datastores created by default in those sandboxes.
+
+If you have already provisioned a sandbox during the [quickstart](../quickstart.md) you can reuse it, but you need to **make sure you have added your [Kaggle](https://www.kaggle.com/) credentials** so we can upload the required dataset in each silo. If not, please refer to our [tutorial on how to add your kaggle credentials](../tutorials/add-kaggle-credentials.md) to the workspace secret store before running the following sections.
+
+You can also [re-provision another sandbox](../provisioning/sandboxes.md) with a different base name using the [deploy buttons on the sandbox page](../provisioning/sandboxes.md), and provide your **kaggleUsername** and **kaggleKey** as parameters, so they will be injected securely in your workspace secret store.
 
 :notebook: take note of your workspace name, resource group and subscription id. You will need them to submit the experiment.
-
-## Add your Kaggle credentials to the workspace key vault
-
-In the next section, we will run a job in the AzureML workspace that will unpack the demo dataset from Kaggle into each of your silos.
-
-Kaggle requires a username and an [API key](https://github.com/Kaggle/kaggle-api#api-credentials), so we will first store safely those credentials in the workspace key vault.
-
-### Option 1: using Azure CLI
-
-1. Let's first obtain your AAD identifier (object id) by running the following command. We'll use it in the next step.
-
-    ```bash
-    az ad signed-in-user show --query id
-    ```
-
-2. Create a new key vault policy for yourself, and grant permissions to list, set & delete secrets.
-
-    ```bash
-    az keyvault set-policy -n <key-vault-name> --secret-permissions list set delete --object-id <object-id>
-    ```
-
-    > Note: The AML workspace you created with the aforementioned script contains the name of the key vault. Default is `kv-fldemo`.
-
-3. With your newly created permissions, you can now create a secret to store the `kaggleusername`.
-
-    ```bash
-    az keyvault secret set --name kaggleusername --vault-name <key-vault-name> --value <kaggle-username>
-    ```
-
-    > Make sure to provide your _Kaggle Username_.
-
-4. Create a secret to store the `kagglekey`.
-
-    ```bash
-    az keyvault secret set --name kagglekey --vault-name <key-vault-name> --value <kaggle-api-token>
-    ```
-
-    > Make sure to provide the *[Kaggle API Token]((<https://github.com/Kaggle/kaggle-api#api-credentials>))*.
-
-### Option 2: using Azure UI
-
-1. In your resource group (provisioned in the previous step), open "Access Policies" tab in the newly created key vault and click "Create".
-
-2. Select _List, Set & Delete_ right under "Secret Management Operations" and press "Next".
-
-3. Lookup currently logged in user (using user id or an email), select it and press "Next".
-
-4. Press "Next" and "Create" in the next screens.
-
-    We are now able to create a secret in the key vault.
-
-5. Open the "Secrets" tab. Create two plain text secrets:
-
-    - **kaggleusername** - specifies your Kaggle user name
-    - **kagglekey** - this is the API key that can be obtained from your account page on the Kaggle website.
 
 ## Run a job to download and store the dataset in each silo
 
 This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
 
-1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
+1. If you are **not** using the sandbox default setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
 
 2. Submit the experiment by running:
 
@@ -101,7 +50,7 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 ## Run the demo experiment
 
-1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/pneumonia/` to match your setup.
+1. If you are **not** using the sandbox default setup, adjust the config file  `config.yaml` in `examples/pipelines/pneumonia/` to match your setup.
 
 2. Submit the FL experiment by running:
 

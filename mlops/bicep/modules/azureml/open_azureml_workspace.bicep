@@ -29,11 +29,17 @@ param location string = resourceGroup().location
 @description('Specifies whether to reduce telemetry collection and enable additional encryption.')
 param hbiWorkspace bool = false
 
+@description('Name of the application insights log analytics workspace')
+param appInsightLogAnalyticsName string = 'logs-${baseName}'
+
+@description('Name of the application insights resource')
+param applicationInsightsName string = 'appi-${baseName}'
+
 @description('Name of the container registry resource')
 param containerRegistryName string = replace('cr-${baseName}','-','') // replace because only alphanumeric characters are supported
 
-@description('Name of the key vault resource')
-param keyVaultName string = 'kv-${baseName}'
+@description('Name of the workspace secrets store (shared keyvault) resource')
+param keyVaultName string = 'ws-shkv-${baseName}'
 
 @description('Name of the storage account resource')
 param storageAccountName string = replace('st-${baseName}','-','') // replace because only alphanumeric characters are supported
@@ -97,6 +103,30 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' =
   }
 }
 
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2021-06-01' = {
+  name: appInsightLogAnalyticsName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+    publicNetworkAccessForIngestion: 'Enabled'
+    publicNetworkAccessForQuery: 'Disabled'
+  }
+}
+
+resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
+  name: applicationInsightsName
+  location: (((location == 'eastus2') || (location == 'westcentralus')) ? 'southcentralus' : location)
+  tags: tags
+  kind: 'web'
+  properties: {
+    Application_Type: 'web'
+    WorkspaceResourceId: logAnalyticsWorkspace.id
+    Flow_Type: 'Bluefield'
+  }
+}
 
 // ********************************
 // Azure Machine Learning workspace
@@ -133,3 +163,5 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-10-0
 output storageName string = storage.name
 output workspaceName string = machineLearning.name
 output region string = location
+output workspaceSecretStoreId string = keyVault.id
+output workspaceSecretStoreName string = keyVault.name
