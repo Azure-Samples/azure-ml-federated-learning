@@ -1,0 +1,79 @@
+type: pipeline
+display_name: reproduce-mltable-error
+experiment_name: reproduce-mltable-error
+outputs:
+  aggregated_output:
+    path: azureml://datastores/datastore_orchestrator/paths/federated_learning/aggregated_output/${{name}}/
+jobs:
+  executed_merge_component:
+    type: command
+    outputs:
+      aggregated_output:
+        type: mltable
+        path: azureml://datastores/datastore_orchestrator/paths/federated_learning/aggregated_output/${{name}}/
+    component:
+      name: create_scatter_output_table
+      display_name: create_scatter_output_table
+      type: command
+      outputs:
+        aggregated_output:
+          type: mltable
+      command: |
+        cp ./MLTable ${{outputs.aggregated_output}}/MLTable
+      environment:
+        image: library/python:latest
+      code: .
+      is_deterministic: true
+      tags:
+        codegenBy: mldesigner
+    compute: azureml:orchestrator-01
+  executed_aggregation_component:
+    type: command
+    inputs:
+      from_silo_input:
+        mode: eval_download
+        path: ${{parent.jobs.executed_merge_component.outputs.aggregated_output}}
+    outputs:
+      aggregated_output: ${{parent.outputs.aggregated_output}}
+    component:
+      $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+      name: aggregate_model_weights
+      version: 0.3.0
+      display_name: Aggregate PyTorch Model Weights (from all silos)
+      description: Component for aggregating pytorch model weights.
+      type: command
+      inputs:
+        from_silo_input:
+          type: mltable
+          description: input from silo 1 (e.g., model weights, or gradient updates)
+          optional: false
+      outputs:
+        aggregated_output:
+          type: uri_folder
+          description: the aggregated model or gradiants, residing in the orchestrator
+            compute.
+      command: python run.py --output ${{outputs.aggregated_output}}  --input
+        ${{inputs.from_silo_input}}
+      environment:
+        name: CliV2AnonymousEnvironment
+        version: 95a44da849c5d61780dd6a015d111b7f
+        image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
+        conda_file:
+          name: agg_conda_env
+          channels:
+          - defaults
+          - pytorch
+          - nvidia
+          dependencies:
+          - python=3.8
+          - pip=22.3.1
+          - pytorch=1.13.1
+          - pytorch-cuda=11.6
+          - pip:
+            - mltable==1.2.0
+            - azure-ai-ml==1.5.0
+            - pandas==1.5.2
+            - azureml-core==1.49.0
+      code: C:/Users/gargamit/OneDrive - Microsoft/Documents/azure-samples-main-repo/azure-ml-federated-learning/examples/components/utils/aggregatemodelweights
+      is_deterministic: true
+    compute: azureml:orchestrator-01

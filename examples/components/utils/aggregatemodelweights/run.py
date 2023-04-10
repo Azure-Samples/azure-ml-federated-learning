@@ -8,7 +8,8 @@ import shutil
 from distutils.util import strtobool
 import torch
 import mltable
-
+from pathlib import Path
+import pathlib
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -212,6 +213,13 @@ def get_path_and_datastore_name(azureml_file_path) -> str:
     datastore_name, file_path = str(azureml_file_path).split("/",1)
     return datastore_name, file_path
 
+def get_silos_output_path(aggregated_model):
+    import os
+    for root, dirs, _ in os.walk(aggregated_model):
+        # target: /mnt/azureml/.../${{default_datastore}}/azureml/${{name}}/${{output_name}}
+        # we are looking for the level ${{name}}, there should be more than one directory.
+        if len(dirs) > 1:
+            return Path(root)
 
 def main(cli_args=None):
     """Component main function.
@@ -231,44 +239,20 @@ def main(cli_args=None):
     
     model_paths = []
     
-    # Load MLTable 
-    tbl = mltable.load(args.input)
-    df = tbl.to_pandas_dataframe()
+    silos_output_dir = get_silos_output_path(args.input)
+    print("Silo output location is {}".format(silos_output_dir))
 
-    import os
+    for dir_name in os.listdir(silos_output_dir):
+        print("Directory containing the output files is {}".format(dir_name))
+        for file_name in os.listdir(pathlib.Path.joinpath(silos_output_dir, dir_name)):
+            print("File name is {}".format(file_name))
+            file_path = str(pathlib.Path.joinpath(silos_output_dir, dir_name, file_name))
 
-    from azure.ai.ml import MLClient
-    from azure.identity import DefaultAzureCredential
-    from azureml.core import Workspace, Datastore, Run
+            print("Full path to directory containing output is {}".format(file_path))
+            if file_path.endswith(".pt"):
+                model_paths.append(file_path)
 
-    # subscription_id = "48bbc269-ce89-4f6f-9a12-c6f91fcb772d"
-    # resource_group = "amitgarg-fldev-rg"
-    # workspace = "aml-vnetdowhiletest"
-    # credential = DefaultAzureCredential()
-    # # Check if given credential can get token successfully.
-    # credential.get_token("https://management.azure.com/.default")
-    # # Get the workspace
-    # ws = Workspace.get(name=workspace,
-    #            subscription_id=subscription_id,
-    #            resource_group=resource_group, auth=credential)
-    run: Run = Run.get_context()
-    logging.info(f"Got run context: {run}")
-    ws: Workspace = run.experiment.workspace
-    
-    for path in df["Path"]:
-        print(path)
-        datastore_name, file_path = get_path_and_datastore_name(path)
-        # datastore = Datastore.get(ws, datastore_name)
-        datastore = ws.get_default_datastore()
-        print(datastore)
-        print(file_path)
-        datastore.download("./", "./", overwrite=True)
-        if file_path.endswith(".pt"):
-            model_paths.append(file_path)
-
-    print(f"Current working directory: {os.getcwd()}")
     print(model_paths)
-    print([f for f in os.listdir(os.getcwd())])
     model_handler = PyTorchStateDictFedAvg()
     for model_path in model_paths:
         model_handler.add_model(model_path)

@@ -1,0 +1,4 @@
+paths:
+- folder : azureml://subscriptions/48bbc269-ce89-4f6f-9a12-c6f91fcb772d/resourcegroups/amitgarg-fldev-rg/workspaces/aml-fldowhiletest/datastores/datastore_orchestrator/paths/federated_learning/model/21995722-b63b-4f62-a42b-004b2afa1a59/
+- folder : azureml://subscriptions/48bbc269-ce89-4f6f-9a12-c6f91fcb772d/resourcegroups/amitgarg-fldev-rg/workspaces/aml-fldowhiletest/datastores/datastore_orchestrator/paths/federated_learning/model/977aa0f6-1ac3-4c6b-931a-8112b132128c/
+- folder : azureml://subscriptions/48bbc269-ce89-4f6f-9a12-c6f91fcb772d/resourcegroups/amitgarg-fldev-rg/workspaces/aml-fldowhiletest/datastores/datastore_orchestrator/paths/federated_learning/model/31ea9c36-8167-4549-a604-adef7fbedc5e/
