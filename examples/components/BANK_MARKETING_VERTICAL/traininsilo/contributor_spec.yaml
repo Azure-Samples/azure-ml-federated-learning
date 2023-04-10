@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: bank_marketing_train_in_silo_contributor
+name: msft_fl_bank_marketing_train_in_silo_contributor
 version: 0.0.1
 display_name: Bank Marketing Train (in silo)
 type: command

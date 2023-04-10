@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ner_preprocessing_in_silo
+name: msft_fl_ner_preprocessing_in_silo
 version: 0.3.0
 display_name: MultiNERD Pre-Processing (in silo)
 type: command

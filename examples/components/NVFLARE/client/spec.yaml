@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: nvflare_client
+name: msft_fl_nvflare_client
 version: 0.0.5
 display_name: NVFlare client
 type: command
