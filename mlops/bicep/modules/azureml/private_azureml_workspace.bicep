@@ -49,7 +49,7 @@ param imageBuildComputeSKU string = 'Standard_DS3_v2'
 param imageBuildComputeNodes int = 2
 
 
-@description('Public network access to the Azure ML workspace itself')
+@description('WARNING: Enable access to the AzureML workspace using public azure portal (for debugging)')
 @allowed([
   'Enabled'
   'Disabled'
@@ -95,6 +95,10 @@ module storage '../resources/private_storage.bicep' = {
     subnetId: '${virtualNetworkId}/subnets/${subnetName}'
     blobPrivateDNSZoneName: blobStoragePrivateDnsZone.outputs.name
     filePrivateDNSZoneName: fileStoragePrivateDnsZone.outputs.name
+    // if workspace is accessible through public API,
+    // default storage should also be the same,
+    // to allow for component uploads
+    publicNetworkAccess: workspacePublicNetworkAccess
     tags: tags
   }
 }

@@ -31,6 +31,13 @@ param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes
 @description('Name of the private DNS zone for file')
 param filePrivateDNSZoneName string = 'privatelink.file.${environment().suffixes.storage}'
 
+@description('WARNING: use Enabled for debugging, this will allow public network access to the storage account (eyes-on).')
+@allowed([
+  'Enabled'
+  'Disabled'
+])
+param publicNetworkAccess string = 'Disabled'
+
 @description('Tags to add to the resources')
 param tags object = {}
 
@@ -62,7 +69,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     allowSharedKeyAccess: true
 
     // Allow or disallow public network access to Storage Account.
-    publicNetworkAccess: 'Disabled'
+    publicNetworkAccess: publicNetworkAccess
 
     // Network rule set
     networkAcls: {
