@@ -25,7 +25,7 @@ param machineLearningDescription string = 'An AzureML workspace behind a private
 param location string = resourceGroup().location
 
 @description('Virtual network ID for the workspace')
-param vNetId string
+param virtualNetworkId string
 
 @description('Subnet name for the workspace')
 param subnetName string
@@ -70,7 +70,7 @@ module blobStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = {
   params: {
     name: 'privatelink.blob.${environment().suffixes.storage}'
     location: 'global'
-    linkToVirtualNetworkId: vNetId
+    linkToVirtualNetworkId: virtualNetworkId
     tags: tags
   }
 }
@@ -80,7 +80,7 @@ module fileStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = {
   params: {
     name: 'privatelink.file.${environment().suffixes.storage}'
     location: 'global'
-    linkToVirtualNetworkId: vNetId
+    linkToVirtualNetworkId: virtualNetworkId
     tags: tags
   }
 }
@@ -92,21 +92,20 @@ module storage '../resources/private_storage.bicep' = {
     storageRegion: location
     storageName: storageAccountName
     storageSKU: 'Standard_LRS'
-    subnetId: '${vNetId}/subnets/${subnetName}'
-    virtualNetworkId: vNetId
-    blobPrivateDNSZoneName: blobStoragePrivateDnsZone.name
-    filePrivateDNSZoneName: fileStoragePrivateDnsZone.name
+    subnetId: '${virtualNetworkId}/subnets/${subnetName}'
+    blobPrivateDNSZoneName: blobStoragePrivateDnsZone.outputs.name
+    filePrivateDNSZoneName: fileStoragePrivateDnsZone.outputs.name
     tags: tags
   }
 }
 
 module keyVaultPrivateDnsZone '../networking/private_dns_zone.bicep' = {
-  name: '${baseName}-file-storage-private-dns-zone'
+  name: '${baseName}-kv-private-dns-zone'
   scope: resourceGroup()
   params: {
     name: 'privatelink${environment().suffixes.keyvaultDns}'
     location: 'global'
-    linkToVirtualNetworkId: vNetId
+    linkToVirtualNetworkId: virtualNetworkId
     tags: tags
   }
 }
@@ -116,20 +115,19 @@ module keyVault '../resources/private_keyvault.bicep' = {
   params: {
     location: location
     keyvaultName: keyVaultName
-    subnetId: '${vNetId}/subnets/${subnetName}'
-    virtualNetworkId: vNetId
-    privateDNSZoneName: keyVaultPrivateDnsZone.name
+    subnetId: '${virtualNetworkId}/subnets/${subnetName}'
+    privateDNSZoneName: keyVaultPrivateDnsZone.outputs.name
     tags: tags
   }
 }
 
 module acrPrivateDnsZone '../networking/private_dns_zone.bicep' = {
-  name: '${baseName}-file-storage-private-dns-zone'
+  name: '${baseName}-acr-private-dns-zone'
   scope: resourceGroup()
   params: {
     name: 'privatelink${environment().suffixes.acrLoginServer}'
     location: 'global'
-    linkToVirtualNetworkId: vNetId
+    linkToVirtualNetworkId: virtualNetworkId
     tags: tags
   }
 }
@@ -139,9 +137,8 @@ module containerRegistry '../resources/private_acr.bicep' = {
   params: {
     location: location
     containerRegistryName: containerRegistryName
-    subnetId: '${vNetId}/subnets/${subnetName}'
-    virtualNetworkId: vNetId
-    privateDNSZoneName: acrPrivateDnsZone.name
+    subnetId: '${virtualNetworkId}/subnets/${subnetName}'
+    privateDNSZoneName: acrPrivateDnsZone.outputs.name
     tags: tags
   }
 }
@@ -207,7 +204,7 @@ resource imageBuildCompute 'Microsoft.MachineLearningServices/workspaces/compute
   
       // networking
       subnet: {
-        id: subscriptionResourceId('Microsoft.Network/VirtualNetworks/subnets', vNetId, subnetName)
+        id: '${virtualNetworkId}/subnets/${subnetName}'
       }
       enableNodePublicIp: false
       isolatedNetwork: false
@@ -236,7 +233,7 @@ module amlPrivateDnsZone '../networking/private_dns_zone.bicep' = {
   params: {
     name: amlPrivateDnsZoneNames[toLower(environment().name)]
     location: 'global'
-    linkToVirtualNetworkId: vNetId
+    linkToVirtualNetworkId: virtualNetworkId
     tags: tags
   }
 }
@@ -252,7 +249,7 @@ module aznbPrivateDnsZone '../networking/private_dns_zone.bicep' = {
   params: {
     name: aznbPrivateAznbDnsZoneName[toLower(environment().name)]
     location: 'global'
-    linkToVirtualNetworkId: vNetId
+    linkToVirtualNetworkId: virtualNetworkId
     tags: tags
   }
 }
@@ -274,7 +271,7 @@ resource machineLearningPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022
       }
     ]
     subnet: {
-      id: subscriptionResourceId('Microsoft.Network/VirtualNetworks/subnets', vNetId, subnetName)
+      id: '${virtualNetworkId}/subnets/${subnetName}'
     }
   }
 }
@@ -285,13 +282,13 @@ resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGr
   properties:{
     privateDnsZoneConfigs: [
       {
-        name: amlPrivateDnsZone.name
+        name: amlPrivateDnsZone.outputs.name
         properties:{
           privateDnsZoneId: amlPrivateDnsZone.outputs.id
         }
       }
       {
-        name: aznbPrivateDnsZone.name
+        name: aznbPrivateDnsZone.outputs.name
         properties:{
           privateDnsZoneId: aznbPrivateDnsZone.outputs.id
         }

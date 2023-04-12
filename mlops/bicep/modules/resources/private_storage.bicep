@@ -22,9 +22,6 @@ param storageRegion string
 @description('Storage SKU')
 param storageSKU string = 'Standard_LRS'
 
-@description('Resource ID of the virtual network')
-param virtualNetworkId string
-
 @description('Resource ID of the subnets allowed into this storage')
 param subnetId string
 
@@ -139,7 +136,6 @@ module blobPrivateEndpoint '../networking/private_endpoint.bicep' = {
     resourceServiceId: storage.id
     resourceName: storage.name
     pleRootName: 'ple-${storage.name}-blob-amlworkspace-${uniqueString(subnetId)}'
-    virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: blobPrivateDNSZoneName
     groupId: 'blob'
@@ -155,7 +151,6 @@ module filePrivateEndpoint '../networking/private_endpoint.bicep' = {
     resourceServiceId: storage.id
     resourceName: storage.name
     pleRootName: 'ple-${storage.name}-file-amlworkspace-${uniqueString(subnetId)}'
-    virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: filePrivateDNSZoneName
     groupId: 'file'

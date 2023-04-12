@@ -13,9 +13,6 @@ param resourceName string
 @description('Name of the storage blob private link endpoint')
 param pleRootName string = 'ple-${resourceName}'
 
-@description('Resource ID of the vnet')
-param virtualNetworkId string
-
 @description('Resource ID of the subnet')
 param subnetId string
 

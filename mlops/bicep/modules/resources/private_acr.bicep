@@ -15,9 +15,6 @@ param containerRegistryName string
 @description('Resource ID of the subnet')
 param subnetId string
 
-@description('Resource ID of the virtual network')
-param virtualNetworkId string
-
 @description('Name of the private DNS zone')
 param privateDNSZoneName string = 'privatelink${environment().suffixes.acrLoginServer}'
 
@@ -63,7 +60,6 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     location: location
     resourceServiceId: containerRegistry.id
     resourceName: containerRegistry.name
-    virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: privateDNSZoneName
     groupId: 'registry'

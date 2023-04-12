@@ -15,9 +15,6 @@ param keyvaultName string
 @description('The Subnet ID where the Key Vault Private Link is to be created')
 param subnetId string
 
-@description('The VNet ID where the Key Vault Private Link is to be created')
-param virtualNetworkId string
-
 @description('Name of the private DNS zone')
 param privateDNSZoneName string = 'privatelink${environment().suffixes.keyvaultDns}'
 
@@ -61,7 +58,6 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     location: keyVault.location
     resourceServiceId: keyVault.id
     resourceName: keyVault.name
-    virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: privateDNSZoneName
     groupId: 'vault'
