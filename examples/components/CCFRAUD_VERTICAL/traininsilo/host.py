@@ -11,7 +11,6 @@ from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
 import torch
-from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from torch import nn
@@ -495,9 +494,8 @@ def run(args, global_comm):
         args (argparse.namespace): command line arguments provided to script
     """
 
-    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    # Make sure that the CUDA allocator does not allocate too much memory at once
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
-    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
     trainer = CCFraudTrainer(
         train_data_dir=args.train_data,

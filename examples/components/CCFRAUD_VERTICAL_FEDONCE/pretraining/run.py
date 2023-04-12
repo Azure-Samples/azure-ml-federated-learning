@@ -11,7 +11,6 @@ from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from torch import nn
-from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from typing import List

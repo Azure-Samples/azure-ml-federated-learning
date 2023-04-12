@@ -181,6 +181,15 @@ pipeline_identifier = getUniqueIdentifier()
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_ccfraud_vertical_basic():
+    # Check that the config is valid
+    assert (
+        YAML_CONFIG.federated_learning.host is not None
+    ), "You need to specify a host silo in the config.yaml file"
+    assert (
+        len(YAML_CONFIG.federated_learning.silos) >= 1
+        and len(YAML_CONFIG.federated_learning.silos) <= 3
+    ), "You need to specify between 1 and 3 silos in the config.yaml file"
+
     ######################
     ### PRE-PROCESSING ###
     ######################
