@@ -1,20 +1,23 @@
 // Creates a network security group preconfigured for use with Azure ML computes
 // To learn more, see https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-training-vnet?tabs=cli%2Crequired#compute-instancecluster-with-no-public-ip
 
-@description('Azure region of the deployment')
-param location string
-
-@description('Region of the AzureML workspace')
-param workspaceRegion string
-
-@description('Tags to add to the resources')
-param tags object
+targetScope = 'resourceGroup'
 
 @description('Name of the network security group')
 param nsgName string
 
+@description('Azure region of the deployment')
+param location string = resourceGroup().location
+
+@description('Region of the AzureML workspace')
+param workspaceRegion string = resourceGroup().location
+
 @description('Set rules to allow for compute with public IP')
 param enableNodePublicIp bool = false
+
+@description('Tags to add to the resources')
+param tags object = {}
+
 
 resource nsg 'Microsoft.Network/networkSecurityGroups@2022-07-01' = {
   name: nsgName
@@ -95,7 +98,7 @@ resource AzureStorageAccount 'Microsoft.Network/networkSecurityGroups/securityRu
     sourceAddressPrefix: '*'
     destinationAddressPrefix: 'Storage.${workspaceRegion}'
     access: 'Allow'
-    priority: 143
+    priority: 153
     direction: 'Outbound'
   }
 }

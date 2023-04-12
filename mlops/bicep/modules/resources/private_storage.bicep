@@ -31,14 +31,8 @@ param subnetId string
 @description('Name of the private DNS zone for blob')
 param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
-@description('Location of the private DNS zone for blob')
-param blobPrivateDNSZoneLocation string = 'global'
-
 @description('Name of the private DNS zone for file')
 param filePrivateDNSZoneName string = 'privatelink.file.${environment().suffixes.storage}'
-
-@description('Location of the private DNS zone for file')
-param filePrivateDNSZoneLocation string = 'global'
 
 @description('Tags to add to the resources')
 param tags object = {}
@@ -148,7 +142,6 @@ module blobPrivateEndpoint '../networking/private_endpoint.bicep' = {
     virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: blobPrivateDNSZoneName
-    privateDNSZoneLocation: blobPrivateDNSZoneLocation
     groupId: 'blob'
   }
 }
@@ -165,7 +158,6 @@ module filePrivateEndpoint '../networking/private_endpoint.bicep' = {
     virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: filePrivateDNSZoneName
-    privateDNSZoneLocation: filePrivateDNSZoneLocation
     groupId: 'file'
   }
 }

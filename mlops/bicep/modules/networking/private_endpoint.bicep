@@ -28,14 +28,8 @@ param privateIPAddress string = ''
 @description('Name of the existing DNS zone to add the PLE to')
 param privateDNSZoneName string
 
-@description('Location of the existing DNS zone to add the PLE to')
-param privateDNSZoneLocation string = 'global'
-
 @description('Name of the DNS zone group to add to the PLE')
 param groupId string
-
-@description('Creates the virtual network link or not (use false if link already exists).')
-param linkVirtualNetwork bool = true
 
 @description('Tags to add to the resources')
 param tags object = {}
@@ -89,18 +83,6 @@ resource privateEndpointDnsZoneGroup 'Microsoft.Network/privateEndpoints/private
         }
       }
     ]
-  }
-}
-
-resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (linkVirtualNetwork) {
-  name: uniqueString(subnetId, resourceServiceId, groupId)
-  parent: privateDNSZone
-  location: privateDNSZoneLocation
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetworkId
-    }
   }
 }
 

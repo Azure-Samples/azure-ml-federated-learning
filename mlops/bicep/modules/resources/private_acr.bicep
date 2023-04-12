@@ -21,9 +21,6 @@ param virtualNetworkId string
 @description('Name of the private DNS zone')
 param privateDNSZoneName string = 'privatelink${environment().suffixes.acrLoginServer}'
 
-@description('Location of the private DNS zone')
-param privateDNSZoneLocation string = 'global'
-
 var containerRegistryNameCleaned = replace(containerRegistryName, '-', '')
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' = {
@@ -69,7 +66,6 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: privateDNSZoneName
-    privateDNSZoneLocation: privateDNSZoneLocation
     groupId: 'registry'
   }
 }

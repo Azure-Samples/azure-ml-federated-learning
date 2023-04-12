@@ -21,9 +21,6 @@ param virtualNetworkId string
 @description('Name of the private DNS zone')
 param privateDNSZoneName string = 'privatelink${environment().suffixes.keyvaultDns}'
 
-@description('Location of the private DNS zone')
-param privateDNSZoneLocation string = 'global'
-
 resource keyVault 'Microsoft.KeyVault/vaults@2022-07-01' = {
   name: keyvaultName
   location: location
@@ -67,7 +64,6 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     virtualNetworkId: virtualNetworkId
     subnetId: subnetId
     privateDNSZoneName: privateDNSZoneName
-    privateDNSZoneLocation: privateDNSZoneLocation
     groupId: 'vault'
   }
 }

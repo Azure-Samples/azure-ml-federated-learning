@@ -24,14 +24,11 @@ param machineLearningDescription string = 'An AzureML workspace behind a private
 @description('Specifies the location of the Azure Machine Learning workspace and dependent resources.')
 param location string = resourceGroup().location
 
-@description('Specifies whether to reduce telemetry collection and enable additional encryption.')
-param hbiWorkspace bool = false
+@description('Virtual network ID for the workspace')
+param vNetId string
 
-@description('Name of the application insights log analytics workspace')
-param appInsightLogAnalyticsName string = 'logs-${baseName}'
-
-@description('Name of the application insights resource')
-param applicationInsightsName string = 'appi-${baseName}'
+@description('Subnet name for the workspace')
+param subnetName string
 
 @description('Name of the container registry resource')
 param containerRegistryName string = replace('cr-${baseName}','-','') // replace because only alphanumeric characters are supported
@@ -39,7 +36,7 @@ param containerRegistryName string = replace('cr-${baseName}','-','') // replace
 @description('Name of the workspace secrets store (shared keyvault) resource')
 param keyVaultName string = 'ws-shkv-${baseName}'
 
-@description('Name of the storage account resource')
+@description('Name of the workspace storage account resource')
 param storageAccountName string = replace('st-${baseName}','-','') // replace because only alphanumeric characters are supported
 
 @description('Name of the cluster used to build images for custom environments (required for private workspaces)')
@@ -51,20 +48,6 @@ param imageBuildComputeSKU string = 'Standard_DS3_v2'
 @description('VM nodes for cluster used to build images')
 param imageBuildComputeNodes int = 2
 
-@description('Name of the NSG to create')
-param nsgName string = 'nsg-ws-${baseName}'
-
-@description('Name of the virtual network resource')
-param vnetName string = 'vnet-ws-${baseName}'
-
-@description('Virtual network address prefix')
-param vnetAddressPrefix string = '10.0.0.0/16'
-
-@description('Workspace resources subnet address prefix')
-param wsSubnetPrefix string = '10.0.0.0/24'
-
-@description('Workspace resources subnet name')
-param wsSubnetName string = 'snet-ws'
 
 @description('Public network access to the Azure ML workspace itself')
 @allowed([
@@ -77,50 +60,29 @@ param workspacePublicNetworkAccess string = 'Disabled'
 param tags object = {}
 
 
-// Virtual network and network security group of the workspace resources
-module nsg '../networking/azureml_workspace_nsg.bicep' = { 
-  name: 'nsg-${baseName}-aml-compute'
-  scope: resourceGroup()
-  params: {
-    location: location
-    nsgName: nsgName
-    tags: tags
-    workspaceRegion: location
-  }
-}
-
-module vnet '../networking/vnet.bicep' = { 
-  name: 'vnet-${baseName}-deployment'
-  scope: resourceGroup()
-  params: {
-    location: location
-    virtualNetworkName: vnetName
-    networkSecurityGroupId: nsg.outputs.id
-    vnetAddressPrefix: vnetAddressPrefix
-    subnets: [
-      {
-        name: wsSubnetName
-        addressPrefix: wsSubnetPrefix
-      }
-    ]
-    tags: tags
-  }
-}
-
-
 // ************************************************************
 // Dependent resources for the Azure Machine Learning workspace
 // ************************************************************
 
-resource blobStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.blob.${environment().suffixes.storage}'
-  location: 'global'
-  tags: tags 
+module blobStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = {
+  name: '${baseName}-blob-storage-private-dns-zone'
+  scope: resourceGroup()
+  params: {
+    name: 'privatelink.blob.${environment().suffixes.storage}'
+    location: 'global'
+    linkToVirtualNetworkId: vNetId
+    tags: tags
+  }
 }
-resource fileStoragePrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink.file.${environment().suffixes.storage}'
-  location: 'global'
-  tags: tags 
+module fileStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = {
+  name: '${baseName}-file-storage-private-dns-zone'
+  scope: resourceGroup()
+  params: {
+    name: 'privatelink.file.${environment().suffixes.storage}'
+    location: 'global'
+    linkToVirtualNetworkId: vNetId
+    tags: tags
+  }
 }
 
 module storage '../resources/private_storage.bicep' = {
@@ -130,20 +92,23 @@ module storage '../resources/private_storage.bicep' = {
     storageRegion: location
     storageName: storageAccountName
     storageSKU: 'Standard_LRS'
-    subnetId: '${vnet.outputs.id}/subnets/${wsSubnetName}'
-    virtualNetworkId: vnet.outputs.id
+    subnetId: '${vNetId}/subnets/${subnetName}'
+    virtualNetworkId: vNetId
     blobPrivateDNSZoneName: blobStoragePrivateDnsZone.name
-    blobPrivateDNSZoneLocation: blobStoragePrivateDnsZone.location
     filePrivateDNSZoneName: fileStoragePrivateDnsZone.name
-    filePrivateDNSZoneLocation: fileStoragePrivateDnsZone.location
     tags: tags
   }
 }
 
-resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink${environment().suffixes.keyvaultDns}'
-  location: 'global'
-  tags: tags 
+module keyVaultPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+  name: '${baseName}-file-storage-private-dns-zone'
+  scope: resourceGroup()
+  params: {
+    name: 'privatelink${environment().suffixes.keyvaultDns}'
+    location: 'global'
+    linkToVirtualNetworkId: vNetId
+    tags: tags
+  }
 }
 module keyVault '../resources/private_keyvault.bicep' = {
   name: 'kv-${baseName}-deployment'
@@ -151,18 +116,22 @@ module keyVault '../resources/private_keyvault.bicep' = {
   params: {
     location: location
     keyvaultName: keyVaultName
-    subnetId: '${vnet.outputs.id}/subnets/${wsSubnetName}'
-    virtualNetworkId: vnet.outputs.id
+    subnetId: '${vNetId}/subnets/${subnetName}'
+    virtualNetworkId: vNetId
     privateDNSZoneName: keyVaultPrivateDnsZone.name
-    privateDNSZoneLocation: keyVaultPrivateDnsZone.location
     tags: tags
   }
 }
 
-resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: 'privatelink${environment().suffixes.acrLoginServer}'
-  location: 'global'
-  tags: tags 
+module acrPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+  name: '${baseName}-file-storage-private-dns-zone'
+  scope: resourceGroup()
+  params: {
+    name: 'privatelink${environment().suffixes.acrLoginServer}'
+    location: 'global'
+    linkToVirtualNetworkId: vNetId
+    tags: tags
+  }
 }
 module containerRegistry '../resources/private_acr.bicep' = {
   name: 'cr${baseName}-deployment'
@@ -170,10 +139,9 @@ module containerRegistry '../resources/private_acr.bicep' = {
   params: {
     location: location
     containerRegistryName: containerRegistryName
-    subnetId: '${vnet.outputs.id}/subnets/${wsSubnetName}'
-    virtualNetworkId: vnet.outputs.id
+    subnetId: '${vNetId}/subnets/${subnetName}'
+    virtualNetworkId: vNetId
     privateDNSZoneName: acrPrivateDnsZone.name
-    privateDNSZoneLocation: acrPrivateDnsZone.location
     tags: tags
   }
 }
@@ -199,7 +167,7 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-10-0
     storageAccount: storage.outputs.storageId
     keyVault: keyVault.outputs.keyvaultId
     containerRegistry: containerRegistry.outputs.containerRegistryId
-    hbiWorkspace: hbiWorkspace
+    hbiWorkspace: true
 
     // configuration for workspaces with private link endpoint
     publicNetworkAccess: workspacePublicNetworkAccess
@@ -239,7 +207,7 @@ resource imageBuildCompute 'Microsoft.MachineLearningServices/workspaces/compute
   
       // networking
       subnet: {
-        id: '${vnet.outputs.id}/subnets/${wsSubnetName}'
+        id: subscriptionResourceId('Microsoft.Network/VirtualNetworks/subnets', vNetId, subnetName)
       }
       enableNodePublicIp: false
       isolatedNetwork: false
@@ -256,6 +224,38 @@ resource imageBuildCompute 'Microsoft.MachineLearningServices/workspaces/compute
 // *****************************************
 // Azure Machine Learning private networking
 // *****************************************
+
+var amlPrivateDnsZoneNames =  {
+  azureusgovernment: 'privatelink.api.ml.azure.us'
+  azurechinacloud: 'privatelink.api.ml.azure.cn'
+  azurecloud: 'privatelink.api.azureml.ms'
+}
+module amlPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+  name: '${baseName}-aml-private-dns-zone'
+  scope: resourceGroup()
+  params: {
+    name: amlPrivateDnsZoneNames[toLower(environment().name)]
+    location: 'global'
+    linkToVirtualNetworkId: vNetId
+    tags: tags
+  }
+}
+
+var aznbPrivateAznbDnsZoneName = {
+  azureusgovernment: 'privatelink.notebooks.usgovcloudapi.net'
+  azurechinacloud: 'privatelink.notebooks.chinacloudapi.cn'
+  azurecloud: 'privatelink.notebooks.azure.net'
+}
+module aznbPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+  name: '${baseName}-aznb-private-dns-zone'
+  scope: resourceGroup()
+  params: {
+    name: aznbPrivateAznbDnsZoneName[toLower(environment().name)]
+    location: 'global'
+    linkToVirtualNetworkId: vNetId
+    tags: tags
+  }
+}
 
 resource machineLearningPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
   name: 'ple-${baseName}-aml'
@@ -274,53 +274,7 @@ resource machineLearningPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022
       }
     ]
     subnet: {
-      id: '${vnet.outputs.id}/subnets/${wsSubnetName}'
-    }
-  }
-}
-
-var amlPrivateDnsZoneNames =  {
-  azureusgovernment: 'privatelink.api.ml.azure.us'
-  azurechinacloud: 'privatelink.api.ml.azure.cn'
-  azurecloud: 'privatelink.api.azureml.ms'
-}
-resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: amlPrivateDnsZoneNames[toLower(environment().name)]
-  location: 'global'
-  tags: tags 
-}
-resource amlPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: uniqueString(machineLearning.id)
-  parent: amlPrivateDnsZone
-  location: 'global'
-  tags: tags
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: vnet.outputs.id
-    }
-  }
-}
-
-var aznbPrivateAznbDnsZoneName = {
-  azureusgovernment: 'privatelink.notebooks.usgovcloudapi.net'
-  azurechinacloud: 'privatelink.notebooks.chinacloudapi.cn'
-  azurecloud: 'privatelink.notebooks.azure.net'
-}
-resource aznbPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
-  name: aznbPrivateAznbDnsZoneName[toLower(environment().name)]
-  location: 'global'
-  tags: tags 
-}
-resource notebookPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
-  name: uniqueString(machineLearning.id)
-  parent: aznbPrivateDnsZone
-  location: 'global'
-  tags: tags 
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: vnet.outputs.id
+      id: subscriptionResourceId('Microsoft.Network/VirtualNetworks/subnets', vNetId, subnetName)
     }
   }
 }
@@ -333,13 +287,13 @@ resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGr
       {
         name: amlPrivateDnsZone.name
         properties:{
-          privateDnsZoneId: amlPrivateDnsZone.id
+          privateDnsZoneId: amlPrivateDnsZone.outputs.id
         }
       }
       {
         name: aznbPrivateDnsZone.name
         properties:{
-          privateDnsZoneId: aznbPrivateDnsZone.id
+          privateDnsZoneId: aznbPrivateDnsZone.outputs.id
         }
       }
     ]
