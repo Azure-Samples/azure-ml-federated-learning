@@ -1,3 +1,9 @@
+##########################################################################################
+#                                         WARNING                                        #
+##########################################################################################
+# Should this file change please update all copies of aml_smpc.py file in the repository #
+##########################################################################################
+
 import sys
 import pickle
 import logging
@@ -68,7 +74,7 @@ class AMLSMPC:
                 key
             )
         else:
-            raise Exception(
+            raise ValueError(
                 f"Encoding {encoding} not supported, use one of OpenSSH, DER, PEM"
             )
 

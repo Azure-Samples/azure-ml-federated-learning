@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: nvflare_provision
+name: msft_fl_nvflare_provision
 version: 0.0.5
 display_name: NVFlare provision
 type: command

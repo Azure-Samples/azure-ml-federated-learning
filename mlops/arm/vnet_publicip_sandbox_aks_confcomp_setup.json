@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "1810000442779468320"
+      "templateHash": "16858099296982973929"
     }
   },
   "parameters": {
@@ -459,7 +459,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "7795565545239978732"
+              "templateHash": "4272420941481803968"
             }
           },
           "parameters": {
@@ -1537,7 +1537,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "8073065165220131475"
+                      "templateHash": "3521838058917601730"
                     }
                   },
                   "parameters": {
@@ -1647,7 +1647,7 @@
                         "allowBlobPublicAccess": false,
                         "allowCrossTenantReplication": false,
                         "allowedCopyScope": "PrivateLink",
-                        "allowSharedKeyAccess": true,
+                        "allowSharedKeyAccess": false,
                         "networkAcls": {
                           "copy": [
                             {
@@ -2175,7 +2175,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "7795565545239978732"
+              "templateHash": "4272420941481803968"
             }
           },
           "parameters": {
@@ -3253,7 +3253,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "8073065165220131475"
+                      "templateHash": "3521838058917601730"
                     }
                   },
                   "parameters": {
@@ -3363,7 +3363,7 @@
                         "allowBlobPublicAccess": false,
                         "allowCrossTenantReplication": false,
                         "allowedCopyScope": "PrivateLink",
-                        "allowSharedKeyAccess": true,
+                        "allowSharedKeyAccess": false,
                         "networkAcls": {
                           "copy": [
                             {

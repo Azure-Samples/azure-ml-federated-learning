@@ -72,7 +72,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     allowedCopyScope: 'PrivateLink'
 
     // Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
-    allowSharedKeyAccess: true
+    allowSharedKeyAccess: false // we're using UAI anyway, no need for shared key access
 
 
     // Network rule set
