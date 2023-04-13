@@ -57,7 +57,7 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     tags: tags
     location: keyVault.location
     resourceServiceId: keyVault.id
-    resourceName: keyVault.name
+    pleRootName: 'ple-${keyVault.name}'
     subnetId: subnetId
     privateDNSZoneName: privateDNSZoneName
     groupId: 'vault'

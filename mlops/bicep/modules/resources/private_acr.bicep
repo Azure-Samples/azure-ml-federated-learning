@@ -59,7 +59,7 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     tags: tags
     location: location
     resourceServiceId: containerRegistry.id
-    resourceName: containerRegistry.name
+    pleRootName: 'ple-${containerRegistry.name}'
     subnetId: subnetId
     privateDNSZoneName: privateDNSZoneName
     groupId: 'registry'
