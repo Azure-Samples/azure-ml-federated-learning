@@ -6,7 +6,10 @@ import socket
 
 from aml_comm import AMLCommSocket
 import pandas as pd
+import numpy as np
 import mlflow
+
+from SymmetricPSI import PSISender, PSIReceiver
 
 SCALERS = {}
 
@@ -80,42 +83,83 @@ def psi(
     train_df = pd.read_csv(raw_training_data + f"/train_processed.csv")
     test_df = pd.read_csv(raw_testing_data + f"/test_processed.csv")
 
-    train_df[["matching_id"]].to_csv(
-        "./train_matching_ids.csv", index=False, header=False
-    )
-    test_df[["matching_id"]].to_csv("./test_matching_ids.csv", index=True, header=False)
-
-    # Execute command in shell
+    logger.debug(f"Train data shape: {train_df.shape}")
     if rank == 0:
+        local_ids = list(train_df["matching_id"])
+        psi_receiver = PSIReceiver(local_ids)
+        psi_request = psi_receiver.create_request()
         for i in range(1, world_size):
-            logger.debug(f"Receiving ip address from rank {i}")
-            ip_address = comm.recv(i)
-            logger.debug(f"Received ip address {ip_address} from rank {i}")
+            comm.send(psi_request, i)
 
-            os.system(
-                f"/APSI/build/bin/receiver_cli -l all -q ./train_matching_ids.csv -o ./train_matched_ids_{i}.csv -a {ip_address}"
-            )
-            os.system(
-                f"/APSI/build/bin/receiver_cli -l all -q ./test_matching_ids.csv -o ./test_matched_ids_{i}.csv -a {ip_address}"
-            )
+        filters = [None] * world_size
+        for i in range(1, world_size):
+            filters[i] = comm.recv(i)
 
-            logger.debug(
-                f"Matched ids from rank {i} are saved to ./train_matched_ids_{i}.csv and ./test_matched_ids_{i}.csv"
-            )
-            logger.debug(
-                f"Head of train_matched_ids_{i}.csv: {pd.read_csv(f'./train_matched_ids_{i}.csv').head()}"
-            )
+        responses = [None] * world_size
+        for i in range(1, world_size):
+            responses[i] = comm.recv(i)
+
+        overlaps = [None] * world_size
+        for i in range(1, world_size):
+            overlaps[i] = psi_receiver.find_overlap(filters[i], responses[i])
+
+        overlap = set(local_ids)
+        for i in range(1, world_size):
+            overlap = overlap.intersection(overlaps[i])
+
+        for i in range(1, world_size):
+            comm.send(overlap, i)
+
+        train_df = train_df[train_df["matching_id"].isin(overlap)]
     else:
-        ip_address = socket.gethostbyname(socket.gethostname())
-        logger.debug(f"Sending ip address {ip_address} to rank 0")
-        comm.send(ip_address, 0)
+        psi_sender = PSISender()
+        psi_request = comm.recv(0)
+        filter = psi_sender.get_serialized_filter()
+        comm.send(filter, 0)
+        response = psi_sender.create_request_response(psi_request)
+        comm.send(response, 0)
+        overlap = comm.recv(0)
+        train_df = train_df[train_df["matching_id"].isin(overlap)]
 
-        os.system(
-            "/APSI/build/bin/sender_cli -l all -d ./train_matching_ids.csv -p ./params.json"
-        )
-        os.system(
-            "/APSI/build/bin/sender_cli -l all -d ./test_matching_ids.csv -p ./params.json"
-        )
+    logger.debug(f"Train data shape after PSI: {train_df.shape}")
+        
+
+    # train_df[["matching_id"]].to_csv(
+    #     "./train_matching_ids.csv", index=False, header=False
+    # )
+    # test_df[["matching_id"]].to_csv("./test_matching_ids.csv", index=True, header=False)
+
+    # # Execute command in shell
+    # if rank == 0:
+    #     for i in range(1, world_size):
+    #         logger.debug(f"Receiving ip address from rank {i}")
+    #         ip_address = comm.recv(i)
+    #         logger.debug(f"Received ip address {ip_address} from rank {i}")
+
+    #         os.system(
+    #             f"/APSI/build/bin/receiver_cli -l all -q ./train_matching_ids.csv -o ./train_matched_ids_{i}.csv -a {ip_address}"
+    #         )
+    #         os.system(
+    #             f"/APSI/build/bin/receiver_cli -l all -q ./test_matching_ids.csv -o ./test_matched_ids_{i}.csv -a {ip_address}"
+    #         )
+
+    #         logger.debug(
+    #             f"Matched ids from rank {i} are saved to ./train_matched_ids_{i}.csv and ./test_matched_ids_{i}.csv"
+    #         )
+    #         logger.debug(
+    #             f"Head of train_matched_ids_{i}.csv: {pd.read_csv(f'./train_matched_ids_{i}.csv').head()}"
+    #         )
+    # else:
+    #     ip_address = socket.gethostbyname(socket.gethostname())
+    #     logger.debug(f"Sending ip address {ip_address} to rank 0")
+    #     comm.send(ip_address, 0)
+
+    #     os.system(
+    #         "/APSI/build/bin/sender_cli -l all -d ./train_matching_ids.csv -p ./params.json"
+    #     )
+    #     os.system(
+    #         "/APSI/build/bin/sender_cli -l all -d ./test_matching_ids.csv -p ./params.json"
+    #     )
 
     train_df.to_csv(train_data_dir + "/data.csv")
     test_df.to_csv(test_data_dir + "/data.csv")

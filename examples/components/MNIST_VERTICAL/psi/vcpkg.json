@@ -9,7 +9,9 @@
         "cppzmq",
         "flatbuffers",
         "jsoncpp",
-        "tclap"
+        "tclap",
+        "python3",
+        "pybind11"
     ],
     "overrides": [
         {
