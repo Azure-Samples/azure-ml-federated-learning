@@ -66,7 +66,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     allowedCopyScope: 'PrivateLink'
 
     // Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
-    allowSharedKeyAccess: true
+    allowSharedKeyAccess: false
 
     // Allow or disallow public network access to Storage Account.
     publicNetworkAccess: publicNetworkAccess

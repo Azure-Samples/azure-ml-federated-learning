@@ -7,11 +7,8 @@ param location string = resourceGroup().location
 @description('Service ID of the resource to create private link endpoint to')
 param resourceServiceId string
 
-@description('Name of resource in private DNS zone A record (if privateIPAddress is specified)')
-param resourceName string
-
 @description('Name of the storage blob private link endpoint')
-param pleRootName string = 'ple-${resourceName}'
+param pleRootName string
 
 @description('Resource ID of the subnet')
 param subnetId string

@@ -31,7 +31,7 @@ param computeIdentityType string = 'UserAssigned'
 param computeUaiName string
 
 @description('Subnet ID')
-param subnetId string
+param vnetId string
 
 @description('Subnet name')
 param subnetName string = 'snet-training'
@@ -59,6 +59,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
   name: computeName
   parent: workspace
   location: machineLearningRegion
+  tags: tags
   identity: {
     type: computeIdentityType
     userAssignedIdentities: userAssignedIdentities
@@ -87,7 +88,7 @@ resource compute 'Microsoft.MachineLearningServices/workspaces/computes@2021-07-
 
       // includes compute in the vnet/subnet
       subnet: {
-        id: '${subnetId}/subnets/${subnetName}'
+        id: '${vnetId}/subnets/${subnetName}'
       }
 
       // ???

@@ -152,7 +152,7 @@ module containerRegistry '../resources/private_acr.bicep' = {
 // Azure Machine Learning workspace
 // ********************************
 
-resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-10-01' = {
+resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-12-01-preview' = {
   name: machineLearningName
   location: location
   tags: tags
