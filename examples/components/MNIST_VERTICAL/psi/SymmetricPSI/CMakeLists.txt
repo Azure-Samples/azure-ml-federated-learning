@@ -12,6 +12,6 @@ find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 CONFIG REQUIRED)
 find_package(APSI CONFIG REQUIRED)
 
-pybind11_add_module(SymmetricPSI STATIC psi.cpp)
+pybind11_add_module(SymmetricPSI psi.cpp)
 target_link_libraries(SymmetricPSI PRIVATE APSI::apsi Python3::Python pybind11::lto pybind11::embed pybind11::module pybind11::headers)
-set_target_properties(SymmetricPSI PROPERTIES PREFIX "" SUFFIX ".so" OUTPUT_NAME "SymmetricPSI")
+set_target_properties(SymmetricPSI PROPERTIES PREFIX "" SUFFIX ".so" OUTPUT_NAME "SymmetricPSI" POSITION_INDEPENDENT_CODE TRUE)

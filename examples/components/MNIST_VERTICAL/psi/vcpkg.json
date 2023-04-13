@@ -10,7 +10,6 @@
         "flatbuffers",
         "jsoncpp",
         "tclap",
-        "python3",
         "pybind11"
     ],
     "overrides": [

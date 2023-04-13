@@ -18,7 +18,9 @@
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+
 #include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
 
 using namespace std;
 using namespace apsi;
@@ -34,8 +36,8 @@ namespace py = pybind11;
 vector<Item> to_items(const vector<string>& items)
 {
     vector<Item> psi_items;
-    psi_items.resize(items.size());
-    std::for_each(begin(items), end(items), [&psi_items](string v) {
+    psi_items.reserve(items.size());
+    std::for_each(begin(items), end(items), [&psi_items](string& v) {
         psi_items.emplace_back(Item(v));
         });
     return psi_items;
@@ -57,7 +59,7 @@ public:
 
         // The sender will insert its items in the Cuckoo filter
         // The filter needs to be parameterized correctly to avoid false positives
-        this->m_filter = make_unique<CuckooFilter>(items.size(), 60);
+        this->m_filter = make_unique<CuckooFilter>(items.size(), 64);
         for (auto& hashed_item : hashed_items) {
             this->m_filter->add(hashed_item.get_as<uint64_t>());
         }
@@ -144,7 +146,7 @@ public:
     }
 };
 
-PYBIND11_MODULE(psi, m) {
+PYBIND11_MODULE(SymmetricPSI, m) {
     m.doc() = "Minimal Symmetrical PSI library";
 
     py::class_<PSISender>(m, "PSISender")
