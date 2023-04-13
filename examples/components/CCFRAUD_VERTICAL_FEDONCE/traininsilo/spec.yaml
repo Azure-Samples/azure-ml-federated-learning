@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_vertical_train_in_silo_host
+name: msft_fl_ccfraud_vertical_fedonce_train_in_silo_host
 version: 0.0.1
 display_name: CC Fraud Train (in silo)
 type: command
