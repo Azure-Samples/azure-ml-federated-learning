@@ -122,7 +122,6 @@ def psi(
         train_df = train_df[train_df["matching_id"].isin(overlap)]
 
     logger.debug(f"Train data shape after PSI: {train_df.shape}")
-        
 
     # train_df[["matching_id"]].to_csv(
     #     "./train_matching_ids.csv", index=False, header=False
