@@ -438,6 +438,8 @@ def run(args):
 
     # Make sure that the CUDA allocator does not allocate too much memory at once
     os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
+    # Make sure that CUDA operations are deterministic
+    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
     embeddings = [
         emb
