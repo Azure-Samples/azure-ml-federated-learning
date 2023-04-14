@@ -1,7 +1,7 @@
 # Cross-silo vertical federated learning
 
 ## Background
-Vertical federated learning (VFL) is branch of federated learning where the data are split across the features among the participants rather than across the samples (horizontal FL). In other words we can say that it takes federated learning to another level as it allows for cross-organization collaboration without need for having the same features while keeping privacy and security of each individual's data intact. Some of real-world examples include, but are not limited to:
+Vertical federated learning (VFL) is a branch of federated learning where the data are split across the features among the participants rather than across the samples (horizontal FL). In other words we can say that it takes federated learning to another level as it allows for cross-organization collaboration without the need for having the same features, while keeping privacy and security of each individual's data intact. Some of real-world examples include, but are not limited to:
 - Finance: several institutions owning different pieces of data about their clients (e.g. bank account data, credit card data, loans data, ...etc)
 - Healthcare: different healthcare facilities may own different modalities (e.g. x-ray scans, prescriptions, patient health records, ...etc)
 - Retail: each retailer owns different information about customer and aggregating this information may result in better recommendations for the customer
@@ -11,17 +11,18 @@ Vertical federated learning (VFL) is branch of federated learning where the data
     <img src="../pics/fldatatypes.png" alt="Homogenous vs heterogenous data" width="400">
 </div>
 
-> Note: In this tutorial we refer to "host" as the party who owns the data labels and optionally some part of features and "contributors" as parties who own only features and provide host with intermediate outputs of their share of the network
+> Note: In this tutorial we refer to the party who owns the data labels (and optionally some features) as the "host", and to parties who only own features (and provide host with intermediate outputs of their share of the network) as "contributors".
 
 ## Objective and contents
-This tutorial will guide you through steps required to set-up VFL experiments and point out important parts of the code. We target MNIST (written number recognition) and [CCFRAUD (financial tabular data)](../real-world-examples/ccfraud.md) examples in order to showcase versatility of the solution in regards to type of the data.  All of the examples here make use of mean aggregation and assumption is that the host owns only labels while features are equally distributed among the contributors.
+This tutorial will guide you through the steps required to set up VFL experiments and point out important parts of the code. We target MNIST (written number recognition) and [CCFRAUD (financial tabular data)](../real-world-examples/ccfraud.md) examples in order to showcase versatility of the solution in regards to type of the data. These two examples make use of mean aggregation, and the assumption is that the host owns only labels while features are equally distributed among the contributors.
+
+We relax this assumption in a third example ([Bank Marketing](../real-world-examples/bank-marketing.md)), in which the host also owns part of the feature space.
 
 ## Infrastructure
-First step towards successfully running VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use **single-button deployment for vnet infrastructure deployment**. This is necessary in order for nodes to be able to communicate.
+First step towards successfully running a VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use the **single-button deployment for vnet infrastructure deployment**. This is necessary in order for nodes to be able to communicate.
 
 ## Install the required dependencies
-
-You'll need python to submit experiments to AzureML. You can install the required dependencies by running:
+You will need python to submit experiments to AzureML. You can install the required dependencies by running:
 
 ```bash
 conda env create --file ./examples/pipelines/environment.yml
@@ -35,25 +36,21 @@ python -m pip install -r ./examples/pipelines/requirements.txt
 ```
 
 ## Data provisioning
-The data format for VFL is different from regular FL. That is why each of our examples contains its own script for uploading data that are needed for a given example.
+The data format for VFL is different from regular FL. That is why each of our examples contains its own script for uploading training and validation data.
 
-> Note: This will split the data such that each contributor owns its portion of the features and host own only the labels
+> Note: This will split the data such that each contributor owns its portion of the features and the host owns only the labels (except for the Bank Marketing Prediction example).
 
 ### CCFRAUD
-
-Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace key vault](../real-world-examples/ccfraud.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example CCFRAUD_VERTICAL`**).
+Please follow the steps in [CCFRAUD - Run a job to download and store the dataset in each silo](../real-world-examples/ccfraud.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above. You will also need to adjust the `--example` argument to "CCFRAUD_VERTICAL".
 
 ### CCFRAUD with FEDONCE
 Please refer to [FedOnce](#fedonce) section below for more information. Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace key vault](../real-world-examples/ccfraud.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example CCFRAUD_VERTICAL_FEDONCE`**).
 
-
-### BANK MARKETING
-
-This example is similar to **CCFRAUD**, however here also host owns part of the feature space. Please follow steps in [BANK_MARKETING - Add your Kaggle credentials to the workspace key vault](../real-world-examples/bank-marketing.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example BANK_MARKETING_VERTICAL`**).
+### BANK_MARKETING
+This example is similar to **CCFRAUD**, however here the host also owns part of the feature space. Please follow the steps in [BANK_MARKETING - Run a job to download and store the dataset in each silo](../real-world-examples/bank-marketing.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above.
 
 ### MNIST
-
-This can all be performed with ease using a data provisioning pipeline. To run it follow these steps:
+Uploading the data can  be performed with ease using a data provisioning pipeline. To run it follow these steps:
 
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
 
@@ -63,9 +60,9 @@ This can all be performed with ease using a data provisioning pipeline. To run i
    python ./examples/pipelines/utils/upload_data/submit.py --example MNIST_VERTICAL --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
-   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
+   > Note: You can use the `--offline` flag when running the job to just build and validate the pipeline without submitting it.
 
-    :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
+    :star: You can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
@@ -81,13 +78,13 @@ Inspired by [work from Wu et. al.](https://arxiv.org/pdf/2208.10278.pdf), we als
 3. Host loads the data labels as well as all the latent representations created by the contributors and use them for training its portion of the model until convergence.
 
 ## Communication (all but CCFRAUD_VERTICAL_FEDONCE example)
-The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enable communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
+The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enables communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
 
 ### Sockets
-This is easier to start with as the only **requirement here is that the nodes are interconnected using vnet**. This is also the **default option**. To create this type of communication channel just create instance of a **AMLCommSocket** class with world size, rank of the node and root run id
+This is easier to start with as the only **requirement here is that the nodes are interconnected using vnet**. This is also the **default option**. To create this type of communication channel just create instance of a **AMLCommSocket** class with world size, rank of the node and root run id.
 
 ### Redis streams
-In case it is not feasible to use vnets in your case you can fallback on using Redis. This, however, involves provisioning [Azure Cache for Redis](https://azure.microsoft.com/en-us/products/cache/). Please, make sure that you provision at least **P1 Premium Instance with 6GB cache** for the demos. However, if you would like to use it for your own data and architectures, feel free to scale it according to the needs for messages being sent between the nodes. The reason why we recommend **Premium tier** is due to the network latency and throughput, more information can be found [here](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-best-practices-performance).
+In case it is not feasible to use vnets in your case you can fall back on using Redis. This, however, involves provisioning [Azure Cache for Redis](https://azure.microsoft.com/en-us/products/cache/). Please, make sure that you provision at least **P1 Premium Instance with 6GB cache** for the demos. However, if you would like to use it for your own data and architectures, feel free to scale it according to the needs for messages being sent between the nodes. The reason why we recommend **Premium tier** is due to the network latency and throughput, more information can be found [here](https://learn.microsoft.com/en-us/azure/azure-cache-for-redis/cache-best-practices-performance).
 
 Once you provision *Azure Cache for Redis* (this can be provisioned in whichever subscription you like):
 1. Go to *Access keys* and copy *Primary connection string*. 
@@ -119,7 +116,7 @@ Whole encryption is handled by `AMLSPMC` class in `examples/components/CCFRAUD_V
 ### Overview
 Now, before we run the training itself let's take a step back and take a look on how such training works in VFL setup that is roughly depicted in the figure below. The first step that needs to take place ahead of the training is:
 
-- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. **Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training as we do not provide any for of PSI as of now.**
+- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. **Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training as we do not provide any form of PSI as of now.**
 
 Afterwards, we can continue with regular training loop:
 - **Forward pass in contributors** - all contributors, and optionally host, perform forward pass on their part of the model with features they own
@@ -143,7 +140,7 @@ Afterwards, we can continue with regular training loop:
    python ./examples/pipelines/<example-name>/submit.py --config examples/pipelines/<example-name>/config.yaml --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
-   > Note: You can use --offline flag when running the job to just build and validate pipeline without submitting it.
+   > Note: You can use the `--offline` flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
 
@@ -153,7 +150,7 @@ Afterwards, we can continue with regular training loop:
 2. **Vertical Federated Learning comes at a cost**
     There is significant overhead when launching vertical federated learning due to heavy communication among participants. As we can see in the training loop there are two transfers per each mini-batch. One for forward pass outputs, one for gradients. This means that the training may take longer than expected.
 3. **Intersection and entity alignment**
-   The samples needs to be aligned across participants ahead of the training after we created set intersection of samples that are present on all involved parties. This process can reveal information to other entities that we may want to keep private. Fortunately there are **private set intersection** methods available out there that come to rescue.
+   The samples nee to be aligned across participants ahead of the training after we created set intersection of samples that are present on all involved parties. This process can reveal information to other entities that we may want to keep private. Fortunately there are **private set intersection** methods available out there that come to rescue.
 4. **Communication encryption**
     Even though the intermediate outputs and gradients are not raw data, they still have been inferred using private data. Therefore, it's good to use encryption when communicating the data to parties outside of Azure.
 

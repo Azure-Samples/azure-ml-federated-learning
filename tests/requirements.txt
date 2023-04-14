@@ -1,0 +1,7 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+coverage==7.2.2
+torch
+redis==4.5.4
+azure-keyvault==4.2.0
+azureml-core==1.47.0
+azureml-mlflow==1.48.0

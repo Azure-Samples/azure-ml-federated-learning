@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_data_analysis_in_silo
+name: msft_fl_ccfraud_data_analysis_in_silo
 version: 0.0.1
 display_name: CC Fraud Data-analysis (in silo)
 type: command

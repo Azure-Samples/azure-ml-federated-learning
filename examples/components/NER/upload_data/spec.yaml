@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ner_upload_data
+name: msft_fl_ner_upload_data
 version: 0.3.0
 display_name: Download MultiNERD data and upload to silo storage
 type: command

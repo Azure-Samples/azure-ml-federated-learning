@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: mnist_train_in_silo
+name: msft_fl_mnist_train_in_silo
 version: 0.3.0
 display_name: MNIST Train (in silo)
 type: command
