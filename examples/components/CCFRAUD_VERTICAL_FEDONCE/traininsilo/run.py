@@ -76,8 +76,6 @@ class RunningMetrics:
 class CCFraudTrainer:
     def __init__(
         self,
-        global_rank,
-        global_size,
         embeddings,
         train_data_dir="./",
         test_data_dir="./",
@@ -90,8 +88,6 @@ class CCFraudTrainer:
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            global_rank(int): Rank of the current node.
-            global_size(int): Total number of nodes.
             embeddings(List[str]): List of paths to pre-computed embeddings.
             train_data_dir(str, optional): Training data directory path.
             test_data_dir(str, optional): Testing data directory path.
@@ -117,8 +113,6 @@ class CCFraudTrainer:
         self._epochs = epochs
         self._batch_size = batch_size
         self._experiment_name = experiment_name
-        self._global_rank = global_rank
-        self._global_size = global_size
         self._embeddings = embeddings
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -231,7 +225,8 @@ class CCFraudTrainer:
             self.log_params(mlflow_client, root_run_id)
             logger.debug("Local training started")
             train_metrics = RunningMetrics(
-                ["loss", "accuracy", "precision", "recall"], prefix="train"
+                ["loss", "accuracy", "precision", "recall"],
+                prefix="train_" + self._experiment_name,
             )
 
             for epoch in range(1, self._epochs + 1):
@@ -345,7 +340,8 @@ class CCFraudTrainer:
     def test(self):
         """Test the trained model and report test loss and accuracy"""
         test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall"], prefix="test"
+            ["loss", "accuracy", "precision", "recall"],
+            prefix="test_" + self._experiment_name,
         )
 
         self.model_.eval()
@@ -417,18 +413,6 @@ def get_arg_parser(parser=None):
     parser.add_argument("--contributor_3_embeddings", type=str, required=False, help="")
     parser.add_argument("--model_path", type=str, required=True, help="")
     parser.add_argument(
-        "--global_size",
-        type=int,
-        required=True,
-        help="Number of silos",
-    )
-    parser.add_argument(
-        "--global_rank",
-        type=int,
-        required=True,
-        help="Index of the current silo",
-    )
-    parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
 
@@ -442,20 +426,6 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-    parser.add_argument(
-        "--communication_backend",
-        type=str,
-        required=False,
-        default="socket",
-        help="Type of communication to use between the nodes",
-    )
-    parser.add_argument(
-        "--communication_encrypted",
-        type=strtobool,
-        required=False,
-        default=False,
-        help="Encrypt messages exchanged between the nodes",
-    )
     return parser
 
 
@@ -488,8 +458,6 @@ def run(args):
         epochs=args.epochs,
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
-        global_rank=args.global_rank,
-        global_size=args.global_size,
         embeddings=embeddings,
     )
     trainer.execute(args.checkpoint)

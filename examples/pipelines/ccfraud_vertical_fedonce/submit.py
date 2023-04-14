@@ -286,8 +286,6 @@ def fl_ccfraud_vertical_basic():
             batch_size=YAML_CONFIG.training_parameters.batch_size,
             # Silo name/identifier
             metrics_prefix=silo_config.compute,
-            global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
-            global_rank=silo_index,
         )
         # add a readable name to the step
         silo_pretraining_step.name = f"contributor_{silo_index}_pretraining"
@@ -343,10 +341,6 @@ def fl_ccfraud_vertical_basic():
         batch_size=YAML_CONFIG.training_parameters.batch_size,
         # Silo name/identifier
         metrics_prefix=YAML_CONFIG.federated_learning.host.compute,
-        global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
-        global_rank=silo_index,
-        communication_backend=YAML_CONFIG.federated_learning.communication.backend,
-        communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
         **embeddings_paths,
     )
 

@@ -38,12 +38,6 @@ inputs:
     description: batch size
     default: 100
     optional: true
-  global_size:
-    type: number
-    optional: false
-  global_rank:
-    type: number
-    optional: false
 
 outputs:
   model:
@@ -61,8 +55,6 @@ command: >-
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}
   --embeddings_path ${{outputs.embeddings}}
-  --global_size ${{inputs.global_size}}
-  --global_rank ${{inputs.global_rank}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
   $[[--lr ${{inputs.lr}}]]

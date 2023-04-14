@@ -75,8 +75,6 @@ class RunningMetrics:
 class CCFraudTrainer:
     def __init__(
         self,
-        global_rank,
-        global_size,
         embeddings_path,
         train_data_dir="./",
         test_data_dir="./",
@@ -89,8 +87,6 @@ class CCFraudTrainer:
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            global_rank(int): Rank of the current node.
-            global_size(int): Total number of nodes.
             embeddings_path(str): Path to save embeddings.
             train_data_dir(str, optional): Training data directory path.
             test_data_dir(str, optional): Testing data directory path.
@@ -116,8 +112,6 @@ class CCFraudTrainer:
         self._epochs = epochs
         self._batch_size = batch_size
         self._experiment_name = experiment_name
-        self._global_rank = global_rank
-        self._global_size = global_size
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device_}")
@@ -219,7 +213,7 @@ class CCFraudTrainer:
 
             train_metrics = RunningMetrics(
                 ["reconstruction_loss", "kl_loss", "net_loss"],
-                prefix="train_" + str(self._global_rank),
+                prefix="train_" + str(self._experiment_name),
             )
 
             for epoch in range(1, self._epochs + 1):
@@ -317,7 +311,7 @@ class CCFraudTrainer:
         with torch.no_grad():
             metrics = RunningMetrics(
                 ["reconstruction_loss", "kl_loss"],
-                prefix="test_" + str(self._global_rank),
+                prefix="test_" + str(self._experiment_name),
             )
             for data in self.test_loader_:
                 data = data.to(self.device_)
@@ -401,18 +395,6 @@ def get_arg_parser(parser=None):
     parser.add_argument("--model_path", type=str, required=True, help="")
     parser.add_argument("--embeddings_path", type=str, required=True, help="")
     parser.add_argument(
-        "--global_size",
-        type=int,
-        required=True,
-        help="Number of silos",
-    )
-    parser.add_argument(
-        "--global_rank",
-        type=int,
-        required=True,
-        help="Index of the current silo",
-    )
-    parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
 
@@ -445,8 +427,6 @@ def run(args):
         epochs=args.epochs,
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
-        global_rank=args.global_rank,
-        global_size=args.global_size,
     )
     trainer.execute(args.checkpoint)
 
