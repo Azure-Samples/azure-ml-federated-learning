@@ -50,18 +50,6 @@ inputs:
     description: batch size
     default: 100
     optional: true
-  communication_backend:
-    type: string
-    enum:
-      - socket
-      - redis
-    default: socket
-    optional: true
-  communication_encrypted:
-    type: boolean
-    description: Encrypt messages exchanged between the nodes
-    optional: true
-
 
 outputs:
   model:
@@ -83,8 +71,6 @@ command: >-
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
-  $[[--communication_backend ${{inputs.communication_backend}}]]
-  $[[--communication_encrypted ${{inputs.communication_encrypted}}]]
   
 environment: 
   conda_file: ./conda.yaml
