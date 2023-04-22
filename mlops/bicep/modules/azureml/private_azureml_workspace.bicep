@@ -48,6 +48,8 @@ param imageBuildComputeSKU string = 'Standard_DS3_v2'
 @description('VM nodes for cluster used to build images')
 param imageBuildComputeNodes int = 2
 
+@description('Provision new private DNS zones for the workspace dependencies')
+param createPrivateDNSZones bool = true
 
 @description('WARNING: Enable access to the AzureML workspace using public azure portal (for debugging)')
 @allowed([
@@ -64,21 +66,24 @@ param tags object = {}
 // Dependent resources for the Azure Machine Learning workspace
 // ************************************************************
 
-module blobStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = {
+var blobStoragePrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
+
+module blobStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = if (createPrivateDNSZones) {
   name: '${baseName}-blob-storage-private-dns-zone'
   scope: resourceGroup()
   params: {
-    name: 'privatelink.blob.${environment().suffixes.storage}'
+    name: blobStoragePrivateDnsZoneName
     location: 'global'
     linkToVirtualNetworkId: virtualNetworkId
     tags: tags
   }
 }
-module fileStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = {
+var fileStoragePrivateDnsZoneName = 'privatelink.file.${environment().suffixes.storage}'
+module fileStoragePrivateDnsZone '../networking/private_dns_zone.bicep' = if (createPrivateDNSZones) {
   name: '${baseName}-file-storage-private-dns-zone'
   scope: resourceGroup()
   params: {
-    name: 'privatelink.file.${environment().suffixes.storage}'
+    name: fileStoragePrivateDnsZoneName
     location: 'global'
     linkToVirtualNetworkId: virtualNetworkId
     tags: tags
@@ -93,21 +98,26 @@ module storage '../resources/private_storage.bicep' = {
     storageName: storageAccountName
     storageSKU: 'Standard_LRS'
     subnetId: '${virtualNetworkId}/subnets/${subnetName}'
-    blobPrivateDNSZoneName: blobStoragePrivateDnsZone.outputs.name
-    filePrivateDNSZoneName: fileStoragePrivateDnsZone.outputs.name
+    blobPrivateDNSZoneName: blobStoragePrivateDnsZoneName
+    filePrivateDNSZoneName: fileStoragePrivateDnsZoneName
     // if workspace is accessible through public API,
     // default storage should also be the same,
     // to allow for component uploads
     publicNetworkAccess: workspacePublicNetworkAccess
     tags: tags
   }
+  dependsOn: [
+    blobStoragePrivateDnsZone
+    fileStoragePrivateDnsZone
+  ]
 }
 
-module keyVaultPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+var keyVaultPrivateDnsZoneName = 'privatelink${environment().suffixes.keyvaultDns}'
+module keyVaultPrivateDnsZone '../networking/private_dns_zone.bicep' = if (createPrivateDNSZones) {
   name: '${baseName}-kv-private-dns-zone'
   scope: resourceGroup()
   params: {
-    name: 'privatelink${environment().suffixes.keyvaultDns}'
+    name: keyVaultPrivateDnsZoneName
     location: 'global'
     linkToVirtualNetworkId: virtualNetworkId
     tags: tags
@@ -120,16 +130,20 @@ module keyVault '../resources/private_keyvault.bicep' = {
     location: location
     keyvaultName: keyVaultName
     subnetId: '${virtualNetworkId}/subnets/${subnetName}'
-    privateDNSZoneName: keyVaultPrivateDnsZone.outputs.name
+    privateDNSZoneName: keyVaultPrivateDnsZoneName
     tags: tags
   }
+  dependsOn: [
+    keyVaultPrivateDnsZone
+  ]
 }
 
-module acrPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+var acrPrivateDnsZoneName = 'privatelink${environment().suffixes.acrLoginServer}'
+module acrPrivateDnsZone '../networking/private_dns_zone.bicep' = if (createPrivateDNSZones) {
   name: '${baseName}-acr-private-dns-zone'
   scope: resourceGroup()
   params: {
-    name: 'privatelink${environment().suffixes.acrLoginServer}'
+    name: acrPrivateDnsZoneName
     location: 'global'
     linkToVirtualNetworkId: virtualNetworkId
     tags: tags
@@ -142,7 +156,7 @@ module containerRegistry '../resources/private_acr.bicep' = {
     location: location
     containerRegistryName: containerRegistryName
     subnetId: '${virtualNetworkId}/subnets/${subnetName}'
-    privateDNSZoneName: acrPrivateDnsZone.outputs.name
+    privateDNSZoneName: acrPrivateDnsZoneName
     tags: tags
   }
 }
@@ -231,7 +245,7 @@ var amlPrivateDnsZoneNames =  {
   azurechinacloud: 'privatelink.api.ml.azure.cn'
   azurecloud: 'privatelink.api.azureml.ms'
 }
-module amlPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+module amlPrivateDnsZone '../networking/private_dns_zone.bicep' = if (createPrivateDNSZones) {
   name: '${baseName}-aml-private-dns-zone'
   scope: resourceGroup()
   params: {
@@ -247,7 +261,7 @@ var aznbPrivateAznbDnsZoneName = {
   azurechinacloud: 'privatelink.notebooks.chinacloudapi.cn'
   azurecloud: 'privatelink.notebooks.azure.net'
 }
-module aznbPrivateDnsZone '../networking/private_dns_zone.bicep' = {
+module aznbPrivateDnsZone '../networking/private_dns_zone.bicep' = if (createPrivateDNSZones) {
   name: '${baseName}-aznb-private-dns-zone'
   scope: resourceGroup()
   params: {
@@ -309,3 +323,5 @@ resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGr
 output storageName string = storage.name
 output workspaceName string = machineLearning.name
 output region string = location
+output workspaceSecretStoreId string = keyVault.outputs.keyvaultId
+output workspaceSecretStoreName string = keyVaultName
