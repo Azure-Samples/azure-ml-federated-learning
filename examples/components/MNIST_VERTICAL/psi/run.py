@@ -109,8 +109,6 @@ def psi(
 
         for i in range(1, world_size):
             comm.send(overlap, i)
-
-        train_df = train_df[local_ids.isin(overlap)]
     else:
         psi_sender = PSISender(local_ids)
         psi_request = comm.recv(0)
@@ -119,8 +117,8 @@ def psi(
         response = psi_sender.create_request_response(psi_request)
         comm.send(response, 0)
         overlap = comm.recv(0)
-        train_df = train_df[local_ids.isin(overlap)]
 
+    train_df = train_df[[local_id in overlap for local_id in local_ids]]
     logger.debug(f"Train data shape after PSI: {train_df.shape}")
 
     train_df.to_csv(train_data_dir + "/data.csv")
