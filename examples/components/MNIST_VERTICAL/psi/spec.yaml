@@ -1,7 +1,7 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
 name: mnist_vertical_psi_in_silo
-version: 0.0.1
+version: 0.0.3
 display_name: MNIST Vertical PSI (in silo)
 type: command
 description: Component for private set intersection over data in silo's blob storage
@@ -38,16 +38,15 @@ outputs:
 code: .
 
 command: >-
-  ./setup_apsi.sh &&
-  python run.py 
+  cp /SymmetricPSI/build/SymmetricPSI.so . && python run.py 
   --raw_training_data ${{inputs.train_data}}
   --raw_testing_data ${{inputs.test_data}}
   --train_output ${{outputs.matched_train_data}}
   --test_output ${{outputs.matched_test_data}}
   --rank ${{inputs.rank}}
   --world_size ${{inputs.world_size}}
-  $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  $[[--metrics_prefix=${{inputs.metrics_prefix}}]]
 
 environment: 
-  conda_file: ./conda.yaml
-  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
+  build:
+    path: ./context

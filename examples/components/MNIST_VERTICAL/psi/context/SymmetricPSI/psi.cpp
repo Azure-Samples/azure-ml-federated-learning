@@ -37,7 +37,7 @@ vector<Item> to_items(const vector<string>& items)
 {
     vector<Item> psi_items;
     psi_items.reserve(items.size());
-    std::for_each(begin(items), end(items), [&psi_items](string& v) {
+    std::for_each(begin(items), end(items), [&psi_items](string v) {
         psi_items.emplace_back(Item(v));
         });
     return psi_items;
@@ -51,29 +51,26 @@ private:
 public:
     PSISender(const vector<string>& items)
     {
-        // Convert the items to the internal representation
-        vector<Item> psi_items = to_items(items);
-
         // The sender first processes its items with the OPRF
-        vector<HashedItem> hashed_items = OPRFSender::ComputeHashes(psi_items, this->m_oprf_key);
+        vector<HashedItem> hashed_items = OPRFSender::ComputeHashes(to_items(items), this->m_oprf_key);
 
         // The sender will insert its items in the Cuckoo filter
         // The filter needs to be parameterized correctly to avoid false positives
-        this->m_filter = make_unique<CuckooFilter>(items.size(), 64);
+        this->m_filter = make_unique<CuckooFilter>(items.size(), 63);
         for (auto& hashed_item : hashed_items) {
             this->m_filter->add(hashed_item.get_as<uint64_t>());
         }
         cout << "Sender finished inserting " << this->m_filter->get_num_items() << " items in the filter";
     }
 
-    string get_serialized_filter()
+    py::bytes get_serialized_filter()
     {
         stringstream exchange_stream;
         this->m_filter->save(exchange_stream);
-        return exchange_stream.str();
+        return py::bytes(exchange_stream.str());
     }
 
-    string create_request_response(string request)
+    py::bytes create_request_response(const string& request)
     {
         // Create channel for stroring data
         stringstream request_stream_in, request_stream_out;
@@ -92,7 +89,7 @@ public:
 
         stringstream output_stream;
         output_stream << request_stream_out.rdbuf();
-        return output_stream.str();
+        return py::bytes(output_stream.str());
     }
 
 };
@@ -104,14 +101,14 @@ private:
 public:
     PSIReceiver(const vector<string>& items) : m_oprf_receiver{ Receiver::CreateOPRFReceiver(to_items(items)) } {}
 
-    string create_request()
+    py::bytes create_request()
     {
 		// Create the OPRF request
 		auto oprf_request = Receiver::CreateOPRFRequest(m_oprf_receiver);
 		// Send the OPRF request
 		stringstream output_stream;
 		oprf_request->save(output_stream);
-		return output_stream.str();
+		return py::bytes(output_stream.str());
 	}
 
     vector<string> find_overlap(const string& cuckoo_filter, const string& response)
@@ -128,8 +125,9 @@ public:
         StreamChannel channel(request_stream_in, request_stream_out);
         request_stream_in << response;
 
+        vector<HashedItem> receiver_oprf_items;vector<LabelKey> label_keys;
         OPRFResponse oprf_response = to_oprf_response(move(channel.receive_response()));
-        auto receiver_oprf_items = Receiver::ExtractHashes(oprf_response, this->m_oprf_receiver).first;
+        tie(receiver_oprf_items, label_keys) = Receiver::ExtractHashes(oprf_response, this->m_oprf_receiver);
 
         // Now all we need to do is check whether they appear in the filter
         size_t match_counter = 0;
