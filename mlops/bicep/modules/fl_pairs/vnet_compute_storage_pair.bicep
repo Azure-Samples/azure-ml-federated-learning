@@ -13,6 +13,9 @@ param machineLearningName string
 @description('The region of the machine learning workspace')
 param machineLearningRegion string = resourceGroup().location
 
+@description('Set true to provision PLEs necessary for private workspace to interact with the pair')
+param machineLearningIsPrivate bool = true
+
 @description('Specifies the location of the pair resources.')
 param pairRegion string = resourceGroup().location
 
@@ -61,20 +64,14 @@ param subnetName string = 'fl-pair-snet'
 @description('Subnet address prefix (if createNewVnet==true)')
 param subnetPrefix string = '10.0.0.0/24'
 
-@description('Use a static ip for storage PLE')
-param useStoragePLEStaticIP bool = false
+@description('Static ip for the pair blob storage PLE (if usePLEStaticIPs is true)')
+param storagePLEStaticIP string = ''
 
-@description('Which static IP to use for storage PLE (if useStorageStaticIP is true)')
-param storagePLEStaticIP string = '10.0.0.50'
+@description('Create a PLE for the machine learning workspace (if machineLearningIsPrivate=true)')
+param createMachineLearningPLE bool = true
 
-@description('Create a workspace PLE inside the compute virtual network (required if using private link workspace)')
-param createWorkspacePLE bool = false
-
-@description('Use a static ip for storage PLE')
-param useWorkspacePLEStaticIP bool = false
-
-@description('Which static IP to use for workspace PLE (if useWorkspacePLEStaticIP is true)')
-param workspacePLEStaticIP string = '10.0.0.51'
+@description('Static ip for the PLE to the workspace (if usePLEStaticIPs=true and machineLearningIsPrivate=true)')
+param amlPLEStaticIPs string = ''
 
 @description('Allow other subnets into the storage (need to be in the same region)')
 param allowedSubnetIds array = []
@@ -155,26 +152,10 @@ var amlPrivateDnsZoneNames =  {
   azurecloud: 'privatelink.api.azureml.ms'
 }
 var amlPrivateDnsZoneName = amlPrivateDnsZoneNames[toLower(environment().name)]
-
-module amlPLE '../networking/private_endpoint.bicep' = if (createWorkspacePLE){
-  name: '${machineLearningName}-${pairBaseName}-ple-deployment'
-  params: {
-    location: pairRegion
-    pleRootName: 'ple-${machineLearningName}-${pairBaseName}'
-    resourceServiceId: machineLearning.id
-    subnetId: subnetId
-    tags: tags
-    useStaticIPAddress: useWorkspacePLEStaticIP
-    privateIPAddress: workspacePLEStaticIP
-    privateDNSZoneName: amlPrivateDnsZoneName
-    groupId: 'amlworkspace'
-  }
-}
-
-resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (createWorkspacePLE){
+resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (machineLearningIsPrivate && createMachineLearningPLE){
   name: amlPrivateDnsZoneName
 }
-resource privateAmlDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (createWorkspacePLE){
+resource privateAmlDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (machineLearningIsPrivate && createMachineLearningPLE) {
   name: uniqueString(subscription().id, resourceGroup().id, vnetResourceName, amlPrivateDnsZoneName, 'global')
   parent: amlPrivateDnsZone
   location: 'global'
@@ -184,6 +165,28 @@ resource privateAmlDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNet
       id: vnet.outputs.id
     }
   }
+}
+module amlPLE '../networking/private_endpoint.bicep' = if (machineLearningIsPrivate && createMachineLearningPLE) {
+  name: '${machineLearningName}-${pairBaseName}-ple-deployment'
+  params: {
+    location: pairRegion
+    pleRootName: 'ple-${machineLearningName}-${pairBaseName}'
+    resourceServiceId: machineLearning.id
+    subnetId: subnetId
+    tags: tags
+    useStaticIPAddress: !empty(amlPLEStaticIPs)
+    privateIPAddress: amlPLEStaticIPs
+    privateDNSZoneName: amlPrivateDnsZoneName
+    groupId: 'amlworkspace'
+    memberNames: [
+      'default'
+      'notebook'
+      'inference'
+    ]
+  }
+  dependsOn: [
+    privateAmlDnsZoneVnetLink
+  ]
 }
 
 
@@ -213,7 +216,6 @@ module computeDeployment1 '../computes/vnet_new_aml_compute.bicep' = {
     tags: tags
   }
 }
-
 
 // create new second Azure ML compute
 module computeDeployment2 '../computes/vnet_new_aml_compute.bicep' = if(compute2) {
@@ -263,7 +265,7 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
 
 // Create a private service endpoints internal to each pair for their respective storages
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
-  name: '${pairBaseName}-endpoint-to-insilo-storage'
+  name: '${pairBaseName}-endpoint-to-pair-storage'
   scope: resourceGroup()
   params: {
     location: pairRegion
@@ -271,7 +273,7 @@ module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (s
     resourceServiceId: storageDeployment.outputs.storageId
     pleRootName: 'ple-${storageDeployment.outputs.storageName}-to-${pairBaseName}-st-blob'
     subnetId: subnetId
-    useStaticIPAddress: useStoragePLEStaticIP
+    useStaticIPAddress: !empty(storagePLEStaticIP)
     privateIPAddress: storagePLEStaticIP
     privateDNSZoneName: blobPrivateDNSZoneName
     groupId: 'blob'
@@ -280,6 +282,7 @@ module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (s
     storageDeployment
   ]
 }
+
 
 // Set R/W permissions for orchestrator UAI towards orchestrator storage
 module pairInternalPermissions '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {

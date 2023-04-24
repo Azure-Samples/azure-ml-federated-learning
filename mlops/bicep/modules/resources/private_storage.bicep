@@ -38,6 +38,9 @@ param filePrivateDNSZoneName string = 'privatelink.file.${environment().suffixes
 ])
 param publicNetworkAccess string = 'Disabled'
 
+@description('Allow access using Shared Key (necessary for Azure ML default datastore)')
+param allowSharedKeyAccess bool = false
+
 @description('Tags to add to the resources')
 param tags object = {}
 
@@ -66,7 +69,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     allowedCopyScope: 'PrivateLink'
 
     // Indicates whether the storage account permits requests to be authorized with the account access key via Shared Key.
-    allowSharedKeyAccess: false
+    allowSharedKeyAccess: allowSharedKeyAccess
 
     // Allow or disallow public network access to Storage Account.
     publicNetworkAccess: publicNetworkAccess

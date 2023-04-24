@@ -104,6 +104,7 @@ module storage '../resources/private_storage.bicep' = {
     // default storage should also be the same,
     // to allow for component uploads
     publicNetworkAccess: workspacePublicNetworkAccess
+    allowSharedKeyAccess: true
     tags: tags
   }
   dependsOn: [

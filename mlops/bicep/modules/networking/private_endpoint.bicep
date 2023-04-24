@@ -25,24 +25,33 @@ param privateDNSZoneName string
 @description('Name of the DNS zone group to add to the PLE')
 param groupId string
 
+@description('Member names to add to the DNS zone group')
+param memberNames array = [ groupId ]
+
 @description('Tags to add to the resources')
 param tags object = {}
 
-var ipConfigurationsDefinition = useStaticIPAddress ? [{
-  name: '${pleRootName}-ipconfig'
+// provide comma separated adresses if you want to assign static IP addresses to the PLE
+// with multiple members
+var memberCount = length(memberNames)
+var privateIPAdresses = split(privateIPAddress, ',')
+var staticIPConfigs = [ for i in range(0, memberCount) : {
+  name: '${pleRootName}-${groupId}-${memberNames[i]}-ipconfig'
   properties: {
     groupId: groupId
-    memberName: groupId
-    privateIPAddress: privateIPAddress
+    memberName: memberNames[i]
+    privateIPAddress: empty(privateIPAddress) ? '' : privateIPAdresses[i]
   }
-}] : []
+}]
+
+// var ipConfigurationsDefinition = useStaticIPAddress ? staticIPConfigs : []
 
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
   name: pleRootName
   location: location
   tags: tags
   properties: {
-    ipConfigurations: ipConfigurationsDefinition
+    ipConfigurations: useStaticIPAddress ? staticIPConfigs : []
     privateLinkServiceConnections: [ {
       name: pleRootName
       properties: {
