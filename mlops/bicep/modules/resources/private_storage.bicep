@@ -47,6 +47,15 @@ param tags object = {}
 var storageNameCleaned = replace(storageName, '-', '')
 var storageAccountCleanName = substring(storageNameCleaned, 0, min(length(storageNameCleaned),24))
 
+var networkAclsConfig = {
+  // Specifies whether traffic is bypassed for Logging/Metrics/AzureServices.
+  // Possible values are any combination of Logging,Metrics,AzureServices
+  // (For example, "Logging, Metrics"), or None to bypass none of those traffics.
+  bypass: 'AzureServices'
+
+  // Specifies the default action of allow or deny when no other rules match.
+  defaultAction: 'Deny'
+}
 
 resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   name: storageAccountCleanName
@@ -75,15 +84,7 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
     publicNetworkAccess: publicNetworkAccess
 
     // Network rule set
-    networkAcls: {
-      // Specifies whether traffic is bypassed for Logging/Metrics/AzureServices.
-      // Possible values are any combination of Logging,Metrics,AzureServices
-      // (For example, "Logging, Metrics"), or None to bypass none of those traffics.
-      bypass: 'AzureServices'
-
-      // Specifies the default action of allow or deny when no other rules match.
-      defaultAction: 'Deny'
-    }
+    networkAcls: publicNetworkAccess == 'Disabled' ? networkAclsConfig : {}
 
     // Encryption settings to be used for server-side encryption for the storage account.
     encryption: {

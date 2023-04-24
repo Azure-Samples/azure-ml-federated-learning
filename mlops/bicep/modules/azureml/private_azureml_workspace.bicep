@@ -321,8 +321,9 @@ resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGr
 // Outputs
 // *******
 
-output storageName string = storage.name
 output workspaceName string = machineLearning.name
 output region string = location
 output workspaceSecretStoreId string = keyVault.outputs.keyvaultId
 output workspaceSecretStoreName string = keyVaultName
+output workspaceStorageServiceId string = storage.outputs.storageId
+output workspaceStorageName string = storageAccountName

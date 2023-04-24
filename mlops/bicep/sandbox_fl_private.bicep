@@ -166,6 +166,44 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
   ]
 }
 
+// Attach orchestrator and silos together with private endpoints and RBAC
+// Create a private service endpoints internal to each pair for their respective storages
+module wsStorageToOrchestratorEndpoint './modules/networking/private_endpoint.bicep' = {
+  name: '${sandboxBaseName}-ws-to-orch-storage-ple'
+  scope: resourceGroup()
+  params: {
+    location: workspace.outputs.region
+    tags: tags
+    resourceServiceId: workspace.outputs.workspaceStorageServiceId
+    pleRootName: 'ple-${workspace.outputs.workspaceStorageName}-to-${sandboxBaseName}-org-st-blob'
+    subnetId: orchestrator.outputs.subnetId
+    privateDNSZoneName: 'privatelink.blob.${environment().suffixes.storage}'
+    groupId: 'blob'
+  }
+  dependsOn: [
+    workspace
+    orchestrator
+  ]
+}
+
+// Set READ (only) so that orchestrator can read data from default workspace blob store (for local data upload)
+module wsToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = {
+  name: '${sandboxBaseName}-rw-perms-ws-to-orch'
+  scope: resourceGroup()
+  params: {
+    storageAccountName: workspace.outputs.workspaceStorageName
+    identityPrincipalId: orchestrator.outputs.identityPrincipalId
+    computeToStorageRoles : [
+      '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1' // Storage Blob Data Reader
+      '81a9662b-bebf-436f-a333-f67b29880f12' // Storage Account Key Operator Service Role
+      'c12c1c16-33a1-487b-954d-41c89c60f349' // Reader and Data Access
+    ]
+  }
+  dependsOn: [
+    silos
+  ]
+}
+
 var siloCount = length(siloRegions)
 
 // Create all silos as a compute+storage pair and attach to workspace
