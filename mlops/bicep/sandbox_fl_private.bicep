@@ -10,7 +10,7 @@ param sandboxBaseName string = 'flsbox'
 @description('Region of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
-@description('Set network access for the AzureML workspace.')
+@description('WARNING: make it possible to interact with the workspace through (public) azure portal: workspace and default storage on public network (RBAC controlled).')
 @allowed([
   'public'
   'private'
@@ -65,7 +65,7 @@ module nsg './modules/networking/azureml_workspace_nsg.bicep' = {
   scope: resourceGroup()
   params: {
     location: orchestratorRegion
-    nsgName: 'nsg-${sandboxBaseName}-orch'
+    nsgName: 'nsg-${sandboxBaseName}'
     tags: tags
   }
 }
@@ -145,6 +145,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
     applyDefaultPermissions: true
 
     // networking
+    vnetResourceName: 'vnet-${sandboxBaseName}-orch'
     vnetAddressPrefix: '10.0.1.0/24'
     subnetPrefix: '10.0.1.0/24'
     amlPLEStaticIPs: '10.0.1.240,10.0.1.241,10.0.1.242' // default,notebook,inference

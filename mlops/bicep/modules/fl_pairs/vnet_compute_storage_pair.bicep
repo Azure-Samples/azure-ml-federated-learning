@@ -264,6 +264,20 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
 }
 
 // Create a private service endpoints internal to each pair for their respective storages
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: blobPrivateDNSZoneName
+}
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  name: uniqueString(vnet.name, blobPrivateDNSZoneName, 'global')
+  parent: privateDnsZone
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.outputs.id
+    }
+  }
+}
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
   name: '${pairBaseName}-endpoint-to-pair-storage'
   scope: resourceGroup()
