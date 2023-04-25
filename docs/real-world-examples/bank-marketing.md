@@ -55,4 +55,4 @@ This can all be performed with ease using a data provisioning pipeline. To run i
 
 ## Run the demo experiment
 
-Follow the steps in the [Vertical Federated Learning tutorial - Steps to launch](../tutorials/vertical-fl.md#steps-to-launch).
+Follow the steps in the [Vertical Federated Learning tutorial - Steps to launch](../concepts/vertical-fl.md#steps-to-launch).

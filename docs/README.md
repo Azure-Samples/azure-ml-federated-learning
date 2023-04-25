@@ -18,7 +18,7 @@
   - [Why should you consider Federated Learning?](#why-should-you-consider-federated-learning)
   - [How to plan for your Federated Learning project](#how-to-plan-for-your-federated-learning-project)
   - [Vertical federated learning](#vertical-federated-learning)
-  - [Integrate and secure FL experiments with mlops](#integrate-and-secure-fl-experiments-with-mlops)
+  - [Integrate and secure FL experiments with MLOps](#integrate-and-secure-fl-experiments-with-mlops)
   - [Glossary](#glossary)
 - [Tutorials](#tutorials)
   - [What this repo has to offer?](#what-this-repo-has-to-offer)
@@ -51,10 +51,14 @@ In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [
 
 > Note: The `upload-data` scripts are only included in the examples for the convenience of executing the FL examples. Please ignore this section if you are performing an actual FL experiment for your scenario.
 
-| Medical Imaging | Named Entity Recognition | Fraud Detection |
+|  |  |  |
 | :-: | :-: | :-: |
-| [![medical imaging icon](./pics/industry-medical-imaging.png)](./real-world-examples/pneumonia.md) | [![NER icon](./pics/industry-ner.png)](./real-world-examples/ner.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) |
+| **Medical Imaging - Horizontal** | **Named Entity Recognition - Horizontal** | **Fraud Detection - Horizontal** |
+| [![medical imaging icon](./pics/industry-medical-imaging.png)](./real-world-examples/pneumonia.md) | [![ner icon](./pics/industry-ner.png)](./real-world-examples/ner.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) |
 | [pneumonia.md](./real-world-examples/pneumonia.md) | [ner.md](./real-world-examples/ner.md) | [ccfraud.md](./real-world-examples/ccfraud.md) |
+| **Fraud Detection - Vertical** | **Fraud Detection - Vertical with Single Shot Communication**  | **Bank Marketing - Vertical** |
+| [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) | [![bank marketing icon](./pics/industry-bank-marketing.png)](./real-world-examples/bank-marketing.md) |
+| [ccfraud.md](./real-world-examples/ccfraud.md#vertical-federated-learning) | [ccfraud.md](./real-world-examples/ccfraud.md#vertical-federated-learning) | [bank-marketing.md](./real-world-examples/bank-marketing.md) |
 
 ### Pneumonia detection from chest radiographs
 
@@ -103,7 +107,7 @@ We wrote a generic guide on how to get started, ramp-up and mature your [FL proj
 
 Vertical federated learning is a branch of federated learning where the data are split across the features (vertically) instead of across the samples (horizontally). This provides communication challenges as the nodes running the code needs to exchange intermediate outputs and their corresponding gradients of aligned samples.
 
-We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes. We invite you to learn more about this approach in the [vertical federated learing tutorial](./tutorials/vertical-fl.md).
+We provide examples on how to run **MNIST** and **CCFRAUD** examples using vertical federated learning. These are essentially copies of the original examples with features scattered across the nodes. We invite you to learn more about this approach in the [vertical federated learing tutorial](./concepts/vertical-fl.md).
 
 ## Integrate and secure FL experiments with MLOps
 
