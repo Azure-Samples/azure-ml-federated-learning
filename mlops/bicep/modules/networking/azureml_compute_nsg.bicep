@@ -68,7 +68,7 @@ resource amlOutboundUdpSecurityRule 'Microsoft.Network/networkSecurityGroups/sec
     sourceAddressPrefix: '*'
     destinationAddressPrefix: 'AzureMachineLearning'
     access: 'Allow'
-    priority: 151
+    priority: 160
     direction: 'Outbound'
   }
 }
@@ -83,13 +83,13 @@ resource BatchNodeManagementOutbound 'Microsoft.Network/networkSecurityGroups/se
     sourceAddressPrefix: '*'
     destinationAddressPrefix: 'BatchNodeManagement.${workspaceRegion}'
     access: 'Allow'
-    priority: 152
+    priority: 170
     direction: 'Outbound'
   }
 }
 
-resource AzureStorageAccount 'Microsoft.Network/networkSecurityGroups/securityRules@2022-07-01'= {
-  name: 'AzureStorageAccount'
+resource OrchestratorStorageAccount 'Microsoft.Network/networkSecurityGroups/securityRules@2022-07-01'= {
+  name: 'OrchestratorStorageAccount'
   parent: nsg
   properties: {
     protocol: 'Tcp'
@@ -98,7 +98,22 @@ resource AzureStorageAccount 'Microsoft.Network/networkSecurityGroups/securityRu
     sourceAddressPrefix: '*'
     destinationAddressPrefix: 'Storage.${workspaceRegion}'
     access: 'Allow'
-    priority: 153
+    priority: 180
+    direction: 'Outbound'
+  }
+}
+
+resource SiloStorageAccount 'Microsoft.Network/networkSecurityGroups/securityRules@2022-07-01'= {
+  name: 'SiloStorageAccount'
+  parent: nsg
+  properties: {
+    protocol: 'Tcp'
+    sourcePortRange: '*'
+    destinationPortRange: '443'
+    sourceAddressPrefix: '*'
+    destinationAddressPrefix: 'Storage.${location}'
+    access: 'Allow'
+    priority: 181
     direction: 'Outbound'
   }
 }
