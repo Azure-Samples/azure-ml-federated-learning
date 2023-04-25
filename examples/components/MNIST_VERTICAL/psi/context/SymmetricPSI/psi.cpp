@@ -91,15 +91,15 @@ public:
         output_stream << request_stream_out.rdbuf();
         return py::bytes(output_stream.str());
     }
-
 };
 
 class PSIReceiver
 {
 private:
     OPRFReceiver m_oprf_receiver;
+    vector<string> m_items;
 public:
-    PSIReceiver(const vector<string>& items) : m_oprf_receiver{ Receiver::CreateOPRFReceiver(to_items(items)) } {}
+    PSIReceiver(const vector<string>& items) : m_items {items}, m_oprf_receiver{ Receiver::CreateOPRFReceiver(to_items(items)) } {}
 
     py::bytes create_request()
     {
@@ -131,12 +131,14 @@ public:
 
         // Now all we need to do is check whether they appear in the filter
         size_t match_counter = 0;
+        size_t i = 0;
         vector<string> items_intersection;
         for (auto& receiver_oprf_item : receiver_oprf_items) {
             if (filter->contains(receiver_oprf_item.get_as<uint64_t>())) {
                 match_counter++;
-                items_intersection.push_back(receiver_oprf_item.to_string());
+                items_intersection.push_back(m_items.at(i));
             }
+            i++;
         }
         cout << "Receiver found " << match_counter << " matches";
 

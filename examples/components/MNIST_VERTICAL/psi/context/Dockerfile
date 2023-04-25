@@ -35,4 +35,3 @@ RUN cd /APSI/build && make -j$(nproc) && make install
 RUN cd SymmetricPSI && mkdir build && cd build
 RUN cd SymmetricPSI/build && cmake .. -DCMAKE_TOOLCHAIN_FILE=/vcpkg/scripts/buildsystems/vcpkg.cmake -DAPSI_ROOT=/APSI/build -DVCPKG_TARGET_TRIPLET=x64-linux -DCMAKE_BUILD_TYPE=Release
 RUN cd SymmetricPSI/build && make -j$(nproc)
-RUN cd SymmetricPSI/build && python -c "from SymmetricPSI import PSISender, PSIReceiver; PSISender(['a', 'b', 'c']); PSIReceiver(['a', 'b', 'c'])"
