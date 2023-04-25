@@ -49,28 +49,28 @@ param compute2Name string = '${pairBaseName}-02'
 @description('Name of the UAI for the jobs running in the pair')
 param jobsUaiName string = 'uai-jobs-${pairBaseName}'
 
-@description('Name of the Network Security Group resource (if createNewVnet==true)')
+@description('Name of the Network Security Group resource')
 param nsgResourceName string = 'nsg-${pairBaseName}'
 
-@description('Name of the vNET resource (if createNewVnet==true)')
+@description('Name of the vNET resource')
 param vnetResourceName string = 'vnet-${pairBaseName}'
 
-@description('Virtual network address prefix (if createNewVnet==true)')
+@description('Virtual network address prefix')
 param vnetAddressPrefix string = '10.0.0.0/16'
 
-@description('Subnet name to use for the compute cluster (if createNewVnet==false)')
+@description('Subnet name to use for the compute cluster')
 param subnetName string = 'fl-pair-snet'
 
-@description('Subnet address prefix (if createNewVnet==true)')
+@description('Subnet address prefix')
 param subnetPrefix string = '10.0.0.0/24'
 
-@description('Static ip for the pair blob storage PLE (if usePLEStaticIPs is true)')
+@description('Optional: static ip for the pair blob storage PLE')
 param storagePLEStaticIP string = ''
 
 @description('Create a PLE for the machine learning workspace (if machineLearningIsPrivate=true)')
 param createMachineLearningPLE bool = true
 
-@description('Static ip for the PLE to the workspace (if usePLEStaticIPs=true and machineLearningIsPrivate=true)')
+@description('Optional: static ip for the PLE to the workspace (if machineLearningIsPrivate=true)')
 param amlPLEStaticIPs string = ''
 
 @description('Allow other subnets into the storage (need to be in the same region)')
@@ -121,7 +121,6 @@ module vnet '../networking/vnet.bicep' = {
     tags: tags
   }
 }
-
 var subnetId = '${vnet.outputs.id}/subnets/${subnetName}'
 
 // provision a user assigned identify for this compute
@@ -216,6 +215,7 @@ module computeDeployment1 '../computes/vnet_new_aml_compute.bicep' = {
     tags: tags
   }
 }
+
 
 // create new second Azure ML compute
 module computeDeployment2 '../computes/vnet_new_aml_compute.bicep' = if(compute2) {
@@ -318,9 +318,6 @@ output storageName string = storageDeployment.outputs.storageName
 output storageServiceId string = storageDeployment.outputs.storageId
 output computeName string = computeDeployment1.outputs.compute
 output region string = pairRegion
-// output vnetName string = computeDeployment.outputs.vnetName
-// output vNetId string = computeDeployment.outputs.vNetId
-// output subnetId string = computeDeployment.outputs.subnetId
 output vnetName string = vnet.outputs.name
 output vNetId string = vnet.outputs.id
 output subnetId string = subnetId
