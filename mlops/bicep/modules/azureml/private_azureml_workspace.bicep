@@ -28,7 +28,10 @@ param location string = resourceGroup().location
 param virtualNetworkId string
 
 @description('Subnet name for the workspace')
-param subnetName string
+param computeSubnetName string = 'compute'
+
+@description('Subnet name for the workspace')
+param endpointsSubnetName string = 'endpoints'
 
 @description('Name of the container registry resource')
 param containerRegistryName string = replace('cr-${baseName}','-','') // replace because only alphanumeric characters are supported
@@ -57,6 +60,9 @@ param createPrivateDNSZones bool = true
   'Disabled'
 ])
 param workspacePublicNetworkAccess string = 'Disabled'
+
+@description('Optional: static ip for the PLE to the workspace (3 comma separated needed)')
+param amlPLEStaticIPs string = ''
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -97,7 +103,7 @@ module storage '../resources/private_storage.bicep' = {
     storageRegion: location
     storageName: storageAccountName
     storageSKU: 'Standard_LRS'
-    subnetId: '${virtualNetworkId}/subnets/${subnetName}'
+    subnetId: '${virtualNetworkId}/subnets/${endpointsSubnetName}'
     blobPrivateDNSZoneName: blobStoragePrivateDnsZoneName
     filePrivateDNSZoneName: fileStoragePrivateDnsZoneName
     // if workspace is accessible through public API,
@@ -130,7 +136,7 @@ module keyVault '../resources/private_keyvault.bicep' = {
   params: {
     location: location
     keyvaultName: keyVaultName
-    subnetId: '${virtualNetworkId}/subnets/${subnetName}'
+    subnetId: '${virtualNetworkId}/subnets/${endpointsSubnetName}'
     privateDNSZoneName: keyVaultPrivateDnsZoneName
     tags: tags
   }
@@ -156,7 +162,7 @@ module containerRegistry '../resources/private_acr.bicep' = {
   params: {
     location: location
     containerRegistryName: containerRegistryName
-    subnetId: '${virtualNetworkId}/subnets/${subnetName}'
+    subnetId: '${virtualNetworkId}/subnets/${endpointsSubnetName}'
     privateDNSZoneName: acrPrivateDnsZoneName
     tags: tags
   }
@@ -223,7 +229,7 @@ resource imageBuildCompute 'Microsoft.MachineLearningServices/workspaces/compute
   
       // networking
       subnet: {
-        id: '${virtualNetworkId}/subnets/${subnetName}'
+        id: '${virtualNetworkId}/subnets/${computeSubnetName}'
       }
       enableNodePublicIp: false
       isolatedNetwork: false
@@ -231,7 +237,7 @@ resource imageBuildCompute 'Microsoft.MachineLearningServices/workspaces/compute
     }
   }
   dependsOn: [
-    // to use enableNodePublicIp:Disabled, private endpoint is required
+    // to use enableNodePublicIp:false, private endpoint is required
     machineLearningPrivateEndpoint
   ]
 }
@@ -273,47 +279,27 @@ module aznbPrivateDnsZone '../networking/private_dns_zone.bicep' = if (createPri
   }
 }
 
-resource machineLearningPrivateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
-  name: 'ple-${baseName}-aml'
-  location: location
-  tags: tags
-  properties: {
-    privateLinkServiceConnections: [
-      {
-        name: 'ple-${baseName}-aml'
-        properties: {
-          groupIds: [
-            'amlworkspace'
-          ]
-          privateLinkServiceId: machineLearning.id
-        }
-      }
-    ]
-    subnet: {
-      id: '${virtualNetworkId}/subnets/${subnetName}'
-    }
-  }
-}
-
-resource privateEndpointDns 'Microsoft.Network/privateEndpoints/privateDnsZoneGroups@2022-01-01' = {
-  name: 'amlworkspace-PrivateDnsZoneGroup'
-  parent: machineLearningPrivateEndpoint
-  properties:{
-    privateDnsZoneConfigs: [
-      {
-        name: amlPrivateDnsZone.outputs.name
-        properties:{
-          privateDnsZoneId: amlPrivateDnsZone.outputs.id
-        }
-      }
-      {
-        name: aznbPrivateDnsZone.outputs.name
-        properties:{
-          privateDnsZoneId: aznbPrivateDnsZone.outputs.id
-        }
-      }
+module machineLearningPrivateEndpoint '../networking/private_endpoint.bicep' = {
+  name: '${machineLearningName}-ple-deployment'
+  params: {
+    location: machineLearning.location
+    pleRootName: 'ple-${machineLearningName}'
+    resourceServiceId: machineLearning.id
+    subnetId: '${virtualNetworkId}/subnets/${endpointsSubnetName}'
+    tags: tags
+    useStaticIPAddress: !empty(amlPLEStaticIPs)
+    privateIPAddress: amlPLEStaticIPs
+    privateDNSZoneName: amlPrivateDnsZone.outputs.name
+    groupId: 'amlworkspace'
+    memberNames: [
+      'default'
+      'notebook'
+      'inference'
     ]
   }
+  dependsOn: [
+    amlPrivateDnsZone
+  ]
 }
 
 

@@ -58,11 +58,11 @@ param vnetResourceName string = 'vnet-${pairBaseName}'
 @description('Virtual network address prefix')
 param vnetAddressPrefix string = '10.0.0.0/16'
 
-@description('Subnet name to use for the compute cluster')
-param subnetName string = 'fl-pair-snet'
+@description('Subnet address prefix')
+param computeSubnetPrefix string = '10.0.1.0/24'
 
 @description('Subnet address prefix')
-param subnetPrefix string = '10.0.0.0/24'
+param endpointsSubnetPrefix string = '10.0.0.0/24'
 
 @description('Optional: static ip for the pair blob storage PLE')
 param storagePLEStaticIP string = ''
@@ -114,14 +114,17 @@ module vnet '../networking/vnet.bicep' = {
     vnetAddressPrefix: vnetAddressPrefix
     subnets: [
       {
-        name: subnetName
-        addressPrefix: subnetPrefix
+        name: 'compute'
+        addressPrefix: computeSubnetPrefix
+      }
+      {
+        name: 'endpoints'
+        addressPrefix: endpointsSubnetPrefix
       }
     ]
     tags: tags
   }
 }
-var subnetId = '${vnet.outputs.id}/subnets/${subnetName}'
 
 // provision a user assigned identify for this compute
 resource uaiJobs 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
@@ -171,7 +174,7 @@ module amlPLE '../networking/private_endpoint.bicep' = if (machineLearningIsPriv
     location: pairRegion
     pleRootName: 'ple-${machineLearningName}-${pairBaseName}'
     resourceServiceId: machineLearning.id
-    subnetId: subnetId
+    subnetId: '${vnet.outputs.id}/subnets/endpoints'
     tags: tags
     useStaticIPAddress: !empty(amlPLEStaticIPs)
     privateIPAddress: amlPLEStaticIPs
@@ -208,7 +211,7 @@ module computeDeployment1 '../computes/vnet_new_aml_compute.bicep' = {
     computeUaiName: uaiJobs.name
 
     // networking
-    subnetName: subnetName
+    subnetName: 'compute'
     vnetId: vnet.outputs.id
     enableNodePublicIp: enableNodePublicIp
 
@@ -236,7 +239,7 @@ module computeDeployment2 '../computes/vnet_new_aml_compute.bicep' = if(compute2
     computeUaiName: uaiJobs.name
 
     // networking
-    subnetName: subnetName
+    subnetName: 'compute'
     vnetId: vnet.outputs.id
     enableNodePublicIp: enableNodePublicIp
 
@@ -256,7 +259,7 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
     datastoreName: datastoreName
     publicNetworkAccess: storagePublicNetworkAccess
     subnetIds: concat(
-      [subnetId],
+      ['${vnet.outputs.id}/subnets/endpoints'],
       allowedSubnetIds
     )
     tags: tags
@@ -286,7 +289,7 @@ module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (s
     tags: tags
     resourceServiceId: storageDeployment.outputs.storageId
     pleRootName: 'ple-${storageDeployment.outputs.storageName}-to-${pairBaseName}-st-blob'
-    subnetId: subnetId
+    subnetId: '${vnet.outputs.id}/subnets/endpoints'
     useStaticIPAddress: !empty(storagePLEStaticIP)
     privateIPAddress: storagePLEStaticIP
     privateDNSZoneName: blobPrivateDNSZoneName
@@ -320,4 +323,3 @@ output computeName string = computeDeployment1.outputs.compute
 output region string = pairRegion
 output vnetName string = vnet.outputs.name
 output vNetId string = vnet.outputs.id
-output subnetId string = subnetId

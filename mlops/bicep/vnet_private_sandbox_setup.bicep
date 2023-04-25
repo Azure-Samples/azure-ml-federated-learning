@@ -1,3 +1,29 @@
+// This BICEP script will fully provision a federated learning sandbox
+// based on internal silos kept eyes-off using a combination of vnets
+// and private service endpoints, to support the communication
+// between compute and storage.
+
+// IMPORTANT:
+// - the orchestrator is considered eyes-on and is
+//   secured with UAIs (no private service endpoints).
+// - the computes still have an open public IP to allow
+//   communication with the AzureML workspace.
+
+// The permission model is represented by the following matrix:
+// |               | orch.compute | siloA.compute | siloB.compute |
+// |---------------|--------------|---------------|---------------|
+// | orch.storage  |     R/W      |      R/W      |      R/W      |
+// | siloA.storage |      -       |      R/W      |       -       |
+// | siloB.storage |      -       |       -       |      R/W      |
+
+// Usage (sh):
+// > az login
+// > az account set --name <subscription name>
+// > az group create --name <resource group name> --location <region>
+// > az deployment group create --template-file .\mlops\bicep\vnet_private_sandbox_setup.bicep \
+//                              --resource-group <resource group name \
+//                              --parameters demoBaseName="fldemo"
+
 targetScope = 'resourceGroup'
 
 // please specify the base name for all resources
@@ -79,8 +105,14 @@ module vnet './modules/networking/vnet.bicep' = {
     networkSecurityGroupId: nsg.outputs.id
     vnetAddressPrefix: '10.0.0.0/16'
     subnets: [
+      // a subnet for all the compute resources (image-build-compute)
       {
-        name: 'workspace'
+        name: 'compute'
+        addressPrefix: '10.0.1.0/24'
+      }
+      // a subnet for all the endpoints
+      {
+        name: 'endpoints'
         addressPrefix: '10.0.0.0/24'
       }
     ]
@@ -104,11 +136,18 @@ module workspace './modules/azureml/private_azureml_workspace.bicep' = {
     machineLearningDescription: 'Azure ML demo workspace for federated learning'
     baseName: sandboxBaseName
     location: orchestratorRegion
+    tags: tags
+
+    // networking settings
     workspacePublicNetworkAccess: workspaceNetworkAccess == 'public' ? 'Enabled' : 'Disabled'
     virtualNetworkId: vnet.outputs.id
-    subnetName: 'workspace'
+    computeSubnetName: 'compute'
+    endpointsSubnetName: 'endpoints'
     createPrivateDNSZones: true
-    tags: tags
+
+    // we're forcing the IP to be the same as orchestrator vnet
+    // to avoid private DNS zone conflicts
+    amlPLEStaticIPs: '10.0.0.240,10.0.0.241,10.0.0.242' // default,notebook,inference
   }
 }
 
@@ -146,10 +185,17 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
 
     // networking
     vnetResourceName: 'vnet-${sandboxBaseName}-orch'
-    vnetAddressPrefix: '10.0.1.0/24'
-    subnetPrefix: '10.0.1.0/24'
-    amlPLEStaticIPs: '10.0.1.240,10.0.1.241,10.0.1.242' // default,notebook,inference
-    storagePLEStaticIP: '10.0.1.243'
+
+    // address has same range as workspace vnet
+    // those two vnet will NOT be peered
+    vnetAddressPrefix: '10.0.0.0/16'
+    computeSubnetPrefix: '10.0.1.0/24'
+    endpointsSubnetPrefix: '10.0.0.0/24'
+
+    // we're forcing the IP to be the same as workspace vnet
+    // to avoid private DNS zone conflicts
+    amlPLEStaticIPs: '10.0.0.240,10.0.0.241,10.0.0.242' // default,notebook,inference
+    storagePLEStaticIP: '10.0.0.243'
 
     // IMPORTANT: compute still has public ip to let workspace submit job
     // traffic regulated by NSG
@@ -167,8 +213,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
   ]
 }
 
-// Attach orchestrator and silos together with private endpoints and RBAC
-// Create a private service endpoints internal to each pair for their respective storages
+// Create an endpoint in the orchestrator vnet for the workspace storage (for local data upload)
 module wsStorageToOrchestratorEndpoint './modules/networking/private_endpoint.bicep' = {
   name: '${sandboxBaseName}-ws-to-orch-storage-ple'
   scope: resourceGroup()
@@ -177,7 +222,7 @@ module wsStorageToOrchestratorEndpoint './modules/networking/private_endpoint.bi
     tags: tags
     resourceServiceId: workspace.outputs.workspaceStorageServiceId
     pleRootName: 'ple-${workspace.outputs.workspaceStorageName}-to-${sandboxBaseName}-org-st-blob'
-    subnetId: orchestrator.outputs.subnetId
+    subnetId: '${orchestrator.outputs.vNetId}/subnets/endpoints'
     privateDNSZoneName: 'privatelink.blob.${environment().suffixes.storage}'
     groupId: 'blob'
   }
@@ -234,13 +279,13 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
     applyDefaultPermissions: true
 
     // networking
-    vnetAddressPrefix: (applyVNetPeering ? '10.0.${i+2}.0/24' : '10.0.1.0/24' )
-    subnetPrefix: (applyVNetPeering ? '10.0.${i+2}.0/24' : '10.0.1.0/24' )
-    amlPLEStaticIPs: (applyVNetPeering ? '10.0.${i+2}.240,10.0.${i+2}.241,10.0.${i+2}.242' : '10.0.1.240,10.0.1.241,10.0.1.242')
+    vnetAddressPrefix: (applyVNetPeering ? '10.${i+2}.0.0/16' : '10.0.0.0/16' )
+    computeSubnetPrefix: (applyVNetPeering ? '10.${i+2}.1.0/24' : '10.0.1.0/24' )
+    endpointsSubnetPrefix: (applyVNetPeering ? '10.${i+2}.0.0/24' : '10.0.0.0/24' )
+    amlPLEStaticIPs: (applyVNetPeering ? '10.${i+2}.0.240,10.${i+2}.0.241,10.${i+2}.0.242' : '10.0.0.240,10.0.0.241,10.0.0.242')
     // leave 243 for orchestrator
-    storagePLEStaticIP: (applyVNetPeering ? '10.0.${i+2}.244' : '10.0.1.244')
+    storagePLEStaticIP: (applyVNetPeering ? '10.${i+2}.0.244' : '10.${i+2}.0.244')
 
-    // IMPORTANT: compute still has public ip to let workspace submit job
     // traffic regulated by NSG
     enableNodePublicIp: false
 
@@ -264,13 +309,14 @@ module orchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' 
     tags: tags
     resourceServiceId: orchestrator.outputs.storageServiceId
     pleRootName: 'ple-${orchestrator.outputs.storageName}-to-${sandboxBaseName}-silo${i}-st-blob'
-    subnetId: silos[i].outputs.subnetId
+    subnetId: '${silos[i].outputs.vNetId}/subnets/endpoints'
     useStaticIPAddress: true
-    privateIPAddress: (applyVNetPeering ? '10.0.${i+2}.243' : '10.0.1.243')
+    privateIPAddress: (applyVNetPeering ? '10.${i+2}.0.243' : '10.0.0.243')
     privateDNSZoneName: 'privatelink.blob.${environment().suffixes.storage}'
     groupId: 'blob'
   }
   dependsOn: [
+    orchestrator
     silos[i]
   ]
 }]
@@ -305,7 +351,6 @@ module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(
     silos[i]
   ]
 }]
-
 
 
 // returned outputs
