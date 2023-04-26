@@ -161,7 +161,10 @@ def psi(
     test_df.to_csv(test_data_dir + "/data.csv")
 
     if rank == 0:
-        shutil.copy(raw_training_data + "/fraud_weight.txt", train_data_dir + "/fraud_weight.txt")
+        shutil.copy(
+            raw_training_data + "/fraud_weight.txt",
+            train_data_dir + "/fraud_weight.txt",
+        )
 
     # Mlflow logging
     log_metadata(train_df, test_df, metrics_prefix)

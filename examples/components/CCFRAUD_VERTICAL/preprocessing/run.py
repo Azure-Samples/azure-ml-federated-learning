@@ -132,17 +132,25 @@ def preprocess_data(
     logger.debug(
         f"Dropping 5% of samples from train data, shape before: {train_data.shape}"
     )
-    drop_indices = list(sorted(np.random.choice(
-        train_data.index, int(train_data.shape[0] * 0.05), replace=False
-    )))
+    drop_indices = list(
+        sorted(
+            np.random.choice(
+                train_data.index, int(train_data.shape[0] * 0.05), replace=False
+            )
+        )
+    )
     train_data = train_data.drop(drop_indices)
     logger.debug(f"Train data shape after dropping 5% of samples: {train_data.shape}")
     logger.debug(f"Dropped train indices: {drop_indices}")
 
     logger.debug(f"Dropping 5% of samples from test data, shape: {test_data.shape}")
-    drop_indices = list(sorted(np.random.choice(
-        test_data.index, int(test_data.shape[0] * 0.05), replace=False
-    )))
+    drop_indices = list(
+        sorted(
+            np.random.choice(
+                test_data.index, int(test_data.shape[0] * 0.05), replace=False
+            )
+        )
+    )
     test_data = test_data.drop(drop_indices)
     logger.debug(f"Test data shape after dropping 5% of samples: {test_data.shape}")
     logger.debug(f"Dropped test indices: {drop_indices}")
