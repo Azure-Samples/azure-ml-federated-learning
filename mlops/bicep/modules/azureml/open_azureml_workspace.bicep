@@ -170,6 +170,7 @@ resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-10-0
     // dependent resources
     storageAccount: storage.id
     keyVault: keyVault.id
+    applicationInsights: applicationInsights.id
     containerRegistry: containerRegistry.id
     hbiWorkspace: hbiWorkspace
 
