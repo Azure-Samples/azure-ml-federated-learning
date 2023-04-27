@@ -54,23 +54,23 @@ In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [
 |  |  |  |
 | :-: | :-: | :-: |
 | **Medical Imaging - Horizontal** | **Named Entity Recognition - Horizontal** | **Fraud Detection - Horizontal** |
-| [![medical imaging icon](./pics/industry-medical-imaging.png)](./real-world-examples/pneumonia.md) | [![ner icon](./pics/industry-ner.png)](./real-world-examples/ner.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) |
-| [pneumonia.md](./real-world-examples/pneumonia.md) | [ner.md](./real-world-examples/ner.md) | [ccfraud.md](./real-world-examples/ccfraud.md) |
+| [![medical imaging icon](./pics/industry-medical-imaging.png)](./real-world-examples/pneumonia-horizontal.md) | [![ner icon](./pics/industry-ner.png)](./real-world-examples/ner-horizontal.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) |
+| [pneumonia.md](./real-world-examples/pneumonia-horizontal.md) | [ner.md](./real-world-examples/ner-horizontal.md) | [ccfraud.md](./real-world-examples/ccfraud-horizontal.md) |
 | **Fraud Detection - Vertical** | **Fraud Detection - Vertical with Single Shot Communication**  | **Bank Marketing - Vertical** |
-| [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud.md) | [![bank marketing icon](./pics/industry-bank-marketing.png)](./real-world-examples/bank-marketing.md) |
-| [ccfraud.md](./real-world-examples/ccfraud.md#vertical-federated-learning) | [ccfraud.md](./real-world-examples/ccfraud.md#vertical-federated-learning) | [bank-marketing.md](./real-world-examples/bank-marketing.md) |
+| [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) | [![bank marketing icon](./pics/industry-bank-marketing.png)](./real-world-examples/bank-marketing.md) |
+| [ccfraud-vertical.md](./real-world-examples/ccfraud-vertical.md) | [ccfraud-vetical-fedonce.md](./real-world-examples/ccfraud-vetical-fedonce.md) | [bank-marketing.md](./real-world-examples/bank-marketing.md) |
 
 ### Pneumonia detection from chest radiographs
 
-In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)from Kaggle. This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._ See [here](./real-world-examples/pneumonia.md) for detailed instructions on how to run this example.
+In this example, we train a model to detect pneumonia from chest radiographs. The model is trained on the [Chest X-ray dataset](https://www.kaggle.com/datasets/paultimothymooney/chest-xray-pneumonia)from Kaggle. This example is adapted from [that solution](https://github.com/Azure/medical-imaging/tree/main/federated-learning) by Harmke Alkemade _et al._ See [here](./real-world-examples/pneumonia-horizontal.md) for detailed instructions on how to run this example.
 
 ### Named Entity Recognition using MultiNERD dataset
 
-This example shows how to train a federated model for the Named Entity Recognition task. This tutorial uses the [MultiNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. See [here](./real-world-examples/ner.md) for detailed instructions on how to run this example.
+This example shows how to train a federated model for the Named Entity Recognition task. This tutorial uses the [MultiNERD](https://github.com/Babelscape/multinerd/blob/master/README.md) dataset. See [here](./real-world-examples/ner-horizontal.md) for detailed instructions on how to run this example.
 
 ### Credit card fraud detection using synthetic transactional data
 
-This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud.md) for detailed instructions on how to run this example.
+This example shows how to train a federated model for credit card fraud detection using synthetically generated dataset [Credit Card Transactions Fraud Detection Dataset](https://www.kaggle.com/datasets/kartik2112/fraud-detection). The techniques used include **Dense DNN**, **LSTM**, **LSTM based VAE**. See [here](./real-world-examples/ccfraud-horizontal.md) for detailed instructions on how to run this example.
 
 ## FL Frameworks
 

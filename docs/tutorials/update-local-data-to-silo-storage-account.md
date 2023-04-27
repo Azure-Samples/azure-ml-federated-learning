@@ -74,7 +74,7 @@ This job can support [encryption at rest](../concepts/confidentiality.md), durin
 
 We have provisioned such keyvault, with a development RSA key, to be used as demo. You can use this keyvault to test the encryption feature.
 
-**IMPORTANT**: The only current demo supporting encrypted inputs and outputs is the [credit card fraud detection example](../real-world-examples/ccfraud.md).
+**IMPORTANT**: The only current demo supporting encrypted inputs and outputs is the [credit card fraud detection example](../real-world-examples/ccfraud-horizontal.md).
 
 
 To turn this on:

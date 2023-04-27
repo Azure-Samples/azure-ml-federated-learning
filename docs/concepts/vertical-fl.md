@@ -14,71 +14,31 @@ Vertical federated learning (VFL) is a branch of federated learning where the da
 > Note: In this tutorial we refer to the party who owns the data labels (and optionally some features) as the "host", and to parties who only own features (and provide host with intermediate outputs of their share of the network) as "contributors".
 
 ## Objective and contents
-This tutorial will guide you through the steps required to set up VFL experiments and point out important parts of the code. We target MNIST (written number recognition) and [CCFRAUD (financial tabular data)](../real-world-examples/ccfraud.md) examples in order to showcase versatility of the solution in regards to type of the data. These two examples make use of mean aggregation, and the assumption is that the host owns only labels while features are equally distributed among the contributors.
+This tutorial will guide you through the steps required to set up VFL experiments and point out important parts of the code.
+
+Split learning approach is demonstrated in MNIST (written number recognition) and [CCFRAUD (financial tabular data)](../real-world-examples/ccfraud-vertical.md) examples in order to showcase versatility of the solution in regards to type of the data. These two examples make use of mean aggregation, and the assumption is that the host owns only labels while features are equally distributed among the contributors.
 
 We relax this assumption in a third example ([Bank Marketing](../real-world-examples/bank-marketing.md)), in which the host also owns part of the feature space.
 
-## Infrastructure
-First step towards successfully running a VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use the **single-button deployment for vnet infrastructure deployment**. This is necessary in order for nodes to be able to communicate.
+Modified version of the [CCFRAUD (financial tabular data) with FedOnce](../real-world-examples/ccfraud-vetical-fedonce.md) example showcases how to decrease amount of communication required across participants by utilizing Variational Autoencoders.
 
-## Install the required dependencies
-You will need python to submit experiments to AzureML. You can install the required dependencies by running:
 
-```bash
-conda env create --file ./examples/pipelines/environment.yml
-conda activate fl_experiment_conda_env
-```
-
-Alternatively, you can just install the required dependencies:
-
-```bash
-python -m pip install -r ./examples/pipelines/requirements.txt
-```
-
-## Data provisioning
-The data format for VFL is different from regular FL. That is why each of our examples contains its own script for uploading training and validation data.
-
-> Note: This will split the data such that each contributor owns its portion of the features and the host owns only the labels (except for the Bank Marketing Prediction example).
-
-### CCFRAUD
-Please follow the steps in [CCFRAUD - Run a job to download and store the dataset in each silo](../real-world-examples/ccfraud.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above. You will also need to adjust the `--example` argument to "CCFRAUD_VERTICAL".
-
-### CCFRAUD with FEDONCE
-Please refer to [FedOnce](#fedonce) section below for more information. Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace key vault](../real-world-examples/ccfraud.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example CCFRAUD_VERTICAL_FEDONCE`**).
-
-### BANK_MARKETING
-This example is similar to **CCFRAUD**, however here the host also owns part of the feature space. Please follow the steps in [BANK_MARKETING - Run a job to download and store the dataset in each silo](../real-world-examples/bank-marketing.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above.
-
-### MNIST
-Uploading the data can  be performed with ease using a data provisioning pipeline. To run it follow these steps:
-
-1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
-
-2. Submit the experiment by running:
-
-   ```bash
-   python ./examples/pipelines/utils/upload_data/submit.py --example MNIST_VERTICAL --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
-   ```
-
-   > Note: You can use the `--offline` flag when running the job to just build and validate the pipeline without submitting it.
-
-    :star: You can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
-
-:warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
 ## Model preparation
 
-### Split learning(all but CCFRAUD_VERTICAL_FEDONCE example)
+### Split learning
 It is an ongoing research topic on how the model can be orchestrated in VFL. The most common approach involves splitting the model between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and loss computation. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
 
-### FedOnce(only CCFRAUD_VERTICAL_FEDONCE example)
+### FedOnce
 Inspired by [work from Wu et. al.](https://arxiv.org/pdf/2208.10278.pdf), we also implemented communication efficient vertical federated learning approach that relies on learning latent representation of data in all contributing parties through unsupervised learning by utilizing Variational Autoencoders (VAE). The latent representation of overlapping samples is shared to host upon convergence of VAEs. This is done only once during the training and thus significantly reduces communication overhead. The host then uses these latent representations to train predictor using labels. Advantage of this approach is that each contributor can fully utilize all samples for training no matter the overlap with other parties due to the nature of unsupervised learning. The step-by-step flow of the training is as follows:
 1. Each contributor collects its portion of features and trains the VAE (in case of **CCFRAUD** example this is done by the `ccfraud_vertical_pretrain_contributor` component that can be found in `examples/components/CCFRAUD_VERTICAL_FEDONCE/pretraining`) until convergence.
 2. Each contributor stores its model in its own data storage and then stores the latent representations of data in the host storage (in this way the output of each contributor is transferred only once compared to regular VFL where number of transfers of all data is equal to number of epochs).
 3. Host loads the data labels as well as all the latent representations created by the contributors and use them for training its portion of the model until convergence.
 
-## Communication (all but CCFRAUD_VERTICAL_FEDONCE example)
+## Communication
 The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enables communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
+
+> Note: this section does not apply for **FedOnce** approach as it does not require communication during training.
 
 ### Sockets
 This is easier to start with as the only **requirement here is that the nodes are interconnected using vnet**. This is also the **default option**. To create this type of communication channel just create instance of a **AMLCommSocket** class with world size, rank of the node and root run id.
@@ -97,15 +57,15 @@ Once you provision *Azure Cache for Redis* (this can be provisioned in whichever
 8. In your pipeline configuration file change `communication_backend` value from `socket` to `redis`
 9. Continue to training section
 
-## Communication encryption (only CCFRAUD_VERTICAL example)
+## Communication encryption
 
 The communication between nodes, which includes intermediate outputs and gradients, can be optionally encoded. This may be very important in case of using *Redis* as communication backend. To enable the encryption follow these steps:
 
-1. Open the config file  `config.yaml` in `examples/pipelines/ccfraud_vertical/`
+1. Open the config file  `config.yaml` in `examples/pipelines/<example-name>/`
 2. Set `encrypted` field, under `communication` to `true`
 
 ### How does the encryption works?
-Whole encryption is handled by `AMLSPMC` class in `examples/components/CCFRAUD_VERTICAL/aml_smpc.py`. By initiating the class every node generates its own public/private key set. The public part is communicated to other parties, which they use when communicating with this node. Thus, the private part resides at all time on the local node and is well protected. The message itself is encrypted using hybrid encryption, which can be broken down as follows:
+Whole encryption is handled by `AMLSPMC` class in `examples/components/<example-name>/aml_smpc.py`. By initiating the class every node generates its own public/private key set. The public part is communicated to other parties, which they use when communicating with this node. Thus, the private part resides at all time on the local node and is well protected. The message itself is encrypted using hybrid encryption, which can be broken down as follows:
 
 **Encryption:** Firstly, the data are encoded using symmetric key, new symmetric key is generated for every message. Afterwards, this symmetric key is encoded using public key of receiving party and attached to the message.
 
@@ -131,13 +91,53 @@ Afterwards, we can continue with regular training loop:
     <img src="../pics/vfltrainingloop.png" alt="Vertical federated learning training loop" width="400">
 </div>
 
-### Steps to launch
+## MNIST Example
+Following steps provides you with basic setup for vertical federated learning solution. For simplicity we are using MNIST dataset but for more advanced datasets and tutorials please follow links in the [section](#objective-and-contents) above.
+### Infrastructure
+First step towards successfully running a VFL example is to provision an infrastructure. In order to do so, please navigate to [quickstart](../quickstart.md) and use the **single-button deployment for vnet infrastructure deployment**. This is necessary in order for nodes to be able to communicate.
+
+### Install the required dependencies
+You will need python to submit experiments to AzureML. You can install the required dependencies by running:
+
+```bash
+conda env create --file ./examples/pipelines/environment.yml
+conda activate fl_experiment_conda_env
+```
+
+Alternatively, you can just install the required dependencies:
+
+```bash
+python -m pip install -r ./examples/pipelines/requirements.txt
+```
+
+### Data provisioning
+The data format for VFL is different from regular FL. That is why each of our examples contains its own script for uploading training and validation data.
+
+> Note: This will split the data such that each contributor owns its portion of the features and the host owns only the labels (except for the Bank Marketing Prediction example).
+
+Uploading the data can  be performed with ease using a data provisioning pipeline. To run it follow these steps:
+
+1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/utils/upload_data/` to match your setup.
+
+2. Submit the experiment by running:
+
+   ```bash
+   python ./examples/pipelines/utils/upload_data/submit.py --example MNIST_VERTICAL --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   ```
+
+   > Note: You can use the `--offline` flag when running the job to just build and validate the pipeline without submitting it.
+
+    :star: You can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
+
+:warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
+
+### Training
 1. If you are not using the quickstart setup, adjust the config file  `config.yaml` in `examples/pipelines/<example-name>/` to match your setup.
 
 2. Submit the experiment by running:
 
    ```bash
-   python ./examples/pipelines/<example-name>/submit.py --config examples/pipelines/<example-name>/config.yaml --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
+   python ./examples/pipelines/mnist_vertical/submit.py --config examples/pipelines/mnist_vertical/config.yaml --workspace_name "<workspace-name>" --resource_group "<resource-group-name>" --subscription_id "<subscription-id>"
    ```
 
    > Note: You can use the `--offline` flag when running the job to just build and validate pipeline without submitting it.
@@ -153,9 +153,3 @@ Afterwards, we can continue with regular training loop:
    The samples nee to be aligned across participants ahead of the training after we created set intersection of samples that are present on all involved parties. This process can reveal information to other entities that we may want to keep private. Fortunately there are **private set intersection** methods available out there that come to rescue.
 4. **Communication encryption**
     Even though the intermediate outputs and gradients are not raw data, they still have been inferred using private data. Therefore, it's good to use encryption when communicating the data to parties outside of Azure.
-
-## Additional resources
-- [Private set intersection algorithm overview](https://xianmu.github.io/posts/2018-11-03-private-set-intersection-based-on-rsa-blind-signature.html)
-
-
-
