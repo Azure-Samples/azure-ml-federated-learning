@@ -127,6 +127,10 @@ preprocessing_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
 )
 
+psi_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "psi", "spec.yaml")
+)
+
 training_contributor_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor_spec.yaml")
 )
@@ -249,6 +253,57 @@ def fl_ccfraud_vertical_basic():
         )
 
     ################
+    ### PSI STEP ###
+    ################
+
+    silo_psi_train_data, silo_psi_test_data = [], []
+    for silo_index, silo_config in enumerate(
+        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
+    ):
+        # run the pre-processing component once
+        silo_psi_step = psi_component(
+            train_data=silo_preprocessed_train_data[silo_index],
+            test_data=silo_preprocessed_test_data[silo_index],
+            metrics_prefix=silo_config.compute,
+            global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+            global_rank=silo_index,
+            communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+            communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
+        )
+
+        # add a readable name to the step
+        if silo_index == 0:
+            silo_psi_step.name = f"host_psi_matching"
+        else:
+            silo_psi_step.name = f"silo_{silo_index}_psi_matching"
+
+        # make sure the compute corresponds to the silo
+        silo_psi_step.compute = silo_config.compute
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_psi_step.resources is None:
+                silo_psi_step.resources = {}
+            silo_psi_step.resources["instance_type"] = silo_config.instance_type
+
+        # make sure the data is written in the right datastore
+        silo_psi_step.outputs.matched_train_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=silo_config.training_data.path,
+        )
+        silo_psi_step.outputs.matched_test_data = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=silo_config.training_data.path,
+        )
+
+        # store a handle to the train data for this silo
+        silo_psi_train_data.append(silo_psi_step.outputs.matched_train_data)
+        # store a handle to the test data for this silo
+        silo_psi_test_data.append(silo_psi_step.outputs.matched_test_data)
+
+    ################
     ### TRAINING ###
     ################
 
@@ -261,9 +316,9 @@ def fl_ccfraud_vertical_basic():
             # we're using training component here
             silo_training_step = training_host_component(
                 # with the train_data from the pre_processing step
-                train_data=silo_preprocessed_train_data[silo_index],
+                train_data=silo_psi_train_data[silo_index],
                 # with the test_data from the pre_processing step
-                test_data=silo_preprocessed_test_data[silo_index],
+                test_data=silo_psi_test_data[silo_index],
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
@@ -286,9 +341,9 @@ def fl_ccfraud_vertical_basic():
             # we're using training component here
             silo_training_step = training_contributor_component(
                 # with the train_data from the pre_processing step
-                train_data=silo_preprocessed_train_data[silo_index],
+                train_data=silo_psi_train_data[silo_index],
                 # with the test_data from the pre_processing step
-                test_data=silo_preprocessed_test_data[silo_index],
+                test_data=silo_psi_test_data[silo_index],
                 # Learning rate for local training
                 lr=YAML_CONFIG.training_parameters.lr,
                 # Number of epochs
