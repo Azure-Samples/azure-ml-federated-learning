@@ -82,7 +82,7 @@ YAML_CONFIG = OmegaConf.load(args.config)
 
 # path to the components
 COMPONENTS_FOLDER = os.path.join(
-    os.path.dirname(__file__), "..", "..", "components", "CCFRAUD_VERTICAL"
+    os.path.dirname(__file__), "..", "..", "components", "CCFRAUD_VERTICAL_FEDONCE"
 )
 
 ###########################
@@ -127,16 +127,12 @@ preprocessing_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "preprocessing", "spec.yaml")
 )
 
-psi_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "psi", "spec.yaml")
+pretraining_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "pretraining", "spec.yaml")
 )
 
-training_contributor_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "contributor_spec.yaml")
-)
-
-training_host_component = load_component(
-    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "host_spec.yaml")
+training_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "spec.yaml")
 )
 
 
@@ -185,6 +181,15 @@ pipeline_identifier = getUniqueIdentifier()
     description=f'FL cross-silo basic pipeline and the unique identifier is "{pipeline_identifier}" that can help you to track files in the storage account.',
 )
 def fl_ccfraud_vertical_basic():
+    # Check that the config is valid
+    assert (
+        YAML_CONFIG.federated_learning.host is not None
+    ), "You need to specify a host silo in the config.yaml file"
+    assert (
+        len(YAML_CONFIG.federated_learning.silos) >= 1
+        and len(YAML_CONFIG.federated_learning.silos) <= 3
+    ), "You need to specify between 1 and 3 silos in the config.yaml file"
+
     ######################
     ### PRE-PROCESSING ###
     ######################
@@ -255,134 +260,116 @@ def fl_ccfraud_vertical_basic():
     # Store model checkpoint outputs
     outputs = {}
 
-    ################
-    ### PSI STEP ###
-    ################
+    ###############################
+    ### (OPTIONAL) PRE-TRAINING ###
+    ###############################
 
-    silo_psi_train_data, silo_psi_test_data = [], []
-    for silo_index, silo_config in enumerate(
-        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
-    ):
-        # run the pre-processing component once
-        silo_psi_step = psi_component(
-            train_data=silo_preprocessed_train_data[silo_index],
-            test_data=silo_preprocessed_test_data[silo_index],
-            metrics_prefix=silo_config.compute,
-            global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
-            global_rank=silo_index,
-            communication_backend=YAML_CONFIG.federated_learning.communication.backend,
-            communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
-        )
-
-        # add a readable name to the step
-        if silo_index == 0:
-            silo_psi_step.name = f"host_psi_matching"
-        else:
-            silo_psi_step.name = f"silo_{silo_index}_psi_matching"
-
-        # make sure the compute corresponds to the silo
-        silo_psi_step.compute = silo_config.compute
-
-        # assign instance type for AKS, if available
-        if hasattr(silo_config, "instance_type"):
-            if silo_psi_step.resources is None:
-                silo_psi_step.resources = {}
-            silo_psi_step.resources["instance_type"] = silo_config.instance_type
-
-        # make sure the data is written in the right datastore
-        silo_psi_step.outputs.matched_train_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=silo_config.training_data.path,
-        )
-        silo_psi_step.outputs.matched_test_data = Output(
-            type=AssetTypes.URI_FOLDER,
-            mode="mount",
-            path=silo_config.training_data.path,
-        )
-
-        # store a handle to the train data for this silo
-        silo_psi_train_data.append(silo_psi_step.outputs.matched_train_data)
-        # store a handle to the test data for this silo
-        silo_psi_test_data.append(silo_psi_step.outputs.matched_test_data)
-
-    ################
-    ### TRAINING ###
-    ################
+    embeddings_paths = {}
 
     # for each silo, run a distinct training with its own inputs and outputs
     for silo_index, silo_config in enumerate(
         [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
     ):
         if silo_index == 0:
-            # we're using training component here
-            silo_training_step = training_host_component(
-                # with the train_data from the pre_processing step
-                train_data=silo_psi_train_data[silo_index],
-                # with the test_data from the pre_processing step
-                test_data=silo_psi_test_data[silo_index],
-                # Learning rate for local training
-                lr=YAML_CONFIG.training_parameters.lr,
-                # Number of epochs
-                epochs=YAML_CONFIG.training_parameters.epochs,
-                # Dataloader batch size
-                batch_size=YAML_CONFIG.training_parameters.batch_size,
-                # Silo name/identifier
-                metrics_prefix=silo_config.compute,
-                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
-                global_rank=silo_index,
-                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
-                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
-            )
-            # add a readable name to the step
-            silo_training_step.name = f"host_training"
-            outputs[f"host_output"] = silo_training_step.outputs.model
-        else:
-            # we're using training component here
-            silo_training_step = training_contributor_component(
-                # with the train_data from the pre_processing step
-                train_data=silo_psi_train_data[silo_index],
-                # with the test_data from the pre_processing step
-                test_data=silo_psi_test_data[silo_index],
-                # Learning rate for local training
-                lr=YAML_CONFIG.training_parameters.lr,
-                # Number of epochs
-                epochs=YAML_CONFIG.training_parameters.epochs,
-                # Dataloader batch size
-                batch_size=YAML_CONFIG.training_parameters.batch_size,
-                # Silo name/identifier
-                metrics_prefix=silo_config.compute,
-                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
-                global_rank=silo_index,
-                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
-                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
-            )
-            # add a readable name to the step
-            silo_training_step.name = f"contributor_{silo_index}_training"
-            outputs[
-                f"contributor_{silo_index}_output"
-            ] = silo_training_step.outputs.model
-
-        # make sure the compute corresponds to the silo
-        silo_training_step.compute = silo_config.compute
-
-        # assign instance type for AKS, if available
-        if hasattr(silo_config, "instance_type"):
-            if silo_training_step.resources is None:
-                silo_training_step.resources = {}
-            silo_training_step.resources["instance_type"] = silo_config.instance_type
+            continue
+        # we're using training component here
+        silo_pretraining_step = pretraining_component(
+            # with the train_data from the pre_processing step
+            train_data=silo_preprocessed_train_data[silo_index],
+            # with the test_data from the pre_processing step
+            test_data=silo_preprocessed_test_data[silo_index],
+            # Learning rate for local training
+            lr=YAML_CONFIG.training_parameters.lr,
+            # Number of epochs
+            epochs=YAML_CONFIG.training_parameters.epochs,
+            # Dataloader batch size
+            batch_size=YAML_CONFIG.training_parameters.batch_size,
+            # Silo name/identifier
+            metrics_prefix=silo_config.compute,
+        )
+        # add a readable name to the step
+        silo_pretraining_step.name = f"contributor_{silo_index}_pretraining"
 
         # make sure the data is written in the right datastore
-        model_file_name = "host" if silo_index == 0 else f"contributor_{silo_index}"
-        silo_training_step.outputs.model = Output(
+        silo_pretraining_step.outputs.model = Output(
+            type=AssetTypes.URI_FOLDER,
+            mode="mount",
+            path=custom_fl_data_path(silo_config.datastore, "pretrained_model"),
+        )
+
+        # make sure the data is written in the right datastore
+        silo_pretraining_step.outputs.embeddings = Output(
             type=AssetTypes.URI_FOLDER,
             mode="mount",
             path=custom_fl_data_path(
-                # IMPORTANT: writing the output of training into the host datastore
+                # IMPORTANT: writing the output of training into the orchestrator datastore
                 YAML_CONFIG.federated_learning.host.datastore,
-                f"model/{model_file_name}",
+                f"embeddings_{silo_index}",
             ),
         )
+
+        embeddings_paths[
+            f"contributor_{silo_index}_embeddings"
+        ] = silo_pretraining_step.outputs.embeddings
+        outputs[
+            f"contributor_{silo_index}_output"
+        ] = silo_pretraining_step.outputs.model
+
+        # make sure the compute corresponds to the silo
+        silo_pretraining_step.compute = silo_config.compute
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_pretraining_step.resources is None:
+                silo_pretraining_step.resources = {}
+            silo_pretraining_step.resources["instance_type"] = silo_config.instance_type
+
+    ################
+    ### TRAINING ###
+    ################
+
+    silo_training_step = training_component(
+        # with the train_data from the pre_processing step
+        train_data=silo_preprocessed_train_data[0],
+        # with the test_data from the pre_processing step
+        test_data=silo_preprocessed_test_data[0],
+        # Learning rate for local training
+        lr=YAML_CONFIG.training_parameters.lr,
+        # Number of epochs
+        epochs=YAML_CONFIG.training_parameters.epochs,
+        # Dataloader batch size
+        batch_size=YAML_CONFIG.training_parameters.batch_size,
+        # Silo name/identifier
+        metrics_prefix=YAML_CONFIG.federated_learning.host.compute,
+        **embeddings_paths,
+    )
+
+    # add a readable name to the step
+    silo_training_step.name = f"host_training"
+    outputs[f"host_output"] = silo_training_step.outputs.model
+
+    # make sure the compute corresponds to the silo
+    silo_training_step.compute = YAML_CONFIG.federated_learning.host.compute
+
+    # assign instance type for AKS, if available
+    if hasattr(YAML_CONFIG.federated_learning.host.compute, "instance_type"):
+        if silo_training_step.resources is None:
+            silo_training_step.resources = {}
+        silo_training_step.resources[
+            "instance_type"
+        ] = YAML_CONFIG.federated_learning.host.compute.instance_type
+
+    # make sure the data is written in the right datastore
+    model_file_name = "host" if silo_index == 0 else f"contributor_{silo_index}"
+    silo_training_step.outputs.model = Output(
+        type=AssetTypes.URI_FOLDER,
+        mode="mount",
+        path=custom_fl_data_path(
+            # IMPORTANT: writing the output of training into the host datastore
+            YAML_CONFIG.federated_learning.host.datastore,
+            f"model/{model_file_name}",
+        ),
+    )
 
     return outputs
 

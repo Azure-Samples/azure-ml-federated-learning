@@ -4,17 +4,13 @@ import logging
 import sys
 import copy
 import os
-from distutils.util import strtobool
-from aml_comm import AMLCommSocket, AMLCommRedis
-from aml_smpc import AMLSMPC
-from samplers import VerticallyDistributedBatchSampler
 
 import mlflow
 import torch
+from tqdm import tqdm
 import pandas as pd
 import numpy as np
 from torch import nn
-from torchmetrics.functional import precision_recall, accuracy
 from torch.optim import SGD
 from torch.utils.data.dataloader import DataLoader
 from typing import List
@@ -79,9 +75,7 @@ class RunningMetrics:
 class CCFraudTrainer:
     def __init__(
         self,
-        global_rank,
-        global_size,
-        global_comm,
+        embeddings_path,
         train_data_dir="./",
         test_data_dir="./",
         model_path=None,
@@ -93,9 +87,7 @@ class CCFraudTrainer:
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            global_rank(int): Rank of the current node.
-            global_size(int): Total number of nodes.
-            global_comm(AMLComm): Communication method.
+            embeddings_path(str): Path to save embeddings.
             train_data_dir(str, optional): Training data directory path.
             test_data_dir(str, optional): Testing data directory path.
             model_path(str, optional): Path to save model.
@@ -120,9 +112,6 @@ class CCFraudTrainer:
         self._epochs = epochs
         self._batch_size = batch_size
         self._experiment_name = experiment_name
-        self._global_rank = global_rank
-        self._global_size = global_size
-        self._global_comm = global_comm
 
         self.device_ = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         logger.info(f"Using device: {self.device_}")
@@ -130,42 +119,17 @@ class CCFraudTrainer:
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
             train_data_dir, test_data_dir
         )
-
-        self.train_sampler_ = VerticallyDistributedBatchSampler(
-            data_source=self.train_dataset_,
-            batch_size=batch_size,
-            comm=self._global_comm,
-            rank=self._global_rank,
-            world_size=self._global_size,
-            shuffle=True,
-        )
-        self.test_sampler_ = VerticallyDistributedBatchSampler(
-            data_source=self.test_dataset_,
-            batch_size=batch_size,
-            comm=self._global_comm,
-            rank=self._global_rank,
-            world_size=self._global_size,
-            shuffle=False,
-        )
         self.train_loader_ = DataLoader(
-            self.train_dataset_, batch_sampler=self.train_sampler_
+            self.train_dataset_, batch_size=self._batch_size, shuffle=False
         )
         self.test_loader_ = DataLoader(
-            self.test_dataset_, batch_sampler=self.test_sampler_
+            self.test_dataset_, batch_size=self._batch_size, shuffle=False
         )
 
-        # Get latent representation dimensions from each contributor
-        # and make sure they are all equal
-        self._input_dim = [
-            self._global_comm.recv(i) for i in range(1, self._global_size)
-        ]
-        self._input_dim = list(sorted(self._input_dim))
-        assert self._input_dim[0] == self._input_dim[-1]
-        self._input_dim = self._input_dim[0]
-
         # Build model
-        self.model_ = models.SimpleLinearTop(self._input_dim).to(self.device_)
+        self.model_ = models.SimpleVAEBottom(self._input_dim).to(self.device_)
         self._model_path = model_path
+        self._embeddings_path = embeddings_path
 
         self.criterion_ = nn.BCELoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
@@ -178,7 +142,6 @@ class CCFraudTrainer:
             test_data_dir(str): Testing data directory path
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
-        self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
         train_dataset = datasets.FraudDataset(train_df)
@@ -238,8 +201,6 @@ class CCFraudTrainer:
             self.model_.load_state_dict(torch.load(checkpoint + "/model.pt"))
 
         with mlflow.start_run() as mlflow_run:
-            num_of_batches_before_logging = 5
-
             # get Mlflow client and root run id
             mlflow_client = mlflow.tracking.client.MlflowClient()
             root_run_id = os.environ.get("AZUREML_ROOT_RUN_ID")
@@ -247,63 +208,37 @@ class CCFraudTrainer:
 
             # log params
             self.log_params(mlflow_client, root_run_id)
+
             logger.debug("Local training started")
+
             train_metrics = RunningMetrics(
-                ["loss", "accuracy", "precision", "recall"], prefix="train"
+                ["reconstruction_loss", "kl_loss", "net_loss"],
+                prefix="train_" + str(self._experiment_name),
             )
 
             for epoch in range(1, self._epochs + 1):
                 self.model_.train()
                 train_metrics.reset_global()
 
-                for i, batch in enumerate(self.train_loader_):
+                for i, data in enumerate(self.train_loader_):
+                    data = data.to(self.device_)
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
-                    target = batch.to(self.device_)
-                    # Receive intermediate results from other contributors
-                    outputs = [
-                        torch.tensor(self._global_comm.recv(j), requires_grad=True).to(
-                            self.device_
-                        )
-                        for j in range(1, self._global_size)
-                    ]
-                    # Average all intermediate results
-                    outputs = torch.stack(outputs)
-                    data = outputs.mean(dim=0)
-
-                    predictions = self.model_(data)
-                    # Compute loss
-                    self.criterion_.weight = (
-                        ((target == 1) * (self.fraud_weight_ - 1)) + 1
-                    ).to(self.device_)
-                    loss = self.criterion_(predictions, target.to(torch.float32))
-
-                    # Compute gradients and adjust learning weights
-                    loss.backward(retain_graph=True)
-                    gradients = torch.autograd.grad(loss, outputs)[0]
+                    reconstruction_loss, kl_loss = self.model_(data)[1]
+                    net_loss = reconstruction_loss + kl_loss * 1e-4
+                    net_loss.backward()
                     self.optimizer_.step()
 
-                    for j in range(1, self._global_size):
-                        self._global_comm.send(gradients[j - 1], j)
-
-                    precision, recall = precision_recall(
-                        preds=predictions.detach(), target=target
-                    )
-                    train_metrics.add_metric("precision", precision.item())
-                    train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
-                        "accuracy",
-                        accuracy(
-                            preds=predictions.detach(), target=target, threshold=0.5
-                        ).item(),
+                        "reconstruction_loss",
+                        reconstruction_loss.item(),
                     )
-                    train_metrics.add_metric("loss", loss.item())
+                    train_metrics.add_metric("kl_loss", kl_loss.item())
+                    train_metrics.add_metric("net_loss", net_loss.item())
                     train_metrics.step()
 
-                    if (i + 1) % num_of_batches_before_logging == 0 or (i + 1) == len(
-                        self.train_loader_
-                    ):
+                    if (i + 1) % 10 == 0 or (i + 1) == len(self.train_loader_):
                         log_message = [
                             f"Epoch: {epoch}/{self._epochs}",
                             f"Iteration: {i+1}/{len(self.train_loader_)}",
@@ -372,42 +307,52 @@ class CCFraudTrainer:
 
     def test(self):
         """Test the trained model and report test loss and accuracy"""
-        test_metrics = RunningMetrics(
-            ["loss", "accuracy", "precision", "recall"], prefix="test"
-        )
+        self.model_.eval()
+        with torch.no_grad():
+            metrics = RunningMetrics(
+                ["reconstruction_loss", "kl_loss"],
+                prefix="test_" + str(self._experiment_name),
+            )
+            for data in self.test_loader_:
+                data = data.to(self.device_)
+
+                # Send intermediate output to the global model
+                # such that it can calculate metrics
+                reconstruction_loss, kl_loss = self.model_(data)[1]
+                metrics.add_metric("reconstruction_loss", reconstruction_loss)
+                metrics.add_metric("kl_loss", kl_loss)
+                metrics.step()
+            return metrics
+
+    def save_embeddings(self):
+        """Save embeddings to a file."""
+        train_embeddings = []
+        test_embeddings = []
 
         self.model_.eval()
         with torch.no_grad():
-            for batch in self.test_loader_:
-                target = batch.to(self.device_)
-                # Receive intermediate results from other contributors
-                outputs = [
-                    self._global_comm.recv(j).to(self.device_)
-                    for j in range(1, self._global_size)
-                ]
-                # Average all intermediate results
-                data = torch.stack(outputs).mean(dim=0)
+            for data in tqdm(self.train_loader_, desc="Saving train embeddings"):
+                data = data.to(self.device_)
+                train_embeddings.append(self.model_(data)[0].cpu().numpy())
 
-                predictions = self.model_(data)
+        print("Concatenating embeddings, batch shape: ", train_embeddings[0].shape)
+        train_embeddings = np.concatenate(train_embeddings, axis=0)
+        np.save(f"{self._embeddings_path}/train_embeddings.npy", train_embeddings)
+        print(
+            f"Train embeddings saved to {self._embeddings_path}/train_embeddings.npy, shape: {train_embeddings.shape}"
+        )
+        del train_embeddings
 
-                self.criterion_.weight = (
-                    ((target == 1) * (self.fraud_weight_ - 1)) + 1
-                ).to(self.device_)
-                loss = self.criterion_(predictions, target.type(torch.float)).item()
+        with torch.no_grad():
+            for data in tqdm(self.test_loader_, desc="Saving test embeddings"):
+                data = data.to(self.device_)
+                test_embeddings.append(self.model_(data)[0].cpu().numpy())
 
-                precision, recall = precision_recall(
-                    preds=predictions.detach(), target=target
-                )
-                test_metrics.add_metric("precision", precision.item())
-                test_metrics.add_metric("recall", recall.item())
-                test_metrics.add_metric(
-                    "accuracy",
-                    accuracy(preds=predictions.detach(), target=target).item(),
-                )
-                test_metrics.add_metric("loss", loss / target.shape[0])
-                test_metrics.step()
-
-        return test_metrics
+        test_embeddings = np.concatenate(test_embeddings, axis=0)
+        np.save(f"{self._embeddings_path}/test_embeddings.npy", test_embeddings)
+        print(
+            f"Test embeddings saved to {self._embeddings_path}/test_embeddings.npy, shape: {test_embeddings.shape}"
+        )
 
     def execute(self, checkpoint=None):
         """Bundle steps to perform local training, model testing and finally saving the model.
@@ -421,6 +366,10 @@ class CCFraudTrainer:
         logger.debug("Save model")
         torch.save(self.model_.state_dict(), self._model_path)
         logger.info(f"Model saved to {self._model_path}")
+
+        logger.debug("Save embeddings")
+        self.save_embeddings()
+        logger.info(f"Embeddings saved to {self._embeddings_path}")
 
 
 def get_arg_parser(parser=None):
@@ -444,18 +393,7 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_data", type=str, required=True, help="")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
     parser.add_argument("--model_path", type=str, required=True, help="")
-    parser.add_argument(
-        "--global_size",
-        type=int,
-        required=True,
-        help="Number of silos",
-    )
-    parser.add_argument(
-        "--global_rank",
-        type=int,
-        required=True,
-        help="Index of the current silo",
-    )
+    parser.add_argument("--embeddings_path", type=str, required=True, help="")
     parser.add_argument(
         "--metrics_prefix", type=str, required=False, help="Metrics prefix"
     )
@@ -470,44 +408,25 @@ def get_arg_parser(parser=None):
         help="Total number of epochs for local training",
     )
     parser.add_argument("--batch_size", type=int, required=False, help="Batch Size")
-    parser.add_argument(
-        "--communication_backend",
-        type=str,
-        required=False,
-        default="socket",
-        help="Type of communication to use between the nodes",
-    )
-    parser.add_argument(
-        "--communication_encrypted",
-        type=strtobool,
-        required=False,
-        default=False,
-        help="Encrypt messages exchanged between the nodes",
-    )
     return parser
 
 
-def run(args, global_comm):
+def run(args):
     """Run script with arguments (the core of the component).
 
     Args:
         args (argparse.namespace): command line arguments provided to script
     """
 
-    # Make sure that the CUDA allocator does not allocate too much memory at once
-    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
-
     trainer = CCFraudTrainer(
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,
         model_path=args.model_path + "/model.pt",
+        embeddings_path=args.embeddings_path,
         lr=args.lr,
         epochs=args.epochs,
         batch_size=args.batch_size,
         experiment_name=args.metrics_prefix,
-        global_rank=args.global_rank,
-        global_size=args.global_size,
-        global_comm=global_comm,
     )
     trainer.execute(args.checkpoint)
 
@@ -527,36 +446,9 @@ def main(cli_args=None):
     # run the parser on cli args
     args = parser.parse_args(cli_args)
 
-    if args.communication_encrypted:
-        encryption = AMLSMPC()
-    else:
-        encryption = None
-
-    if args.communication_backend == "socket":
-        global_comm = AMLCommSocket(
-            args.global_rank,
-            args.global_size,
-            os.environ.get("AZUREML_ROOT_RUN_ID"),
-            encryption=encryption,
-        )
-    elif args.communication_backend == "redis":
-        global_comm = AMLCommRedis(
-            args.global_rank,
-            args.global_size,
-            os.environ.get("AZUREML_ROOT_RUN_ID"),
-            encryption=encryption,
-        )
-    else:
-        raise ValueError("Communication backend not supported")
-
     logger.info(f"CUDA available: {torch.cuda.is_available()}")
     logger.info(f"Running script with arguments: {args}")
-    run(args, global_comm)
-
-    # log messaging stats
-    with mlflow.start_run() as mlflow_run:
-        mlflow_client = mlflow.tracking.client.MlflowClient()
-        global_comm.log_stats(mlflow_client)
+    run(args)
 
 
 if __name__ == "__main__":

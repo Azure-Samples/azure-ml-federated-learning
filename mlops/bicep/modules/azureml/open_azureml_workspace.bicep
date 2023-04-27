@@ -61,17 +61,40 @@ resource storage 'Microsoft.Storage/storageAccounts@2022-05-01' = {
   }
   kind: 'StorageV2'
   properties: {
+    // Allow or disallow public access to all blobs or containers in the storage account.
+    allowBlobPublicAccess: false
+
+    // Allow or disallow cross AAD tenant object replication.
+    allowCrossTenantReplication: false
+
+    // Allow or disallow public network access to Storage Account.
+    publicNetworkAccess: 'Enabled'
+
+    // Encryption settings to be used for server-side encryption for the storage account.
     encryption: {
+      keySource: 'Microsoft.Storage'
+      requireInfrastructureEncryption: false
       services: {
         blob: {
           enabled: true
+          keyType: 'Account'
         }
         file: {
           enabled: true
+          keyType: 'Account'
+        }
+        queue: {
+          enabled: true
+          keyType: 'Service'
+        }
+        table: {
+          enabled: true
+          keyType: 'Service'
         }
       }
-      keySource: 'Microsoft.Storage'
     }
+
+    // Allows https traffic only to storage service if sets to true. 
     supportsHttpsTrafficOnly: true
   }
 }

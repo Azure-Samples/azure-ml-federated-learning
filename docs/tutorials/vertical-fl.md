@@ -43,6 +43,8 @@ The data format for VFL is different from regular FL. That is why each of our ex
 ### CCFRAUD
 Please follow the steps in [CCFRAUD - Run a job to download and store the dataset in each silo](../real-world-examples/ccfraud.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above. You will also need to adjust the `--example` argument to "CCFRAUD_VERTICAL".
 
+### CCFRAUD with FEDONCE
+Please refer to [FedOnce](#fedonce) section below for more information. Please follow steps in [CCFRAUD - Add your Kaggle credentials to the workspace key vault](../real-world-examples/ccfraud.md#Add-your-Kaggle-credentials-to-the-workspace-key-vault). Afterwards, follow same steps as for **MNIST** and **please do not forget to replace `--example MNIST_VERTICAL` with `--example CCFRAUD_VERTICAL_FEDONCE`**).
 
 ### BANK_MARKETING
 This example is similar to **CCFRAUD**, however here the host also owns part of the feature space. Please follow the steps in [BANK_MARKETING - Run a job to download and store the dataset in each silo](../real-world-examples/bank-marketing.md#run-a-job-to-download-and-store-the-dataset-in-each-silo). You will need to have your Kaggle credentials stored in a key vault, as explained in that same page linked above.
@@ -64,10 +66,18 @@ Uploading the data can  be performed with ease using a data provisioning pipelin
 
 :warning: Proceed to the next step only once the pipeline completes. This pipeline will create data in 3 distinct locations.
 
-## Model preparation for VFL
-It is an ongoing research topic on how the model can be orchestrated in VFL. We have decided to go with the most common approach by splitting it between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and/or activation function. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
+## Model preparation
 
-## Communication
+### Split learning(all but CCFRAUD_VERTICAL_FEDONCE example)
+It is an ongoing research topic on how the model can be orchestrated in VFL. The most common approach involves splitting the model between the host and contributors, also referred to as **split learning**, this approach can be easily altered by moving layers between parties to hosting whole model on contributors while host provides only aggregation and loss computation. We believe that this can better demonstrate capabilities of VFL on AzureML and most of the existing models can be easily split without requiring too much work.
+
+### FedOnce(only CCFRAUD_VERTICAL_FEDONCE example)
+Inspired by [work from Wu et. al.](https://arxiv.org/pdf/2208.10278.pdf), we also implemented communication efficient vertical federated learning approach that relies on learning latent representation of data in all contributing parties through unsupervised learning by utilizing Variational Autoencoders (VAE). The latent representation of overlapping samples is shared to host upon convergence of VAEs. This is done only once during the training and thus significantly reduces communication overhead. The host then uses these latent representations to train predictor using labels. Advantage of this approach is that each contributor can fully utilize all samples for training no matter the overlap with other parties due to the nature of unsupervised learning. The step-by-step flow of the training is as follows:
+1. Each contributor collects its portion of features and trains the VAE (in case of **CCFRAUD** example this is done by the `ccfraud_vertical_pretrain_contributor` component that can be found in `examples/components/CCFRAUD_VERTICAL_FEDONCE/pretraining`) until convergence.
+2. Each contributor stores its model in its own data storage and then stores the latent representations of data in the host storage (in this way the output of each contributor is transferred only once compared to regular VFL where number of transfers of all data is equal to number of epochs).
+3. Host loads the data labels as well as all the latent representations created by the contributors and use them for training its portion of the model until convergence.
+
+## Communication (all but CCFRAUD_VERTICAL_FEDONCE example)
 The nodes in the vertical federated learning need to communicate during the training to exchange intermediate outputs and gradients. Current implementation enables communication only between the host and contributors and no contributor to contributor access. The communication can happen on one of the two currently available channels: **sockets** or **Redis streams**.
 
 ### Sockets
@@ -136,7 +146,6 @@ Afterwards, we can continue with regular training loop:
    > Note: You can use the `--offline` flag when running the job to just build and validate pipeline without submitting it.
 
     :star: you can simplify this command by entering your workspace details in the file `config.yaml` in this same directory.
-
 
 ## Tips and pitfalls
 1. **Socket timeout**

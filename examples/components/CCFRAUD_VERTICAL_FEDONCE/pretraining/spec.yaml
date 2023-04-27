@@ -1,10 +1,10 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: msft_fl_ccfraud_vertical_train_in_silo_host
+name: msft_fl_ccfraud_vertical_fedonce_pretrain_contributor
 version: 0.0.1
-display_name: CC Fraud Train (in silo)
+display_name: CC Fraud Pre-Train (in silo)
 type: command
-description: Component to train a model to classify CC Fraud.
+description: Component to train a model to generate embeddings representative of contributor samples.
 is_deterministic: false
 
 inputs:
@@ -38,47 +38,28 @@ inputs:
     description: batch size
     default: 100
     optional: true
-  global_size:
-    type: number
-    optional: false
-  global_rank:
-    type: number
-    optional: false
-  communication_backend:
-    type: string
-    enum:
-      - socket
-      - redis
-    default: socket
-    optional: false
-  communication_encrypted:
-    type: boolean
-    description: Encrypt messages exchanged between the nodes
-    optional: false
-
 
 outputs:
   model:
     type: uri_folder
     description: the output checkpoint
+  embeddings:
+    type: uri_folder
+    description: the output embeddings
 
 code: .
 
 command: >-
-  python host.py
+  python run.py
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}
-  --global_size ${{inputs.global_size}}
-  --global_rank ${{inputs.global_rank}}
+  --embeddings_path ${{outputs.embeddings}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
-  --communication_backend ${{inputs.communication_backend}}
-  --communication_encrypted ${{inputs.communication_encrypted}}
-  
 environment: 
   conda_file: ./conda.yaml
   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

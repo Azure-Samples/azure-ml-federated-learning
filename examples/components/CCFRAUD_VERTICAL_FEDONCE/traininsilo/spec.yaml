@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: msft_fl_ccfraud_vertical_train_in_silo_host
+name: msft_fl_ccfraud_vertical_fedonce_train_in_silo_host
 version: 0.0.1
 display_name: CC Fraud Train (in silo)
 type: command
@@ -23,6 +23,18 @@ inputs:
     type: uri_folder
     description: a given pre-existing checkpoint
     optional: true
+  contributor_1_embeddings:
+    type: uri_folder
+    description: path to embeddings extracted by contributor
+    optional: true
+  contributor_2_embeddings:
+    type: uri_folder
+    description: path to embeddings extracted by contributor
+    optional: true
+  contributor_3_embeddings:
+    type: uri_folder
+    description: path to embeddings extracted by contributor
+    optional: true
   lr:
     type: number
     description: learning rate
@@ -38,24 +50,6 @@ inputs:
     description: batch size
     default: 100
     optional: true
-  global_size:
-    type: number
-    optional: false
-  global_rank:
-    type: number
-    optional: false
-  communication_backend:
-    type: string
-    enum:
-      - socket
-      - redis
-    default: socket
-    optional: false
-  communication_encrypted:
-    type: boolean
-    description: Encrypt messages exchanged between the nodes
-    optional: false
-
 
 outputs:
   model:
@@ -65,19 +59,18 @@ outputs:
 code: .
 
 command: >-
-  python host.py
+  python run.py
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}
-  --global_size ${{inputs.global_size}}
-  --global_rank ${{inputs.global_rank}}
+  $[[--contributor_1_embeddings ${{inputs.contributor_1_embeddings}}]]
+  $[[--contributor_2_embeddings ${{inputs.contributor_2_embeddings}}]]
+  $[[--contributor_3_embeddings ${{inputs.contributor_3_embeddings}}]]
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
   $[[--checkpoint ${{inputs.checkpoint}}]]
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
-  --communication_backend ${{inputs.communication_backend}}
-  --communication_encrypted ${{inputs.communication_encrypted}}
   
 environment: 
   conda_file: ./conda.yaml
