@@ -242,6 +242,17 @@ resource imageBuildCompute 'Microsoft.MachineLearningServices/workspaces/compute
   ]
 }
 
+module imageBuildComputePerms '../permissions/msi_storage_rw.bicep' = {
+  name: '${imageBuildComputeName}-perms-deployment'
+  scope: resourceGroup()
+  params: {
+    storageAccountName: storageAccountName
+    identityPrincipalId: imageBuildCompute.identity.principalId
+  }
+  dependsOn: [
+    storage
+  ]
+}
 
 // *****************************************
 // Azure Machine Learning private networking
