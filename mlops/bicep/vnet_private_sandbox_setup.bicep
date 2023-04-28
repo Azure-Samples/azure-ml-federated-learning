@@ -30,7 +30,7 @@ targetScope = 'resourceGroup'
 @description('Base name of the demo, used for creating all resources as prefix')
 @minLength(2)
 @maxLength(20)
-param sandboxBaseName string = 'flsbox'
+param demoBaseName string = 'fldemo'
 
 // below parameters are optionals and have default values
 @description('Region of the orchestrator (workspace, central storage and compute).')
@@ -87,21 +87,21 @@ param tags object = {
 
 // Virtual network and network security group of the workspace resources
 module nsg './modules/networking/azureml_workspace_nsg.bicep' = { 
-  name: 'nsg-${sandboxBaseName}'
+  name: 'nsg-${demoBaseName}'
   scope: resourceGroup()
   params: {
     location: orchestratorRegion
-    nsgName: 'nsg-${sandboxBaseName}'
+    nsgName: 'nsg-${demoBaseName}'
     tags: tags
   }
 }
 
 module vnet './modules/networking/vnet.bicep' = { 
-  name: 'vnet-${sandboxBaseName}-deployment'
+  name: 'vnet-${demoBaseName}-deployment'
   scope: resourceGroup()
   params: {
     location: orchestratorRegion
-    virtualNetworkName: 'vnet-${sandboxBaseName}-ws'
+    virtualNetworkName: 'vnet-${demoBaseName}-ws'
     networkSecurityGroupId: nsg.outputs.id
     vnetAddressPrefix: '10.0.0.0/16'
     subnets: [
@@ -129,12 +129,12 @@ resource blobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
 
 // Create Azure Machine Learning workspace, including private DNS zones
 module workspace './modules/azureml/private_azureml_workspace.bicep' = {
-  name: '${sandboxBaseName}-aml-${orchestratorRegion}'
+  name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
-    machineLearningName: 'aml-${sandboxBaseName}'
+    machineLearningName: 'aml-${demoBaseName}'
     machineLearningDescription: 'Azure ML demo workspace for federated learning'
-    baseName: sandboxBaseName
+    baseName: demoBaseName
     location: orchestratorRegion
     tags: tags
 
@@ -153,12 +153,12 @@ module workspace './modules/azureml/private_azureml_workspace.bicep' = {
 
 // In order to be able to record this storage in dns zone with static ip
 // we need to set this storage account name ourselves here
-var orchestratorStorageAccountName = replace('st${sandboxBaseName}orch','-','')
+var orchestratorStorageAccountName = replace('st${demoBaseName}orch','-','')
 var orchestratorStorageAccountCleanName = substring(orchestratorStorageAccountName, 0, min(length(orchestratorStorageAccountName),24))
 
 // Create an orchestrator compute+storage pair and attach to workspace
 module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
-  name: '${sandboxBaseName}-orchestrator-pair'
+  name: '${demoBaseName}-orchestrator-pair'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspaceName
@@ -168,7 +168,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
     pairRegion: orchestratorRegion
     tags: tags
 
-    pairBaseName: '${sandboxBaseName}-orch'
+    pairBaseName: '${demoBaseName}-orch'
 
     compute1Name: 'orchestrator-01' // let's not use demo base name in cluster name
     compute1SKU: compute1SKU
@@ -184,7 +184,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
     applyDefaultPermissions: true
 
     // networking
-    vnetResourceName: 'vnet-${sandboxBaseName}-orch'
+    vnetResourceName: 'vnet-${demoBaseName}-orch'
 
     // address has same range as workspace vnet
     // those two vnet will NOT be peered
@@ -215,13 +215,13 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
 
 // Create an endpoint in the orchestrator vnet for the workspace storage (for local data upload)
 module wsStorageToOrchestratorEndpoint './modules/networking/private_endpoint.bicep' = {
-  name: '${sandboxBaseName}-ws-to-orch-storage-ple'
+  name: '${demoBaseName}-ws-to-orch-storage-ple'
   scope: resourceGroup()
   params: {
     location: workspace.outputs.region
     tags: tags
     resourceServiceId: workspace.outputs.workspaceStorageServiceId
-    pleRootName: 'ple-${workspace.outputs.workspaceStorageName}-to-${sandboxBaseName}-org-st-blob'
+    pleRootName: 'ple-${workspace.outputs.workspaceStorageName}-to-${demoBaseName}-org-st-blob'
     subnetId: '${orchestrator.outputs.vNetId}/subnets/endpoints'
     privateDNSZoneName: 'privatelink.blob.${environment().suffixes.storage}'
     groupId: 'blob'
@@ -234,7 +234,7 @@ module wsStorageToOrchestratorEndpoint './modules/networking/private_endpoint.bi
 
 // Set READ (only) so that orchestrator can read data from default workspace blob store (for local data upload)
 module wsToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = {
-  name: '${sandboxBaseName}-rw-perms-ws-to-orch'
+  name: '${demoBaseName}-rw-perms-ws-to-orch'
   scope: resourceGroup()
   params: {
     storageAccountName: workspace.outputs.workspaceStorageName
@@ -255,7 +255,7 @@ var siloCount = length(siloRegions)
 // Create all silos as a compute+storage pair and attach to workspace
 // This pair will be considered eyes-off
 module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in range(0, siloCount): {
-  name: '${sandboxBaseName}-silo-${i}-pair'
+  name: '${demoBaseName}-silo-${i}-pair'
   scope: resourceGroup()
   params: {
     machineLearningName: workspace.outputs.workspaceName
@@ -265,7 +265,7 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
     pairRegion: siloRegions[i]
     tags: tags
 
-    pairBaseName: '${sandboxBaseName}-silo${i}'
+    pairBaseName: '${demoBaseName}-silo${i}'
 
     compute1Name: 'silo${i}-01' // let's not use demo base name in cluster name
     compute1SKU: compute1SKU
@@ -284,7 +284,7 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
     endpointsSubnetPrefix: (applyVNetPeering ? '10.${i+2}.0.0/24' : '10.0.0.0/24' )
     amlPLEStaticIPs: (applyVNetPeering ? '10.${i+2}.0.240,10.${i+2}.0.241,10.${i+2}.0.242' : '10.0.0.240,10.0.0.241,10.0.0.242')
     // leave 243 for orchestrator
-    storagePLEStaticIP: (applyVNetPeering ? '10.${i+2}.0.244' : '10.${i+2}.0.244')
+    storagePLEStaticIP: (applyVNetPeering ? '10.${i+2}.0.244' : '10.0.0.244')
 
     // traffic regulated by NSG
     enableNodePublicIp: false
@@ -302,13 +302,13 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
 // Attach orchestrator and silos together with private endpoints and RBAC
 // Create a private service endpoints internal to each pair for their respective storages
 module orchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' = [for i in range(0, siloCount): if (orchestratorStorageNetworkAccess == 'private' && !applyVNetPeering) {
-  name: '${sandboxBaseName}-orch-to-silo${i}-storage-ple'
+  name: '${demoBaseName}-orch-to-silo${i}-storage-ple'
   scope: resourceGroup()
   params: {
     location: silos[i].outputs.region
     tags: tags
     resourceServiceId: orchestrator.outputs.storageServiceId
-    pleRootName: 'ple-${orchestrator.outputs.storageName}-to-${sandboxBaseName}-silo${i}-st-blob'
+    pleRootName: 'ple-${orchestrator.outputs.storageName}-to-${demoBaseName}-silo${i}-st-blob'
     subnetId: '${silos[i].outputs.vNetId}/subnets/endpoints'
     useStaticIPAddress: true
     privateIPAddress: (applyVNetPeering ? '10.${i+2}.0.243' : '10.0.0.243')
@@ -323,7 +323,7 @@ module orchToSiloPrivateEndpoints './modules/networking/private_endpoint.bicep' 
 
 // Set R/W permissions for silo identity towards (eyes-on) orchestrator storage
 module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for i in range(0, siloCount): {
-  name: '${sandboxBaseName}-rw-perms-silo${i}-to-orch'
+  name: '${demoBaseName}-rw-perms-silo${i}-to-orch'
   scope: resourceGroup()
   params: {
     storageAccountName: orchestrator.outputs.storageName
@@ -338,7 +338,7 @@ module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for
 // WARNING: apply vNet peering on top of everything
 // to allow for interconnections between computes
 module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(0, siloCount): if(applyVNetPeering) {
-  name: '${sandboxBaseName}-vnetpeering-orch-to-silo${i}'
+  name: '${demoBaseName}-vnetpeering-orch-to-silo${i}'
   scope: resourceGroup()
   params: {
     existingVirtualNetworkNameSource: silos[i].outputs.vnetName
