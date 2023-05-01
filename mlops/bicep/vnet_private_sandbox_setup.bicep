@@ -76,6 +76,12 @@ param compute2SKU string = 'Standard_NC6'
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = true
 
+@description('Optional: create links to workspace resources in each silo')
+param linkWsResourcesInSilos bool = false
+
+@description('Name of the keyvault to use for storing actual secrets (ex: encryption at rest).')
+param confidentialityKeyVaultName string = 'kv-${demoBaseName}'
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {
   Owner: 'AzureML Samples'
@@ -148,6 +154,7 @@ module workspace './modules/azureml/private_azureml_workspace.bicep' = {
     // we're forcing the IP to be the same as orchestrator vnet
     // to avoid private DNS zone conflicts
     amlPLEStaticIPs: '10.0.0.240,10.0.0.241,10.0.0.242' // default,notebook,inference
+    blobPLEStaticIP: '10.0.0.239'
   }
 }
 
@@ -223,6 +230,8 @@ module wsStorageToOrchestratorEndpoint './modules/networking/private_endpoint.bi
     resourceServiceId: workspace.outputs.workspaceStorageServiceId
     pleRootName: 'ple-${workspace.outputs.workspaceStorageName}-to-${demoBaseName}-org-st-blob'
     subnetId: '${orchestrator.outputs.vNetId}/subnets/endpoints'
+    useStaticIPAddress: true
+    privateIPAddress: '10.0.0.239'
     privateDNSZoneName: 'privatelink.blob.${environment().suffixes.storage}'
     groupId: 'blob'
   }
@@ -352,6 +361,26 @@ module vNetPeerings './modules/networking/vnet_peering.bicep' = [for i in range(
   ]
 }]
 
+
+// Create a "confidentiality" keyvault external to the workspace
+// This keyvault will be used to store actual secrets (ex: encryption at rest)
+var siloIdentities = [ for i in range(0, siloCount) : '${silos[i].outputs.identityPrincipalId}' ]
+
+module confidentialityKeyVault './modules/resources/confidentiality_keyvault.bicep' = {
+  name: '${demoBaseName}-kv-confidentiality'
+  params: {
+    keyVaultName: confidentialityKeyVaultName
+    tags: tags
+    region: orchestratorRegion
+    identitiesEnabledCryptoOperations: siloIdentities
+    // for some reason, concat doesn't work here, using secondary list
+    secondaryIdentitiesEnabledCryptoOperations: [ '${orchestrator.outputs.identityPrincipalId}' ]
+  }
+  dependsOn: [
+    silos
+    orchestrator
+  ]
+}
 
 // returned outputs
 output workspaceSecretStoreId string = workspace.outputs.workspaceSecretStoreId

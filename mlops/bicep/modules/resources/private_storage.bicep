@@ -25,6 +25,12 @@ param storageSKU string = 'Standard_LRS'
 @description('Resource ID of the subnets allowed into this storage')
 param subnetId string
 
+@description('Static IP for the blob storage private endpoint')
+param blobPLEStaticIP string = ''
+
+@description('Static IP for the file storage private endpoint')
+param filePLEStaticIP string = ''
+
 @description('Name of the private DNS zone for blob')
 param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
@@ -146,6 +152,8 @@ module blobPrivateEndpoint '../networking/private_endpoint.bicep' = {
     location: storage.location
     resourceServiceId: storage.id
     pleRootName: 'ple-${storage.name}-blob-${uniqueString(subnetId)}'
+    useStaticIPAddress: !empty(blobPLEStaticIP)
+    privateIPAddress: blobPLEStaticIP
     subnetId: subnetId
     privateDNSZoneName: blobPrivateDNSZoneName
     groupId: 'blob'
@@ -160,6 +168,8 @@ module filePrivateEndpoint '../networking/private_endpoint.bicep' = {
     location: storage.location
     resourceServiceId: storage.id
     pleRootName: 'ple-${storage.name}-file-${uniqueString(subnetId)}'
+    useStaticIPAddress: !empty(filePLEStaticIP)
+    privateIPAddress: filePLEStaticIP
     subnetId: subnetId
     privateDNSZoneName: filePrivateDNSZoneName
     groupId: 'file'

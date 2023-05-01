@@ -64,6 +64,12 @@ param workspacePublicNetworkAccess string = 'Disabled'
 @description('Optional: static ip for the PLE to the workspace (3 comma separated needed)')
 param amlPLEStaticIPs string = ''
 
+@description('Static IP for the blob storage private endpoint')
+param blobPLEStaticIP string = ''
+
+@description('Static IP for the file storage private endpoint')
+param filePLEStaticIP string = ''
+
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
@@ -104,6 +110,8 @@ module storage '../resources/private_storage.bicep' = {
     storageName: storageAccountName
     storageSKU: 'Standard_LRS'
     subnetId: '${virtualNetworkId}/subnets/${endpointsSubnetName}'
+    blobPLEStaticIP: blobPLEStaticIP
+    filePLEStaticIP: filePLEStaticIP
     blobPrivateDNSZoneName: blobStoragePrivateDnsZoneName
     filePrivateDNSZoneName: fileStoragePrivateDnsZoneName
     // if workspace is accessible through public API,
