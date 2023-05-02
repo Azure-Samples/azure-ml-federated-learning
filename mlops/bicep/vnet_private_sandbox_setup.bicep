@@ -76,9 +76,6 @@ param compute2SKU string = 'Standard_NC6'
 @description('WARNING: turn true to apply vNet peering from silos to orchestrator allowing compute to compute communication.')
 param applyVNetPeering bool = true
 
-@description('Optional: create links to workspace resources in each silo')
-param linkWsResourcesInSilos bool = false
-
 @description('Name of the keyvault to use for storing actual secrets (ex: encryption at rest).')
 param confidentialityKeyVaultName string = 'kv-${demoBaseName}'
 
@@ -221,19 +218,28 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
 }
 
 // Create an endpoint in the orchestrator vnet for the workspace storage (for local data upload)
-module wsStorageToOrchestratorEndpoint './modules/networking/private_endpoint.bicep' = {
-  name: '${demoBaseName}-ws-to-orch-storage-ple'
+module wsPLEsInOrchestratorVnet './modules/azureml/azureml_resources_ples.bicep' = {
+  name: '${demoBaseName}-ws-ple-in-orch'
   scope: resourceGroup()
   params: {
-    location: workspace.outputs.region
     tags: tags
-    resourceServiceId: workspace.outputs.workspaceStorageServiceId
-    pleRootName: 'ple-${workspace.outputs.workspaceStorageName}-to-${demoBaseName}-org-st-blob'
-    subnetId: '${orchestrator.outputs.vNetId}/subnets/endpoints'
-    useStaticIPAddress: true
-    privateIPAddress: '10.0.0.239'
-    privateDNSZoneName: 'privatelink.blob.${environment().suffixes.storage}'
-    groupId: 'blob'
+    machineLearningName: workspace.outputs.workspaceName
+    pleRegion: orchestratorRegion
+    virtualNetworkName: orchestrator.outputs.vnetName
+    virtualNetworkId: orchestrator.outputs.vNetId
+    subnetName: 'endpoints'
+
+    linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
+    createAcrPLE: true
+    acrPLEStaticIP: '10.0.0.237'
+
+    linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
+    createKeyVaultPLE: true
+    keyVaultPLEStaticIP: '10.0.0.238'
+
+    linkBlobDnsToVirtualNetwork: false // link was done during silo creation already
+    createBlobPLE: true
+    blobPLEStaticIP: '10.0.0.239'
   }
   dependsOn: [
     workspace
@@ -306,6 +312,31 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   dependsOn: [
     workspace
   ]
+}]
+
+module wsPLEsInSilosVnet './modules/azureml/azureml_resources_ples.bicep' = [for i in range(0, siloCount): if (!applyVNetPeering) {
+  name: '${demoBaseName}-ws-ple-in-silo${i}'
+  scope: resourceGroup()
+  params: {
+    tags: tags
+    machineLearningName: workspace.outputs.workspaceName
+    pleRegion: siloRegions[i]
+    virtualNetworkName: silos[i].outputs.vnetName
+    virtualNetworkId: silos[i].outputs.vNetId
+    subnetName: 'endpoints'
+
+    linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
+    createAcrPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
+    acrPLEStaticIP: '10.0.0.237' // unused arg is createAcrPLE=False
+
+    linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
+    createKeyVaultPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
+    keyVaultPLEStaticIP: '10.0.0.238' // unused arg is createKeyVaultPLE=False
+
+    linkBlobDnsToVirtualNetwork: false // link was done during silo creation already
+    createBlobPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
+    blobPLEStaticIP: '10.0.0.239' // unused arg is createBlobPLE=False
+  }
 }]
 
 // Attach orchestrator and silos together with private endpoints and RBAC
