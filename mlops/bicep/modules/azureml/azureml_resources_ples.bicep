@@ -82,6 +82,7 @@ module keyVaultPrivateEndpoint '../networking/private_endpoint.bicep' = if (crea
     subnetId: subnetId
     privateDNSZoneName: keyVaultPrivateDnsZone.name
     groupId: 'vault'
+    memberNames: [ 'default' ]
     useStaticIPAddress: !empty(keyVaultPLEStaticIP)
     privateIPAddress: keyVaultPLEStaticIP
   }
@@ -127,7 +128,7 @@ module acrPrivateEndpoint '../networking/private_endpoint.bicep' = if (createAcr
 }
 
 
-var blobPrivateDnsZoneName = 'privatelink${environment().suffixes.storage}'
+var blobPrivateDnsZoneName = 'privatelink.blob.${environment().suffixes.storage}'
 resource blobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
   name: blobPrivateDnsZoneName
 }
