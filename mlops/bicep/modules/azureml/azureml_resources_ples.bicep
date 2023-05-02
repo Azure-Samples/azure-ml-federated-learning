@@ -62,7 +62,7 @@ resource keyVaultPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' e
 resource keyVaultPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (linkKeyvaultDnsToVirtualNetwork) {
   name: uniqueString(virtualNetworkId, keyVaultPrivateDnsZoneName, pleRegion)
   parent: keyVaultPrivateDnsZone
-  location: pleRegion
+  location: 'global'
   tags: tags
   properties: {
     registrationEnabled: false
@@ -98,7 +98,7 @@ resource acrPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existi
 resource acrPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (linkAcrDnsToVirtualNetwork) {
   name: uniqueString(virtualNetworkId, acrPrivateDnsZoneName, pleRegion)
   parent: acrPrivateDnsZone
-  location: pleRegion
+  location: 'global'
   tags: tags
   properties: {
     registrationEnabled: false
@@ -134,7 +134,7 @@ resource blobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' exist
 resource blobPrivateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (linkBlobDnsToVirtualNetwork) {
   name: uniqueString(virtualNetworkId, blobPrivateDnsZoneName, pleRegion)
   parent: blobPrivateDnsZone
-  location: pleRegion
+  location: 'global'
   tags: tags
   properties: {
     registrationEnabled: false
