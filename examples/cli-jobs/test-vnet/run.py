@@ -33,7 +33,46 @@ def get_arg_parser(parser=None):
     return parser
 
 
-def test_managed_identity(identity:str=None) -> bool:
+def test_env() -> bool:
+    for k, v in os.environ.items():
+        print(f"ENV: {k}={v}")
+
+    return True
+
+
+def test_ws_secrets() -> bool:
+    try:
+        from azureml.core import Run, Workspace
+        from azureml.core.keyvault import Keyvault
+    except ImportError:
+        print("ERROR: You need to install the azureml-sdk package to run this script")
+        return False
+
+    try:
+        run = Run.get_context()
+        ws = run.experiment.workspace
+        kv = ws.get_default_keyvault()
+
+        username = kv.get_secret("kaggleusername")
+    except:
+        print("ERROR: Failed to get secrets")
+        print(traceback.format_exc())
+        return False
+
+    print("Sucessfully got username fom ws shared secret store")
+    return True
+
+
+def test_network() -> bool:
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    print(f"Hostname: {hostname}")
+    print(f"IP Address: {ip_address}")
+
+    return True
+
+
+def test_managed_identity(identity: str = None) -> bool:
     if "DEFAULT_IDENTITY_CLIENT_ID" not in os.environ:
         print("WARNING: DEFAULT_IDENTITY_CLIENT_ID not set in environment")
 
@@ -41,7 +80,9 @@ def test_managed_identity(identity:str=None) -> bool:
         from azure.identity import DefaultAzureCredential
         from azure.identity import ManagedIdentityCredential
     except ImportError:
-        print("ERROR: You need to install the azure-storage-blob package to run this script")
+        print(
+            "ERROR: You need to install the azure-storage-blob package to run this script"
+        )
         return False
 
     if identity is not None:
@@ -53,7 +94,9 @@ def test_managed_identity(identity:str=None) -> bool:
         credential = ManagedIdentityCredential(client_id=identity)
     else:
         print("Using default identity (no env var DEFAULT_IDENTITY_CLIENT_ID set)")
-        credential = DefaultAzureCredential()
+        identity = "cd771eee-a5ff-4b83-8c84-87342f4d44e0"
+        credential = ManagedIdentityCredential(client_id=identity)
+        # credential = DefaultAzureCredential()
 
     try:
         print("Testing credential...")
@@ -66,7 +109,7 @@ def test_managed_identity(identity:str=None) -> bool:
     return True
 
 
-def test_storage(storage_account_name:str, container:str=None) -> bool:
+def test_storage(storage_account_name: str, container: str = None) -> bool:
     fqdn = f"{storage_account_name}.blob.core.windows.net"
     account_url = f"https://{fqdn}"
     print(f"Testing access to account url: {account_url}")
@@ -85,6 +128,7 @@ def test_storage(storage_account_name:str, container:str=None) -> bool:
 
     try:
         import ipaddress
+
         if not ipaddress.ip_address(ip_address).is_private:
             print(f"ERROR: IP address for {fqdn}, {ip_address} is not private")
             success = False
@@ -97,7 +141,9 @@ def test_storage(storage_account_name:str, container:str=None) -> bool:
         from azure.identity import DefaultAzureCredential, ManagedIdentityCredential
         from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
     except ImportError:
-        print("ERROR: You need to install the azure-storage-blob package to run this script")
+        print(
+            "ERROR: You need to install the azure-storage-blob package to run this script"
+        )
         return False
 
     try:
@@ -109,7 +155,7 @@ def test_storage(storage_account_name:str, container:str=None) -> bool:
         else:
             print("Using default identity (no env var DEFAULT_IDENTITY_CLIENT_ID set)")
             credential = DefaultAzureCredential()
-        
+
         # Create the BlobServiceClient object
         blob_service_client = BlobServiceClient(account_url, credential=credential)
     except Exception as e:
@@ -162,7 +208,9 @@ def main(cli_args=None):
     print(f"Running script with arguments: {args}")
 
     success = True
-
+    success &= test_env()
+    success &= test_ws_secrets()
+    success &= test_network()
     success &= test_managed_identity(args.identity)
 
     if args.storage:
