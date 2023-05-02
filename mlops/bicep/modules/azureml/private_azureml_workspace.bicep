@@ -40,7 +40,7 @@ param containerRegistryName string = replace('cr-${baseName}','-','') // replace
 param keyVaultName string = 'ws-shkv-${baseName}'
 
 @description('Name of the workspace storage account resource')
-param storageAccountName string = replace('st-${baseName}','-','') // replace because only alphanumeric characters are supported
+param storageAccountName string = replace('stws${baseName}','-','') // replace because only alphanumeric characters are supported
 
 @description('Name of the cluster used to build images for custom environments (required for private workspaces)')
 param imageBuildComputeName string = 'image-build-compute'
