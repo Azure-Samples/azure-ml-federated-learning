@@ -1,0 +1,20 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandJob.schema.json
+
+code: .
+
+command: >
+  python run.py 
+  --storage ${{inputs.storage}} 
+  --resolve ${{inputs.resolve}}
+
+inputs:
+  storage: "stfldemo"
+  resolve: "crfldemo.azurecr.io"
+
+environment: azureml://registries/azureml/environments/sklearn-1.0/versions/5
+# environment: 
+#   conda_file: ./conda.yaml
+#   image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04
+
+compute: azureml:orchestrator-01 # replace '<your-silo-compute-name>' by the actual compute name for your silo
+# compute: azureml:image-build-compute # replace '<your-silo-compute-name>' by the actual compute name for your silo
