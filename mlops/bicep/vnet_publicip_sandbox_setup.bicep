@@ -172,8 +172,8 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   params: {
     machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
-    machineLearningIsPrivate: false
-    createMachineLearningPLE: false
+    machineLearningIsPrivate: false // this script uses an open workspace
+    createMachineLearningPLE: false // this script uses an open workspace
     pairRegion: siloRegions[i]
     tags: tags
 
