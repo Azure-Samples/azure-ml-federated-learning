@@ -30,11 +30,11 @@ param computeIdentityType string = 'UserAssigned'
 @description('Name of the UAI for the compute cluster (if computeIdentityType==UserAssigned)')
 param computeUaiName string
 
-@description('Subnet ID')
+@description('virtual network ID')
 param vnetId string
 
 @description('Subnet name')
-param subnetName string = 'snet-training'
+param subnetName string
 
 @description('Enable compute node public IP')
 param enableNodePublicIp bool = true

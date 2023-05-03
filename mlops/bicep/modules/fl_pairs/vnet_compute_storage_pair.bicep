@@ -14,7 +14,7 @@ param machineLearningName string
 param machineLearningRegion string = resourceGroup().location
 
 @description('Set true to provision PLEs necessary for private workspace to interact with the pair')
-param machineLearningIsPrivate bool = true
+param machineLearningIsPrivate bool = false
 
 @description('Specifies the location of the pair resources.')
 param pairRegion string = resourceGroup().location

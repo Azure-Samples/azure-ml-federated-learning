@@ -12,7 +12,7 @@ param machineLearningName string
 @description('The region of the machine learning workspace')
 param machineLearningRegion string = resourceGroup().location
 
-@description('The name of the Managed Cluster resource.')
+@description('Name of the compute cluster to create')
 param computeName string
 
 @description('Specifies the location of the compute resources.')
@@ -20,7 +20,7 @@ param computeRegion string
 
 @description('Optional DNS prefix to use with hosted Kubernetes API server FQDN.')
 @maxLength(54)
-param dnsPrefix string = replace('dnxprefix-${computeName}', '-', '')
+param dnsPrefix string = replace('${computeName}', '-', '')
 
 // see https://learn.microsoft.com/en-us/azure/virtual-machines/dcv3-series
 @description('The size of the Virtual Machine.')
@@ -39,11 +39,11 @@ param osDiskSizeGB int = 0
 @description('Name of the UAI for the compute cluster')
 param computeUaiName string
 
-@description('Subnet ID')
-param subnetId string
+@description('virtual network ID')
+param vnetId string
 
 @description('Subnet name')
-param subnetName string = 'snet-training'
+param subnetName string
 
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
@@ -55,7 +55,6 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
 
 var identityPrincipalId = uai.properties.principalId
 var userAssignedIdentities = {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
-
 
 resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
   name: computeName
@@ -89,7 +88,7 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
         osType: 'Linux'
         mode: 'System'
         osDiskSizeGB: osDiskSizeGB
-        vnetSubnetID: subnetId
+        vnetSubnetID: '${vnetId}/subnets/${subnetName}'
       }
     ]
     apiServerAccessProfile: {
@@ -98,11 +97,15 @@ resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
       enablePrivateCluster: false
       enablePrivateClusterPublicFQDN: false
       enableVnetIntegration: false
+      // subnetId: '${vnetId}/subnets/${subnetName}'
     }
     networkProfile:{
       networkPlugin: 'azure'
+      serviceCidr: '172.16.0.0/16'
+      dnsServiceIP: '172.16.0.10' // must be within serviceCidr
+      podCidr: '172.17.0.0/16'
+      dockerBridgeCidr: '172.18.0.0/16'
     }
-    
   }
 }
 

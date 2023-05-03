@@ -140,10 +140,9 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
     endpointsSubnetPrefix: '10.0.0.0/24'
 
     // NOTE: when using storagePublicNetworkAccess = 'Disabled' we will need to
-    // have multiple endpoints from the orchestrator storage
-    // (to orch vnet and to each silo vnet)
-    // we need to set static IP to create a unique record in DNS zone
-    // with all the IPs to the orchestrator storage
+    // have multiple endpoints from the orchestrator storage recorded
+    // in the DNS zone, which will cause conflicts in a sandbox like this.
+    // To avoid it, we're setting all storage PLE to have the same static IP
     storagePLEStaticIP: '10.0.0.243'
   
     // IMPORTANT: compute still has public ip to let workspace submit job
