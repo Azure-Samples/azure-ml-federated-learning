@@ -41,14 +41,14 @@ param orchestratorRegion string = resourceGroup().location
   'public'
   'private'
 ])
-param orchestratorStorageNetworkAccess string = 'private'
+param orchestratorStorageNetworkAccess string = 'public'
 
 @description('Set the silo storage network access as private, with private endpoints into each silo.')
 @allowed([
   'public'
   'private'
 ])
-param siloStorageNetworkAccess string = 'private'
+param siloStorageNetworkAccess string = 'public'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
