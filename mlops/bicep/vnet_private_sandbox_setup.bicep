@@ -41,7 +41,7 @@ param orchestratorRegion string = resourceGroup().location
   'public'
   'private'
 ])
-param workspaceNetworkAccess string = 'public'
+param workspaceNetworkAccess string = 'private'
 
 @description('Set the orchestrator storage network access as private, with private endpoints into each silo.')
 @allowed([
@@ -315,7 +315,7 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   ]
 }]
 
-module wsPLEsInSilosVnet './modules/azureml/azureml_resources_ples.bicep' = [for i in range(0, siloCount): if (!applyVNetPeering) {
+module wsPLEsInSilosVnet './modules/azureml/azureml_resources_ples.bicep' = [for i in range(0, siloCount): {
   name: '${demoBaseName}-ws-ple-in-silo${i}'
   scope: resourceGroup()
   params: {
