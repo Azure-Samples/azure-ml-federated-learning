@@ -71,5 +71,5 @@ InstanceType sets restrictions for each job running on the AKS cluster. You can 
 3. Run `az login`
 4. Run `az account set --subscription <your-subscription-id>`
 5. Run `az aks get-credentials --resource-group <rg-name> --name <aks-name>`
-6. Navigate to `mlops/kube` folder and run: `kubectl apply -f instance-type.yaml`
+6. Navigate to `mlops/k8s_templates` folder and run: `kubectl apply -f instance-type.yaml`
 7. Add `instance_type` property to your pipeline config for the AKS silo and set value to the name set in the step 2
