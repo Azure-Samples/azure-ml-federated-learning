@@ -18,6 +18,9 @@ param machineLearningName string
 @description('The region of the machine learning workspace')
 param machineLearningRegion string = resourceGroup().location
 
+@description('Set true to provision PLEs necessary for private workspace to interact with the pair')
+param machineLearningIsPrivate bool = false
+
 @description('Specifies the location of the pair resources.')
 param pairRegion string = resourceGroup().location
 
@@ -40,19 +43,16 @@ param existingStorageContainerName string = 'private'
 param datastoreName string = replace('datastore_${pairBaseName}','-','_')
 
 @description('Name of the default compute cluster for the pair')
-param computeName string = 'cpu-cluster-${pairBaseName}'
+param computeName string = '${pairBaseName}-01'
 
-@description('VM size for the default compute cluster')
+@description('VM size for the compute cluster')
 param computeSKU string = 'Standard_DS3_v2'
 
 @description('VM nodes for the default compute cluster')
 param computeNodes int = 4
 
-@allowed(['UserAssigned','SystemAssigned'])
-param identityType string = 'UserAssigned'
-
-@description('Name of the UAI for the pair compute cluster (if identityType==UserAssigned)')
-param uaiName string = 'uai-${pairBaseName}'
+@description('Name of the UAI for the jobs running in the pair')
+param jobsUaiName string = 'uai-jobs-${pairBaseName}'
 
 @description('Name of the Network Security Group resource')
 param nsgResourceName string = 'nsg-${pairBaseName}'
@@ -62,24 +62,34 @@ param vnetResourceName string = 'vnet-${pairBaseName}'
 
 @description('Virtual network address prefix')
 param vnetAddressPrefix string = '10.0.0.0/16'
+@description('Subnet address prefix')
+param computeSubnetPrefix string = '10.0.1.0/24'
 
 @description('Subnet address prefix')
-param subnetPrefix string = '10.0.0.0/24'
+param endpointsSubnetPrefix string = '10.0.0.0/24'
 
-@description('Subnet name')
-param subnetName string = 'snet-training'
+@description('Optional: static ip for the pair blob storage PLE')
+param storagePLEStaticIP string = ''
+
+@description('Create a PLE for the machine learning workspace (if machineLearningIsPrivate=true)')
+param createMachineLearningPLE bool = true
+
+@description('Optional: static ip for the PLE to the workspace (if machineLearningIsPrivate=true)')
+param amlPLEStaticIPs string = ''
 
 @description('Enable compute node public IP')
 param enableNodePublicIp bool = true
 
+@allowed(['Enabled','vNetOnly','Disabled'])
+@description('Is public network access to the existing storage allowed or not?')
+param storagePublicNetworkAccess string = 'Disabled'
+
 @description('Name of the private DNS zone for blob')
 param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
-@description('Location of the private DNS zone for blob')
-param blobPrivateDNSZoneLocation string = 'global'
-
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
+
 
 // Virtual network and network security group
 module nsg '../networking/azureml_capable_nsg.bicep' = {
@@ -102,8 +112,12 @@ module vnet '../networking/vnet.bicep' = {
     vnetAddressPrefix: vnetAddressPrefix
     subnets: [
       {
-        name: subnetName
-        addressPrefix: subnetPrefix
+        name: 'compute'
+        addressPrefix: computeSubnetPrefix
+      }
+      {
+        name: 'endpoints'
+        addressPrefix: endpointsSubnetPrefix
       }
     ]
     tags: tags
@@ -111,15 +125,75 @@ module vnet '../networking/vnet.bicep' = {
 }
 
 // provision a user assigned identify for this compute
-resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = if (identityType == 'UserAssigned') {
-  name: uaiName
+resource uaiJobs 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: jobsUaiName
   location: pairRegion
   tags: tags
 }
 
+
+// resource uaiEncryption 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+//   name: encryptionUaiName
+//   location: pairRegion
+//   tags: tags
+// }
+
+// private link to workspace in the new vnet
+resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-05-01' existing = {
+  name: machineLearningName
+}
+
+// *****************************************
+// Azure Machine Learning private networking
+// *****************************************
+
+var amlPrivateDnsZoneNames =  {
+  azureusgovernment: 'privatelink.api.ml.azure.us'
+  azurechinacloud: 'privatelink.api.ml.azure.cn'
+  azurecloud: 'privatelink.api.azureml.ms'
+}
+var amlPrivateDnsZoneName = amlPrivateDnsZoneNames[toLower(environment().name)]
+resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (machineLearningIsPrivate && createMachineLearningPLE){
+  name: amlPrivateDnsZoneName
+}
+resource privateAmlDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (machineLearningIsPrivate && createMachineLearningPLE) {
+  name: uniqueString(subscription().id, resourceGroup().id, vnetResourceName, amlPrivateDnsZoneName, 'global')
+  parent: amlPrivateDnsZone
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.outputs.id
+    }
+  }
+}
+module amlPLE '../networking/private_endpoint.bicep' = if (machineLearningIsPrivate && createMachineLearningPLE) {
+  name: '${machineLearningName}-${pairBaseName}-ple-deployment'
+  params: {
+    location: pairRegion
+    pleRootName: 'ple-${machineLearningName}-${pairBaseName}'
+    resourceServiceId: machineLearning.id
+    subnetId: '${vnet.outputs.id}/subnets/endpoints'
+    tags: tags
+    useStaticIPAddress: !empty(amlPLEStaticIPs)
+    privateIPAddress: amlPLEStaticIPs
+    privateDNSZoneName: amlPrivateDnsZoneName
+    groupId: 'amlworkspace'
+    memberNames: [
+      'default'
+      'notebook'
+      'inference'
+    ]
+  }
+  dependsOn: [
+    privateAmlDnsZoneVnetLink
+  ]
+}
+
+
 // create new Azure ML compute
 module computeDeployment '../computes/vnet_new_aml_compute.bicep' = {
-  name: '${pairBaseName}-vnet-aml-compute'
+  name: '${pairBaseName}-vnet-aml-compute-01'
   scope: resourceGroup()
   params: {
     machineLearningName: machineLearningName
@@ -132,12 +206,12 @@ module computeDeployment '../computes/vnet_new_aml_compute.bicep' = {
     computeNodes: computeNodes
 
     // identity
-    computeIdentityType: identityType
-    computeUaiName: uai.name
+    computeIdentityType: 'UserAssigned'
+    computeUaiName: uaiJobs.name
 
     // networking
-    subnetName: subnetName
-    subnetId: vnet.outputs.id
+    subnetName: 'compute'
+    vnetId: vnet.outputs.id
     enableNodePublicIp: enableNodePublicIp
 
     tags: tags
@@ -161,19 +235,32 @@ module storageDeployment '../storages/existing_blob_storage_datastore.bicep' = {
 }
 
 // Create a private service endpoints internal to each pair for their respective storages
-module privateEndpoint '../networking/private_endpoint.bicep' = {
-  name: '${pairBaseName}-endpoint-to-existing-storage'
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: blobPrivateDNSZoneName
+}
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  name: uniqueString(vnet.name, blobPrivateDNSZoneName, 'global')
+  parent: privateDnsZone
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.outputs.id
+    }
+  }
+}
+module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
+  name: '${pairBaseName}-endpoint-to-pair-storage'
   scope: resourceGroup()
   params: {
     location: pairRegion
     tags: tags
     resourceServiceId: storageDeployment.outputs.storageId
-    resourceName: storageDeployment.outputs.storageName
-    pleRootName: 'ple-remoteaccount-${existingStorageAccountName}-to-${pairBaseName}-st-blob'
-    virtualNetworkId: vnet.outputs.id
-    subnetId: '${vnet.outputs.id}/subnets/${computeDeployment.outputs.subnetName}'
+    pleRootName: 'ple-${storageDeployment.outputs.storageName}-to-${pairBaseName}-st-blob'
+    subnetId: '${vnet.outputs.id}/subnets/endpoints'
+    useStaticIPAddress: !empty(storagePLEStaticIP)
+    privateIPAddress: storagePLEStaticIP
     privateDNSZoneName: blobPrivateDNSZoneName
-    privateDNSZoneLocation: blobPrivateDNSZoneLocation
     groupId: 'blob'
   }
   dependsOn: [
