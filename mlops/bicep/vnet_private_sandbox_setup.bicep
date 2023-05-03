@@ -229,8 +229,9 @@ module wsPLEsInOrchestratorVnet './modules/azureml/azureml_resources_ples.bicep'
     virtualNetworkId: orchestrator.outputs.vNetId
     subnetName: 'endpoints'
 
-    linkAcrDnsToVirtualNetwork: false // no need
-    createAcrPLE: false // no need
+    linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
+    createAcrPLE: true
+    acrPLEStaticIP: '10.0.0.237,10.0.0.236'
 
     linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
     createKeyVaultPLE: true
@@ -324,8 +325,9 @@ module wsPLEsInSilosVnet './modules/azureml/azureml_resources_ples.bicep' = [for
     virtualNetworkId: silos[i].outputs.vNetId
     subnetName: 'endpoints'
 
-    linkAcrDnsToVirtualNetwork: false // no need
-    createAcrPLE: false // no need
+    linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
+    createAcrPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
+    acrPLEStaticIP: '10.0.0.237,10.0.0.236' // unused arg is createAcrPLE=False
 
     linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
     createKeyVaultPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering

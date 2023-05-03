@@ -31,7 +31,6 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' =
     adminUserEnabled: true
     dataEndpointEnabled: false
     networkRuleBypassOptions: 'AzureServices'
-    publicNetworkAccess: 'Disabled'
     networkRuleSet: {
       defaultAction: 'Deny'
     }
@@ -48,6 +47,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' =
         type: 'Notary'
       }
     }
+    publicNetworkAccess: 'Disabled'
     zoneRedundancy: 'Disabled'
   }
 }
