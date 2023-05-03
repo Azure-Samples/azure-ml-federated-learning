@@ -89,7 +89,7 @@ param tags object = {
 }
 
 // Virtual network and network security group of the workspace resources
-module nsg './modules/networking/azureml_workspace_nsg.bicep' = { 
+module nsg './modules/networking/azureml_capable_nsg.bicep' = { 
   name: 'nsg-${demoBaseName}'
   scope: resourceGroup()
   params: {
