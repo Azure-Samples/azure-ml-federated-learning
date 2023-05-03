@@ -5,9 +5,11 @@ code: .
 command: >
   python run.py 
   --storage ${{inputs.storage}} 
+  --resolve ${{inputs.resolve}}
 
 inputs:
-  storage: "stwsfldemo"
+  storage: "stfldemo"
+  resolve: "crfldemo.azurecr.io"
 
 environment: azureml://registries/azureml/environments/sklearn-1.0/versions/5
 # environment: 

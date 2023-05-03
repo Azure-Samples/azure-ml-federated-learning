@@ -25,6 +25,8 @@ def get_arg_parser(parser=None):
     if parser is None:
         parser = argparse.ArgumentParser(description=__doc__)
 
+    parser.add_argument("--input", type=str, required=False, default=None)
+    parser.add_argument("--resolve", type=str, nargs="+", required=False, default=None)
     parser.add_argument("--storage", type=str, nargs="+", required=False, default=None)
     parser.add_argument("--container", type=str, required=False, default=None)
     parser.add_argument("--identity", type=str, required=False, default=None)
@@ -40,6 +42,28 @@ def test_env() -> bool:
     return True
 
 
+def test_input(input_path: str) -> bool:
+    if not os.path.exists(input_path):
+        print(f"ERROR: Input path {input_path} does not exist")
+        return False
+
+    try:
+        if os.path.isdir(input_path):
+            total_size = 0
+            for path, dirs, files in os.walk(input_path):
+                for f in files:
+                    fp = os.path.join(path, f)
+                    total_size += os.path.getsize(fp)
+            print(f"Input path {input_path} is a directory with size {total_size}")
+        else:
+            print(f"Input path {input_path} is a file with size {os.path.getsize(input_path)}")
+    except:
+        print(f"ERROR: Failed to get size of input path {input_path}")
+        print(traceback.format_exc())
+        return False
+
+    return True
+
 def test_ws_secrets() -> bool:
     try:
         from azureml.core import Run, Workspace
@@ -53,23 +77,39 @@ def test_ws_secrets() -> bool:
         ws = run.experiment.workspace
         kv = ws.get_default_keyvault()
 
-        username = kv.get_secret("kaggleusername")
+        print("kv.list_secrets(): ", kv.list_secrets())
     except:
         print("ERROR: Failed to get secrets")
         print(traceback.format_exc())
         return False
 
-    print("Sucessfully got username fom ws shared secret store")
+    print("Sucessfully got list of secrets from ws shared secret store")
     return True
 
 
-def test_network() -> bool:
+def test_network(resolve_list: list = None) -> bool:
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     print(f"Hostname: {hostname}")
     print(f"IP Address: {ip_address}")
+    
+    success = True
 
-    return True
+    import ipaddress
+
+    if resolve_list:
+        for name in resolve_list:
+            try:
+                ip_address = socket.gethostbyname(name)
+
+                if not ipaddress.ip_address(ip_address).is_private:
+                    print(f"ERROR: IP address for {name}, {ip_address} is not private")
+                    success = False
+            except Exception as e:
+                print(f"ERROR: could not resolve '{name}': {traceback.format_exc()}")
+                success = False
+
+    return success
 
 
 def test_managed_identity(identity: str = None) -> bool:
@@ -94,9 +134,7 @@ def test_managed_identity(identity: str = None) -> bool:
         credential = ManagedIdentityCredential(client_id=identity)
     else:
         print("Using default identity (no env var DEFAULT_IDENTITY_CLIENT_ID set)")
-        identity = "cd771eee-a5ff-4b83-8c84-87342f4d44e0"
-        credential = ManagedIdentityCredential(client_id=identity)
-        # credential = DefaultAzureCredential()
+        credential = DefaultAzureCredential()
 
     try:
         print("Testing credential...")
@@ -210,8 +248,11 @@ def main(cli_args=None):
     success = True
     success &= test_env()
     success &= test_ws_secrets()
-    success &= test_network()
+    success &= test_network(resolve_list=args.resolve)
     success &= test_managed_identity(args.identity)
+    
+    if args.input:
+        success &= test_input(args.input)
 
     if args.storage:
         for storage in args.storage:
