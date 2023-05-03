@@ -64,6 +64,9 @@ param workspacePublicNetworkAccess string = 'Disabled'
 @description('Optional: static ip for the PLE to the workspace (3 comma separated needed)')
 param amlPLEStaticIPs string = ''
 
+@description('Optional: static ip for the ACR to the workspace (2 comma separated needed)')
+param acrPLEStaticIPs string = ''
+
 @description('Static IP for the blob storage private endpoint')
 param blobPLEStaticIP string = ''
 
@@ -172,6 +175,7 @@ module containerRegistry '../resources/private_acr.bicep' = {
     containerRegistryName: containerRegistryName
     subnetId: '${virtualNetworkId}/subnets/${endpointsSubnetName}'
     privateDNSZoneName: acrPrivateDnsZoneName
+    acrPLEStaticIPs: acrPLEStaticIPs
     tags: tags
   }
 }

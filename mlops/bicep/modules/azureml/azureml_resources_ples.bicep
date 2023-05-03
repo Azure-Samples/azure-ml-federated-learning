@@ -36,7 +36,7 @@ param linkAcrDnsToVirtualNetwork bool = true
 param createAcrPLE bool = true
 
 @description('Static IP address for the ACR PLE (needs 1 for registy, one for data)')
-param acrPLEStaticIP string = ''
+param acrPLEStaticIPs string = ''
 
 @description('Whether to link the private DNS zones to the virtual network')
 param linkBlobDnsToVirtualNetwork bool = true
@@ -120,8 +120,8 @@ module acrPrivateEndpoint '../networking/private_endpoint.bicep' = if (createAcr
     privateDNSZoneName: acrPrivateDnsZoneName
     groupId: 'registry'
     memberNames: [ 'registry', 'registry_data_${machineLearning.location}']
-    useStaticIPAddress: !empty(acrPLEStaticIP)
-    privateIPAddress: acrPLEStaticIP
+    useStaticIPAddress: !empty(acrPLEStaticIPs)
+    privateIPAddress: acrPLEStaticIPs
   }
   dependsOn:[
     acrPrivateDnsZoneVnetLink

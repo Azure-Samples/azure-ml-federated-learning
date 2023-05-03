@@ -150,6 +150,7 @@ module workspace './modules/azureml/private_azureml_workspace.bicep' = {
 
     // we're forcing the IP to be the same as orchestrator vnet
     // to avoid private DNS zone conflicts
+    acrPLEStaticIPs: '10.0.0.237,10.0.0.236'
     amlPLEStaticIPs: '10.0.0.240,10.0.0.241,10.0.0.242' // default,notebook,inference
     blobPLEStaticIP: '10.0.0.239'
   }
@@ -231,7 +232,7 @@ module wsPLEsInOrchestratorVnet './modules/azureml/azureml_resources_ples.bicep'
 
     linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
     createAcrPLE: true
-    acrPLEStaticIP: '10.0.0.237,10.0.0.236'
+    acrPLEStaticIPs: '10.0.0.237,10.0.0.236'
 
     linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
     createKeyVaultPLE: true
@@ -327,7 +328,7 @@ module wsPLEsInSilosVnet './modules/azureml/azureml_resources_ples.bicep' = [for
 
     linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
     createAcrPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
-    acrPLEStaticIP: '10.0.0.237,10.0.0.236' // unused arg is createAcrPLE=False
+    acrPLEStaticIPs: '10.0.0.237,10.0.0.236' // unused arg is createAcrPLE=False
 
     linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
     createKeyVaultPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering

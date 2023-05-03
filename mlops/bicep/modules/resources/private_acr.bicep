@@ -18,6 +18,9 @@ param subnetId string
 @description('Name of the private DNS zone')
 param privateDNSZoneName string = 'privatelink${environment().suffixes.acrLoginServer}'
 
+@description('Optional: static IPs for the 2 PLEs (comma separated)')
+param acrPLEStaticIPs string = ''
+
 var containerRegistryNameCleaned = replace(containerRegistryName, '-', '')
 
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2021-09-01' = {
@@ -63,6 +66,9 @@ module privateEndpoint '../networking/private_endpoint.bicep' = {
     subnetId: subnetId
     privateDNSZoneName: privateDNSZoneName
     groupId: 'registry'
+    memberNames: [ 'registry', 'registry_data_${location}' ]
+    useStaticIPAddress: !empty(acrPLEStaticIPs)
+    privateIPAddress: acrPLEStaticIPs
   }
 }
 
