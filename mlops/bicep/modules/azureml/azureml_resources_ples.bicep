@@ -119,7 +119,7 @@ module acrPrivateEndpoint '../networking/private_endpoint.bicep' = if (createAcr
     subnetId: subnetId
     privateDNSZoneName: acrPrivateDnsZoneName
     groupId: 'registry'
-    memberNames: [ 'registry', 'registry_data_${machineLearning.location} ']
+    memberNames: [ 'registry', 'registry_data_${machineLearning.location}']
     useStaticIPAddress: !empty(acrPLEStaticIP)
     privateIPAddress: acrPLEStaticIP
   }
