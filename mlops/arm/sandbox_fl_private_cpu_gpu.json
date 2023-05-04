@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "6418668436158726123"
+      "templateHash": "3081343060510816650"
     }
   },
   "parameters": {
@@ -154,7 +154,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "7418800863660640834"
+              "templateHash": "8854562924516790457"
             }
           },
           "parameters": {
@@ -788,7 +788,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "10193551171279010977"
+                      "templateHash": "9728481097255048445"
                     }
                   },
                   "parameters": {
@@ -878,7 +878,7 @@
                     },
                     "imageBuildComputeSKU": {
                       "type": "string",
-                      "defaultValue": "Standard_DS3_v2",
+                      "defaultValue": "Standard_DS4_v2",
                       "metadata": {
                         "description": "VM size for cluster used to build images"
                       }
