@@ -46,7 +46,7 @@ param storageAccountName string = replace('stws${baseName}','-','') // replace b
 param imageBuildComputeName string = 'image-build-compute'
 
 @description('VM size for cluster used to build images')
-param imageBuildComputeSKU string = 'Standard_DS3_v2'
+param imageBuildComputeSKU string = 'Standard_DS4_v2'
 
 @description('VM nodes for cluster used to build images')
 param imageBuildComputeNodes int = 2
