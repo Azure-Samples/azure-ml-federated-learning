@@ -90,7 +90,7 @@ Deploy a sandbox where the silos storages are kept eyes-off by a private service
 
 ### Architecture
 
-![Architecture schema of the eyes-on sandboxes.](../pics/sandboxes_eyesoff.png)
+![Architecture schema of the eyes-off sandboxes.](../pics/sandboxes_eyesoff.png)
 
 ### Relevant Documentation
 
@@ -124,7 +124,7 @@ This is an eyes-off sandbox, but in addition the Azure ML workspace and all its 
 
 ### Architecture
 
-:construction: _Work in progress_ :construction:
+![Architecture schema of the private sandboxes.](../pics/sandboxes_private.png)
 
 ### Relevant Documentation
 
