@@ -124,7 +124,7 @@ This is an eyes-off sandbox, but in addition the Azure ML workspace and all its 
 
 ### Architecture
 
-![Architecture schema of the eyes-on sandboxes.](../pics/sandboxes_private.png)
+:construction: _Work in progress_ :construction:
 
 ### Relevant Documentation
 
