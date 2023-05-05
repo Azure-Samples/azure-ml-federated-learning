@@ -245,12 +245,12 @@ def run(args):
     logger.debug(f"Train data shape after dropping 5% of samples: {df_train.shape}")
     logger.debug(f"Dropped train indices: {drop_indices}")
 
-    logger.debug(f"Randomly dropping 5% of samples from test data, shape: {df_test.shape}")
+    logger.debug(
+        f"Randomly dropping 5% of samples from test data, shape: {df_test.shape}"
+    )
     drop_indices = list(
         sorted(
-            np.random.choice(
-                df_test.index, int(df_test.shape[0] * 0.05), replace=False
-            )
+            np.random.choice(df_test.index, int(df_test.shape[0] * 0.05), replace=False)
         )
     )
     df_test = df_test.drop(drop_indices)
