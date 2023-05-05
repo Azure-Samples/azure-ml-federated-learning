@@ -203,7 +203,8 @@ class EncryptedFile:
             "t" in mode or "b" in mode
         ), f"mode={mode} is not supported, use either 't', 'b' only"
 
-        self._rsa_client = rsa_client or get_rsa_client()
+        if not _CONFIDENTIALITY_DISABLED:
+            self._rsa_client = rsa_client or get_rsa_client()
         self._file_path = file_path
         self._file = None
         self._mode = mode
