@@ -4,6 +4,7 @@ import logging
 import sys
 import os
 
+import numpy as np
 import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder
@@ -46,7 +47,7 @@ def fit_encoders(df):
             continue
 
         if column not in ENCODERS:
-            print(f"Creating encoder for column: {column}")
+            logger.debug(f"Creating encoder for column: {column}")
             # Simply set all zeros if the category is unseen
             encoder = OneHotEncoder(handle_unknown="ignore")
             encoder.fit(df[column].values.reshape(-1, 1))
@@ -84,8 +85,8 @@ def split_load(df, silo_count):
     target_load = sum(loads.values()) / silo_count
     sorted_loads = sorted(loads.items(), key=lambda x: x[1], reverse=True)
 
-    print("Sorted loads:", sorted_loads)
-    print("Silo count:", silo_count)
+    logger.debug(f"Sorted loads: {sorted_loads}")
+    logger.debug(f"Silo count: {silo_count}")
 
     current_load = 0
     split, splits = [], []
@@ -103,7 +104,7 @@ def split_load(df, silo_count):
     if len(split) > 0:
         splits.append(split)
 
-    print("Splits:", splits)
+    logger.debug("Splits: {splits}")
     return splits
 
 
@@ -164,11 +165,11 @@ def run(args):
     df_train = pd.read_csv("./dataset/extracted/fraudTrain.csv", index_col=0)
     df_train = df_train.sort_values(by="trans_date_trans_time")
     df_train.reset_index(inplace=True)
-    print(f"Loaded train dataset with {len(df_train)} rows")
+    logger.debug(f"Loaded train dataset with {len(df_train)} rows")
     df_test = pd.read_csv("./dataset/extracted/fraudTest.csv", index_col=0)
     df_test = df_test.sort_values(by="trans_date_trans_time")
     df_test.reset_index(inplace=True)
-    print(f"Loaded test dataset with {len(df_test)} rows")
+    logger.debug(f"Loaded test dataset with {len(df_test)} rows")
 
     if not os.path.exists(args.raw_train_data):
         os.makedirs(args.raw_train_data, exist_ok=True)
@@ -196,15 +197,15 @@ def run(args):
 
         regions_df = pd.read_csv("./us_regions.csv")
         state_region = {row.StateCode: row.Region for row in regions_df.itertuples()}
-        print(f"Loaded state/regions:\n {state_region}")
+        logger.debug(f"Loaded state/regions:\n {state_region}")
 
         df_train.loc[:, "region"] = df_train["state"].map(state_region)
         df_test.loc[:, "region"] = df_test["state"].map(state_region)
 
-        print(
+        logger.debug(
             f"Train dataset has {len(df_train)} rows and {len(df_train.columns)} columns: {list(df_train.columns)}"
         )
-        print(
+        logger.debug(
             f"Test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
         )
 
@@ -222,12 +223,39 @@ def run(args):
     preprocess_data(df_train)
     preprocess_data(df_test)
 
-    print(
+    logger.debug(
         f"Filtered train dataset has {len(df_train)} rows and {len(df_train.columns)} columns: {list(df_train.columns)}"
     )
-    print(
+    logger.debug(
         f"Filtered test dataset has {len(df_test)} rows and {len(df_test.columns)} columns: {list(df_test.columns)}"
     )
+
+    # Drop 5% of samples (APSI relates, this is done to simulate a real-world scenario where we have non-overlapping data in each silo)
+    logger.debug(
+        f"Randomly dropping 5% of samples from train data, shape before: {df_train.shape}"
+    )
+    drop_indices = list(
+        sorted(
+            np.random.choice(
+                df_train.index, int(df_train.shape[0] * 0.05), replace=False
+            )
+        )
+    )
+    df_train = df_train.drop(drop_indices)
+    logger.debug(f"Train data shape after dropping 5% of samples: {df_train.shape}")
+    logger.debug(f"Dropped train indices: {drop_indices}")
+
+    logger.debug(f"Randomly dropping 5% of samples from test data, shape: {df_test.shape}")
+    drop_indices = list(
+        sorted(
+            np.random.choice(
+                df_test.index, int(df_test.shape[0] * 0.05), replace=False
+            )
+        )
+    )
+    df_test = df_test.drop(drop_indices)
+    logger.debug(f"Test data shape after dropping 5% of samples: {df_test.shape}")
+    logger.debug(f"Dropped test indices: {drop_indices}")
 
     df_train.to_csv(train_path)
     df_test.to_csv(test_path)

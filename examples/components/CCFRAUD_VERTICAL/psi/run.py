@@ -10,9 +10,8 @@ from aml_smpc import AMLSMPC
 import pandas as pd
 import mlflow
 
+# Find more about APSI library here: https://github.com/microsoft/APSI
 from SymmetricPSI import PSISender, PSIReceiver
-
-SCALERS = {}
 
 
 def get_arg_parser(parser=None):

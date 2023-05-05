@@ -153,6 +153,6 @@ Afterwards, we can continue with regular training loop:
 2. **Vertical Federated Learning comes at a cost**
     There is significant overhead when launching vertical federated learning due to heavy communication among participants. As we can see in the training loop there are two transfers per each mini-batch. One for forward pass outputs, one for gradients. This means that the training may take longer than expected.
 3. **Intersection and entity alignment**
-   The samples, used for training and testing, must be aligned and form an intersection of all samples across participants. This process may result in oversharing and revealing private information to other participants. Fortunately there are **private set intersection** methods available out there that come to rescue. One of the is used in **CCFRAUD_VERTICAL** example.
+   The samples, used for training and testing, must be aligned and form an intersection of all samples across participants. This process may result in oversharing and revealing private information to other participants. Fortunately there are **private set intersection** methods available out there that come to rescue. For more details checkout PSI step in **CCFRAUD_VERTICAL** example pipeline.
 4. **Communication encryption**
     Even though the intermediate outputs and gradients are not raw data, they still have been inferred using private data. Therefore, it's good to use encryption when communicating the data to parties outside of Azure.
