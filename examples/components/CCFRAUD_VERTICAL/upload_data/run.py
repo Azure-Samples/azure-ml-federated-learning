@@ -15,6 +15,9 @@ from azureml.core.keyvault import Keyvault
 CATEGORICAL_PROPS = ["category", "region", "gender", "state"]
 ENCODERS = {}
 
+# Assure reproducibility
+np.random.seed(42)
+
 
 def get_kaggle_client(kv: Keyvault):
     """Gets the Kaggle client
