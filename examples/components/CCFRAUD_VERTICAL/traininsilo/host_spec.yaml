@@ -50,11 +50,11 @@ inputs:
       - socket
       - redis
     default: socket
-    optional: true
+    optional: false
   communication_encrypted:
     type: boolean
     description: Encrypt messages exchanged between the nodes
-    optional: true
+    optional: false
 
 
 outputs:
@@ -76,8 +76,8 @@ command: >-
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
-  $[[--communication_backend ${{inputs.communication_backend}}]]
-  $[[--communication_encrypted ${{inputs.communication_encrypted}}]]
+  --communication_backend ${{inputs.communication_backend}}
+  --communication_encrypted ${{inputs.communication_encrypted}}
   
 environment: 
   conda_file: ./conda.yaml

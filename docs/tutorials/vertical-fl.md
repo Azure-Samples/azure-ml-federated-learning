@@ -104,6 +104,9 @@ The communication between nodes, which includes intermediate outputs and gradien
 1. Open the config file  `config.yaml` in `examples/pipelines/ccfraud_vertical/`
 2. Set `encrypted` field, under `communication` to `true`
 
+## Private Set Intersection
+Parties collaborating in the vertical federated learning may own non-overlapping samples. Therefore, ahead of training or testing, it's necessary to make sure that only intersection of these samples is used. Looking for an intersection may result in oversharing data by revealing information about possession of samples not present in other parties. The secure way to achieve this is to use **private set intersection** approach that utilizes cryptography to find an intersection among samples without revealing sets of samples present on individual parties. Example uses case can be found in `examples/component/CCFRAUD_VERTICAL/psi`.
+
 ### How does the encryption works?
 Whole encryption is handled by `AMLSPMC` class in `examples/components/CCFRAUD_VERTICAL/aml_smpc.py`. By initiating the class every node generates its own public/private key set. The public part is communicated to other parties, which they use when communicating with this node. Thus, the private part resides at all time on the local node and is well protected. The message itself is encrypted using hybrid encryption, which can be broken down as follows:
 
@@ -116,7 +119,7 @@ Whole encryption is handled by `AMLSPMC` class in `examples/components/CCFRAUD_V
 ### Overview
 Now, before we run the training itself let's take a step back and take a look on how such training works in VFL setup that is roughly depicted in the figure below. The first step that needs to take place ahead of the training is:
 
-- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. **Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, providing preprocessing step before training as we do not provide any form of PSI as of now.**
+- **Private entity intersection and alignment** - before the training takes place we need to make sure that all of the parties involved share the same sample space and these samples are aligned during the training. **Our samples provide these guarantees by design but please make sure it's true for your custom data. This can be achieved by, for example, by providing preprocessing step before training like PSI step in the CCFRAUD_VERTICAL example.**
 
 Afterwards, we can continue with regular training loop:
 - **Forward pass in contributors** - all contributors, and optionally host, perform forward pass on their part of the model with features they own
@@ -150,12 +153,6 @@ Afterwards, we can continue with regular training loop:
 2. **Vertical Federated Learning comes at a cost**
     There is significant overhead when launching vertical federated learning due to heavy communication among participants. As we can see in the training loop there are two transfers per each mini-batch. One for forward pass outputs, one for gradients. This means that the training may take longer than expected.
 3. **Intersection and entity alignment**
-   The samples nee to be aligned across participants ahead of the training after we created set intersection of samples that are present on all involved parties. This process can reveal information to other entities that we may want to keep private. Fortunately there are **private set intersection** methods available out there that come to rescue.
+   The samples, used for training and testing, must be aligned and form an intersection of all samples across participants. This process may result in oversharing and revealing private information to other participants. Fortunately there are **private set intersection** methods available out there that come to rescue. For more details checkout PSI step in **CCFRAUD_VERTICAL** example pipeline.
 4. **Communication encryption**
     Even though the intermediate outputs and gradients are not raw data, they still have been inferred using private data. Therefore, it's good to use encryption when communicating the data to parties outside of Azure.
-
-## Additional resources
-- [Private set intersection algorithm overview](https://xianmu.github.io/posts/2018-11-03-private-set-intersection-based-on-rsa-blind-signature.html)
-
-
-
