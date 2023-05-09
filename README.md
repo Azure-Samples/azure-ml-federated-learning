@@ -39,11 +39,11 @@ Please also check our industry use cases below, which cover both horizontal (sam
 |  |  |  |
 | :-: | :-: | :-: |
 | **Medical Imaging - Horizontal** | **Named Entity Recognition - Horizontal** | **Fraud Detection - Horizontal** |
-| [![medical imaging icon](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia.md) | [![ner icon](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner.md) | [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) |
-| [pneumonia.md](./docs/real-world-examples/pneumonia.md) | [ner.md](./docs/real-world-examples/ner.md) | [ccfraud.md](./docs/real-world-examples/ccfraud.md) |
+| [![medical imaging icon](./docs/pics/industry-medical-imaging.png)](./docs/real-world-examples/pneumonia-horizontal.md) | [![ner icon](./docs/pics/industry-ner.png)](./docs/real-world-examples/ner-horizontal.md) | [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud-horizontal.md) |
+| [pneumonia.md](./docs/real-world-examples/pneumonia-horizontal.md) | [ner.md](./docs/real-world-examples/ner-horizontal.md) | [ccfraud.md](./docs/real-world-examples/ccfraud-horizontal.md) |
 | **Fraud Detection - Vertical** | **Fraud Detection - Vertical with Single Shot Communication**  | **Bank Marketing - Vertical** |
-| [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) | [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud.md) | [![bank marketing icon](./docs/pics/industry-bank-marketing.png)](./docs/real-world-examples/bank-marketing.md) |
-| [ccfraud.md](./docs/real-world-examples/ccfraud.md#vertical-federated-learning) | [ccfraud.md](./docs/real-world-examples/ccfraud.md#vertical-federated-learning) | [bank-marketing.md](./docs/real-world-examples/bank-marketing.md) |
+| [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud-horizontal.md) | [![credit card icon](./docs/pics/industry-fraud-detection.png)](./docs/real-world-examples/ccfraud-horizontal.md) | [![bank marketing icon](./docs/pics/industry-bank-marketing.png)](./docs/real-world-examples/bank-marketing.md) |
+| [ccfraud-vertical.md](./docs/real-world-examples/ccfraud-vertical.md) | [ccfraud-vetical-fedonce.md](./docs/real-world-examples/ccfraud-vetical-fedonce.md) | [bank-marketing.md](./docs/real-world-examples/bank-marketing.md) |
 
 ### FL Frameworks
 
