@@ -20,7 +20,7 @@
 // > az login
 // > az account set --name <subscription name>
 // > az group create --name <resource group name> --location <region>
-// > az deployment group create --template-file .\mlops\bicep\vnet_publicip_sandbox_setup.bicep \
+// > az deployment group create --template-file .\mlops\bicep\vnet_private_sandbox_setup.bicep \
 //                              --resource-group <resource group name \
 //                              --parameters demoBaseName="fldemo"
 
@@ -36,19 +36,26 @@ param demoBaseName string = 'fldemo'
 @description('Region of the orchestrator (workspace, central storage and compute).')
 param orchestratorRegion string = resourceGroup().location
 
+@description('WARNING: make it possible to interact with the workspace through (public) azure portal: workspace and default storage on public network (RBAC controlled).')
+@allowed([
+  'public'
+  'private'
+])
+param workspaceNetworkAccess string = 'private'
+
 @description('Set the orchestrator storage network access as private, with private endpoints into each silo.')
 @allowed([
   'public'
   'private'
 ])
-param orchestratorStorageNetworkAccess string = 'public'
+param orchestratorStorageNetworkAccess string = 'private'
 
 @description('Set the silo storage network access as private, with private endpoints into each silo.')
 @allowed([
   'public'
   'private'
 ])
-param siloStorageNetworkAccess string = 'public'
+param siloStorageNetworkAccess string = 'private'
 
 @description('List of each region in which to create an internal silo.')
 param siloRegions array = [
@@ -81,23 +88,71 @@ param tags object = {
   Docs: 'https://github.com/Azure-Samples/azure-ml-federated-learning'
 }
 
+// Virtual network and network security group of the workspace resources
+module nsg './modules/networking/azureml_capable_nsg.bicep' = { 
+  name: 'nsg-${demoBaseName}'
+  scope: resourceGroup()
+  params: {
+    location: orchestratorRegion
+    nsgName: 'nsg-${demoBaseName}'
+    tags: tags
+  }
+}
+
+module vnet './modules/networking/vnet.bicep' = { 
+  name: 'vnet-${demoBaseName}-deployment'
+  scope: resourceGroup()
+  params: {
+    location: orchestratorRegion
+    virtualNetworkName: 'vnet-${demoBaseName}-ws'
+    networkSecurityGroupId: nsg.outputs.id
+    vnetAddressPrefix: '10.0.0.0/16'
+    subnets: [
+      // a subnet for all the compute resources (image-build-compute)
+      {
+        name: 'compute'
+        addressPrefix: '10.0.1.0/24'
+      }
+      // a subnet for all the endpoints
+      {
+        name: 'endpoints'
+        addressPrefix: '10.0.0.0/24'
+      }
+    ]
+    tags: tags
+  }
+}
+
 // create this one in this scope so we can use it in the silo modules
 resource blobPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' = {
   name: 'privatelink.blob.${environment().suffixes.storage}'
   location: 'global'
-  tags: tags
+  tags: tags 
 }
 
-// Create Azure Machine Learning workspace
-module workspace './modules/azureml/open_azureml_workspace.bicep' = {
+// Create Azure Machine Learning workspace, including private DNS zones
+module workspace './modules/azureml/private_azureml_workspace.bicep' = {
   name: '${demoBaseName}-aml-${orchestratorRegion}'
   scope: resourceGroup()
   params: {
     machineLearningName: 'aml-${demoBaseName}'
-    machineLearningDescription: 'Azure ML demo workspace for federated learning (orchestratorStorageNetworkAccess=${orchestratorStorageNetworkAccess}, applyVNetPeering=${applyVNetPeering})'
+    machineLearningDescription: 'Azure ML demo workspace for federated learning'
     baseName: demoBaseName
     location: orchestratorRegion
     tags: tags
+
+    // networking settings
+    workspacePublicNetworkAccess: workspaceNetworkAccess == 'public' ? 'Enabled' : 'Disabled'
+    virtualNetworkId: vnet.outputs.id
+    computeSubnetName: 'compute'
+    endpointsSubnetName: 'endpoints'
+    createPrivateDNSZones: true
+
+    // we're forcing the IP to be the same as orchestrator vnet
+    // to avoid private DNS zone conflicts
+    acrPLEStaticIPs: '10.0.0.237,10.0.0.236'
+    amlPLEStaticIPs: '10.0.0.240,10.0.0.241,10.0.0.242' // default,notebook,inference
+    blobPLEStaticIP: '10.0.0.239'
   }
 }
 
@@ -113,7 +168,7 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
   params: {
     machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
-    machineLearningIsPrivate: false
+    machineLearningIsPrivate: true
 
     pairRegion: orchestratorRegion
     tags: tags
@@ -135,19 +190,21 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
 
     // networking
     vnetResourceName: 'vnet-${demoBaseName}-orch'
+
+    // address has same range as workspace vnet
+    // those two vnet will NOT be peered
     vnetAddressPrefix: '10.0.0.0/16'
     computeSubnetPrefix: '10.0.1.0/24'
     endpointsSubnetPrefix: '10.0.0.0/24'
 
-    // NOTE: when using storagePublicNetworkAccess = 'Disabled' we will need to
-    // have multiple endpoints from the orchestrator storage recorded
-    // in the DNS zone, which will cause conflicts in a sandbox like this.
-    // To avoid it, we're setting all storage PLE to have the same static IP
+    // we're forcing the IP to be the same as workspace vnet
+    // to avoid private DNS zone conflicts
+    amlPLEStaticIPs: '10.0.0.240,10.0.0.241,10.0.0.242' // default,notebook,inference
     storagePLEStaticIP: '10.0.0.243'
-  
+
     // IMPORTANT: compute still has public ip to let workspace submit job
     // traffic regulated by NSG
-    enableNodePublicIp: true
+    enableNodePublicIp: false
 
     // IMPORTANT: below means all traffic allowed (with permissions via UAI)
     // alternative is vNetOnly for specific vnets, or Disabled for service endpoints
@@ -161,6 +218,54 @@ module orchestrator './modules/fl_pairs/vnet_compute_storage_pair.bicep' = {
   ]
 }
 
+// Create an endpoint in the orchestrator vnet for the workspace storage (for local data upload)
+module wsPLEsInOrchestratorVnet './modules/azureml/azureml_resources_ples.bicep' = {
+  name: '${demoBaseName}-ws-ple-in-orch'
+  scope: resourceGroup()
+  params: {
+    tags: tags
+    machineLearningName: workspace.outputs.workspaceName
+    pleRegion: orchestratorRegion
+    virtualNetworkName: orchestrator.outputs.vnetName
+    virtualNetworkId: orchestrator.outputs.vNetId
+    subnetName: 'endpoints'
+
+    linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
+    createAcrPLE: true
+    acrPLEStaticIPs: '10.0.0.237,10.0.0.236'
+
+    linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
+    createKeyVaultPLE: true
+    keyVaultPLEStaticIP: '10.0.0.238'
+
+    linkBlobDnsToVirtualNetwork: false // link was done during silo creation already
+    createBlobPLE: true
+    blobPLEStaticIP: '10.0.0.239'
+  }
+  dependsOn: [
+    workspace
+    orchestrator
+  ]
+}
+
+// Set READ (only) so that orchestrator can read data from default workspace blob store (for local data upload)
+module wsToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = {
+  name: '${demoBaseName}-rw-perms-ws-to-orch'
+  scope: resourceGroup()
+  params: {
+    storageAccountName: workspace.outputs.workspaceStorageName
+    identityPrincipalId: orchestrator.outputs.identityPrincipalId
+    computeToStorageRoles : [
+      '2a2b9908-6ea1-4ae2-8e65-a410df84e7d1' // Storage Blob Data Reader
+      '81a9662b-bebf-436f-a333-f67b29880f12' // Storage Account Key Operator Service Role
+      'c12c1c16-33a1-487b-954d-41c89c60f349' // Reader and Data Access
+    ]
+  }
+  dependsOn: [
+    silos
+  ]
+}
+
 var siloCount = length(siloRegions)
 
 // Create all silos as a compute+storage pair and attach to workspace
@@ -171,8 +276,8 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   params: {
     machineLearningName: workspace.outputs.workspaceName
     machineLearningRegion: orchestratorRegion
-    machineLearningIsPrivate: false // this script uses an open workspace
-    createMachineLearningPLE: false // this script uses an open workspace
+    machineLearningIsPrivate: true
+    createMachineLearningPLE : !applyVNetPeering // if peering is applied, PLE goes through the peering
     pairRegion: siloRegions[i]
     tags: tags
 
@@ -193,12 +298,12 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
     vnetAddressPrefix: (applyVNetPeering ? '10.${i+2}.0.0/16' : '10.0.0.0/16' )
     computeSubnetPrefix: (applyVNetPeering ? '10.${i+2}.1.0/24' : '10.0.1.0/24' )
     endpointsSubnetPrefix: (applyVNetPeering ? '10.${i+2}.0.0/24' : '10.0.0.0/24' )
+    amlPLEStaticIPs: (applyVNetPeering ? '10.${i+2}.0.240,10.${i+2}.0.241,10.${i+2}.0.242' : '10.0.0.240,10.0.0.241,10.0.0.242')
     // leave 243 for orchestrator
     storagePLEStaticIP: (applyVNetPeering ? '10.${i+2}.0.244' : '10.0.0.244')
 
-    // IMPORTANT: compute still has public ip to let workspace submit job
     // traffic regulated by NSG
-    enableNodePublicIp: true
+    enableNodePublicIp: false
 
     // IMPORTANT: below Disabled means data will be only accessible via private service endpoints
     storagePublicNetworkAccess: siloStorageNetworkAccess == 'public' ? 'Enabled' : 'Disabled'
@@ -208,6 +313,31 @@ module silos './modules/fl_pairs/vnet_compute_storage_pair.bicep' = [for i in ra
   dependsOn: [
     workspace
   ]
+}]
+
+module wsPLEsInSilosVnet './modules/azureml/azureml_resources_ples.bicep' = [for i in range(0, siloCount): {
+  name: '${demoBaseName}-ws-ple-in-silo${i}'
+  scope: resourceGroup()
+  params: {
+    tags: tags
+    machineLearningName: workspace.outputs.workspaceName
+    pleRegion: siloRegions[i]
+    virtualNetworkName: silos[i].outputs.vnetName
+    virtualNetworkId: silos[i].outputs.vNetId
+    subnetName: 'endpoints'
+
+    linkAcrDnsToVirtualNetwork: true // link ACR DNS Zone (not done previously)
+    createAcrPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
+    acrPLEStaticIPs: '10.0.0.237,10.0.0.236' // unused arg is createAcrPLE=False
+
+    linkKeyvaultDnsToVirtualNetwork: true // link KV DNS Zone (not done previously)
+    createKeyVaultPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
+    keyVaultPLEStaticIP: '10.0.0.238' // unused arg is createKeyVaultPLE=False
+
+    linkBlobDnsToVirtualNetwork: false // link was done during silo creation already
+    createBlobPLE: !applyVNetPeering // if peering is applied, PLE goes through the peering
+    blobPLEStaticIP: '10.0.0.239' // unused arg is createBlobPLE=False
+  }
 }]
 
 // Attach orchestrator and silos together with private endpoints and RBAC

@@ -13,6 +13,9 @@ param machineLearningName string
 @description('The region of the machine learning workspace')
 param machineLearningRegion string = resourceGroup().location
 
+@description('Set true to provision PLEs necessary for private workspace to interact with the pair')
+param machineLearningIsPrivate bool = false
+
 @description('Specifies the location of the pair resources.')
 param pairRegion string = resourceGroup().location
 
@@ -35,8 +38,8 @@ param computeSKU string = 'Standard_DC2as_v5'
 @description('VM nodes for the default compute cluster')
 param computeNodes int = 4
 
-@description('Name of the UAI for the pair compute cluster')
-param uaiName string = 'uai-${pairBaseName}'
+@description('Name of the UAI for the jobs running in the pair')
+param jobsUaiName string = 'uai-jobs-${pairBaseName}'
 
 @description('Name of the Network Security Group resource')
 param nsgResourceName string = 'nsg-${pairBaseName}'
@@ -45,19 +48,22 @@ param nsgResourceName string = 'nsg-${pairBaseName}'
 param vnetResourceName string = 'vnet-${pairBaseName}'
 
 @description('Virtual network address prefix')
-param vnetAddressPrefix string
+param vnetAddressPrefix string = '10.0.0.0/16'
 
 @description('Subnet address prefix')
-param subnetPrefix string
+param computeSubnetPrefix string = '10.0.1.0/24'
 
-@description('Use a static ip for storage PLE')
-param useStorageStaticIP bool = false
+@description('Subnet address prefix')
+param endpointsSubnetPrefix string = '10.0.0.0/24'
 
-@description('Which static IP to use for storage PLE (if useStorageStaticIP is true)')
-param storagePLEStaticIP string = '172.19.0.50'
+@description('Optional: static ip for the pair blob storage PLE')
+param storagePLEStaticIP string = ''
 
-@description('Subnet name')
-param subnetName string = 'snet-training'
+@description('Create a PLE for the machine learning workspace (if machineLearningIsPrivate=true)')
+param createMachineLearningPLE bool = true
+
+@description('Optional: static ip for the PLE to the workspace (if machineLearningIsPrivate=true)')
+param amlPLEStaticIPs string = ''
 
 @description('Allow other subnets into the storage (need to be in the same region)')
 param allowedSubnetIds array = []
@@ -75,15 +81,12 @@ param applyDefaultPermissions bool = true
 @description('Name of the private DNS zone for blob')
 param blobPrivateDNSZoneName string = 'privatelink.blob.${environment().suffixes.storage}'
 
-@description('Location of the private DNS zone for blob')
-param blobPrivateDNSZoneLocation string = 'global'
-
 @description('Tags to curate the resources in Azure.')
 param tags object = {}
 
 
 // Virtual network and network security group
-module nsg '../networking/azureml_compute_nsg.bicep' = {
+module nsg '../networking/azureml_capable_nsg.bicep' = {
   name: '${nsgResourceName}-deployment'
   params: {
     location: pairRegion
@@ -103,8 +106,12 @@ module vnet '../networking/vnet.bicep' = {
     vnetAddressPrefix: vnetAddressPrefix
     subnets: [
       {
-        name: subnetName
-        addressPrefix: subnetPrefix
+        name: 'compute'
+        addressPrefix: computeSubnetPrefix
+      }
+      {
+        name: 'endpoints'
+        addressPrefix: endpointsSubnetPrefix
       }
     ]
     tags: tags
@@ -112,10 +119,68 @@ module vnet '../networking/vnet.bicep' = {
 }
 
 // provision a user assigned identify for this compute
-resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
-  name: uaiName
+resource uaiJobs 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+  name: jobsUaiName
   location: pairRegion
   tags: tags
+}
+
+// resource uaiEncryption 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-preview' = {
+//   name: encryptionUaiName
+//   location: pairRegion
+//   tags: tags
+// }
+
+// private link to workspace in the new vnet
+resource machineLearning 'Microsoft.MachineLearningServices/workspaces@2022-05-01' existing = {
+  name: machineLearningName
+}
+
+// *****************************************
+// Azure Machine Learning private networking
+// *****************************************
+
+var amlPrivateDnsZoneNames =  {
+  azureusgovernment: 'privatelink.api.ml.azure.us'
+  azurechinacloud: 'privatelink.api.ml.azure.cn'
+  azurecloud: 'privatelink.api.azureml.ms'
+}
+var amlPrivateDnsZoneName = amlPrivateDnsZoneNames[toLower(environment().name)]
+resource amlPrivateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = if (machineLearningIsPrivate && createMachineLearningPLE){
+  name: amlPrivateDnsZoneName
+}
+resource privateAmlDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (machineLearningIsPrivate && createMachineLearningPLE) {
+  name: uniqueString(subscription().id, resourceGroup().id, vnetResourceName, amlPrivateDnsZoneName, 'global')
+  parent: amlPrivateDnsZone
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.outputs.id
+    }
+  }
+}
+module amlPLE '../networking/private_endpoint.bicep' = if (machineLearningIsPrivate && createMachineLearningPLE) {
+  name: '${machineLearningName}-${pairBaseName}-ple-deployment'
+  params: {
+    location: pairRegion
+    pleRootName: 'ple-${machineLearningName}-${pairBaseName}'
+    resourceServiceId: machineLearning.id
+    subnetId: '${vnet.outputs.id}/subnets/endpoints'
+    tags: tags
+    useStaticIPAddress: !empty(amlPLEStaticIPs)
+    privateIPAddress: amlPLEStaticIPs
+    privateDNSZoneName: amlPrivateDnsZoneName
+    groupId: 'amlworkspace'
+    memberNames: [
+      'default'
+      'notebook'
+      'inference'
+    ]
+  }
+  dependsOn: [
+    privateAmlDnsZoneVnetLink
+  ]
 }
 
 
@@ -134,12 +199,12 @@ module computeDeployment '../computes/vnet_new_aks_with_confcomp.bicep' = {
     agentCount: computeNodes
 
     // identity
-    computeUaiName: uai.name
+    computeUaiName: uaiJobs.name
 
     // networking
-    subnetName: subnetName
-    subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
-
+    subnetName: 'compute'
+    vnetId: vnet.outputs.id
+    
     tags: tags
   }
 }
@@ -156,7 +221,7 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
     datastoreName: datastoreName
     publicNetworkAccess: storagePublicNetworkAccess
     subnetIds: concat(
-      ['${vnet.outputs.id}/subnets/${subnetName}'],
+      ['${vnet.outputs.id}/subnets/endpoints'],
       allowedSubnetIds
     )
     tags: tags
@@ -164,27 +229,39 @@ module storageDeployment '../storages/new_blob_storage_datastore.bicep' = {
 }
 
 // Create a private service endpoints internal to each pair for their respective storages
+resource privateDnsZone 'Microsoft.Network/privateDnsZones@2020-06-01' existing = {
+  name: blobPrivateDNSZoneName
+}
+resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = {
+  name: uniqueString(vnet.name, blobPrivateDNSZoneName, 'global')
+  parent: privateDnsZone
+  location: 'global'
+  properties: {
+    registrationEnabled: false
+    virtualNetwork: {
+      id: vnet.outputs.id
+    }
+  }
+}
 module pairStoragePrivateEndpoint '../networking/private_endpoint.bicep' = if (storagePublicNetworkAccess == 'Disabled') {
-  name: '${pairBaseName}-endpoint-to-insilo-storage'
+  name: '${pairBaseName}-endpoint-to-pair-storage'
   scope: resourceGroup()
   params: {
     location: pairRegion
     tags: tags
     resourceServiceId: storageDeployment.outputs.storageId
-    resourceName: storageDeployment.outputs.storageName
     pleRootName: 'ple-${storageDeployment.outputs.storageName}-to-${pairBaseName}-st-blob'
-    virtualNetworkId: vnet.outputs.id
-    subnetId: '${vnet.outputs.id}/subnets/${subnetName}'
-    useStaticIPAddress: useStorageStaticIP
+    subnetId: '${vnet.outputs.id}/subnets/endpoints'
+    useStaticIPAddress: !empty(storagePLEStaticIP)
     privateIPAddress: storagePLEStaticIP
     privateDNSZoneName: blobPrivateDNSZoneName
-    privateDNSZoneLocation: blobPrivateDNSZoneLocation
     groupId: 'blob'
   }
   dependsOn: [
     storageDeployment
   ]
 }
+
 
 // Set R/W permissions for orchestrator UAI towards orchestrator storage
 module pairInternalPermissions '../permissions/msi_storage_rw.bicep' = if(applyDefaultPermissions) {
@@ -207,5 +284,4 @@ output storageServiceId string = storageDeployment.outputs.storageId
 output computeName string = computeDeployment.outputs.compute
 output region string = pairRegion
 output vnetName string = vnet.outputs.name
-output vnetId string = vnet.outputs.id
-output subnetId string = '${vnet.outputs.id}/subnets/${subnetName}'
+output vNetId string = vnet.outputs.id
