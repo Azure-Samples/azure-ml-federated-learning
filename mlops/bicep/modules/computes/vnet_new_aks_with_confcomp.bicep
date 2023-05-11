@@ -56,13 +56,18 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
 var identityPrincipalId = uai.properties.principalId
 var userAssignedIdentities = {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
 
-resource aks 'Microsoft.ContainerService/managedClusters@2022-05-02-preview' = {
+
+resource aks 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
   name: computeName
   location: computeRegion
   tags: tags
   identity: {
     type: 'UserAssigned'
     userAssignedIdentities: userAssignedIdentities
+  }
+  sku: {
+    name: 'Base'
+    tier: 'Free'
   }
   properties: {
     dnsPrefix: dnsPrefix

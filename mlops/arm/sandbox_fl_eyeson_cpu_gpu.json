@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "14291532930200900296"
+      "templateHash": "7052225949357970448"
     }
   },
   "parameters": {
@@ -80,7 +80,7 @@
         "value": "[parameters('kaggleUsername')]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'sandbox')]"
+        "[resourceId('Microsoft.Resources/deployments', format('sandbox-{0}', parameters('demoBaseName')))]"
       ]
     },
     {
@@ -92,13 +92,13 @@
         "value": "[parameters('kaggleKey')]"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', 'sandbox')]"
+        "[resourceId('Microsoft.Resources/deployments', format('sandbox-{0}', parameters('demoBaseName')))]"
       ]
     },
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "sandbox",
+      "name": "[format('sandbox-{0}', parameters('demoBaseName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"

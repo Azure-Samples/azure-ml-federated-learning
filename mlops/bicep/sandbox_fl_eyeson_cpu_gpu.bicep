@@ -37,7 +37,7 @@ param kaggleKey string = ''
 
 // run the generic sandbox bicep script with proper arguments
 module sandbox 'vnet_publicip_sandbox_setup.bicep' = {
-  name: 'sandbox'
+  name: 'sandbox-${demoBaseName}'
   params: {
     demoBaseName: demoBaseName
     orchestratorRegion: orchestratorRegion

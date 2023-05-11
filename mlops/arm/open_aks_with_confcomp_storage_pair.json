@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "1089082292568179127"
+      "templateHash": "16637378005230405111"
     }
   },
   "parameters": {
@@ -429,7 +429,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "501812755943064908"
+              "templateHash": "1176623923160756847"
             }
           },
           "parameters": {
@@ -554,12 +554,16 @@
             },
             {
               "type": "Microsoft.ContainerService/managedClusters",
-              "apiVersion": "2022-05-02-preview",
+              "apiVersion": "2023-03-01",
               "name": "[parameters('aksClusterName')]",
               "location": "[parameters('computeRegion')]",
               "identity": {
                 "type": "UserAssigned",
                 "userAssignedIdentities": "[variables('userAssignedIdentities')]"
+              },
+              "sku": {
+                "name": "Base",
+                "tier": "Free"
               },
               "properties": {
                 "dnsPrefix": "[parameters('dnsPrefix')]",
@@ -792,7 +796,7 @@
                     "value": "[resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName'))]"
                   },
                   "aksRegion": {
-                    "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName')), '2022-05-02-preview', 'full').location]"
+                    "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName')), '2023-03-01', 'full').location]"
                   },
                   "amlComputeName": {
                     "value": "[parameters('amlComputeName')]"
@@ -907,7 +911,7 @@
             },
             "aksControlPlaneFQDN": {
               "type": "string",
-              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName')), '2022-05-02-preview').fqdn]"
+              "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('aksClusterName')), '2023-03-01').fqdn]"
             },
             "aksId": {
               "type": "string",
