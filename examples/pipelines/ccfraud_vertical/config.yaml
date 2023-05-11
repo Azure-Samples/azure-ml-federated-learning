@@ -61,4 +61,3 @@ training_parameters:
   epochs: 10 # number of epochs per iteration (in-silo training) 
   lr: 1e-2 # learning rate
   batch_size: 5000 # batch size
-  model_name: SimpleLinear

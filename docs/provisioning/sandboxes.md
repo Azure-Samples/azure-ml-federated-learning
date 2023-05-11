@@ -5,6 +5,7 @@ This page describes the different sandboxes that you can **fully provision and u
 - [Minimal sandbox](#minimal-sandbox) : the quickest path to a demo environment (only horizontal FL)
 - [Eyes-on sandboxes](#eyes-on-sandboxes) : a sandbox where you can debug your code, but the data is still accessible by the users of your subscription
 - [Eyes-off sandboxes](#eyes-off-sandboxes) : a sandbox where the data is kept in storages without public network access, and only accessible by the computes through a vnet
+- [Private sandboxes](#private-sandboxes) : an eyes-off sandbox where the Azure ML workspace and resources are also protected behind a vnet
 - [Confidential VM sandboxes](#confidential-sandboxes) : a sandbox where the data is kept in storages without public network access, and only accessible by the computes through a vnet, and the computes are Confidential VMs
 - [Configurable sandboxes](#configurable-sandboxes) : at the root of our eyes-on/eyes-off sandboxes, these bicep scripts allow you to modify multiple parameters to fit your needs.
 
@@ -61,7 +62,6 @@ These sandboxes are typical of a cross-geo federated learning scenario. Each sil
 
 To manually reproduce this full provisioning, see relevant documentation:
 
-- [Secure an Azure Machine Learning workspace with virtual networks](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-workspace-vnet)
 - [Compute instance/cluster with public IP](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-training-vnet?tabs=cli%2Crequired#compute-instancecluster-with-public-ip)
 - create a new [vnet and subnet](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview), with a [network security group](https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview)
 - create a new [managed identity](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) (User Assigned) to manage permissions of the compute
@@ -90,14 +90,48 @@ Deploy a sandbox where the silos storages are kept eyes-off by a private service
 
 ### Architecture
 
-![Architecture schema of the eyes-on sandboxes.](../pics/sandboxes_eyesoff.png)
+![Architecture schema of the eyes-off sandboxes.](../pics/sandboxes_eyesoff.png)
+
+### Relevant Documentation
+
+To manually reproduce this full provisioning, see relevant documentation:
+
+- [Compute instance/cluster with public IP](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-training-vnet?tabs=cli%2Crequired#compute-instancecluster-with-public-ip)
+- create a new [vnet and subnet](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview), with a [network security group](https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview)
+- create a new [managed identity](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) (User Assigned) to manage permissions of the compute
+- create a new [storage account](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-overview) in a given region, with a [private endpoint](https://learn.microsoft.com/en-us/azure/storage/common/storage-private-endpoints) inside the vnet
+
+## Private sandboxes
+
+This is an eyes-off sandbox, but in addition the Azure ML workspace and all its related resources (container registry, keyvault, etc) are also provisioned behind a vnet. All those are made accessible to each silo by private endpoints.
+
+| Deploy | Description |
+| :-- | :-- |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_fl_private_cpu.json) | Private with 1 CPU compute per silo |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_fl_private_gpu.json) | Private with 1 GPU compute per silo |
+| [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure-Samples%2Fazure-ml-federated-learning%2Fmain%2Fmlops%2Farm%2Fsandbox_fl_private_cpu_gpu.json) | Private with 2 computes per silo (1 CPU, 1 GPU) |
+
+### :exclamation: Important parameters
+
+| Parameter | Description | Values |
+| --- | --- | --- |
+| **primarySKU** | SKU of the first compute to provision.| ex: `Standard_DS4_v2` |
+| **secondarySKU** | SKU of the second compute to provision. | ex: `STANDARD_NC6` |
+| **siloRegions** | List of regions used for the silos. All our samples work with 3 regions. | ex: `["australiaeast", "eastus", "westeurope"]` |
+| **workspaceNetworkAccess** | To make it easier to debug, use `public` to make the Azure ML workspace accessible through its public IP in the Azure portal (default: public). |  `public` or `private` |
+| **applyVNetPeering** | Peer the silo networks to the orchestrator network to allow for live private communication between jobs (required for Vertical FL). | `true` or `false` |
+| **kaggleUsername** and **kaggleKey** | Optional: some of our samples require kaggle credentials to download datasets, this will ensure the credentials get injected in the workspace secret store properly (you can also [do that manually later](../tutorials/add-kaggle-credentials.md)). |
+
+### Architecture
+
+![Architecture schema of the private sandboxes.](../pics/sandboxes_private.png)
 
 ### Relevant Documentation
 
 To manually reproduce this full provisioning, see relevant documentation:
 
 - [Secure an Azure Machine Learning workspace with virtual networks](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-workspace-vnet)
-- [Compute instance/cluster with public IP](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-training-vnet?tabs=cli%2Crequired#compute-instancecluster-with-public-ip)
+- [Compute instance/cluster with private IP](https://learn.microsoft.com/en-us/azure/machine-learning/how-to-secure-training-vnet?tabs=cli%2Crequired&view=azureml-api-2#compute-instancecluster-with-no-public-ip)
 - create a new [vnet and subnet](https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview), with a [network security group](https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview)
 - create a new [managed identity](https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview) (User Assigned) to manage permissions of the compute
 - create a new [storage account](https://docs.microsoft.com/en-us/azure/storage/common/storage-account-overview) in a given region, with a [private endpoint](https://learn.microsoft.com/en-us/azure/storage/common/storage-private-endpoints) inside the vnet

@@ -1,5 +1,47 @@
 # FL Accelerator Changelog
 
+<!--
+TEMPLATE FOR MONTHLY UPDATES
+
+## <Month> <Year>
+<Short paragraph highlighting the 2-3 most important changes>
+
+### FL Experience
+<Include all changes that are worth mentioning in this or the following sections. Not everything will warrant a mention (e.g. a very minor doc change, some change to our CI/CD pipelines that will not matter to end users, etc...). Include links where relevant>
+
+### Provisioning
+
+### Documentation
+
+### Repository structure
+-->
+
+## March 2023
+
+We are changing the release process of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning). We are moving from monthly releases to continuous releases. We will however keep updating this changelog once a month to highlight the most significant changes.
+
+Our major updates for this month are the addition of resources to provision various flavors of FL sandboxes, a new example for Vertical FL, and better support for confidentiality (encryption at rest, communications in Vertical FL).
+
+### FL Experience
+- Added support for data encryption at rest to the CCFRAUD example (instructions [here](./docs/real-world-examples/ccfraud.md#enable-confidentiality-with-encryption-at-rest)).
+- Introduced new Vertical FL example: [Bank Marketing Campaign Prediction](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/docs/real-world-examples/bank-marketing.md).
+- Improved the communications in Vertical FL jobs (support for redis streams and encrypted communications, better logging to measure communications overhead).
+
+### Provisioning
+- Released a [new bicep script](./mlops/bicep/modules/fl_pairs/open_aks_with_confcomp_storage_pair.bicep) to deploy silos with AKS clusters using confidential computes and set up open orchestrator.
+- Added support for including Kaggle credentials during workspace provisioning (useful for downloading Kaggle data to run our examples); see instructions included in our [real-world examples documentation](./docs/real-world-examples/), or standalone instructions [here](./docs/tutorials/add-kaggle-credentials.md).
+- Added a "confidentiality keyvault" to our provisioning scripts to host a custom key for encryption at rest during preprocessing and training.
+
+### Documentation
+- Added some [documentation](./docs/provisioning/sandboxes.md) and the associated bicep scripts to easily deploy sandboxes for exploring different variants of FL setups.
+- Added [instructions](./docs/concepts/mlops_for_fl.md) on how to leverage MLOps to restrict FL to peer-reviewed code.
+- Updated our [generic instructions](./docs/tutorials/update-local-data-to-silo-storage-account.md) to support encryption of the uploaded data using confidentiality keyvault.
+
+### Repository structure
+- Added more CI/CD tests for the examples introduced last month.
+- Added unit tests for communication and encryption components.
+
+
 ##  February 2023 release
 
 We are excited to announce the release of the February iteration of our [FL Accelerator repository](https://github.com/Azure-Samples/azure-ml-federated-learning).

@@ -5,13 +5,15 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "1810000442779468320"
+      "templateHash": "11589808812626692920"
     }
   },
   "parameters": {
     "demoBaseName": {
       "type": "string",
       "defaultValue": "fldemo",
+      "maxLength": 20,
+      "minLength": 2,
       "metadata": {
         "description": "Base name of the demo, used for creating all resources as prefix"
       }
@@ -31,7 +33,7 @@
         "private"
       ],
       "metadata": {
-        "description": "Set the orchestrator storage as private, with endpoints into each silo."
+        "description": "Set the orchestrator storage network access as private, with private endpoints into each silo."
       }
     },
     "siloStorageNetworkAccess": {
@@ -105,28 +107,6 @@
       "tags": "[parameters('tags')]"
     },
     {
-      "condition": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]",
-      "type": "Microsoft.Network/privateDnsZones/A",
-      "apiVersion": "2020-06-01",
-      "name": "[format('{0}/{1}', format('privatelink.blob.{0}', environment().suffixes.storage), variables('orchestratorStorageAccountCleanName'))]",
-      "properties": {
-        "copy": [
-          {
-            "name": "aRecords",
-            "count": "[length(range(0, add(variables('siloCount'), 1)))]",
-            "input": {
-              "ipv4Address": "[format('172.{0}.0.150', add(range(0, add(variables('siloCount'), 1))[copyIndex('aRecords')], 20))]"
-            }
-          }
-        ],
-        "ttl": 3600
-      },
-      "dependsOn": [
-        "orchToSiloPrivateEndpoints",
-        "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
-      ]
-    },
-    {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
       "name": "[format('{0}-aml-{1}', parameters('demoBaseName'), parameters('orchestratorRegion'))]",
@@ -159,7 +139,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "5219671468848917786"
+              "templateHash": "14419996183010411507"
             }
           },
           "parameters": {
@@ -261,16 +241,30 @@
               },
               "kind": "StorageV2",
               "properties": {
+                "allowBlobPublicAccess": false,
+                "allowCrossTenantReplication": false,
+                "publicNetworkAccess": "Enabled",
                 "encryption": {
+                  "keySource": "Microsoft.Storage",
+                  "requireInfrastructureEncryption": false,
                   "services": {
                     "blob": {
-                      "enabled": true
+                      "enabled": true,
+                      "keyType": "Account"
                     },
                     "file": {
-                      "enabled": true
+                      "enabled": true,
+                      "keyType": "Account"
+                    },
+                    "queue": {
+                      "enabled": true,
+                      "keyType": "Service"
+                    },
+                    "table": {
+                      "enabled": true,
+                      "keyType": "Service"
                     }
-                  },
-                  "keySource": "Microsoft.Storage"
+                  }
                 },
                 "supportsHttpsTrafficOnly": true
               }
@@ -389,7 +383,7 @@
     {
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))]",
+      "name": "[format('{0}-orchestrator-pair', parameters('demoBaseName'))]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -401,6 +395,9 @@
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
+          },
+          "machineLearningIsPrivate": {
+            "value": false
           },
           "pairRegion": {
             "value": "[parameters('orchestratorRegion')]"
@@ -429,17 +426,20 @@
           "applyDefaultPermissions": {
             "value": true
           },
+          "vnetResourceName": {
+            "value": "[format('vnet-{0}-orch', parameters('demoBaseName'))]"
+          },
           "vnetAddressPrefix": {
-            "value": "172.19.0.0/16"
+            "value": "10.0.0.0/16"
           },
-          "subnetPrefix": {
-            "value": "172.19.0.0/24"
+          "computeSubnetPrefix": {
+            "value": "10.0.1.0/24"
           },
-          "useStorageStaticIP": {
-            "value": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]"
+          "endpointsSubnetPrefix": {
+            "value": "10.0.0.0/24"
           },
           "storagePLEStaticIP": {
-            "value": "172.19.0.150"
+            "value": "10.0.0.243"
           },
           "enableNodePublicIp": {
             "value": true
@@ -447,9 +447,6 @@
           "storagePublicNetworkAccess": "[if(equals(parameters('orchestratorStorageNetworkAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
           "blobPrivateDNSZoneName": {
             "value": "[format('privatelink.blob.{0}', environment().suffixes.storage)]"
-          },
-          "blobPrivateDNSZoneLocation": {
-            "value": "[reference(resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage)), '2020-06-01', 'full').location]"
           }
         },
         "template": {
@@ -459,7 +456,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "7795565545239978732"
+              "templateHash": "15819783256753336121"
             }
           },
           "parameters": {
@@ -474,6 +471,13 @@
               "defaultValue": "[resourceGroup().location]",
               "metadata": {
                 "description": "The region of the machine learning workspace"
+              }
+            },
+            "machineLearningIsPrivate": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Set true to provision PLEs necessary for private workspace to interact with the pair"
               }
             },
             "pairRegion": {
@@ -524,11 +528,11 @@
                 "description": "VM nodes for the default compute cluster"
               }
             },
-            "uaiName": {
+            "jobsUaiName": {
               "type": "string",
-              "defaultValue": "[format('uai-{0}', parameters('pairBaseName'))]",
+              "defaultValue": "[format('uai-jobs-{0}', parameters('pairBaseName'))]",
               "metadata": {
-                "description": "Name of the UAI for the pair compute cluster"
+                "description": "Name of the UAI for the jobs running in the pair"
               }
             },
             "nsgResourceName": {
@@ -547,35 +551,44 @@
             },
             "vnetAddressPrefix": {
               "type": "string",
+              "defaultValue": "10.0.0.0/16",
               "metadata": {
                 "description": "Virtual network address prefix"
               }
             },
-            "subnetPrefix": {
+            "computeSubnetPrefix": {
               "type": "string",
+              "defaultValue": "10.0.1.0/24",
               "metadata": {
                 "description": "Subnet address prefix"
               }
             },
-            "useStorageStaticIP": {
-              "type": "bool",
-              "defaultValue": false,
+            "endpointsSubnetPrefix": {
+              "type": "string",
+              "defaultValue": "10.0.0.0/24",
               "metadata": {
-                "description": "Use a static ip for storage PLE"
+                "description": "Subnet address prefix"
               }
             },
             "storagePLEStaticIP": {
               "type": "string",
-              "defaultValue": "172.19.0.50",
+              "defaultValue": "",
               "metadata": {
-                "description": "Which static IP to use for storage PLE (if useStorageStaticIP is true)"
+                "description": "Optional: static ip for the pair blob storage PLE"
               }
             },
-            "subnetName": {
-              "type": "string",
-              "defaultValue": "snet-training",
+            "createMachineLearningPLE": {
+              "type": "bool",
+              "defaultValue": true,
               "metadata": {
-                "description": "Subnet name"
+                "description": "Create a PLE for the machine learning workspace (if machineLearningIsPrivate=true)"
+              }
+            },
+            "amlPLEStaticIPs": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional: static ip for the PLE to the workspace (if machineLearningIsPrivate=true)"
               }
             },
             "allowedSubnetIds": {
@@ -618,13 +631,6 @@
                 "description": "Name of the private DNS zone for blob"
               }
             },
-            "blobPrivateDNSZoneLocation": {
-              "type": "string",
-              "defaultValue": "global",
-              "metadata": {
-                "description": "Location of the private DNS zone for blob"
-              }
-            },
             "tags": {
               "type": "object",
               "defaultValue": {},
@@ -633,13 +639,52 @@
               }
             }
           },
+          "variables": {
+            "amlPrivateDnsZoneNames": {
+              "azureusgovernment": "privatelink.api.ml.azure.us",
+              "azurechinacloud": "privatelink.api.ml.azure.cn",
+              "azurecloud": "privatelink.api.azureml.ms"
+            },
+            "amlPrivateDnsZoneName": "[variables('amlPrivateDnsZoneNames')[toLower(environment().name)]]"
+          },
           "resources": [
             {
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2022-01-31-preview",
-              "name": "[parameters('uaiName')]",
+              "name": "[parameters('jobsUaiName')]",
               "location": "[parameters('pairRegion')]",
               "tags": "[parameters('tags')]"
+            },
+            {
+              "condition": "[and(parameters('machineLearningIsPrivate'), parameters('createMachineLearningPLE'))]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', variables('amlPrivateDnsZoneName'), uniqueString(subscription().id, resourceGroup().id, parameters('vnetResourceName'), variables('amlPrivateDnsZoneName'), 'global'))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('blobPrivateDNSZoneName'), uniqueString(format('{0}-deployment', parameters('vnetResourceName')), parameters('blobPrivateDNSZoneName'), 'global'))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+              ]
             },
             {
               "type": "Microsoft.Resources/deployments",
@@ -674,32 +719,28 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "17553148586584182485"
+                      "templateHash": "9356966489364776969"
                     }
                   },
                   "parameters": {
+                    "nsgName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the network security group"
+                      }
+                    },
                     "location": {
                       "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
                       "metadata": {
                         "description": "Azure region of the deployment"
                       }
                     },
                     "workspaceRegion": {
                       "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
                       "metadata": {
                         "description": "Region of the AzureML workspace"
-                      }
-                    },
-                    "tags": {
-                      "type": "object",
-                      "metadata": {
-                        "description": "Tags to add to the resources"
-                      }
-                    },
-                    "nsgName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the network security group"
                       }
                     },
                     "enableNodePublicIp": {
@@ -707,6 +748,13 @@
                       "defaultValue": false,
                       "metadata": {
                         "description": "Set rules to allow for compute with public IP"
+                      }
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Tags to add to the resources"
                       }
                     }
                   },
@@ -752,7 +800,7 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "AzureMachineLearning",
                         "access": "Allow",
-                        "priority": 150,
+                        "priority": 140,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -770,7 +818,7 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "AzureMachineLearning",
                         "access": "Allow",
-                        "priority": 151,
+                        "priority": 150,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -788,7 +836,7 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "[format('BatchNodeManagement.{0}', parameters('workspaceRegion'))]",
                         "access": "Allow",
-                        "priority": 152,
+                        "priority": 160,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -798,7 +846,7 @@
                     {
                       "type": "Microsoft.Network/networkSecurityGroups/securityRules",
                       "apiVersion": "2022-07-01",
-                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureStorageAccount')]",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'OrchestratorStorageAccount')]",
                       "properties": {
                         "protocol": "Tcp",
                         "sourcePortRange": "*",
@@ -806,7 +854,115 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "[format('Storage.{0}', parameters('workspaceRegion'))]",
                         "access": "Allow",
-                        "priority": 143,
+                        "priority": 170,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'SiloStorageAccount')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "[format('Storage.{0}', parameters('location'))]",
+                        "access": "Allow",
+                        "priority": 171,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureActiveDirectory')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "*",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "AzureActiveDirectory",
+                        "access": "Allow",
+                        "priority": 180,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureFrontDoor')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "AzureFrontDoor.FrontEnd",
+                        "access": "Allow",
+                        "priority": 190,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureContainerRegistryOrch')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "[format('AzureContainerRegistry.{0}', parameters('workspaceRegion'))]",
+                        "access": "Allow",
+                        "priority": 200,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureContainerRegistrySilo')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "[format('AzureContainerRegistry.{0}', parameters('location'))]",
+                        "access": "Allow",
+                        "priority": 201,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'MicrosoftContainerRegistry')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "MicrosoftContainerRegistry",
+                        "access": "Allow",
+                        "priority": 210,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -848,8 +1004,12 @@
                   "subnets": {
                     "value": [
                       {
-                        "name": "[parameters('subnetName')]",
-                        "addressPrefix": "[parameters('subnetPrefix')]"
+                        "name": "compute",
+                        "addressPrefix": "[parameters('computeSubnetPrefix')]"
+                      },
+                      {
+                        "name": "endpoints",
+                        "addressPrefix": "[parameters('endpointsSubnetPrefix')]"
                       }
                     ]
                   },
@@ -864,17 +1024,10 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "6565408118333802825"
+                      "templateHash": "12102256299858550532"
                     }
                   },
                   "parameters": {
-                    "location": {
-                      "type": "string",
-                      "defaultValue": "[resourceGroup().location]",
-                      "metadata": {
-                        "description": "Azure region of the deployment"
-                      }
-                    },
                     "virtualNetworkName": {
                       "type": "string",
                       "metadata": {
@@ -887,9 +1040,16 @@
                         "description": "Group ID of the network security group"
                       }
                     },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
+                      "metadata": {
+                        "description": "Azure region of the deployment"
+                      }
+                    },
                     "vnetAddressPrefix": {
                       "type": "string",
-                      "defaultValue": "192.168.0.0/16",
+                      "defaultValue": "10.0.0.0/16",
                       "metadata": {
                         "description": "Virtual network address prefix"
                       }
@@ -899,7 +1059,7 @@
                       "defaultValue": [
                         {
                           "name": "snet-training",
-                          "addressPrefix": "192.168.0.0/24"
+                          "addressPrefix": "10.0.0.0/24"
                         }
                       ],
                       "metadata": {
@@ -986,6 +1146,215 @@
               ]
             },
             {
+              "condition": "[and(parameters('machineLearningIsPrivate'), parameters('createMachineLearningPLE'))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('{0}-{1}-ple-deployment', parameters('machineLearningName'), parameters('pairBaseName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "location": {
+                    "value": "[parameters('pairRegion')]"
+                  },
+                  "pleRootName": {
+                    "value": "[format('ple-{0}-{1}', parameters('machineLearningName'), parameters('pairBaseName'))]"
+                  },
+                  "resourceServiceId": {
+                    "value": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('machineLearningName'))]"
+                  },
+                  "subnetId": {
+                    "value": "[format('{0}/subnets/endpoints', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value)]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "useStaticIPAddress": {
+                    "value": "[not(empty(parameters('amlPLEStaticIPs')))]"
+                  },
+                  "privateIPAddress": {
+                    "value": "[parameters('amlPLEStaticIPs')]"
+                  },
+                  "privateDNSZoneName": {
+                    "value": "[variables('amlPrivateDnsZoneName')]"
+                  },
+                  "groupId": {
+                    "value": "amlworkspace"
+                  },
+                  "memberNames": {
+                    "value": [
+                      "default",
+                      "notebook",
+                      "inference"
+                    ]
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.85.62628",
+                      "templateHash": "9101708035419555637"
+                    }
+                  },
+                  "parameters": {
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
+                      "metadata": {
+                        "description": "Azure region of the deployment"
+                      }
+                    },
+                    "resourceServiceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Service ID of the resource to create private link endpoint to"
+                      }
+                    },
+                    "pleRootName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the storage blob private link endpoint"
+                      }
+                    },
+                    "subnetId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Resource ID of the subnet"
+                      }
+                    },
+                    "useStaticIPAddress": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "use privateIPAddress to assign a specific static IP address to PLE"
+                      }
+                    },
+                    "privateIPAddress": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Specify the private IP address on the subnet."
+                      }
+                    },
+                    "privateDNSZoneName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the existing DNS zone to add the PLE to"
+                      }
+                    },
+                    "groupId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the DNS zone group to add to the PLE"
+                      }
+                    },
+                    "memberNames": {
+                      "type": "array",
+                      "defaultValue": [
+                        "[parameters('groupId')]"
+                      ],
+                      "metadata": {
+                        "description": "Member names to add to the DNS zone group"
+                      }
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Tags to add to the resources"
+                      }
+                    }
+                  },
+                  "variables": {
+                    "copy": [
+                      {
+                        "name": "staticIPConfigs",
+                        "count": "[length(range(0, variables('memberCount')))]",
+                        "input": {
+                          "name": "[format('{0}-{1}-{2}-ipconfig', parameters('pleRootName'), parameters('groupId'), parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]",
+                          "properties": {
+                            "groupId": "[parameters('groupId')]",
+                            "memberName": "[parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]]]",
+                            "privateIPAddress": "[if(empty(parameters('privateIPAddress')), '', variables('privateIPAdresses')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]"
+                          }
+                        }
+                      }
+                    ],
+                    "memberCount": "[length(parameters('memberNames'))]",
+                    "privateIPAdresses": "[split(parameters('privateIPAddress'), ',')]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/privateEndpoints",
+                      "apiVersion": "2022-01-01",
+                      "name": "[parameters('pleRootName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "ipConfigurations": "[if(parameters('useStaticIPAddress'), variables('staticIPConfigs'), createArray())]",
+                        "privateLinkServiceConnections": [
+                          {
+                            "name": "[parameters('pleRootName')]",
+                            "properties": {
+                              "groupIds": [
+                                "[parameters('groupId')]"
+                              ],
+                              "privateLinkServiceId": "[parameters('resourceServiceId')]",
+                              "privateLinkServiceConnectionState": {
+                                "status": "Approved",
+                                "description": "Auto-Approved",
+                                "actionsRequired": "None"
+                              }
+                            }
+                          }
+                        ],
+                        "subnet": {
+                          "id": "[parameters('subnetId')]"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                      "apiVersion": "2020-06-01",
+                      "name": "[format('{0}/{1}', parameters('pleRootName'), format('{0}-PrivateDnsZoneGroup', parameters('groupId')))]",
+                      "properties": {
+                        "privateDnsZoneConfigs": [
+                          {
+                            "name": "[parameters('privateDNSZoneName')]",
+                            "properties": {
+                              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDNSZoneName'))]"
+                            }
+                          }
+                        ]
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateEndpoints', parameters('pleRootName'))]"
+                      ]
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('pleRootName')]"
+                    },
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/privateEndpoints', parameters('pleRootName'))]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('amlPrivateDnsZoneName'), uniqueString(subscription().id, resourceGroup().id, parameters('vnetResourceName'), variables('amlPrivateDnsZoneName'), 'global'))]",
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+              ]
+            },
+            {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
               "name": "[format('{0}-vnet-aml-compute', parameters('pairBaseName'))]",
@@ -1014,13 +1383,13 @@
                     "value": "[parameters('computeNodes')]"
                   },
                   "computeUaiName": {
-                    "value": "[parameters('uaiName')]"
+                    "value": "[parameters('jobsUaiName')]"
                   },
                   "subnetName": {
-                    "value": "[parameters('subnetName')]"
+                    "value": "compute"
                   },
-                  "subnetId": {
-                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
+                  "vnetId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -1033,7 +1402,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "17140459328423898085"
+                      "templateHash": "11288430844563283666"
                     }
                   },
                   "parameters": {
@@ -1053,7 +1422,7 @@
                     "computeName": {
                       "type": "string",
                       "metadata": {
-                        "description": "The name of the Managed Cluster resource."
+                        "description": "Name of the compute cluster to create"
                       }
                     },
                     "computeRegion": {
@@ -1064,7 +1433,7 @@
                     },
                     "dnsPrefix": {
                       "type": "string",
-                      "defaultValue": "[replace(format('dnxprefix-{0}', parameters('computeName')), '-', '')]",
+                      "defaultValue": "[replace(format('{0}', parameters('computeName')), '-', '')]",
                       "maxLength": 54,
                       "metadata": {
                         "description": "Optional DNS prefix to use with hosted Kubernetes API server FQDN."
@@ -1101,15 +1470,14 @@
                         "description": "Name of the UAI for the compute cluster"
                       }
                     },
-                    "subnetId": {
+                    "vnetId": {
                       "type": "string",
                       "metadata": {
-                        "description": "Subnet ID"
+                        "description": "virtual network ID"
                       }
                     },
                     "subnetName": {
                       "type": "string",
-                      "defaultValue": "snet-training",
                       "metadata": {
                         "description": "Subnet name"
                       }
@@ -1156,7 +1524,7 @@
                             "osType": "Linux",
                             "mode": "System",
                             "osDiskSizeGB": "[parameters('osDiskSizeGB')]",
-                            "vnetSubnetID": "[parameters('subnetId')]"
+                            "vnetSubnetID": "[format('{0}/subnets/{1}', parameters('vnetId'), parameters('subnetName'))]"
                           }
                         ],
                         "apiServerAccessProfile": {
@@ -1166,7 +1534,11 @@
                           "enableVnetIntegration": false
                         },
                         "networkProfile": {
-                          "networkPlugin": "azure"
+                          "networkPlugin": "azure",
+                          "serviceCidr": "172.16.0.0/16",
+                          "dnsServiceIP": "172.16.0.10",
+                          "podCidr": "172.17.0.0/16",
+                          "dockerBridgeCidr": "172.18.0.0/16"
                         }
                       }
                     },
@@ -1491,7 +1863,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('jobsUaiName'))]",
                 "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
               ]
             },
@@ -1524,7 +1896,7 @@
                     "value": "[parameters('storagePublicNetworkAccess')]"
                   },
                   "subnetIds": {
-                    "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))), parameters('allowedSubnetIds'))]"
+                    "value": "[concat(createArray(format('{0}/subnets/endpoints', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value)), parameters('allowedSubnetIds'))]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -1537,7 +1909,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "8073065165220131475"
+                      "templateHash": "3521838058917601730"
                     }
                   },
                   "parameters": {
@@ -1647,7 +2019,7 @@
                         "allowBlobPublicAccess": false,
                         "allowCrossTenantReplication": false,
                         "allowedCopyScope": "PrivateLink",
-                        "allowSharedKeyAccess": true,
+                        "allowSharedKeyAccess": false,
                         "networkAcls": {
                           "copy": [
                             {
@@ -1765,7 +2137,7 @@
               "condition": "[equals(parameters('storagePublicNetworkAccess'), 'Disabled')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
-              "name": "[format('{0}-endpoint-to-insilo-storage', parameters('pairBaseName'))]",
+              "name": "[format('{0}-endpoint-to-pair-storage', parameters('pairBaseName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -1781,29 +2153,20 @@
                   "resourceServiceId": {
                     "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
                   },
-                  "resourceName": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
-                  },
                   "pleRootName": {
                     "value": "[format('ple-{0}-to-{1}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value, parameters('pairBaseName'))]"
                   },
-                  "virtualNetworkId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
-                  },
                   "subnetId": {
-                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
+                    "value": "[format('{0}/subnets/endpoints', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value)]"
                   },
                   "useStaticIPAddress": {
-                    "value": "[parameters('useStorageStaticIP')]"
+                    "value": "[not(empty(parameters('storagePLEStaticIP')))]"
                   },
                   "privateIPAddress": {
                     "value": "[parameters('storagePLEStaticIP')]"
                   },
                   "privateDNSZoneName": {
                     "value": "[parameters('blobPrivateDNSZoneName')]"
-                  },
-                  "privateDNSZoneLocation": {
-                    "value": "[parameters('blobPrivateDNSZoneLocation')]"
                   },
                   "groupId": {
                     "value": "blob"
@@ -1816,7 +2179,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "13553466402936175088"
+                      "templateHash": "9101708035419555637"
                     }
                   },
                   "parameters": {
@@ -1833,23 +2196,10 @@
                         "description": "Service ID of the resource to create private link endpoint to"
                       }
                     },
-                    "resourceName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of resource in private DNS zone A record (if privateIPAddress is specified)"
-                      }
-                    },
                     "pleRootName": {
                       "type": "string",
-                      "defaultValue": "[format('ple-{0}', parameters('resourceName'))]",
                       "metadata": {
                         "description": "Name of the storage blob private link endpoint"
-                      }
-                    },
-                    "virtualNetworkId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Resource ID of the vnet"
                       }
                     },
                     "subnetId": {
@@ -1878,24 +2228,19 @@
                         "description": "Name of the existing DNS zone to add the PLE to"
                       }
                     },
-                    "privateDNSZoneLocation": {
-                      "type": "string",
-                      "defaultValue": "global",
-                      "metadata": {
-                        "description": "Location of the existing DNS zone to add the PLE to"
-                      }
-                    },
                     "groupId": {
                       "type": "string",
                       "metadata": {
                         "description": "Name of the DNS zone group to add to the PLE"
                       }
                     },
-                    "linkVirtualNetwork": {
-                      "type": "bool",
-                      "defaultValue": true,
+                    "memberNames": {
+                      "type": "array",
+                      "defaultValue": [
+                        "[parameters('groupId')]"
+                      ],
                       "metadata": {
-                        "description": "Creates the virtual network link or not (use false if link already exists)."
+                        "description": "Member names to add to the DNS zone group"
                       }
                     },
                     "tags": {
@@ -1907,7 +2252,22 @@
                     }
                   },
                   "variables": {
-                    "ipConfigurationsDefinition": "[if(parameters('useStaticIPAddress'), createArray(createObject('name', format('{0}-ipconfig', parameters('pleRootName')), 'properties', createObject('groupId', parameters('groupId'), 'memberName', parameters('groupId'), 'privateIPAddress', parameters('privateIPAddress')))), createArray())]"
+                    "copy": [
+                      {
+                        "name": "staticIPConfigs",
+                        "count": "[length(range(0, variables('memberCount')))]",
+                        "input": {
+                          "name": "[format('{0}-{1}-{2}-ipconfig', parameters('pleRootName'), parameters('groupId'), parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]",
+                          "properties": {
+                            "groupId": "[parameters('groupId')]",
+                            "memberName": "[parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]]]",
+                            "privateIPAddress": "[if(empty(parameters('privateIPAddress')), '', variables('privateIPAdresses')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]"
+                          }
+                        }
+                      }
+                    ],
+                    "memberCount": "[length(parameters('memberNames'))]",
+                    "privateIPAdresses": "[split(parameters('privateIPAddress'), ',')]"
                   },
                   "resources": [
                     {
@@ -1917,7 +2277,7 @@
                       "location": "[parameters('location')]",
                       "tags": "[parameters('tags')]",
                       "properties": {
-                        "ipConfigurations": "[variables('ipConfigurationsDefinition')]",
+                        "ipConfigurations": "[if(parameters('useStaticIPAddress'), variables('staticIPConfigs'), createArray())]",
                         "privateLinkServiceConnections": [
                           {
                             "name": "[parameters('pleRootName')]",
@@ -1956,19 +2316,6 @@
                       "dependsOn": [
                         "[resourceId('Microsoft.Network/privateEndpoints', parameters('pleRootName'))]"
                       ]
-                    },
-                    {
-                      "condition": "[parameters('linkVirtualNetwork')]",
-                      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-                      "apiVersion": "2020-06-01",
-                      "name": "[format('{0}/{1}', parameters('privateDNSZoneName'), uniqueString(parameters('subnetId'), parameters('resourceServiceId'), parameters('groupId')))]",
-                      "location": "[parameters('privateDNSZoneLocation')]",
-                      "properties": {
-                        "registrationEnabled": false,
-                        "virtualNetwork": {
-                          "id": "[parameters('virtualNetworkId')]"
-                        }
-                      }
                     }
                   ],
                   "outputs": {
@@ -2091,13 +2438,9 @@
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.name.value]"
             },
-            "vnetId": {
+            "vNetId": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
-            },
-            "subnetId": {
-              "type": "string",
-              "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
             }
           }
         }
@@ -2114,7 +2457,7 @@
       },
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
+      "name": "[format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -2126,6 +2469,12 @@
           },
           "machineLearningRegion": {
             "value": "[parameters('orchestratorRegion')]"
+          },
+          "machineLearningIsPrivate": {
+            "value": false
+          },
+          "createMachineLearningPLE": {
+            "value": false
           },
           "pairRegion": {
             "value": "[parameters('siloRegions')[range(0, variables('siloCount'))[copyIndex()]]]"
@@ -2151,21 +2500,16 @@
           "applyDefaultPermissions": {
             "value": true
           },
-          "vnetAddressPrefix": {
-            "value": "[format('172.{0}.0.0/16', add(range(0, variables('siloCount'))[copyIndex()], 20))]"
-          },
-          "subnetPrefix": {
-            "value": "[format('172.{0}.0.0/22', add(range(0, variables('siloCount'))[copyIndex()], 20))]"
-          },
+          "vnetAddressPrefix": "[if(parameters('applyVNetPeering'), createObject('value', format('10.{0}.0.0/16', add(range(0, variables('siloCount'))[copyIndex()], 2))), createObject('value', '10.0.0.0/16'))]",
+          "computeSubnetPrefix": "[if(parameters('applyVNetPeering'), createObject('value', format('10.{0}.1.0/24', add(range(0, variables('siloCount'))[copyIndex()], 2))), createObject('value', '10.0.1.0/24'))]",
+          "endpointsSubnetPrefix": "[if(parameters('applyVNetPeering'), createObject('value', format('10.{0}.0.0/24', add(range(0, variables('siloCount'))[copyIndex()], 2))), createObject('value', '10.0.0.0/24'))]",
+          "storagePLEStaticIP": "[if(parameters('applyVNetPeering'), createObject('value', format('10.{0}.0.244', add(range(0, variables('siloCount'))[copyIndex()], 2))), createObject('value', '10.0.0.244'))]",
           "enableNodePublicIp": {
             "value": true
           },
           "storagePublicNetworkAccess": "[if(equals(parameters('siloStorageNetworkAccess'), 'public'), createObject('value', 'Enabled'), createObject('value', 'Disabled'))]",
           "blobPrivateDNSZoneName": {
             "value": "[format('privatelink.blob.{0}', environment().suffixes.storage)]"
-          },
-          "blobPrivateDNSZoneLocation": {
-            "value": "[reference(resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage)), '2020-06-01', 'full').location]"
           }
         },
         "template": {
@@ -2175,7 +2519,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "7795565545239978732"
+              "templateHash": "15819783256753336121"
             }
           },
           "parameters": {
@@ -2190,6 +2534,13 @@
               "defaultValue": "[resourceGroup().location]",
               "metadata": {
                 "description": "The region of the machine learning workspace"
+              }
+            },
+            "machineLearningIsPrivate": {
+              "type": "bool",
+              "defaultValue": false,
+              "metadata": {
+                "description": "Set true to provision PLEs necessary for private workspace to interact with the pair"
               }
             },
             "pairRegion": {
@@ -2240,11 +2591,11 @@
                 "description": "VM nodes for the default compute cluster"
               }
             },
-            "uaiName": {
+            "jobsUaiName": {
               "type": "string",
-              "defaultValue": "[format('uai-{0}', parameters('pairBaseName'))]",
+              "defaultValue": "[format('uai-jobs-{0}', parameters('pairBaseName'))]",
               "metadata": {
-                "description": "Name of the UAI for the pair compute cluster"
+                "description": "Name of the UAI for the jobs running in the pair"
               }
             },
             "nsgResourceName": {
@@ -2263,35 +2614,44 @@
             },
             "vnetAddressPrefix": {
               "type": "string",
+              "defaultValue": "10.0.0.0/16",
               "metadata": {
                 "description": "Virtual network address prefix"
               }
             },
-            "subnetPrefix": {
+            "computeSubnetPrefix": {
               "type": "string",
+              "defaultValue": "10.0.1.0/24",
               "metadata": {
                 "description": "Subnet address prefix"
               }
             },
-            "useStorageStaticIP": {
-              "type": "bool",
-              "defaultValue": false,
+            "endpointsSubnetPrefix": {
+              "type": "string",
+              "defaultValue": "10.0.0.0/24",
               "metadata": {
-                "description": "Use a static ip for storage PLE"
+                "description": "Subnet address prefix"
               }
             },
             "storagePLEStaticIP": {
               "type": "string",
-              "defaultValue": "172.19.0.50",
+              "defaultValue": "",
               "metadata": {
-                "description": "Which static IP to use for storage PLE (if useStorageStaticIP is true)"
+                "description": "Optional: static ip for the pair blob storage PLE"
               }
             },
-            "subnetName": {
-              "type": "string",
-              "defaultValue": "snet-training",
+            "createMachineLearningPLE": {
+              "type": "bool",
+              "defaultValue": true,
               "metadata": {
-                "description": "Subnet name"
+                "description": "Create a PLE for the machine learning workspace (if machineLearningIsPrivate=true)"
+              }
+            },
+            "amlPLEStaticIPs": {
+              "type": "string",
+              "defaultValue": "",
+              "metadata": {
+                "description": "Optional: static ip for the PLE to the workspace (if machineLearningIsPrivate=true)"
               }
             },
             "allowedSubnetIds": {
@@ -2334,13 +2694,6 @@
                 "description": "Name of the private DNS zone for blob"
               }
             },
-            "blobPrivateDNSZoneLocation": {
-              "type": "string",
-              "defaultValue": "global",
-              "metadata": {
-                "description": "Location of the private DNS zone for blob"
-              }
-            },
             "tags": {
               "type": "object",
               "defaultValue": {},
@@ -2349,13 +2702,52 @@
               }
             }
           },
+          "variables": {
+            "amlPrivateDnsZoneNames": {
+              "azureusgovernment": "privatelink.api.ml.azure.us",
+              "azurechinacloud": "privatelink.api.ml.azure.cn",
+              "azurecloud": "privatelink.api.azureml.ms"
+            },
+            "amlPrivateDnsZoneName": "[variables('amlPrivateDnsZoneNames')[toLower(environment().name)]]"
+          },
           "resources": [
             {
               "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
               "apiVersion": "2022-01-31-preview",
-              "name": "[parameters('uaiName')]",
+              "name": "[parameters('jobsUaiName')]",
               "location": "[parameters('pairRegion')]",
               "tags": "[parameters('tags')]"
+            },
+            {
+              "condition": "[and(parameters('machineLearningIsPrivate'), parameters('createMachineLearningPLE'))]",
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', variables('amlPrivateDnsZoneName'), uniqueString(subscription().id, resourceGroup().id, parameters('vnetResourceName'), variables('amlPrivateDnsZoneName'), 'global'))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+              ]
+            },
+            {
+              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
+              "apiVersion": "2020-06-01",
+              "name": "[format('{0}/{1}', parameters('blobPrivateDNSZoneName'), uniqueString(format('{0}-deployment', parameters('vnetResourceName')), parameters('blobPrivateDNSZoneName'), 'global'))]",
+              "location": "global",
+              "properties": {
+                "registrationEnabled": false,
+                "virtualNetwork": {
+                  "id": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+              ]
             },
             {
               "type": "Microsoft.Resources/deployments",
@@ -2390,32 +2782,28 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "17553148586584182485"
+                      "templateHash": "9356966489364776969"
                     }
                   },
                   "parameters": {
+                    "nsgName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the network security group"
+                      }
+                    },
                     "location": {
                       "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
                       "metadata": {
                         "description": "Azure region of the deployment"
                       }
                     },
                     "workspaceRegion": {
                       "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
                       "metadata": {
                         "description": "Region of the AzureML workspace"
-                      }
-                    },
-                    "tags": {
-                      "type": "object",
-                      "metadata": {
-                        "description": "Tags to add to the resources"
-                      }
-                    },
-                    "nsgName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of the network security group"
                       }
                     },
                     "enableNodePublicIp": {
@@ -2423,6 +2811,13 @@
                       "defaultValue": false,
                       "metadata": {
                         "description": "Set rules to allow for compute with public IP"
+                      }
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Tags to add to the resources"
                       }
                     }
                   },
@@ -2468,7 +2863,7 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "AzureMachineLearning",
                         "access": "Allow",
-                        "priority": 150,
+                        "priority": 140,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -2486,7 +2881,7 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "AzureMachineLearning",
                         "access": "Allow",
-                        "priority": 151,
+                        "priority": 150,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -2504,7 +2899,7 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "[format('BatchNodeManagement.{0}', parameters('workspaceRegion'))]",
                         "access": "Allow",
-                        "priority": 152,
+                        "priority": 160,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -2514,7 +2909,7 @@
                     {
                       "type": "Microsoft.Network/networkSecurityGroups/securityRules",
                       "apiVersion": "2022-07-01",
-                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureStorageAccount')]",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'OrchestratorStorageAccount')]",
                       "properties": {
                         "protocol": "Tcp",
                         "sourcePortRange": "*",
@@ -2522,7 +2917,115 @@
                         "sourceAddressPrefix": "*",
                         "destinationAddressPrefix": "[format('Storage.{0}', parameters('workspaceRegion'))]",
                         "access": "Allow",
-                        "priority": 143,
+                        "priority": 170,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'SiloStorageAccount')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "[format('Storage.{0}', parameters('location'))]",
+                        "access": "Allow",
+                        "priority": 171,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureActiveDirectory')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "*",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "AzureActiveDirectory",
+                        "access": "Allow",
+                        "priority": 180,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureFrontDoor')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "AzureFrontDoor.FrontEnd",
+                        "access": "Allow",
+                        "priority": 190,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureContainerRegistryOrch')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "[format('AzureContainerRegistry.{0}', parameters('workspaceRegion'))]",
+                        "access": "Allow",
+                        "priority": 200,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'AzureContainerRegistrySilo')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "*",
+                        "destinationAddressPrefix": "[format('AzureContainerRegistry.{0}', parameters('location'))]",
+                        "access": "Allow",
+                        "priority": 201,
+                        "direction": "Outbound"
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('nsgName'))]"
+                      ]
+                    },
+                    {
+                      "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+                      "apiVersion": "2022-07-01",
+                      "name": "[format('{0}/{1}', parameters('nsgName'), 'MicrosoftContainerRegistry')]",
+                      "properties": {
+                        "protocol": "Tcp",
+                        "sourcePortRange": "*",
+                        "destinationPortRange": "443",
+                        "sourceAddressPrefix": "VirtualNetwork",
+                        "destinationAddressPrefix": "MicrosoftContainerRegistry",
+                        "access": "Allow",
+                        "priority": 210,
                         "direction": "Outbound"
                       },
                       "dependsOn": [
@@ -2564,8 +3067,12 @@
                   "subnets": {
                     "value": [
                       {
-                        "name": "[parameters('subnetName')]",
-                        "addressPrefix": "[parameters('subnetPrefix')]"
+                        "name": "compute",
+                        "addressPrefix": "[parameters('computeSubnetPrefix')]"
+                      },
+                      {
+                        "name": "endpoints",
+                        "addressPrefix": "[parameters('endpointsSubnetPrefix')]"
                       }
                     ]
                   },
@@ -2580,17 +3087,10 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "6565408118333802825"
+                      "templateHash": "12102256299858550532"
                     }
                   },
                   "parameters": {
-                    "location": {
-                      "type": "string",
-                      "defaultValue": "[resourceGroup().location]",
-                      "metadata": {
-                        "description": "Azure region of the deployment"
-                      }
-                    },
                     "virtualNetworkName": {
                       "type": "string",
                       "metadata": {
@@ -2603,9 +3103,16 @@
                         "description": "Group ID of the network security group"
                       }
                     },
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
+                      "metadata": {
+                        "description": "Azure region of the deployment"
+                      }
+                    },
                     "vnetAddressPrefix": {
                       "type": "string",
-                      "defaultValue": "192.168.0.0/16",
+                      "defaultValue": "10.0.0.0/16",
                       "metadata": {
                         "description": "Virtual network address prefix"
                       }
@@ -2615,7 +3122,7 @@
                       "defaultValue": [
                         {
                           "name": "snet-training",
-                          "addressPrefix": "192.168.0.0/24"
+                          "addressPrefix": "10.0.0.0/24"
                         }
                       ],
                       "metadata": {
@@ -2702,6 +3209,215 @@
               ]
             },
             {
+              "condition": "[and(parameters('machineLearningIsPrivate'), parameters('createMachineLearningPLE'))]",
+              "type": "Microsoft.Resources/deployments",
+              "apiVersion": "2020-10-01",
+              "name": "[format('{0}-{1}-ple-deployment', parameters('machineLearningName'), parameters('pairBaseName'))]",
+              "properties": {
+                "expressionEvaluationOptions": {
+                  "scope": "inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                  "location": {
+                    "value": "[parameters('pairRegion')]"
+                  },
+                  "pleRootName": {
+                    "value": "[format('ple-{0}-{1}', parameters('machineLearningName'), parameters('pairBaseName'))]"
+                  },
+                  "resourceServiceId": {
+                    "value": "[resourceId('Microsoft.MachineLearningServices/workspaces', parameters('machineLearningName'))]"
+                  },
+                  "subnetId": {
+                    "value": "[format('{0}/subnets/endpoints', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value)]"
+                  },
+                  "tags": {
+                    "value": "[parameters('tags')]"
+                  },
+                  "useStaticIPAddress": {
+                    "value": "[not(empty(parameters('amlPLEStaticIPs')))]"
+                  },
+                  "privateIPAddress": {
+                    "value": "[parameters('amlPLEStaticIPs')]"
+                  },
+                  "privateDNSZoneName": {
+                    "value": "[variables('amlPrivateDnsZoneName')]"
+                  },
+                  "groupId": {
+                    "value": "amlworkspace"
+                  },
+                  "memberNames": {
+                    "value": [
+                      "default",
+                      "notebook",
+                      "inference"
+                    ]
+                  }
+                },
+                "template": {
+                  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                  "contentVersion": "1.0.0.0",
+                  "metadata": {
+                    "_generator": {
+                      "name": "bicep",
+                      "version": "0.14.85.62628",
+                      "templateHash": "9101708035419555637"
+                    }
+                  },
+                  "parameters": {
+                    "location": {
+                      "type": "string",
+                      "defaultValue": "[resourceGroup().location]",
+                      "metadata": {
+                        "description": "Azure region of the deployment"
+                      }
+                    },
+                    "resourceServiceId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Service ID of the resource to create private link endpoint to"
+                      }
+                    },
+                    "pleRootName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the storage blob private link endpoint"
+                      }
+                    },
+                    "subnetId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Resource ID of the subnet"
+                      }
+                    },
+                    "useStaticIPAddress": {
+                      "type": "bool",
+                      "defaultValue": false,
+                      "metadata": {
+                        "description": "use privateIPAddress to assign a specific static IP address to PLE"
+                      }
+                    },
+                    "privateIPAddress": {
+                      "type": "string",
+                      "defaultValue": "",
+                      "metadata": {
+                        "description": "Specify the private IP address on the subnet."
+                      }
+                    },
+                    "privateDNSZoneName": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the existing DNS zone to add the PLE to"
+                      }
+                    },
+                    "groupId": {
+                      "type": "string",
+                      "metadata": {
+                        "description": "Name of the DNS zone group to add to the PLE"
+                      }
+                    },
+                    "memberNames": {
+                      "type": "array",
+                      "defaultValue": [
+                        "[parameters('groupId')]"
+                      ],
+                      "metadata": {
+                        "description": "Member names to add to the DNS zone group"
+                      }
+                    },
+                    "tags": {
+                      "type": "object",
+                      "defaultValue": {},
+                      "metadata": {
+                        "description": "Tags to add to the resources"
+                      }
+                    }
+                  },
+                  "variables": {
+                    "copy": [
+                      {
+                        "name": "staticIPConfigs",
+                        "count": "[length(range(0, variables('memberCount')))]",
+                        "input": {
+                          "name": "[format('{0}-{1}-{2}-ipconfig', parameters('pleRootName'), parameters('groupId'), parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]",
+                          "properties": {
+                            "groupId": "[parameters('groupId')]",
+                            "memberName": "[parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]]]",
+                            "privateIPAddress": "[if(empty(parameters('privateIPAddress')), '', variables('privateIPAdresses')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]"
+                          }
+                        }
+                      }
+                    ],
+                    "memberCount": "[length(parameters('memberNames'))]",
+                    "privateIPAdresses": "[split(parameters('privateIPAddress'), ',')]"
+                  },
+                  "resources": [
+                    {
+                      "type": "Microsoft.Network/privateEndpoints",
+                      "apiVersion": "2022-01-01",
+                      "name": "[parameters('pleRootName')]",
+                      "location": "[parameters('location')]",
+                      "tags": "[parameters('tags')]",
+                      "properties": {
+                        "ipConfigurations": "[if(parameters('useStaticIPAddress'), variables('staticIPConfigs'), createArray())]",
+                        "privateLinkServiceConnections": [
+                          {
+                            "name": "[parameters('pleRootName')]",
+                            "properties": {
+                              "groupIds": [
+                                "[parameters('groupId')]"
+                              ],
+                              "privateLinkServiceId": "[parameters('resourceServiceId')]",
+                              "privateLinkServiceConnectionState": {
+                                "status": "Approved",
+                                "description": "Auto-Approved",
+                                "actionsRequired": "None"
+                              }
+                            }
+                          }
+                        ],
+                        "subnet": {
+                          "id": "[parameters('subnetId')]"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Microsoft.Network/privateEndpoints/privateDnsZoneGroups",
+                      "apiVersion": "2020-06-01",
+                      "name": "[format('{0}/{1}', parameters('pleRootName'), format('{0}-PrivateDnsZoneGroup', parameters('groupId')))]",
+                      "properties": {
+                        "privateDnsZoneConfigs": [
+                          {
+                            "name": "[parameters('privateDNSZoneName')]",
+                            "properties": {
+                              "privateDnsZoneId": "[resourceId('Microsoft.Network/privateDnsZones', parameters('privateDNSZoneName'))]"
+                            }
+                          }
+                        ]
+                      },
+                      "dependsOn": [
+                        "[resourceId('Microsoft.Network/privateEndpoints', parameters('pleRootName'))]"
+                      ]
+                    }
+                  ],
+                  "outputs": {
+                    "name": {
+                      "type": "string",
+                      "value": "[parameters('pleRootName')]"
+                    },
+                    "id": {
+                      "type": "string",
+                      "value": "[resourceId('Microsoft.Network/privateEndpoints', parameters('pleRootName'))]"
+                    }
+                  }
+                }
+              },
+              "dependsOn": [
+                "[resourceId('Microsoft.Network/privateDnsZones/virtualNetworkLinks', variables('amlPrivateDnsZoneName'), uniqueString(subscription().id, resourceGroup().id, parameters('vnetResourceName'), variables('amlPrivateDnsZoneName'), 'global'))]",
+                "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
+              ]
+            },
+            {
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
               "name": "[format('{0}-vnet-aml-compute', parameters('pairBaseName'))]",
@@ -2730,13 +3446,13 @@
                     "value": "[parameters('computeNodes')]"
                   },
                   "computeUaiName": {
-                    "value": "[parameters('uaiName')]"
+                    "value": "[parameters('jobsUaiName')]"
                   },
                   "subnetName": {
-                    "value": "[parameters('subnetName')]"
+                    "value": "compute"
                   },
-                  "subnetId": {
-                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
+                  "vnetId": {
+                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -2749,7 +3465,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "17140459328423898085"
+                      "templateHash": "11288430844563283666"
                     }
                   },
                   "parameters": {
@@ -2769,7 +3485,7 @@
                     "computeName": {
                       "type": "string",
                       "metadata": {
-                        "description": "The name of the Managed Cluster resource."
+                        "description": "Name of the compute cluster to create"
                       }
                     },
                     "computeRegion": {
@@ -2780,7 +3496,7 @@
                     },
                     "dnsPrefix": {
                       "type": "string",
-                      "defaultValue": "[replace(format('dnxprefix-{0}', parameters('computeName')), '-', '')]",
+                      "defaultValue": "[replace(format('{0}', parameters('computeName')), '-', '')]",
                       "maxLength": 54,
                       "metadata": {
                         "description": "Optional DNS prefix to use with hosted Kubernetes API server FQDN."
@@ -2817,15 +3533,14 @@
                         "description": "Name of the UAI for the compute cluster"
                       }
                     },
-                    "subnetId": {
+                    "vnetId": {
                       "type": "string",
                       "metadata": {
-                        "description": "Subnet ID"
+                        "description": "virtual network ID"
                       }
                     },
                     "subnetName": {
                       "type": "string",
-                      "defaultValue": "snet-training",
                       "metadata": {
                         "description": "Subnet name"
                       }
@@ -2872,7 +3587,7 @@
                             "osType": "Linux",
                             "mode": "System",
                             "osDiskSizeGB": "[parameters('osDiskSizeGB')]",
-                            "vnetSubnetID": "[parameters('subnetId')]"
+                            "vnetSubnetID": "[format('{0}/subnets/{1}', parameters('vnetId'), parameters('subnetName'))]"
                           }
                         ],
                         "apiServerAccessProfile": {
@@ -2882,7 +3597,11 @@
                           "enableVnetIntegration": false
                         },
                         "networkProfile": {
-                          "networkPlugin": "azure"
+                          "networkPlugin": "azure",
+                          "serviceCidr": "172.16.0.0/16",
+                          "dnsServiceIP": "172.16.0.10",
+                          "podCidr": "172.17.0.0/16",
+                          "dockerBridgeCidr": "172.18.0.0/16"
                         }
                       }
                     },
@@ -3207,7 +3926,7 @@
                 }
               },
               "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('uaiName'))]",
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', parameters('jobsUaiName'))]",
                 "[resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName')))]"
               ]
             },
@@ -3240,7 +3959,7 @@
                     "value": "[parameters('storagePublicNetworkAccess')]"
                   },
                   "subnetIds": {
-                    "value": "[concat(createArray(format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))), parameters('allowedSubnetIds'))]"
+                    "value": "[concat(createArray(format('{0}/subnets/endpoints', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value)), parameters('allowedSubnetIds'))]"
                   },
                   "tags": {
                     "value": "[parameters('tags')]"
@@ -3253,7 +3972,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "8073065165220131475"
+                      "templateHash": "3521838058917601730"
                     }
                   },
                   "parameters": {
@@ -3363,7 +4082,7 @@
                         "allowBlobPublicAccess": false,
                         "allowCrossTenantReplication": false,
                         "allowedCopyScope": "PrivateLink",
-                        "allowSharedKeyAccess": true,
+                        "allowSharedKeyAccess": false,
                         "networkAcls": {
                           "copy": [
                             {
@@ -3481,7 +4200,7 @@
               "condition": "[equals(parameters('storagePublicNetworkAccess'), 'Disabled')]",
               "type": "Microsoft.Resources/deployments",
               "apiVersion": "2020-10-01",
-              "name": "[format('{0}-endpoint-to-insilo-storage', parameters('pairBaseName'))]",
+              "name": "[format('{0}-endpoint-to-pair-storage', parameters('pairBaseName'))]",
               "properties": {
                 "expressionEvaluationOptions": {
                   "scope": "inner"
@@ -3497,29 +4216,20 @@
                   "resourceServiceId": {
                     "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageId.value]"
                   },
-                  "resourceName": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value]"
-                  },
                   "pleRootName": {
                     "value": "[format('ple-{0}-to-{1}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnet-storage', parameters('pairBaseName'))), '2020-10-01').outputs.storageName.value, parameters('pairBaseName'))]"
                   },
-                  "virtualNetworkId": {
-                    "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
-                  },
                   "subnetId": {
-                    "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
+                    "value": "[format('{0}/subnets/endpoints', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value)]"
                   },
                   "useStaticIPAddress": {
-                    "value": "[parameters('useStorageStaticIP')]"
+                    "value": "[not(empty(parameters('storagePLEStaticIP')))]"
                   },
                   "privateIPAddress": {
                     "value": "[parameters('storagePLEStaticIP')]"
                   },
                   "privateDNSZoneName": {
                     "value": "[parameters('blobPrivateDNSZoneName')]"
-                  },
-                  "privateDNSZoneLocation": {
-                    "value": "[parameters('blobPrivateDNSZoneLocation')]"
                   },
                   "groupId": {
                     "value": "blob"
@@ -3532,7 +4242,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "13553466402936175088"
+                      "templateHash": "9101708035419555637"
                     }
                   },
                   "parameters": {
@@ -3549,23 +4259,10 @@
                         "description": "Service ID of the resource to create private link endpoint to"
                       }
                     },
-                    "resourceName": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Name of resource in private DNS zone A record (if privateIPAddress is specified)"
-                      }
-                    },
                     "pleRootName": {
                       "type": "string",
-                      "defaultValue": "[format('ple-{0}', parameters('resourceName'))]",
                       "metadata": {
                         "description": "Name of the storage blob private link endpoint"
-                      }
-                    },
-                    "virtualNetworkId": {
-                      "type": "string",
-                      "metadata": {
-                        "description": "Resource ID of the vnet"
                       }
                     },
                     "subnetId": {
@@ -3594,24 +4291,19 @@
                         "description": "Name of the existing DNS zone to add the PLE to"
                       }
                     },
-                    "privateDNSZoneLocation": {
-                      "type": "string",
-                      "defaultValue": "global",
-                      "metadata": {
-                        "description": "Location of the existing DNS zone to add the PLE to"
-                      }
-                    },
                     "groupId": {
                       "type": "string",
                       "metadata": {
                         "description": "Name of the DNS zone group to add to the PLE"
                       }
                     },
-                    "linkVirtualNetwork": {
-                      "type": "bool",
-                      "defaultValue": true,
+                    "memberNames": {
+                      "type": "array",
+                      "defaultValue": [
+                        "[parameters('groupId')]"
+                      ],
                       "metadata": {
-                        "description": "Creates the virtual network link or not (use false if link already exists)."
+                        "description": "Member names to add to the DNS zone group"
                       }
                     },
                     "tags": {
@@ -3623,7 +4315,22 @@
                     }
                   },
                   "variables": {
-                    "ipConfigurationsDefinition": "[if(parameters('useStaticIPAddress'), createArray(createObject('name', format('{0}-ipconfig', parameters('pleRootName')), 'properties', createObject('groupId', parameters('groupId'), 'memberName', parameters('groupId'), 'privateIPAddress', parameters('privateIPAddress')))), createArray())]"
+                    "copy": [
+                      {
+                        "name": "staticIPConfigs",
+                        "count": "[length(range(0, variables('memberCount')))]",
+                        "input": {
+                          "name": "[format('{0}-{1}-{2}-ipconfig', parameters('pleRootName'), parameters('groupId'), parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]",
+                          "properties": {
+                            "groupId": "[parameters('groupId')]",
+                            "memberName": "[parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]]]",
+                            "privateIPAddress": "[if(empty(parameters('privateIPAddress')), '', variables('privateIPAdresses')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]"
+                          }
+                        }
+                      }
+                    ],
+                    "memberCount": "[length(parameters('memberNames'))]",
+                    "privateIPAdresses": "[split(parameters('privateIPAddress'), ',')]"
                   },
                   "resources": [
                     {
@@ -3633,7 +4340,7 @@
                       "location": "[parameters('location')]",
                       "tags": "[parameters('tags')]",
                       "properties": {
-                        "ipConfigurations": "[variables('ipConfigurationsDefinition')]",
+                        "ipConfigurations": "[if(parameters('useStaticIPAddress'), variables('staticIPConfigs'), createArray())]",
                         "privateLinkServiceConnections": [
                           {
                             "name": "[parameters('pleRootName')]",
@@ -3672,19 +4379,6 @@
                       "dependsOn": [
                         "[resourceId('Microsoft.Network/privateEndpoints', parameters('pleRootName'))]"
                       ]
-                    },
-                    {
-                      "condition": "[parameters('linkVirtualNetwork')]",
-                      "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-                      "apiVersion": "2020-06-01",
-                      "name": "[format('{0}/{1}', parameters('privateDNSZoneName'), uniqueString(parameters('subnetId'), parameters('resourceServiceId'), parameters('groupId')))]",
-                      "location": "[parameters('privateDNSZoneLocation')]",
-                      "properties": {
-                        "registrationEnabled": false,
-                        "virtualNetwork": {
-                          "id": "[parameters('virtualNetworkId')]"
-                        }
-                      }
                     }
                   ],
                   "outputs": {
@@ -3807,13 +4501,9 @@
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.name.value]"
             },
-            "vnetId": {
+            "vNetId": {
               "type": "string",
               "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value]"
-            },
-            "subnetId": {
-              "type": "string",
-              "value": "[format('{0}/subnets/{1}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-deployment', parameters('vnetResourceName'))), '2020-10-01').outputs.id.value, parameters('subnetName'))]"
             }
           }
         }
@@ -3828,10 +4518,10 @@
         "name": "orchToSiloPrivateEndpoints",
         "count": "[length(range(0, variables('siloCount')))]"
       },
-      "condition": "[equals(parameters('orchestratorStorageNetworkAccess'), 'private')]",
+      "condition": "[and(equals(parameters('orchestratorStorageNetworkAccess'), 'private'), not(parameters('applyVNetPeering')))]",
       "type": "Microsoft.Resources/deployments",
       "apiVersion": "2020-10-01",
-      "name": "[format('{0}-orch-to-silo{1}-endpoint', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
+      "name": "[format('{0}-orch-to-silo{1}-storage-ple', parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]",
       "properties": {
         "expressionEvaluationOptions": {
           "scope": "inner"
@@ -3839,40 +4529,26 @@
         "mode": "Incremental",
         "parameters": {
           "location": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.region.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.region.value]"
           },
           "tags": {
             "value": "[parameters('tags')]"
           },
           "resourceServiceId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageServiceId.value]"
-          },
-          "resourceName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value]"
-          },
-          "linkVirtualNetwork": {
-            "value": false
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName'))), '2020-10-01').outputs.storageServiceId.value]"
           },
           "pleRootName": {
-            "value": "[format('ple-{0}-to-{1}-silo{2}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value, parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]"
-          },
-          "virtualNetworkId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.vnetId.value]"
+            "value": "[format('ple-{0}-to-{1}-silo{2}-st-blob', reference(resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value, parameters('demoBaseName'), range(0, variables('siloCount'))[copyIndex()])]"
           },
           "subnetId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.subnetId.value]"
+            "value": "[format('{0}/subnets/endpoints', reference(resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.vNetId.value)]"
           },
           "useStaticIPAddress": {
             "value": true
           },
-          "privateIPAddress": {
-            "value": "[format('172.{0}.0.150', add(range(0, variables('siloCount'))[copyIndex()], 20))]"
-          },
+          "privateIPAddress": "[if(parameters('applyVNetPeering'), createObject('value', format('10.{0}.0.243', add(range(0, variables('siloCount'))[copyIndex()], 2))), createObject('value', '10.0.0.243'))]",
           "privateDNSZoneName": {
             "value": "[format('privatelink.blob.{0}', environment().suffixes.storage)]"
-          },
-          "privateDNSZoneLocation": {
-            "value": "[reference(resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage)), '2020-06-01', 'full').location]"
           },
           "groupId": {
             "value": "blob"
@@ -3885,7 +4561,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "13553466402936175088"
+              "templateHash": "9101708035419555637"
             }
           },
           "parameters": {
@@ -3902,23 +4578,10 @@
                 "description": "Service ID of the resource to create private link endpoint to"
               }
             },
-            "resourceName": {
-              "type": "string",
-              "metadata": {
-                "description": "Name of resource in private DNS zone A record (if privateIPAddress is specified)"
-              }
-            },
             "pleRootName": {
               "type": "string",
-              "defaultValue": "[format('ple-{0}', parameters('resourceName'))]",
               "metadata": {
                 "description": "Name of the storage blob private link endpoint"
-              }
-            },
-            "virtualNetworkId": {
-              "type": "string",
-              "metadata": {
-                "description": "Resource ID of the vnet"
               }
             },
             "subnetId": {
@@ -3947,24 +4610,19 @@
                 "description": "Name of the existing DNS zone to add the PLE to"
               }
             },
-            "privateDNSZoneLocation": {
-              "type": "string",
-              "defaultValue": "global",
-              "metadata": {
-                "description": "Location of the existing DNS zone to add the PLE to"
-              }
-            },
             "groupId": {
               "type": "string",
               "metadata": {
                 "description": "Name of the DNS zone group to add to the PLE"
               }
             },
-            "linkVirtualNetwork": {
-              "type": "bool",
-              "defaultValue": true,
+            "memberNames": {
+              "type": "array",
+              "defaultValue": [
+                "[parameters('groupId')]"
+              ],
               "metadata": {
-                "description": "Creates the virtual network link or not (use false if link already exists)."
+                "description": "Member names to add to the DNS zone group"
               }
             },
             "tags": {
@@ -3976,7 +4634,22 @@
             }
           },
           "variables": {
-            "ipConfigurationsDefinition": "[if(parameters('useStaticIPAddress'), createArray(createObject('name', format('{0}-ipconfig', parameters('pleRootName')), 'properties', createObject('groupId', parameters('groupId'), 'memberName', parameters('groupId'), 'privateIPAddress', parameters('privateIPAddress')))), createArray())]"
+            "copy": [
+              {
+                "name": "staticIPConfigs",
+                "count": "[length(range(0, variables('memberCount')))]",
+                "input": {
+                  "name": "[format('{0}-{1}-{2}-ipconfig', parameters('pleRootName'), parameters('groupId'), parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]",
+                  "properties": {
+                    "groupId": "[parameters('groupId')]",
+                    "memberName": "[parameters('memberNames')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]]]",
+                    "privateIPAddress": "[if(empty(parameters('privateIPAddress')), '', variables('privateIPAdresses')[range(0, variables('memberCount'))[copyIndex('staticIPConfigs')]])]"
+                  }
+                }
+              }
+            ],
+            "memberCount": "[length(parameters('memberNames'))]",
+            "privateIPAdresses": "[split(parameters('privateIPAddress'), ',')]"
           },
           "resources": [
             {
@@ -3986,7 +4659,7 @@
               "location": "[parameters('location')]",
               "tags": "[parameters('tags')]",
               "properties": {
-                "ipConfigurations": "[variables('ipConfigurationsDefinition')]",
+                "ipConfigurations": "[if(parameters('useStaticIPAddress'), variables('staticIPConfigs'), createArray())]",
                 "privateLinkServiceConnections": [
                   {
                     "name": "[parameters('pleRootName')]",
@@ -4025,19 +4698,6 @@
               "dependsOn": [
                 "[resourceId('Microsoft.Network/privateEndpoints', parameters('pleRootName'))]"
               ]
-            },
-            {
-              "condition": "[parameters('linkVirtualNetwork')]",
-              "type": "Microsoft.Network/privateDnsZones/virtualNetworkLinks",
-              "apiVersion": "2020-06-01",
-              "name": "[format('{0}/{1}', parameters('privateDNSZoneName'), uniqueString(parameters('subnetId'), parameters('resourceServiceId'), parameters('groupId')))]",
-              "location": "[parameters('privateDNSZoneLocation')]",
-              "properties": {
-                "registrationEnabled": false,
-                "virtualNetwork": {
-                  "id": "[parameters('virtualNetworkId')]"
-                }
-              }
             }
           ],
           "outputs": {
@@ -4053,12 +4713,10 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
-        "[resourceId('Microsoft.Network/privateDnsZones', format('privatelink.blob.{0}', environment().suffixes.storage))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]"
       ]
     },
     {
@@ -4076,10 +4734,10 @@
         "mode": "Incremental",
         "parameters": {
           "storageAccountName": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName'))), '2020-10-01').outputs.storageName.value]"
           },
           "identityPrincipalId": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.identityPrincipalId.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.identityPrincipalId.value]"
           }
         },
         "template": {
@@ -4137,7 +4795,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName')))]",
         "silos"
       ]
     },
@@ -4157,10 +4815,10 @@
         "mode": "Incremental",
         "parameters": {
           "existingVirtualNetworkNameSource": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]])), '2020-10-01').outputs.vnetName.value]"
           },
           "existingVirtualNetworkNameTarget": {
-            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.vnetName.value]"
+            "value": "[reference(resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName'))), '2020-10-01').outputs.vnetName.value]"
           },
           "existingVirtualNetworkNameTargetResourceGroupName": {
             "value": "[resourceGroup().name]"
@@ -4247,9 +4905,9 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]"
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex()]]))]"
       ]
     },
     {
@@ -4276,13 +4934,13 @@
               {
                 "name": "value",
                 "count": "[length(range(0, variables('siloCount')))]",
-                "input": "[format('{0}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-silo-{1}', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex('value')]])), '2020-10-01').outputs.identityPrincipalId.value)]"
+                "input": "[format('{0}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-silo-{1}-pair', parameters('demoBaseName'), range(0, variables('siloCount'))[range(0, variables('siloCount'))[copyIndex('value')]])), '2020-10-01').outputs.identityPrincipalId.value)]"
               }
             ]
           },
           "secondaryIdentitiesEnabledCryptoOperations": {
             "value": [
-              "[format('{0}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName'))), '2020-10-01').outputs.identityPrincipalId.value)]"
+              "[format('{0}', reference(resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName'))), '2020-10-01').outputs.identityPrincipalId.value)]"
             ]
           }
         },
@@ -4426,7 +5084,7 @@
         }
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Resources/deployments', format('{0}-vnetpair-orchestrator', parameters('demoBaseName')))]",
+        "[resourceId('Microsoft.Resources/deployments', format('{0}-orchestrator-pair', parameters('demoBaseName')))]",
         "silos"
       ]
     }

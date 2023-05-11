@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "11633454165432816420"
+      "templateHash": "17486001974427434107"
     }
   },
   "parameters": {
@@ -166,7 +166,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "5219671468848917786"
+              "templateHash": "14419996183010411507"
             }
           },
           "parameters": {
@@ -268,16 +268,30 @@
               },
               "kind": "StorageV2",
               "properties": {
+                "allowBlobPublicAccess": false,
+                "allowCrossTenantReplication": false,
+                "publicNetworkAccess": "Enabled",
                 "encryption": {
+                  "keySource": "Microsoft.Storage",
+                  "requireInfrastructureEncryption": false,
                   "services": {
                     "blob": {
-                      "enabled": true
+                      "enabled": true,
+                      "keyType": "Account"
                     },
                     "file": {
-                      "enabled": true
+                      "enabled": true,
+                      "keyType": "Account"
+                    },
+                    "queue": {
+                      "enabled": true,
+                      "keyType": "Service"
+                    },
+                    "table": {
+                      "enabled": true,
+                      "keyType": "Service"
                     }
-                  },
-                  "keySource": "Microsoft.Storage"
+                  }
                 },
                 "supportsHttpsTrafficOnly": true
               }
@@ -453,7 +467,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "17130926876543764853"
+              "templateHash": "15405796131150436024"
             }
           },
           "parameters": {
@@ -617,7 +631,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "8073065165220131475"
+                      "templateHash": "3521838058917601730"
                     }
                   },
                   "parameters": {
@@ -727,7 +741,7 @@
                         "allowBlobPublicAccess": false,
                         "allowCrossTenantReplication": false,
                         "allowedCopyScope": "PrivateLink",
-                        "allowSharedKeyAccess": true,
+                        "allowSharedKeyAccess": false,
                         "networkAcls": {
                           "copy": [
                             {
@@ -1337,7 +1351,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "17130926876543764853"
+              "templateHash": "15405796131150436024"
             }
           },
           "parameters": {
@@ -1501,7 +1515,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "8073065165220131475"
+                      "templateHash": "3521838058917601730"
                     }
                   },
                   "parameters": {
@@ -1611,7 +1625,7 @@
                         "allowBlobPublicAccess": false,
                         "allowCrossTenantReplication": false,
                         "allowedCopyScope": "PrivateLink",
-                        "allowSharedKeyAccess": true,
+                        "allowSharedKeyAccess": false,
                         "networkAcls": {
                           "copy": [
                             {

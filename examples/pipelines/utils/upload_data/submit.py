@@ -55,6 +55,7 @@ parser.add_argument(
         "PNEUMONIA",
         "MNIST",
         "CCFRAUD_VERTICAL",
+        "CCFRAUD_VERTICAL_FEDONCE",
         "MNIST_VERTICAL",
         "BANK_MARKETING_VERTICAL",
     ],
@@ -104,7 +105,7 @@ COMPONENTS_FOLDER = os.path.join(
 )
 
 # flag for vertical jobs
-IS_VERTICAL = args.example.endswith("_VERTICAL")
+IS_VERTICAL = "_VERTICAL" in args.example.upper()
 
 ###########################
 ### CONNECT TO AZURE ML ###

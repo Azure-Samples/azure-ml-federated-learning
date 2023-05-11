@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: ccfraud_vertical_train_in_silo_contributor
+name: msft_fl_ccfraud_vertical_train_in_silo_contributor
 version: 0.0.1
 display_name: CC Fraud Train (in silo)
 type: command
@@ -19,11 +19,6 @@ inputs:
     description: Metrics prefix
     default: Default-prefix
     optional: true
-  model_name:
-    type: string
-    description: Type of the model to train
-    enum: [SimpleLSTM, SimpleVAE, SimpleLinear]
-    optional: false
   checkpoint:
     type: uri_folder
     description: a given pre-existing checkpoint
@@ -59,11 +54,12 @@ inputs:
       - socket
       - redis
     default: socket
-    optional: true
+    optional: false
   communication_encrypted:
     type: boolean
     description: Encrypt messages exchanged between the nodes
-    optional: true
+    default: false
+    optional: false
 
 outputs:
   model:
@@ -77,7 +73,6 @@ command: >-
   --train_data ${{inputs.train_data}}
   --test_data ${{inputs.test_data}}
   --model_path ${{outputs.model}}
-  --model_name ${{inputs.model_name}}
   --global_size ${{inputs.global_size}}
   --global_rank ${{inputs.global_rank}}
   $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
@@ -85,8 +80,8 @@ command: >-
   $[[--lr ${{inputs.lr}}]]
   $[[--epochs ${{inputs.epochs}}]]
   $[[--batch_size ${{inputs.batch_size}}]]
-  $[[--communication_backend ${{inputs.communication_backend}}]]
-  $[[--communication_encrypted ${{inputs.communication_encrypted}}]]
+  --communication_backend ${{inputs.communication_backend}}
+  --communication_encrypted ${{inputs.communication_encrypted}}
 
 environment: 
   conda_file: ./conda.yaml

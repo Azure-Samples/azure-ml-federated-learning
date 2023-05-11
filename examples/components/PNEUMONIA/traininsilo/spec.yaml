@@ -1,6 +1,6 @@
 
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: pneumonia_train_in_silo
+name: msft_fl_pneumonia_train_in_silo
 version: 0.3.0
 display_name: Pneumonia Train (in silo)
 type: command

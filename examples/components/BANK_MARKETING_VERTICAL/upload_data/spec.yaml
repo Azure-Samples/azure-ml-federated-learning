@@ -1,5 +1,5 @@
 $schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
-name: bank_marketing_upload_data
+name: msft_fl_bank_marketing_upload_data
 version: 0.0.1
 display_name: Download Bank Marketing data from Kaggle and upload to silo storage
 type: command

@@ -18,7 +18,7 @@
   - [Why should you consider Federated Learning?](#why-should-you-consider-federated-learning)
   - [How to plan for your Federated Learning project](#how-to-plan-for-your-federated-learning-project)
   - [Vertical federated learning](#vertical-federated-learning)
-  - [Integrate and secure FL experiments with mlops](#integrate-and-secure-fl-experiments-with-mlops)
+  - [Integrate and secure FL experiments with MLOps](#integrate-and-secure-fl-experiments-with-mlops)
   - [Glossary](#glossary)
 - [Tutorials](#tutorials)
   - [What this repo has to offer?](#what-this-repo-has-to-offer)

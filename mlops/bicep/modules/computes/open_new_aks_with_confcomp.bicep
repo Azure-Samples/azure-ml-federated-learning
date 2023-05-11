@@ -88,7 +88,7 @@ resource uai 'Microsoft.ManagedIdentity/userAssignedIdentities@2022-01-31-previe
 var identityPrincipalId = uai.properties.principalId
 var userAssignedIdentities = {'/subscriptions/${subscription().subscriptionId}/resourceGroups/${resourceGroup().name}/providers/Microsoft.ManagedIdentity/userAssignedIdentities/${uai.name}': {}}
 
-resource aks 'Microsoft.ContainerService/managedClusters@2023-01-02-preview' = {
+resource aks 'Microsoft.ContainerService/managedClusters@2023-03-01' = {
   name: aksClusterName
   location: computeRegion
   identity: {

@@ -2,23 +2,23 @@
 
 targetScope = 'resourceGroup'
 
-@description('Azure region of the deployment')
-param location string = resourceGroup().location
-
 @description('Name of the virtual network resource')
 param virtualNetworkName string
 
 @description('Group ID of the network security group')
 param networkSecurityGroupId string
 
+@description('Azure region of the deployment')
+param location string = resourceGroup().location
+
 @description('Virtual network address prefix')
-param vnetAddressPrefix string = '192.168.0.0/16'
+param vnetAddressPrefix string = '10.0.0.0/16'
 
 @description('Training subnets names and address prefix')
 param subnets array = [
   {
     name: 'snet-training'
-    addressPrefix: '192.168.0.0/24'
+    addressPrefix: '10.0.0.0/24'
   }
 ]
 

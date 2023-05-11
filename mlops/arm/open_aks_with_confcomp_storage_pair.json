@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "15133646902493684211"
+      "templateHash": "1089082292568179127"
     }
   },
   "parameters": {
@@ -163,7 +163,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "8073065165220131475"
+              "templateHash": "3521838058917601730"
             }
           },
           "parameters": {
@@ -273,7 +273,7 @@
                 "allowBlobPublicAccess": false,
                 "allowCrossTenantReplication": false,
                 "allowedCopyScope": "PrivateLink",
-                "allowSharedKeyAccess": true,
+                "allowSharedKeyAccess": false,
                 "networkAcls": {
                   "copy": [
                     {

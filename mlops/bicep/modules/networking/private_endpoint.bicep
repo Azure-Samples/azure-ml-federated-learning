@@ -7,14 +7,8 @@ param location string = resourceGroup().location
 @description('Service ID of the resource to create private link endpoint to')
 param resourceServiceId string
 
-@description('Name of resource in private DNS zone A record (if privateIPAddress is specified)')
-param resourceName string
-
 @description('Name of the storage blob private link endpoint')
-param pleRootName string = 'ple-${resourceName}'
-
-@description('Resource ID of the vnet')
-param virtualNetworkId string
+param pleRootName string
 
 @description('Resource ID of the subnet')
 param subnetId string
@@ -28,33 +22,36 @@ param privateIPAddress string = ''
 @description('Name of the existing DNS zone to add the PLE to')
 param privateDNSZoneName string
 
-@description('Location of the existing DNS zone to add the PLE to')
-param privateDNSZoneLocation string = 'global'
-
 @description('Name of the DNS zone group to add to the PLE')
 param groupId string
 
-@description('Creates the virtual network link or not (use false if link already exists).')
-param linkVirtualNetwork bool = true
+@description('Member names to add to the DNS zone group')
+param memberNames array = [ groupId ]
 
 @description('Tags to add to the resources')
 param tags object = {}
 
-var ipConfigurationsDefinition = useStaticIPAddress ? [{
-  name: '${pleRootName}-ipconfig'
+// provide comma separated adresses if you want to assign static IP addresses to the PLE
+// with multiple members
+var memberCount = length(memberNames)
+var privateIPAdresses = split(privateIPAddress, ',')
+var staticIPConfigs = [ for i in range(0, memberCount) : {
+  name: '${pleRootName}-${groupId}-${memberNames[i]}-ipconfig'
   properties: {
     groupId: groupId
-    memberName: groupId
-    privateIPAddress: privateIPAddress
+    memberName: memberNames[i]
+    privateIPAddress: empty(privateIPAddress) ? '' : privateIPAdresses[i]
   }
-}] : []
+}]
+
+// var ipConfigurationsDefinition = useStaticIPAddress ? staticIPConfigs : []
 
 resource privateEndpoint 'Microsoft.Network/privateEndpoints@2022-01-01' = {
   name: pleRootName
   location: location
   tags: tags
   properties: {
-    ipConfigurations: ipConfigurationsDefinition
+    ipConfigurations: useStaticIPAddress ? staticIPConfigs : []
     privateLinkServiceConnections: [ {
       name: pleRootName
       properties: {
@@ -89,18 +86,6 @@ resource privateEndpointDnsZoneGroup 'Microsoft.Network/privateEndpoints/private
         }
       }
     ]
-  }
-}
-
-resource privateDnsZoneVnetLink 'Microsoft.Network/privateDnsZones/virtualNetworkLinks@2020-06-01' = if (linkVirtualNetwork) {
-  name: uniqueString(subnetId, resourceServiceId, groupId)
-  parent: privateDNSZone
-  location: privateDNSZoneLocation
-  properties: {
-    registrationEnabled: false
-    virtualNetwork: {
-      id: virtualNetworkId
-    }
   }
 }
 

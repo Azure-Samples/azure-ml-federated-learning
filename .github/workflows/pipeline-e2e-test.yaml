@@ -154,6 +154,24 @@ jobs:
         source-file-path: "mlops/bicep/sandbox_fl_eyesoff_cpu_gpu.bicep"
         target-file-path: "mlops/arm/sandbox_fl_eyesoff_cpu_gpu.json"
 
+    - name: Test private cpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_private_cpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_private_cpu.json"
+
+    - name: Test private gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_private_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_private_gpu.json"
+
+    - name: Test private cpu-gpu sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/sandbox_fl_private_cpu_gpu.bicep"
+        target-file-path: "mlops/arm/sandbox_fl_private_cpu_gpu.json"
+
     - name: Test vnet publicip sandbox ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff
       with:
@@ -165,6 +183,12 @@ jobs:
       with:
         source-file-path: "mlops/bicep/vnet_publicip_sandbox_aks_confcomp_setup.bicep"
         target-file-path: "mlops/arm/vnet_publicip_sandbox_aks_confcomp_setup.json"
+
+    - name: Test vnet private sandbox ARM template
+      uses: ./.github/actions/bicep-to-arm-template-diff
+      with:
+        source-file-path: "mlops/bicep/vnet_private_sandbox_setup.bicep"
+        target-file-path: "mlops/arm/vnet_private_sandbox_setup.json"
 
     - name: Test open compute storage pair ARM template
       uses: ./.github/actions/bicep-to-arm-template-diff

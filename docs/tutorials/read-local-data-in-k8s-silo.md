@@ -24,7 +24,7 @@ This section will teach you how to properly set up the k8s cluster to make a loc
 
 ### Create the k8s cluster with an extra mount
 
-First, you will want to create a k8s cluster. Start by cloning this repository onto the machine where you want to create the cluster. Then, adjust the `hostpath` value of the `extraMounts` in [k8s_config.yaml](../../mlops/k8s_templates/k8s_config.yaml) to point to the local directory where your data are located. After that, you can create the cluster using the following command (run it from the root of he repository).
+First, you will want to create a k8s cluster. Start by cloning this repository onto the machine where you want to create the cluster. Then, adjust the `hostpath` value of the `extraMounts` in [k8s_config.yaml](../../mlops/k8s_templates/k8s_config.yaml) to point to the local directory where your data are located. After that, you can create the cluster using the following command (run it from the root of the repository).
 
 ```bash
 kind create cluster --config="./mlops/k8s_templates/k8s_config.yaml"

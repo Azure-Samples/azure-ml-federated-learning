@@ -79,7 +79,6 @@ class RunningMetrics:
 class CCFraudTrainer:
     def __init__(
         self,
-        model_name,
         global_rank,
         global_size,
         global_comm,
@@ -94,7 +93,6 @@ class CCFraudTrainer:
         """Credit Card Fraud Trainer trains simple model on the Fraud dataset.
 
         Args:
-            model_name(str): Name of the model to use for training, options: SimpleLinear, SimpleLSTM, SimpleVAE.
             global_rank(int): Rank of the current node.
             global_size(int): Total number of nodes.
             global_comm(AMLComm): Communication method.
@@ -130,8 +128,9 @@ class CCFraudTrainer:
         logger.info(f"Using device: {self.device_}")
 
         self.train_dataset_, self.test_dataset_, self._input_dim = self.load_dataset(
-            train_data_dir, test_data_dir, model_name
+            train_data_dir, test_data_dir
         )
+
         self.train_sampler_ = VerticallyDistributedBatchSampler(
             data_source=self.train_dataset_,
             batch_size=batch_size,
@@ -155,32 +154,35 @@ class CCFraudTrainer:
             self.test_dataset_, batch_sampler=self.test_sampler_
         )
 
+        # Get latent representation dimensions from each contributor
+        # and make sure they are all equal
+        self._input_dim = [
+            self._global_comm.recv(i) for i in range(1, self._global_size)
+        ]
+        self._input_dim = list(sorted(self._input_dim))
+        assert self._input_dim[0] == self._input_dim[-1]
+        self._input_dim = self._input_dim[0]
+
         # Build model
-        self._model_name = model_name
-        self.model_ = getattr(models, model_name + "Top")().to(self.device_)
+        self.model_ = models.SimpleLinearTop(self._input_dim).to(self.device_)
         self._model_path = model_path
 
         self.criterion_ = nn.BCELoss()
         self.optimizer_ = SGD(self.model_.parameters(), lr=self._lr, weight_decay=1e-5)
 
-    def load_dataset(self, train_data_dir, test_data_dir, model_name):
+    def load_dataset(self, train_data_dir, test_data_dir):
         """Load dataset from {train_data_dir} and {test_data_dir}
 
         Args:
             train_data_dir(str): Training data directory path
             test_data_dir(str): Testing data directory path
-            model_name(str): Name of the model to use
         """
         logger.info(f"Train data dir: {train_data_dir}, Test data dir: {test_data_dir}")
         self.fraud_weight_ = np.loadtxt(train_data_dir + "/fraud_weight.txt").item()
         train_df = pd.read_csv(train_data_dir + "/data.csv", index_col=0)
         test_df = pd.read_csv(test_data_dir + "/data.csv", index_col=0)
-        if model_name == "SimpleLinear":
-            train_dataset = datasets.FraudDataset(train_df)
-            test_dataset = datasets.FraudDataset(test_df)
-        else:
-            train_dataset = datasets.FraudTimeDataset(train_df)
-            test_dataset = datasets.FraudTimeDataset(test_df)
+        train_dataset = datasets.FraudDataset(train_df)
+        test_dataset = datasets.FraudDataset(test_df)
 
         logger.info(
             f"Train data samples: {len(train_df)}, Test data samples: {len(test_df)}"
@@ -245,14 +247,9 @@ class CCFraudTrainer:
 
             # log params
             self.log_params(mlflow_client, root_run_id)
-
             logger.debug("Local training started")
-
             train_metrics = RunningMetrics(
                 ["loss", "accuracy", "precision", "recall"], prefix="train"
-            )
-            test_metrics = RunningMetrics(
-                ["accuracy", "precision", "recall"], prefix="test"
             )
 
             for epoch in range(1, self._epochs + 1):
@@ -260,26 +257,27 @@ class CCFraudTrainer:
                 train_metrics.reset_global()
 
                 for i, batch in enumerate(self.train_loader_):
-                    data = batch.to(self.device_)
                     # Zero gradients for every batch
                     self.optimizer_.zero_grad()
 
-                    outputs = []
-                    for j in range(1, self._global_size):
-                        output = torch.tensor(
-                            self._global_comm.recv(j), requires_grad=True
-                        ).to(self.device_)
-                        outputs.append(output)
-
+                    target = batch.to(self.device_)
+                    # Receive intermediate results from other contributors
+                    outputs = [
+                        torch.tensor(self._global_comm.recv(j), requires_grad=True).to(
+                            self.device_
+                        )
+                        for j in range(1, self._global_size)
+                    ]
                     # Average all intermediate results
                     outputs = torch.stack(outputs)
+                    data = outputs.mean(dim=0)
 
-                    predictions, net_loss = self.model_(outputs.mean(dim=0))
+                    predictions = self.model_(data)
                     # Compute loss
                     self.criterion_.weight = (
-                        ((data == 1) * (self.fraud_weight_ - 1)) + 1
+                        ((target == 1) * (self.fraud_weight_ - 1)) + 1
                     ).to(self.device_)
-                    loss = self.criterion_(predictions, data.to(torch.float32))
+                    loss = self.criterion_(predictions, target.to(torch.float32))
 
                     # Compute gradients and adjust learning weights
                     loss.backward(retain_graph=True)
@@ -290,14 +288,14 @@ class CCFraudTrainer:
                         self._global_comm.send(gradients[j - 1], j)
 
                     precision, recall = precision_recall(
-                        preds=predictions.detach(), target=data
+                        preds=predictions.detach(), target=target
                     )
                     train_metrics.add_metric("precision", precision.item())
                     train_metrics.add_metric("recall", recall.item())
                     train_metrics.add_metric(
                         "accuracy",
                         accuracy(
-                            preds=predictions.detach(), target=data, threshold=0.5
+                            preds=predictions.detach(), target=target, threshold=0.5
                         ).item(),
                     )
                     train_metrics.add_metric("loss", loss.item())
@@ -381,33 +379,32 @@ class CCFraudTrainer:
         self.model_.eval()
         with torch.no_grad():
             for batch in self.test_loader_:
-                data = batch.to(self.device_)
+                target = batch.to(self.device_)
+                # Receive intermediate results from other contributors
+                outputs = [
+                    self._global_comm.recv(j).to(self.device_)
+                    for j in range(1, self._global_size)
+                ]
+                # Average all intermediate results
+                data = torch.stack(outputs).mean(dim=0)
 
-                outputs = []
-                for j in range(1, self._global_size):
-                    output = self._global_comm.recv(j).to(self.device_)
-                    outputs.append(output)
-
-                outputs = torch.stack(outputs).mean(dim=0)
-                predictions, net_loss = self.model_(outputs)
+                predictions = self.model_(data)
 
                 self.criterion_.weight = (
-                    ((data == 1) * (self.fraud_weight_ - 1)) + 1
+                    ((target == 1) * (self.fraud_weight_ - 1)) + 1
                 ).to(self.device_)
-                loss = self.criterion_(predictions, data.type(torch.float)).item()
-                if net_loss is not None:
-                    loss += net_loss * 1e-5
+                loss = self.criterion_(predictions, target.type(torch.float)).item()
 
                 precision, recall = precision_recall(
-                    preds=predictions.detach(), target=data
+                    preds=predictions.detach(), target=target
                 )
                 test_metrics.add_metric("precision", precision.item())
                 test_metrics.add_metric("recall", recall.item())
                 test_metrics.add_metric(
                     "accuracy",
-                    accuracy(preds=predictions.detach(), target=data).item(),
+                    accuracy(preds=predictions.detach(), target=target).item(),
                 )
-                test_metrics.add_metric("loss", loss / data.shape[0])
+                test_metrics.add_metric("loss", loss / target.shape[0])
                 test_metrics.step()
 
         return test_metrics
@@ -447,7 +444,6 @@ def get_arg_parser(parser=None):
     parser.add_argument("--test_data", type=str, required=True, help="")
     parser.add_argument("--checkpoint", type=str, required=False, help="")
     parser.add_argument("--model_path", type=str, required=True, help="")
-    parser.add_argument("--model_name", type=str, required=True, help="")
     parser.add_argument(
         "--global_size",
         type=int,
@@ -498,8 +494,10 @@ def run(args, global_comm):
         args (argparse.namespace): command line arguments provided to script
     """
 
+    # Make sure that the CUDA allocator does not allocate too much memory at once
+    os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:256"
+
     trainer = CCFraudTrainer(
-        model_name=args.model_name,
         train_data_dir=args.train_data,
         test_data_dir=args.test_data,
         model_path=args.model_path + "/model.pt",
