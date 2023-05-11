@@ -15,6 +15,7 @@
   - [Test model variants](#test-model-variants)
   - [Scale up using distributed training](#scale-up-using-distributed-training)
   - [Enable confidentiality with encryption at rest](#enable-confidentiality-with-encryption-at-rest)
+  - [Vertical Federated Learning] (#vertical-federated-learning)
 
 ## Install the required dependencies
 
@@ -115,3 +116,10 @@ In this demo experiment, the data upload encrypts the data with a custom key and
 Note that we have left the model unencrypted before aggregation, but you could apply this same patter in every single step of your pipeline.
 
 To understand how this works, check `confidential_io.py` in `examples/components/CCFRAUD/upload_data/` and `examples/components/CCFRAUD/preprocessing/`. These files contain the logic to encrypt and decrypt data with a few helper functions.
+
+
+### Vertical Federated Learning
+
+By default the example above describe horizontal federated learning scenario. In case you are interested in running vertical scenario, or find out more about this topic, please refer to following docs:
+- [**Vertical Federated Learning with Split Learning**](../concepts/vertical-fl.md#ccfraud).
+- [**Vertical Federated Learning with VAE and Single Shot Communication**](../concepts/vertical-fl.md#ccfraud-with-fedonce).

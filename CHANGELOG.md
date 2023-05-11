@@ -49,7 +49,7 @@ We are excited to announce the release of the February iteration of our [FL Acce
 Some of the major updates we have made include the launch of a vertical federated learning feature, an FL pipeline that offers a native AML FL experience integrated with the factory engine, and benchmark results that reveal a comprehensive comparison between FL and non-FL experiments.
 
 ### FL Experience
-- Implemented _Vertical Federated Learning_ and offered a [tutorial](./docs/tutorials/vertical-fl.md) to run MNIST or CCFRAUD examples.
+- Implemented _Vertical Federated Learning_ and offered a [tutorial](./docs/concepts/vertical-fl.md) to run MNIST or CCFRAUD examples.
 - Introduced a [scatter-gather](./docs/tutorials/literal-scatter-gather-tutorial.md) pipeline that delivers a real AML FL native experience.
 - Conducted a comprehensive comparison b/w FL and non-FL experiments and the benchmark report can be accessed [here](./docs/concepts/benchmarking.md).
 

@@ -1,6 +1,6 @@
 # FL using Flower in AzureML (Experimental)
 
-**Scenario** - This tutorial is an extension of the [pneumonia / radiography classification tutorial](../real-world-examples/pneumonia.md) using the Flower framework instead.  
+**Scenario** - This tutorial is an extension of the [pneumonia / radiography classification tutorial](../real-world-examples/pneumonia-horizontal.md) using the Flower framework instead.  
 We run an Flower federated learning job to detect pneumonia from chest radiographs. We mimic a real-world FL scenario where 3 hospitals in 3 different regions want to collaborate on training a model to detect pneumonia from chest radiographs. The hospitals have their own data, and they want to train a model on all data without directly sharing data with each other, or with a central entity.  
 
 :warning: Experimental :warning: This tutorial is relying on some experimental code. It will work on our quickstart sandbox, but running it outside of this controlled setup might not work. We're actively working to release a more robust and generic solution.
@@ -34,7 +34,7 @@ In the following tutorial, we will use the same names for the computes and datas
 
 ## Create the datasets
 
-Follow the instructions in the [pneumonia real-world-example](../real-world-examples/pneumonia.md) to unpack the dataset: 1) add your kaggle credentials, 2) run a job to download and store the dataset in each silo.
+Follow the instructions in the [pneumonia real-world-example](../real-world-examples/pneumonia-horizontal.md) to unpack the dataset: 1) add your kaggle credentials, 2) run a job to download and store the dataset in each silo.
 
 ## Run the demo experiment
 
