@@ -149,7 +149,6 @@ module siloToOrchPermissions './modules/permissions/msi_storage_rw.bicep' = [for
 
 // Create a "confidentiality" keyvault external to the workspace
 // This keyvault will be used to store actual secrets (ex: encryption at rest)
-var siloIdentities = [ for i in range(0, siloCount) : '${silos[i].outputs.identityPrincipalId}' ]
 
 module confidentialityKeyVault './modules/resources/confidentiality_keyvault.bicep' = {
   name: '${demoBaseName}-kv-confidentiality'
@@ -157,7 +156,7 @@ module confidentialityKeyVault './modules/resources/confidentiality_keyvault.bic
     keyVaultName: confidentialityKeyVaultName
     tags: tags
     region: orchestratorRegion
-    identitiesEnabledCryptoOperations: siloIdentities
+    identitiesEnabledCryptoOperations: [ for i in range(0, siloCount) : '${silos[i].outputs.identityPrincipalId}' ]
     // for some reason, concat doesn't work here, using secondary list
     secondaryIdentitiesEnabledCryptoOperations: [ '${orchestrator.outputs.identityPrincipalId}' ]
   }
