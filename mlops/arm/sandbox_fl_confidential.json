@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.14.85.62628",
-      "templateHash": "14681844947769857448"
+      "templateHash": "4958890456744116744"
     }
   },
   "parameters": {
@@ -132,7 +132,7 @@
             "_generator": {
               "name": "bicep",
               "version": "0.14.85.62628",
-              "templateHash": "11589808812626692920"
+              "templateHash": "7162237694888262469"
             }
           },
           "parameters": {
@@ -583,7 +583,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "15819783256753336121"
+                      "templateHash": "7352755224889305809"
                     }
                   },
                   "parameters": {
@@ -1529,7 +1529,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.14.85.62628",
-                              "templateHash": "11288430844563283666"
+                              "templateHash": "13491951814843382251"
                             }
                           },
                           "parameters": {
@@ -1625,13 +1625,17 @@
                           "resources": [
                             {
                               "type": "Microsoft.ContainerService/managedClusters",
-                              "apiVersion": "2022-05-02-preview",
+                              "apiVersion": "2023-03-01",
                               "name": "[parameters('computeName')]",
                               "location": "[parameters('computeRegion')]",
                               "tags": "[parameters('tags')]",
                               "identity": {
                                 "type": "UserAssigned",
                                 "userAssignedIdentities": "[variables('userAssignedIdentities')]"
+                              },
+                              "sku": {
+                                "name": "Base",
+                                "tier": "Free"
                               },
                               "properties": {
                                 "dnsPrefix": "[parameters('dnsPrefix')]",
@@ -1869,7 +1873,7 @@
                                     "value": "[resourceId('Microsoft.ContainerService/managedClusters', parameters('computeName'))]"
                                   },
                                   "aksRegion": {
-                                    "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('computeName')), '2022-05-02-preview', 'full').location]"
+                                    "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('computeName')), '2023-03-01', 'full').location]"
                                   },
                                   "amlComputeName": {
                                     "value": "[parameters('computeName')]"
@@ -2646,7 +2650,7 @@
                     "_generator": {
                       "name": "bicep",
                       "version": "0.14.85.62628",
-                      "templateHash": "15819783256753336121"
+                      "templateHash": "7352755224889305809"
                     }
                   },
                   "parameters": {
@@ -3592,7 +3596,7 @@
                             "_generator": {
                               "name": "bicep",
                               "version": "0.14.85.62628",
-                              "templateHash": "11288430844563283666"
+                              "templateHash": "13491951814843382251"
                             }
                           },
                           "parameters": {
@@ -3688,13 +3692,17 @@
                           "resources": [
                             {
                               "type": "Microsoft.ContainerService/managedClusters",
-                              "apiVersion": "2022-05-02-preview",
+                              "apiVersion": "2023-03-01",
                               "name": "[parameters('computeName')]",
                               "location": "[parameters('computeRegion')]",
                               "tags": "[parameters('tags')]",
                               "identity": {
                                 "type": "UserAssigned",
                                 "userAssignedIdentities": "[variables('userAssignedIdentities')]"
+                              },
+                              "sku": {
+                                "name": "Base",
+                                "tier": "Free"
                               },
                               "properties": {
                                 "dnsPrefix": "[parameters('dnsPrefix')]",
@@ -3932,7 +3940,7 @@
                                     "value": "[resourceId('Microsoft.ContainerService/managedClusters', parameters('computeName'))]"
                                   },
                                   "aksRegion": {
-                                    "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('computeName')), '2022-05-02-preview', 'full').location]"
+                                    "value": "[reference(resourceId('Microsoft.ContainerService/managedClusters', parameters('computeName')), '2023-03-01', 'full').location]"
                                   },
                                   "amlComputeName": {
                                     "value": "[parameters('computeName')]"
