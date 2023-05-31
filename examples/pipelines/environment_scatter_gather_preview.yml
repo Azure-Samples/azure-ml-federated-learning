@@ -1,0 +1,8 @@
+name: fl_sdk_preview_env
+channels:
+  - defaults
+dependencies:
+  - python=3.10.4
+  - pip=22.3.1
+  - pip:
+    - -r requirements_scatter_gather_preview.txt
