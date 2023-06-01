@@ -2,7 +2,7 @@
 
 **These instructions were copied (and slightly adapted) from the [instructions](https://github.com/Azure/azureml-insiders/blob/main/previews/federated_learning_sdk/README.md) in the private _azureml-insiders_ repository.**
 
-**Please note that in the current branch, the aggregation component in `examples/components/utils/aggregatemodelweights` is slightly different from the one in the main branch, to accommodate for the scatter-gather API.**
+**Please note that in order to accommodate for the scatter-gather API, the aggregation component `aggregatemodelweights_mltable` is slightly different from the usual `aggregatemodelweights`.**
 
 ## Overview
 When authoring Federated Learning (FL) experiments, one will always end up writing code to define graphs with similar shapes (loop over all silos, then outer loop for total number of iterations). Furthermore, one will also need to _anchor_ the components to their respective computes and associated datastores (silo-specific). This is repetitive, and error-prone. The Scatter-Gather API aims to simplify this process by providing a set of primitives that can be used to define a graph without having to use boilerplate code, or to manually anchor components.

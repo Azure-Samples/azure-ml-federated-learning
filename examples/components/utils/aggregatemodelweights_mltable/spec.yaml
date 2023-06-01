@@ -1,0 +1,28 @@
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: msft_fl_preview_aggregate_model_weights_mltable
+version: 0.3.0
+display_name: Aggregate PyTorch Model Weights (from all silos)
+type: command
+description: Component for aggregating pytorch model weights.
+is_deterministic: true
+
+inputs:
+  from_silo_input:
+    type: mltable
+    description: mltable containing path to silos' outputs (e.g., model weights, or gradient updates)
+    optional: false
+
+
+outputs:
+  aggregated_output:
+    type: uri_folder
+    description: the aggregated model or gradients, residing in the orchestrator compute.
+
+code: .
+
+command: >-
+  python run.py --output ${{outputs.aggregated_output}} 
+  --input ${{inputs.from_silo_input}}
+environment:
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

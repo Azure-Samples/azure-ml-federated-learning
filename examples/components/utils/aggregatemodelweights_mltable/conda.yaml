@@ -1,0 +1,9 @@
+name: agg_conda_env_mltable
+channels:
+  - defaults
+  - pytorch
+  - nvidia
+dependencies:
+  - python=3.8
+  - pytorch=1.13.1
+  - pytorch-cuda=11.6

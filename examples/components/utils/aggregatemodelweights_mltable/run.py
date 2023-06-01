@@ -3,11 +3,9 @@ import os
 import argparse
 import logging
 import sys
-import glob
-import shutil
-from distutils.util import strtobool
 import torch
-
+from pathlib import Path
+import pathlib
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,27 +28,10 @@ def get_arg_parser(parser=None):
         parser = argparse.ArgumentParser(description=__doc__)
 
     parser.add_argument(
-        "--checkpoints",
-        type=str,
-        required=True,
-        nargs="+",
-        help="list of paths or directories to search for model files",
+        "--input", type=str, required=True, help="path to mltable input"
     )
-    parser.add_argument("--extension", type=str, default="pt", help="model extension")
     parser.add_argument(
         "--output", type=str, required=True, help="where to write the averaged model"
-    )
-    parser.add_argument(
-        "--ancillary_files",
-        type=strtobool,
-        default=False,
-        help="Whether ancillary files need to be copied",
-    )
-    parser.add_argument(
-        "--out_checkpoint_name",
-        type=str,
-        default="model",
-        help=" the name of the output checkpoint, e.g. model for CCFRAUD/MNIST/NER/PNEUMONIA, finetuned_state_dict for Babel models",
     )
 
     return parser
@@ -145,6 +126,13 @@ class PyTorchStateDictFedAvg:
                 with open(model_path, "w") as f:
                     f.write("Hello World!")
 
+def get_silos_output_path(aggregated_model):
+    import os
+    for root, dirs, _ in os.walk(aggregated_model):
+        # target: /mnt/azureml/.../${{default_datastore}}/azureml/${{name}}/${{output_name}}
+        # we are looking for the level ${{name}}, there should be more than one directory.
+        if len(dirs) > 1:
+            return Path(root)
 
 def main(cli_args=None):
     """Component main function.
@@ -161,38 +149,29 @@ def main(cli_args=None):
     args = parser.parse_args(cli_args)
 
     print(f"Running script with arguments: {args}")
-
+    
     model_paths = []
-    for model_path in args.checkpoints:
-        if os.path.isdir(model_path):
-            for f in glob.glob(
-                os.path.join(model_path, f"*.{args.extension}"), recursive=True
-            ):
-                model_paths.append(f)
-        else:
-            model_paths.append(model_path)
+    
+    silos_output_dir = get_silos_output_path(args.input)
+    print("Silo output location is {}".format(silos_output_dir))
 
+    for dir_name in os.listdir(silos_output_dir):
+        print("Directory containing the output files is {}".format(dir_name))
+        for file_name in os.listdir(pathlib.Path.joinpath(silos_output_dir, dir_name)):
+            print("File name is {}".format(file_name))
+            file_path = str(pathlib.Path.joinpath(silos_output_dir, dir_name, file_name))
+
+            print("Full path to directory containing output is {}".format(file_path))
+            if file_path.endswith(".pt"):
+                model_paths.append(file_path)
+
+    print(model_paths)
     model_handler = PyTorchStateDictFedAvg()
     for model_path in model_paths:
         model_handler.add_model(model_path)
-
-    # check if meta data needed, copy the whole dir
-    if args.ancillary_files:
-        for src in os.listdir(args.checkpoints[0]):
-            src_path = os.path.join(args.checkpoints[0], src)
-            if os.path.isfile(src_path):
-                shutil.copy(src_path, f"{args.output}/{src}")
-            else:
-                shutil.copytree(src_path, f"{args.output}/{src}")
-
-        # remove the checkpoint, it's from single silo
-        out_checkpoint_pth = os.path.join(
-            args.output, f"{args.out_checkpoint_name}.{args.extension}"
-        )
-        os.remove(out_checkpoint_pth)
-
+    
     model_handler.save_model(
-        os.path.join(args.output, f"{args.out_checkpoint_name}.{args.extension}")
+        os.path.join(args.output, f"model.pt")
     )
 
 

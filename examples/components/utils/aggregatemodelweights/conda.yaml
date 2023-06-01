@@ -2,8 +2,8 @@ name: agg_conda_env
 channels:
   - defaults
   - pytorch
-  - nvidia
 dependencies:
-  - python=3.8
-  - pytorch=1.13.1
-  - pytorch-cuda=11.6
+  - python=3.7.11
+  - pytorch=1.12.1
+  - torchvision=0.13.1
+  - cudatoolkit=11.3
