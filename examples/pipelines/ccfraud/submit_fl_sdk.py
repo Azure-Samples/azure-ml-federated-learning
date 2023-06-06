@@ -201,8 +201,8 @@ silo_list = [
         datastore=silo_config["datastore"],
         inputs= {
             "silo_name": silo_config["name"],
-            "raw_train_data": Input(**dict(silo_config)["training_data"]),
-            "raw_test_data": Input(**dict(silo_config)["training_data"]),
+            "raw_train_data": Input(**silo_config["training_data"]),
+            "raw_test_data": Input(**silo_config["testing_data"]),
             
         },
     )

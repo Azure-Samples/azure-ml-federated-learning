@@ -21,11 +21,11 @@ federated_learning:
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud_custom/raw_train_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud_custom/raw_test_data
+        path: azureml://datastores/datastore_silo0/paths/federated_learning/ccfraud/raw_test_data
 
     - name: silo1
       computes: 
@@ -34,11 +34,11 @@ federated_learning:
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud_custom/raw_train_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud_custom/raw_test_data
+        path: azureml://datastores/datastore_silo1/paths/federated_learning/ccfraud/raw_test_data
 
     - name: silo2
       computes: 
@@ -47,11 +47,11 @@ federated_learning:
       training_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud_custom/raw_train_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_train_data
       testing_data:
         type: uri_file
         mode: 'download'
-        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud_custom/raw_test_data
+        path: azureml://datastores/datastore_silo2/paths/federated_learning/ccfraud/raw_test_data
 
 # training parameters
 training_parameters:
