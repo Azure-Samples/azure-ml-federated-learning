@@ -14,7 +14,27 @@ TEMPLATE FOR MONTHLY UPDATES
 ### Documentation
 
 ### Repository structure
+
+### Bug fixes
 -->
+
+## April/May 2023
+
+Our major updates for April and May are the addition of Variational Autoencoders to the CCFRAUD example, the integration of Private Set Intersection for Vertical FL, and the introduction of Private Sandboxes supporting private AzureML workspaces.
+
+### FL Experience
+- Enriched the CCFRAUD example to support Variational Autoencoders for faster Vertical FL (instructions to run the example [here](./docs/real-world-examples/ccfraud-vetical-fedonce.md), additional information [there](./docs/concepts/vertical-fl.md#fedonce)).
+- Introduced support for Private Set Intersection (preliminary step to a Vertical FL workflow) by leveraging the APSI library from MSR. More information [here](./docs/concepts/vertical-fl.md#private-set-intersection).
+
+### Provisioning
+- Added a new type of sandbox ([Private Sandboxes](./docs/provisioning/sandboxes.md#private-sandboxes)) that supports private AzureML workspaces (_i.e._ workspaces behind a VNet).
+
+### Documentation
+- Simplified the Kaggle credentials part of the [Bank Marketing tutorial](./docs/real-world-examples/bank-marketing-vertical.md#provision-an-fl-sandbox-with-your-kaggle-credentials).
+- Revamped our [documentation for Vertical FL](./docs/concepts/vertical-fl.md) to make it more clear and accessible.
+
+### Bug fixes
+- Fixed a few issues in FL Experience (pytorch-version related bug) and Provisioning (uncaught validation issues with silos identities, deployment name conflicts for sandboxes, old AKS API's).
 
 ## March 2023
 
