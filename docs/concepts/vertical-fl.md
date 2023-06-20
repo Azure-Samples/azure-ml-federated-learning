@@ -18,7 +18,7 @@ This tutorial will guide you through the steps required to set up VFL experiment
 
 Split learning approach is demonstrated in MNIST (written number recognition) and [CCFRAUD (financial tabular data)](../real-world-examples/ccfraud-vertical.md) examples in order to showcase versatility of the solution in regards to type of the data. These two examples make use of mean aggregation, and the assumption is that the host owns only labels while features are equally distributed among the contributors.
 
-We relax this assumption in a third example ([Bank Marketing](../real-world-examples/bank-marketing.md)), in which the host also owns part of the feature space.
+We relax this assumption in a third example ([Bank Marketing](../real-world-examples/bank-marketing-vertical.md)), in which the host also owns part of the feature space.
 
 Modified version of the [CCFRAUD (financial tabular data) with FedOnce](../real-world-examples/ccfraud-vetical-fedonce.md) example showcases how to decrease amount of communication required across participants by utilizing Variational Autoencoders.
 
