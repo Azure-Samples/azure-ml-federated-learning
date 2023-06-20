@@ -57,8 +57,8 @@ In addition to the [literal](../examples/pipelines/fl_cross_silo_literal/) and [
 | [![medical imaging icon](./pics/industry-medical-imaging.png)](./real-world-examples/pneumonia-horizontal.md) | [![ner icon](./pics/industry-ner.png)](./real-world-examples/ner-horizontal.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) |
 | [pneumonia.md](./real-world-examples/pneumonia-horizontal.md) | [ner.md](./real-world-examples/ner-horizontal.md) | [ccfraud.md](./real-world-examples/ccfraud-horizontal.md) |
 | **Fraud Detection - Vertical** | **Fraud Detection - Vertical with Single Shot Communication**  | **Bank Marketing - Vertical** |
-| [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) | [![bank marketing icon](./pics/industry-bank-marketing.png)](./real-world-examples/bank-marketing.md) |
-| [ccfraud-vertical.md](./real-world-examples/ccfraud-vertical.md) | [ccfraud-vetical-fedonce.md](./real-world-examples/ccfraud-vetical-fedonce.md) | [bank-marketing.md](./real-world-examples/bank-marketing.md) |
+| [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) | [![credit card icon](./pics/industry-fraud-detection.png)](./real-world-examples/ccfraud-horizontal.md) | [![bank marketing icon](./pics/industry-bank-marketing.png)](./real-world-examples/bank-marketing-vertical.md) |
+| [ccfraud-vertical.md](./real-world-examples/ccfraud-vertical.md) | [ccfraud-vetical-fedonce.md](./real-world-examples/ccfraud-vetical-fedonce.md) | [bank-marketing-vertical.md](./real-world-examples/bank-marketing-vertical.md) |
 
 ### Pneumonia detection from chest radiographs
 

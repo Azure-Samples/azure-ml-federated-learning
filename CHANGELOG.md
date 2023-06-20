@@ -44,7 +44,7 @@ Our major updates for this month are the addition of resources to provision vari
 
 ### FL Experience
 - Added support for data encryption at rest to the CCFRAUD example (instructions [here](./docs/real-world-examples/ccfraud.md#enable-confidentiality-with-encryption-at-rest)).
-- Introduced new Vertical FL example: [Bank Marketing Campaign Prediction](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/docs/real-world-examples/bank-marketing.md).
+- Introduced new Vertical FL example: [Bank Marketing Campaign Prediction](https://github.com/Azure-Samples/azure-ml-federated-learning/blob/main/docs/real-world-examples/bank-marketing-vertical.md).
 - Improved the communications in Vertical FL jobs (support for redis streams and encrypted communications, better logging to measure communications overhead).
 
 ### Provisioning
