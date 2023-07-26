@@ -1,0 +1,70 @@
+
+$schema: https://azuremlschemas.azureedge.net/latest/commandComponent.schema.json
+name: msft_fl_bank_marketing_eval_in_silo_contributor
+version: 0.0.1
+display_name: Bank Marketing Evaluation (in silo)
+type: command
+description: Component to run evaluation on Bank Marketing dataset (in silo).
+is_deterministic: true
+
+inputs:
+  data:
+    type: uri_folder
+    description: the input eval data (preprocessed)
+  metrics_prefix:
+    type: string
+    description: Metrics prefix
+    default: Default-prefix
+    optional: true
+  model_name:
+    type: string
+    description: Type of the model to train
+    enum: [SimpleLSTM, SimpleVAE, SimpleLinear]
+    optional: false
+  checkpoint:
+    type: uri_folder
+    description: a given pre-existing checkpoint
+  batch_size:
+    type: integer
+    description: batch size
+    default: 100
+    optional: true
+  runtime_args:
+    type: string
+    description: stringified json config for a silo
+    optional: true
+  global_size:
+    type: number
+    optional: false
+  global_rank:
+    type: number
+    optional: false
+  communication_backend:
+    type: string
+    enum:
+      - socket
+      - redis
+    default: socket
+    optional: true
+  communication_encrypted:
+    type: boolean
+    description: Encrypt messages exchanged between the nodes
+    optional: true
+
+code: .
+
+command: >-
+  python contributor.py
+  --data ${{inputs.data}}
+  --model_name ${{inputs.model_name}}
+  --global_size ${{inputs.global_size}}
+  --global_rank ${{inputs.global_rank}}
+  $[[--metrics_prefix ${{inputs.metrics_prefix}}]]
+  --checkpoint ${{inputs.checkpoint}}
+  $[[--batch_size ${{inputs.batch_size}}]]
+  $[[--communication_backend ${{inputs.communication_backend}}]]
+  $[[--communication_encrypted ${{inputs.communication_encrypted}}]]
+  
+environment: 
+  conda_file: ./conda.yaml
+  image: mcr.microsoft.com/azureml/openmpi4.1.0-ubuntu20.04

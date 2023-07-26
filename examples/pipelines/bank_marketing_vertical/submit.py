@@ -131,6 +131,14 @@ training_host_component = load_component(
     source=os.path.join(COMPONENTS_FOLDER, "traininsilo", "host_spec.yaml")
 )
 
+eval_contributor_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "eval", "contributor_spec.yaml")
+)
+
+eval_host_component = load_component(
+    source=os.path.join(COMPONENTS_FOLDER, "eval", "host_spec.yaml")
+)
+
 
 ########################
 ### BUILD A PIPELINE ###
@@ -275,6 +283,65 @@ def fl_demo_bank_marketing_vertical():
                 f"model/{model_file_name}",
             ),
         )
+        
+    for silo_index, silo_config in enumerate(
+        [YAML_CONFIG.federated_learning.host] + YAML_CONFIG.federated_learning.silos
+    ):
+        if silo_index == 0:
+            # we're using training component here
+            silo_eval_step = eval_host_component(
+                data=Input(
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path,
+                ),
+                checkpoint=outputs["host_output"],
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
+                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+                global_rank=silo_index,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
+            )
+            # add a readable name to the step
+            silo_eval_step.name = f"host_eval"
+        else:
+            # we're using training component here
+            silo_eval_step = eval_contributor_component(
+                data=Input(
+                    type=silo_config.testing_data.type,
+                    mode=silo_config.testing_data.mode,
+                    path=silo_config.testing_data.path,
+                ),
+                checkpoint=outputs[
+                    f"contributor_{silo_index}_output"
+                ],
+                # Dataloader batch size
+                batch_size=YAML_CONFIG.training_parameters.batch_size,
+                # Silo name/identifier
+                metrics_prefix=silo_config.compute,
+                # Model name
+                model_name=YAML_CONFIG.training_parameters.model_name,
+                global_size=len(YAML_CONFIG.federated_learning.silos) + 1,
+                global_rank=silo_index,
+                communication_backend=YAML_CONFIG.federated_learning.communication.backend,
+                communication_encrypted=YAML_CONFIG.federated_learning.communication.encrypted,
+            )
+            # add a readable name to the step
+            silo_eval_step.name = f"contributor_{silo_index}_eval"
+
+        # make sure the compute corresponds to the silo
+        silo_eval_step.compute = silo_config.compute
+
+        # assign instance type for AKS, if available
+        if hasattr(silo_config, "instance_type"):
+            if silo_eval_step.resources is None:
+                silo_eval_step.resources = {}
+            silo_eval_step.resources["instance_type"] = silo_config.instance_type
 
     return outputs
 
