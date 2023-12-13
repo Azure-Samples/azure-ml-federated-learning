@@ -207,6 +207,12 @@ def run_server(
     server_config_dir_local = os.path.join(workspace_dir, "server_config")
     shutil.copytree(server_config_dir, server_config_dir_local)
 
+    # print path to all files under server_config_dir_local
+    print("Files under server_config_dir:")
+    for root, dirs, files in os.walk(server_config_dir_local):
+        for file in files:
+            print(os.path.join(root, file))
+
     # copy admin config locally
     admin_config_dir_local = os.path.join(
         workspace_dir, "admin_config", "admin@azure.ml"
@@ -227,17 +233,17 @@ def run_server(
     # we need to wait for startup to complete before calling admin port
     time.sleep(30)
 
-    # communicate to clients through mlflow root (magic)
-    mlflow_run = mlflow.start_run()
-    overseer_name = server_name
-    overseer_ip, _ = publish_server_ip(
-        mlflow_run, federation_identifier, server_name=server_name
-    )
+    # # communicate to clients through mlflow root (magic)
+    # mlflow_run = mlflow.start_run()
+    # overseer_name = server_name
+    # overseer_ip, _ = publish_server_ip(
+    #     mlflow_run, federation_identifier, server_name=server_name
+    # )
 
-    # create hosts file to resolve ip adresses
-    with open("/etc/hosts", "a") as f:
-        # write server address
-        f.write(f"{overseer_ip}\t{overseer_name}\n")
+    # # create hosts file to resolve ip adresses
+    # with open("/etc/hosts", "a") as f:
+    #     # write server address
+    #     f.write(f"{overseer_ip}\t{overseer_name}\n")
 
     # let's start the...
     logger.info("****************** NVFLARE SUBMIT SEQUENCE ******************")

@@ -1,12 +1,13 @@
 api_version: 3
 name: example_project
 description: NVIDIA FLARE sample project yaml file
+# test 30
 
 participants:
   - name: server-1
     type: server
     org: azureml
-    fed_learn_port: 8002
+    fed_learn_port: 6379
     admin_port: 8003
     # NOTE: each participant needs an azureml compute and datastore
     azureml:
@@ -57,7 +58,9 @@ builders:
     args:
       # config_folder can be set to inform NVIDIA FLARE where to get configuration
       config_folder: config
-
+      # scheme for communication driver (currently supporting the default, grpc, only).
+      scheme: redis
+  
       # app_validator is used to verify if uploaded app has proper structures
       # if not set, no app_validator is included in fed_server.json
       # app_validator: PATH_TO_YOUR_OWN_APP_VALIDATOR
@@ -78,6 +81,6 @@ builders:
         # 
         overseer_exists: false
         args:
-          sp_end_point: server-1:8002:8003
+          sp_end_point: server1:6379:8003
   - path: nvflare.lighter.impl.cert.CertBuilder
   - path: nvflare.lighter.impl.signature.SignatureBuilder

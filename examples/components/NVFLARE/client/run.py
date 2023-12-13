@@ -149,16 +149,16 @@ def run_client(args):
     """Runs the client communication process."""
     logger = logging.getLogger()
 
-    # use mlflow to getch server ip and name
-    mlflow_run = mlflow.start_run()
-    overseer_ip, overseer_name = fetch_server_ip(
-        mlflow_run, args.federation_identifier, fetch_name=True
-    )
+    # # use mlflow to getch server ip and name
+    # mlflow_run = mlflow.start_run()
+    # overseer_ip, overseer_name = fetch_server_ip(
+    #     mlflow_run, args.federation_identifier, fetch_name=True
+    # )
 
-    # create hosts file to resolve ip adresses
-    with open("/etc/hosts", "a") as f:
-        # write server address
-        f.write(f"{overseer_ip}\t{overseer_name}\n")
+    # # create hosts file to resolve ip adresses
+    # with open("/etc/hosts", "a") as f:
+    #     # write server address
+    #     f.write(f"{overseer_ip}\t{overseer_name}\n")
 
     # create env for the client startup script
     client_env = dict(os.environ)

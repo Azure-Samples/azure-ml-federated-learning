@@ -201,7 +201,8 @@ def fl_pneumonia_nvflare():
     # run a provisioning component
     provision_step = provision_component(
         # with the config file
-        project_config=Input(type=AssetTypes.URI_FILE, path=args.project_config)
+        project_config=Input(type=AssetTypes.URI_FILE, path=args.project_config),
+        redis_url="redis://:[PASSWORD]@[NAME].redis.cache.windows.net:6379"
     )
     # run it in the orchestrator
     provision_step.compute = server_config.azureml.compute
