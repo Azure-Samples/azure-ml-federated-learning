@@ -65,7 +65,7 @@ def get_arg_parser(parser=None):
     group.add_argument(
         "--server_name",
         type=str,
-        required=True,
+        default="server1",
         help="the name of the server/overseer expected by clients for hostname resolution",
     )
     group.add_argument(
@@ -84,7 +84,7 @@ def get_arg_parser(parser=None):
         "--wait_for_clients_timeout",
         type=int,
         required=False,
-        default=600,
+        default=3600,
         help="the number of seconds to wait for clients to connect before timing out",
     )
 
@@ -183,7 +183,7 @@ def run_server(
     server_name,
     expected_clients,
     output_dir,
-    wait_for_clients_timeout=600,
+    wait_for_clients_timeout=3600,
 ):
     """Runs the server communication process.
 
@@ -241,9 +241,10 @@ def run_server(
     # )
 
     # # create hosts file to resolve ip adresses
-    # with open("/etc/hosts", "a") as f:
-    #     # write server address
-    #     f.write(f"{overseer_ip}\t{overseer_name}\n")
+    with open("/etc/hosts", "a") as f:
+        # write server address
+        # f.write(f"{overseer_ip}\t{overseer_name}\n")
+        f.write(f"127.0.0.1\t{server_name}\n")
 
     # let's start the...
     logger.info("****************** NVFLARE SUBMIT SEQUENCE ******************")

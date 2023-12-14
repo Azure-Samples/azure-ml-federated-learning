@@ -59,8 +59,29 @@ def main():
 
     print("Creating comm_config.json")
     comm_config = {
-        "url": args.r
+        "redis" : {"url": args.r}
     }
+    log_config = """[loggers]
+keys=root
+
+[handlers]
+keys=consoleHandler
+
+[formatters]
+keys=fullFormatter
+
+[logger_root]
+level=DEBUG
+handlers=consoleHandler
+
+[handler_consoleHandler]
+class=StreamHandler
+level=DEBUG
+formatter=fullFormatter
+args=(sys.stdout,)
+
+[formatter_fullFormatter]
+format=%(asctime)s - %(name)s - %(levelname)s - %(message)s"""
 
     
     # look for all "local" subfolders under path args.w
@@ -74,6 +95,13 @@ def main():
                 print("comm_config_path: {}".format(comm_config_path))
                 with open(comm_config_path, "w") as f:
                     json.dump(comm_config, f)
+
+                # write log config as log.config.default
+                log_config_path = os.path.join(root, _dir, "log.config.default")
+                print("log_config_path: {}".format(log_config_path))
+                with open(log_config_path, "w") as f:
+                    f.write(log_config)
+
 
     # in the workspace folder, under each client folder, create a file called `comm_config.json`
     # with the following content:

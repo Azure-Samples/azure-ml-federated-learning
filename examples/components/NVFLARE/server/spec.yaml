@@ -35,7 +35,7 @@ inputs:
     description: "input to trigger the job to start, not actually used"
   wait_for_clients_timeout:
     type: integer
-    default: 600
+    default: 3600
     description: "the number of seconds to wait for clients to connect before timing out"
 
 outputs:

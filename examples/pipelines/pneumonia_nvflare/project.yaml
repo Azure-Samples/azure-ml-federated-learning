@@ -1,10 +1,10 @@
 api_version: 3
 name: example_project
 description: NVIDIA FLARE sample project yaml file
-# test 30
+# test 34
 
 participants:
-  - name: server-1
+  - name: server1
     type: server
     org: azureml
     fed_learn_port: 6379
@@ -14,7 +14,7 @@ participants:
       compute: "orchestrator-01"
       datastore: datastore_orchestrator
 
-  - name: worker-0
+  - name: worker0
     type: client
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore
@@ -23,7 +23,7 @@ participants:
       compute: silo0-01
       datastore: datastore_silo0
 
-  - name: worker-1
+  - name: worker1
     type: client
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore
@@ -32,7 +32,7 @@ participants:
       compute: silo1-01
       datastore: datastore_silo1
 
-  - name: worker-2
+  - name: worker2
     type: client
     org: azureml
     # NOTE: each participant needs an azureml compute and datastore

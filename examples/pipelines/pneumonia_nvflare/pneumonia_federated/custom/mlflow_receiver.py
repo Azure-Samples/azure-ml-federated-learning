@@ -91,27 +91,28 @@ class MLFlowAnalyticsReceiver(AnalyticsReceiver):
                 f"save tag {tag_name} and value {v} with type {analytic_data.data_type} from {record_origin}",
                 fire_event=False,
             )
-            if analytic_data.data_type == AnalyticsDataType.SCALAR:
-                mlflow.log_metric(tag_name, v)
-            elif analytic_data.data_type == AnalyticsDataType.IMAGE:
-                mlflow.log_figure(tag_name, v)
-            elif analytic_data.data_type == AnalyticsDataType.TEXT:
-                mlflow.log_text(tag_name, v)
+            # if analytic_data.data_type == AnalyticsDataType.SCALAR:
+            #     print(f"mlflow.log_metric({tag_name}, {v})")
+            #     #mlflow.log_metric(tag_name, v)
+            # elif analytic_data.data_type == AnalyticsDataType.IMAGE:
+            #     mlflow.log_figure(tag_name, v)
+            # elif analytic_data.data_type == AnalyticsDataType.TEXT:
+            #     mlflow.log_text(tag_name, v)
 
-            func_name = FUNCTION_MAPPING.get(analytic_data.data_type, None)
-            if func_name is None:
-                self.log_error(
-                    fl_ctx,
-                    f"The data_type {analytic_data.data_type} is not supported.",
-                    fire_event=False,
-                )
-                continue
+            # func_name = FUNCTION_MAPPING.get(analytic_data.data_type, None)
+            # if func_name is None:
+            #     self.log_error(
+            #         fl_ctx,
+            #         f"The data_type {analytic_data.data_type} is not supported.",
+            #         fire_event=False,
+            #     )
+            #     continue
 
-            func = getattr(writer, func_name)
-            if isinstance(analytic_data.kwargs, dict):
-                func(tag_name, v, **analytic_data.kwargs)
-            else:
-                func(tag_name, v)
+            # func = getattr(writer, func_name)
+            # if isinstance(analytic_data.kwargs, dict):
+            #     func(tag_name, v, **analytic_data.kwargs)
+            # else:
+            #     func(tag_name, v)
 
     def finalize(self, fl_ctx: FLContext):
         mlflow.end_run()
